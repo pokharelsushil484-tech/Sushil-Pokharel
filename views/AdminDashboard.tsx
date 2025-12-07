@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest } from '../types';
 import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link } from 'lucide-react';
@@ -133,7 +134,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                  const data = JSON.parse(stored);
                  data.user = { ...data.user, ...req.payload };
                  localStorage.setItem(key, JSON.stringify(data));
-                 alert(`Profile updated for ${req.username}`);
+                 alert(`Profile data updated for ${req.username}:\nName: ${req.payload.name}\nInstitution: ${req.payload.institution}`);
              } else {
                  alert("User data not found, cannot update.");
              }
@@ -237,7 +238,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                         
                         {req.type === 'PROFILE_UPDATE' && (
                             <div className="text-xs text-gray-600 dark:text-gray-400 mb-3 bg-gray-50 dark:bg-gray-900/50 p-2 rounded">
-                                Changes: Name ({req.payload.name}), Phone ({req.payload.phone})...
+                                <span className="block font-bold mb-1">Proposed Changes:</span>
+                                Name: {req.payload.name}<br/>
+                                Institution: {req.payload.institution}<br/>
+                                Phone: {req.payload.phone}
                             </div>
                         )}
 
@@ -262,7 +266,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                                   : 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100'
                               }`}
                             >
-                                {req.type === 'PASSWORD_RESET' ? 'Approve & Send Link' : req.type === 'VERIFICATION_REQUEST' ? 'Approve & Verify' : req.type === 'DELETE_ACCOUNT' ? 'Confirm Delete' : 'Approve'}
+                                {req.type === 'PASSWORD_RESET' ? 'Approve & Send Link' : req.type === 'VERIFICATION_REQUEST' ? 'Approve & Verify' : req.type === 'DELETE_ACCOUNT' ? 'Confirm Delete' : 'Approve Update'}
                             </button>
                             <button 
                               onClick={() => handleRequest(req, 'REJECT')}

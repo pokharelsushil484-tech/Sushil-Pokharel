@@ -150,10 +150,24 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                 />
                 <input 
                   className="w-full p-2 rounded-lg text-gray-800 text-sm"
-                  value={editProfileData.phone}
-                  onChange={e => setEditProfileData({...editProfileData, phone: e.target.value})}
-                  placeholder="Phone"
+                  value={editProfileData.institution}
+                  onChange={e => setEditProfileData({...editProfileData, institution: e.target.value})}
+                  placeholder="Institution"
                 />
+                <div className="grid grid-cols-2 gap-2">
+                   <input 
+                    className="w-full p-2 rounded-lg text-gray-800 text-sm"
+                    value={editProfileData.phone}
+                    onChange={e => setEditProfileData({...editProfileData, phone: e.target.value})}
+                    placeholder="Phone"
+                  />
+                  <input 
+                    className="w-full p-2 rounded-lg text-gray-800 text-sm"
+                    value={editProfileData.country}
+                    onChange={e => setEditProfileData({...editProfileData, country: e.target.value})}
+                    placeholder="Country"
+                  />
+                </div>
                 <input 
                   className="w-full p-2 rounded-lg text-gray-800 text-sm"
                   value={editProfileData.education}
@@ -161,8 +175,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                   placeholder="Education"
                 />
                 <div className="flex space-x-2 pt-2">
-                    <button onClick={sendProfileUpdateRequest} className="flex-1 bg-white text-indigo-600 py-2 rounded-lg font-bold text-sm">Send Request</button>
-                    <button onClick={() => setIsEditingProfile(false)} className="bg-indigo-800 text-white p-2 rounded-lg"><X size={20}/></button>
+                    <button onClick={sendProfileUpdateRequest} className="flex-1 bg-white text-indigo-600 py-2 rounded-lg font-bold text-sm hover:bg-indigo-50 transition-colors">Send Request</button>
+                    <button onClick={() => setIsEditingProfile(false)} className="bg-indigo-800 hover:bg-indigo-900 text-white p-2 rounded-lg transition-colors"><X size={20}/></button>
                 </div>
             </div>
         ) : (
