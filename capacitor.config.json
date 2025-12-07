@@ -1,0 +1,8 @@
+{
+  "appId": "com.sushilpokharel.studentpocket",
+  "appName": "StudentPocket",
+  "webDir": "build",
+  "server": {
+    "androidScheme": "https"
+  }
+}
