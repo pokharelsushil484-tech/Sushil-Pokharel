@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest } from '../types';
-import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound } from 'lucide-react';
+import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2 } from 'lucide-react';
 import { sendPasswordResetEmail } from '../services/emailService';
 import { ADMIN_USERNAME } from '../constants';
 
@@ -13,6 +13,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   const [usersList, setUsersList] = useState<any[]>([]);
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [userFilter, setUserFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED'>('ALL');
 
   useEffect(() => {
     const usersStr = localStorage.getItem('studentpocket_users');
@@ -223,6 +224,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
     alert("All student accounts and their data have been deleted successfully.");
   };
 
+  const filteredUsers = usersList.filter(u => {
+    if (userFilter === 'PENDING') return !u.verified;
+    if (userFilter === 'VERIFIED') return u.verified;
+    return true;
+  });
+
   return (
     <div className="pb-20 animate-fade-in">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Admin Dashboard</h1>
@@ -311,13 +318,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
           <span className="flex items-center"><Users size={16} className="mr-2" /> Registered Users</span>
           <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-1 rounded-full">{usersList.length}</span>
         </h3>
+
+        {/* Filters */}
+        <div className="flex space-x-2 mb-4 overflow-x-auto px-1">
+             <button 
+                onClick={() => setUserFilter('ALL')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${userFilter === 'ALL' ? 'bg-gray-800 text-white dark:bg-white dark:text-gray-900' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}
+             >
+                 All
+             </button>
+             <button 
+                onClick={() => setUserFilter('PENDING')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center ${userFilter === 'PENDING' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}
+             >
+                 <AlertTriangle size={12} className="mr-1" /> Pending
+             </button>
+             <button 
+                onClick={() => setUserFilter('VERIFIED')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center ${userFilter === 'VERIFIED' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}
+             >
+                 <BadgeCheck size={12} className="mr-1" /> Verified
+             </button>
+        </div>
+
         <div className="space-y-4">
-          {usersList.length === 0 ? (
+          {filteredUsers.length === 0 ? (
             <div className="p-8 text-center text-gray-500 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
-              <p className="text-sm">No registered students yet.</p>
+              <p className="text-sm">No {userFilter === 'ALL' ? '' : userFilter.toLowerCase()} students found.</p>
             </div>
           ) : (
-            usersList.map((u, idx) => (
+            filteredUsers.map((u, idx) => (
               <div key={idx} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                 {/* User Card Header */}
                 <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-start">
