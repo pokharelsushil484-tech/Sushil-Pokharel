@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Calendar, BookOpen, Shield, Briefcase, GraduationCap, Settings, ShieldCheck, LayoutDashboard, MessageCircle } from 'lucide-react';
+import { Home, Calendar, BookOpen, Shield, Briefcase, GraduationCap, Settings, LayoutDashboard, MessageCircle, Lock } from 'lucide-react';
 import { View } from '../types';
 import { APP_NAME } from '../constants';
 
@@ -7,9 +7,17 @@ interface NavigationProps {
   currentView: View;
   setView: (view: View) => void;
   isAdmin?: boolean;
+  isVerified?: boolean;
 }
 
-export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, isAdmin }) => {
+export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, isAdmin, isVerified = false }) => {
+  // Define which views are locked for unverified users
+  const isLocked = (view: View) => {
+    if (isAdmin) return false;
+    if (isVerified) return false;
+    return [View.VAULT, View.CV_BUILDER, View.AI_CHAT].includes(view);
+  };
+
   let navItems = [
     { view: View.DASHBOARD, icon: Home, label: 'Home' },
     { view: View.AI_CHAT, icon: MessageCircle, label: 'Ask AI' },
@@ -41,20 +49,26 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
           <p className="text-xs text-gray-400">Student Manager</p>
         </div>
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {navItems.map((item) => (
-            <button
-              key={item.view}
-              onClick={() => setView(item.view)}
-              className={`flex items-center w-full px-4 py-3 rounded-xl transition-all ${
-                currentView === item.view
-                  ? 'bg-indigo-50 text-indigo-700 font-medium shadow-sm'
-                  : 'text-gray-500 hover:bg-gray-50'
-              }`}
-            >
-              <item.icon className="w-5 h-5 mr-3" />
-              {item.label}
-            </button>
-          ))}
+          {navItems.map((item) => {
+            const locked = isLocked(item.view);
+            return (
+              <button
+                key={item.view}
+                onClick={() => setView(item.view)}
+                className={`flex items-center w-full px-4 py-3 rounded-xl transition-all justify-between ${
+                  currentView === item.view
+                    ? 'bg-indigo-50 text-indigo-700 font-medium shadow-sm'
+                    : 'text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center">
+                  <item.icon className="w-5 h-5 mr-3" />
+                  {item.label}
+                </div>
+                {locked && <Lock size={14} className="text-gray-300" />}
+              </button>
+            );
+          })}
         </nav>
       </div>
 
@@ -62,18 +76,26 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30 pb-safe">
         <div className="flex justify-around items-center h-16 px-2">
           {/* Show top 5 items for mobile bottom bar, prioritizing Admin if admin */}
-          {navItems.slice(0, 5).map((item) => (
-            <button
-              key={item.view}
-              onClick={() => setView(item.view)}
-              className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${
-                currentView === item.view ? 'text-indigo-600' : 'text-gray-400'
-              }`}
-            >
-              <item.icon className={`w-6 h-6 ${currentView === item.view ? 'fill-current opacity-20' : ''}`} />
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </button>
-          ))}
+          {navItems.slice(0, 5).map((item) => {
+            const locked = isLocked(item.view);
+            return (
+              <button
+                key={item.view}
+                onClick={() => setView(item.view)}
+                className={`flex flex-col items-center justify-center w-full h-full space-y-1 relative ${
+                  currentView === item.view ? 'text-indigo-600' : 'text-gray-400'
+                }`}
+              >
+                <item.icon className={`w-6 h-6 ${currentView === item.view ? 'fill-current opacity-20' : ''}`} />
+                <span className="text-[10px] font-medium">{item.label}</span>
+                {locked && (
+                  <div className="absolute top-1 right-2 bg-gray-100 rounded-full p-0.5 border border-white">
+                    <Lock size={10} className="text-gray-400" />
+                  </div>
+                )}
+              </button>
+            );
+          })}
            {/* 'More' button to access Settings or others if list is long */}
            {!isAdmin && (
               <button

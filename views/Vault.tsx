@@ -1,20 +1,39 @@
+
 import React, { useState } from 'react';
 import { UserProfile, VaultDocument } from '../types';
-import { Shield, Lock, Unlock, FileText, Image as ImageIcon, Camera } from 'lucide-react';
+import { Shield, Lock, Unlock, FileText, Image as ImageIcon, Camera, AlertTriangle } from 'lucide-react';
 
 interface VaultProps {
   user: UserProfile;
   documents: VaultDocument[];
   saveDocuments: (docs: VaultDocument[]) => void;
+  isVerified?: boolean;
 }
 
-export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments }) => {
+export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, isVerified }) => {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
 
   // Default PIN for simulation if not set in profile
   const CORRECT_PIN = user.vaultPin || "1234"; 
+  
+  // LOCK FOR UNVERIFIED USERS
+  if (isVerified === false) {
+      return (
+          <div className="h-[80vh] flex flex-col items-center justify-center animate-fade-in px-4">
+              <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl w-full max-w-sm text-center border border-yellow-200">
+                  <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Lock className="w-8 h-8 text-yellow-600" />
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Feature Locked</h2>
+                  <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm">
+                      The Document Vault is restricted to verified students only. Please request verification from your Dashboard.
+                  </p>
+              </div>
+          </div>
+      );
+  }
 
   const handleUnlock = () => {
     if (pin === CORRECT_PIN) {

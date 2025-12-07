@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest } from '../types';
-import { Users, AlertTriangle, Trash2, Mail, RefreshCw, BadgeCheck, MessageSquare, Power, Link } from 'lucide-react';
-import { sendVerificationEmail, sendPasswordResetEmail } from '../services/emailService';
+import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link } from 'lucide-react';
+import { sendPasswordResetEmail } from '../services/emailService';
 
 interface AdminDashboardProps {
   resetApp: () => void;
@@ -28,7 +27,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
             email: value.email,
             password: value.password,
             verified: value.verified,
-            verificationCode: value.verificationCode,
             profile: profile // Full details if available
           };
         });
@@ -52,31 +50,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
     
     if (users[targetUser]) {
       users[targetUser].verified = !currentStatus;
-      // If verifying manually, remove code requirement
-      if (!currentStatus) delete users[targetUser].verificationCode;
-      
       localStorage.setItem('studentpocket_users', JSON.stringify(users));
       setRefreshTrigger(prev => prev + 1);
-    }
-  };
-
-  const resendVerification = async (u: any) => {
-    if (u.verified) return;
-    const code = u.verificationCode || Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Ensure code is saved if we generated a new one
-    const usersStr = localStorage.getItem('studentpocket_users');
-    if (usersStr) {
-        const users = JSON.parse(usersStr);
-        users[u.username].verificationCode = code;
-        localStorage.setItem('studentpocket_users', JSON.stringify(users));
-    }
-
-    const sent = await sendVerificationEmail(u.email, u.username, code);
-    if(sent) {
-      alert(`Email sent successfully to ${u.email}`);
-    } else {
-      alert(`Failed to send email to ${u.email}`);
     }
   };
 
@@ -172,11 +147,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                  // Fallback to manual reset if no email found
                  adminResetPassword(req.username);
              }
-          } else if (req.type === 'VERIFICATION_CODE') {
-             // Find user code and alert it or resend
-             const userObj = usersList.find(u => u.username === req.username);
-             if (userObj) resendVerification(userObj);
-             else alert("User not found");
+          } else if (req.type === 'VERIFICATION_REQUEST') {
+             // Simply verify the user
+             toggleVerification(req.username, false); // false = current status, so it becomes true
+             alert(`User ${req.username} has been verified!`);
           } else if (req.type === 'DELETE_ACCOUNT') {
              executeUserDeletion(req.username);
              alert(`User ${req.username} has been deleted.`);
@@ -272,6 +246,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                                 <AlertTriangle size={12} className="mr-2"/> User requested permanent account deletion.
                             </div>
                         )}
+
+                         {req.type === 'VERIFICATION_REQUEST' && (
+                            <div className="text-xs text-yellow-600 bg-yellow-50 p-2 rounded mb-3 flex items-center">
+                                <BadgeCheck size={12} className="mr-2"/> User is asking to unlock full features.
+                            </div>
+                        )}
                         
                         <div className="flex space-x-2">
                             <button 
@@ -282,7 +262,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                                   : 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100'
                               }`}
                             >
-                                {req.type === 'PASSWORD_RESET' ? 'Approve & Send Link' : req.type === 'VERIFICATION_CODE' ? 'Send/View Code' : req.type === 'DELETE_ACCOUNT' ? 'Confirm Delete' : 'Approve'}
+                                {req.type === 'PASSWORD_RESET' ? 'Approve & Send Link' : req.type === 'VERIFICATION_REQUEST' ? 'Approve & Verify' : req.type === 'DELETE_ACCOUNT' ? 'Confirm Delete' : 'Approve'}
                             </button>
                             <button 
                               onClick={() => handleRequest(req, 'REJECT')}
@@ -348,9 +328,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                     <p><span className="font-bold text-gray-500">Name:</span> {u.profile?.name || 'N/A'}</p>
                     <p><span className="font-bold text-gray-500">Phone:</span> {u.profile?.phone || 'N/A'}</p>
                     <p className="col-span-2"><span className="font-bold text-gray-500">Education:</span> {u.profile?.education || 'N/A'}</p>
-                    {u.verificationCode && !u.verified && (
-                        <p className="col-span-2 text-orange-600 font-mono mt-1"><span className="font-bold">Code:</span> {u.verificationCode}</p>
-                    )}
                 </div>
 
                 {/* Action Buttons */}

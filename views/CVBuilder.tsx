@@ -1,15 +1,34 @@
+
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
-import { Mail, Phone, MapPin, Download, Loader2 } from 'lucide-react';
+import { Mail, Phone, MapPin, Download, Loader2, Lock } from 'lucide-react';
 
 declare var html2pdf: any;
 
 interface CVBuilderProps {
   user: UserProfile;
+  isVerified?: boolean;
 }
 
-export const CVBuilder: React.FC<CVBuilderProps> = ({ user }) => {
+export const CVBuilder: React.FC<CVBuilderProps> = ({ user, isVerified }) => {
   const [isExporting, setIsExporting] = useState(false);
+
+  // LOCK FOR UNVERIFIED USERS
+  if (isVerified === false) {
+      return (
+          <div className="h-[80vh] flex flex-col items-center justify-center animate-fade-in px-4">
+              <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl w-full max-w-sm text-center border border-yellow-200">
+                  <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Lock className="w-8 h-8 text-yellow-600" />
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Feature Locked</h2>
+                  <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm">
+                      CV Builder is restricted to verified students only. Please request verification from your Dashboard.
+                  </p>
+              </div>
+          </div>
+      );
+  }
 
   const handleExport = () => {
     setIsExporting(true);

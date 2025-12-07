@@ -74,7 +74,7 @@ export interface Scholarship {
   link?: string;
 }
 
-export type RequestType = 'PROFILE_UPDATE' | 'PASSWORD_RESET' | 'VERIFICATION_CODE' | 'DELETE_ACCOUNT';
+export type RequestType = 'PROFILE_UPDATE' | 'PASSWORD_RESET' | 'VERIFICATION_REQUEST' | 'DELETE_ACCOUNT';
 
 export interface ChangeRequest {
   id: string;

@@ -1,14 +1,16 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Bot, User, Trash2, Loader2, MessageCircle } from 'lucide-react';
+import { Send, Bot, User, Trash2, Loader2, MessageCircle, Lock } from 'lucide-react';
 import { ChatMessage } from '../types';
 import { chatWithAI } from '../services/geminiService';
 
 interface AIChatProps {
   chatHistory: ChatMessage[];
   setChatHistory: (messages: ChatMessage[]) => void;
+  isVerified?: boolean;
 }
 
-export const AIChat: React.FC<AIChatProps> = ({ chatHistory, setChatHistory }) => {
+export const AIChat: React.FC<AIChatProps> = ({ chatHistory, setChatHistory, isVerified }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -20,6 +22,23 @@ export const AIChat: React.FC<AIChatProps> = ({ chatHistory, setChatHistory }) =
   useEffect(() => {
     scrollToBottom();
   }, [chatHistory, isLoading]);
+
+  // LOCK FOR UNVERIFIED USERS
+  if (isVerified === false) {
+      return (
+          <div className="h-[80vh] flex flex-col items-center justify-center animate-fade-in px-4">
+              <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl w-full max-w-sm text-center border border-yellow-200">
+                  <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Lock className="w-8 h-8 text-yellow-600" />
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Feature Locked</h2>
+                  <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm">
+                      AI Study Assistant is restricted to verified students only. Please request verification from your Dashboard.
+                  </p>
+              </div>
+          </div>
+      );
+  }
 
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();

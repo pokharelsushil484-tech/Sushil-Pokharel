@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { UserProfile, ChangeRequest } from '../types';
-import { Lock, ArrowRight, User, UserPlus, ArrowLeft, Mail, ShieldCheck, Send, KeyRound, CheckCircle2, Eye, EyeOff, Loader2, BadgeCheck, MessageSquarePlus } from 'lucide-react';
+import { Lock, ArrowRight, User, UserPlus, ArrowLeft, Mail, ShieldCheck, Send, KeyRound, CheckCircle2, Eye, EyeOff, Loader2, BadgeCheck, MessageSquarePlus, AlertTriangle } from 'lucide-react';
 import { APP_NAME, ADMIN_EMAIL } from '../constants';
-import { sendVerificationEmail, sendPasswordResetEmail } from '../services/emailService';
+import { sendPasswordResetEmail } from '../services/emailService';
 
 interface LoginProps {
   user: UserProfile | null;
@@ -11,7 +10,7 @@ interface LoginProps {
   resetUser?: string | null; // Username passed if handling a valid reset link
 }
 
-type AuthView = 'LOGIN' | 'REGISTER' | 'VERIFY_CODE' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD' | 'LINK_SENT';
+type AuthView = 'LOGIN' | 'REGISTER' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD' | 'LINK_SENT';
 
 export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
   const [view, setView] = useState<AuthView>('LOGIN');
@@ -21,7 +20,6 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
   
   // UI State
   const [showPassword, setShowPassword] = useState(false);
@@ -83,13 +81,8 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
     const storedPassword = typeof userData === 'string' ? userData : userData.password;
 
     if (storedPassword === password) {
-      if (userData.verified === false) {
-          // If password matches but not verified, send them to verify screen
-          setView('VERIFY_CODE');
-          setEmail(userData.email);
-          setError('Please verify your email first.');
-          return;
-      }
+      // Login successful regardless of verification status
+      // App.tsx handles feature locking based on isVerified
       onLogin(username);
     } else {
       setError('Invalid password');
@@ -125,81 +118,43 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
 
     setIsSending(true);
 
-    // Generate 6-Digit Verification Code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Send Email via Service
-    const emailSent = await sendVerificationEmail(email, username, code);
+    // Simulate small delay
+    await new Promise(resolve => setTimeout(resolve, 800));
     
     setIsSending(false);
 
-    if (emailSent) {
-      // Save User with verified: false ONLY if email sent successfully (or simulated success)
-      users[username] = {
-          password,
-          email,
-          verified: false,
-          verificationCode: code
-      };
-      localStorage.setItem('studentpocket_users', JSON.stringify(users));
+    // Create User (Unverified by default) - NO VERIFICATION CODE
+    users[username] = {
+        password,
+        email,
+        verified: false, // Default to false
+    };
+    localStorage.setItem('studentpocket_users', JSON.stringify(users));
 
-      // Switch to VERIFY_CODE view
-      setView('VERIFY_CODE');
-      setSuccessMsg(`Verification code sent to ${email}`);
-    } else {
-      setError("Could not send verification email. Try again.");
-    }
+    // Initialize user data storage
+    const storageKey = `studentpocket_data_${username}`;
+    const initialData = {
+        user: { 
+            name: username, 
+            email: email, 
+            phone: "", 
+            education: "", 
+            institution: "", 
+            country: "Nepal", 
+            skills: [] 
+        },
+        assignments: [],
+        notes: [],
+        vaultDocs: [],
+        scholarships: []
+    };
+    localStorage.setItem(storageKey, JSON.stringify(initialData));
+
+    alert("✅ Account Created! You are in Limited Mode. Please request verification from the Dashboard to unlock all features.");
+    onLogin(username);
   };
 
-  const verifyAccount = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    const usersStr = localStorage.getItem('studentpocket_users');
-    const users = usersStr ? JSON.parse(usersStr) : {};
-    const userData = users[username];
-
-    if (!userData) {
-      setError('User record missing. Please register again.');
-      return;
-    }
-
-    if (userData.verificationCode === verificationCode) {
-        // Success
-        userData.verified = true;
-        delete userData.verificationCode;
-        users[username] = userData;
-        localStorage.setItem('studentpocket_users', JSON.stringify(users));
-        
-        // Initialize user data storage
-        const storageKey = `studentpocket_data_${username}`;
-        if (!localStorage.getItem(storageKey)) {
-          const initialData = {
-              user: { 
-                  name: username, // Default name to username 
-                  email: userData.email, 
-                  phone: "", 
-                  education: "", 
-                  institution: "", 
-                  country: "Nepal", 
-                  skills: [] 
-              },
-              assignments: [],
-              notes: [],
-              vaultDocs: [],
-              scholarships: []
-          };
-          localStorage.setItem(storageKey, JSON.stringify(initialData));
-        }
-
-        alert("✅ Account Verified! Logging you in.");
-        onLogin(username);
-    } else {
-        setError('Invalid code. Please check your email.');
-    }
-  };
-
-  const requestAdminAction = (type: 'PASSWORD_RESET' | 'VERIFICATION_CODE') => {
+  const requestAdminAction = (type: 'PASSWORD_RESET') => {
     if (!username) {
         setError("Please enter your Username first.");
         return;
@@ -332,7 +287,6 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
                   {view === 'LINK_SENT' ? <Mail size={40} /> : 
                    view === 'FORGOT_PASSWORD' ? <KeyRound size={40} /> :
                    view === 'RESET_PASSWORD' ? <ShieldCheck size={40} /> :
-                   view === 'VERIFY_CODE' ? <CheckCircle2 size={40} /> :
                    (username ? username.charAt(0).toUpperCase() : 'S')}
                 </span>
             )}
@@ -342,12 +296,16 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
                  <BadgeCheck className="w-6 h-6 text-blue-500 fill-blue-50" />
                </div>
             )}
+             {view === 'LOGIN' && username && !isVerified && username !== 'admin' && (
+               <div className="absolute bottom-1 right-1 bg-white rounded-full p-0.5 shadow-sm">
+                 <AlertTriangle className="w-6 h-6 text-yellow-500 fill-yellow-50" />
+               </div>
+            )}
         </div>
 
         <h1 className="text-2xl font-bold text-gray-800 mb-1">
           {view === 'LOGIN' ? 'Welcome Back' : 
            view === 'REGISTER' ? 'Create Account' : 
-           view === 'VERIFY_CODE' ? 'Verify Email' :
            view === 'FORGOT_PASSWORD' ? 'Recover Account' :
            view === 'RESET_PASSWORD' ? 'New Password' :
            'Check Your Inbox'}
@@ -355,75 +313,18 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
         <p className="text-gray-500 mb-8 font-medium">
           {view === 'LOGIN' ? APP_NAME : 
            view === 'REGISTER' ? 'Join StudentPocket' : 
-           view === 'VERIFY_CODE' ? `Code sent to ${email}` :
            view === 'FORGOT_PASSWORD' ? 'Enter details to reset password' :
            view === 'RESET_PASSWORD' ? `Resetting for ${username}` :
            successMsg}
         </p>
 
-        {/* VERIFY CODE VIEW */}
-        {view === 'VERIFY_CODE' && (
-           <form onSubmit={verifyAccount} className="space-y-6">
-              <div className="text-left">
-                  <label className="text-xs font-bold text-gray-500 ml-1 uppercase">Enter 6-Digit Code</label>
-                  <input
-                      type="text"
-                      maxLength={6}
-                      value={verificationCode}
-                      onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                      className="block w-full px-4 py-4 text-center text-2xl tracking-[0.5em] font-mono border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 text-gray-800 mt-1"
-                      placeholder="000000"
-                  />
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                    type="submit"
-                    className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
-                >
-                    Verify Code
-                </button>
-                <a 
-                    href="https://mail.google.com/" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center px-4 bg-white border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 hover:text-red-600 transition-colors"
-                    title="Open Gmail"
-                >
-                    <Mail className="w-5 h-5" />
-                </a>
-              </div>
-              
-              <div className="mt-2 text-center">
-                 <button 
-                   type="button" 
-                   onClick={() => requestAdminAction('VERIFICATION_CODE')}
-                   className="text-xs text-orange-500 hover:text-orange-700 font-medium underline"
-                 >
-                   Didn't receive code? Ask Admin
-                 </button>
-                 <p className="text-[10px] text-gray-400 mt-1">Contact: {ADMIN_EMAIL}</p>
-              </div>
-              
-              {error && <p className="text-red-500 text-xs mt-1 font-medium">{error}</p>}
-
-              <button 
-                type="button" 
-                onClick={() => { setView('LOGIN'); setError(''); }}
-                className="w-full text-gray-500 text-sm py-2 hover:text-indigo-600 flex items-center justify-center"
-              >
-                <ArrowLeft className="w-4 h-4 mr-1" /> Back to Login
-              </button>
-           </form>
-        )}
-
-        {/* LINK_SENT VIEW (Used for Password Reset Link) */}
+        {/* LINK_SENT VIEW */}
         {view === 'LINK_SENT' && (
            <div className="space-y-6">
               <div className="bg-indigo-50 p-4 rounded-xl text-sm text-indigo-800">
                   <p className="mb-2 font-medium">Link Sent!</p>
                   <p className="text-xs text-indigo-500">
-                    If using the live email service, check your inbox. If simulating, check the prompt/alert.
+                    Check your email inbox to reset your password.
                   </p>
               </div>
 
@@ -574,8 +475,8 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
                   disabled={isSending}
                   className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-lg hover:bg-indigo-700 transition-all flex items-center justify-center mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                  {isSending ? <Loader2 className="animate-spin mr-2" /> : <Send className="mr-2 w-5 h-5" />}
-                  {isSending ? "Sending..." : "Send Code"}
+                  {isSending ? <Loader2 className="animate-spin mr-2" /> : <UserPlus className="mr-2 w-5 h-5" />}
+                  {isSending ? "Creating Account..." : "Sign Up"}
               </button>
               
               <button 

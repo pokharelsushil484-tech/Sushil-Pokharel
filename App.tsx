@@ -46,7 +46,7 @@ function App() {
   // Helper to check verification status dynamically
   const isVerified = (() => {
     if (!currentUsername) return false;
-    // Admin is always "verified" conceptually, or just don't show badge
+    // Admin is always "verified" conceptually
     if (currentUsername === 'admin') return true; 
 
     try {
@@ -76,8 +76,6 @@ function App() {
           // *** PASSWORD RESET FLOW ***
           if (userData && userData.resetToken === token) {
              setResetUser(user);
-             // We do NOT clear the URL yet so the token persists if they reload, 
-             // but we also don't auto-login. The Login component handles the UI.
           } else {
              alert("❌ Invalid or expired reset link.");
           }
@@ -198,9 +196,10 @@ function App() {
           user={data.user} 
           documents={data.vaultDocs} 
           saveDocuments={(d) => setData({...data, vaultDocs: d})} 
+          isVerified={isVerified}
         />;
       case View.CV_BUILDER:
-        return <CVBuilder user={data.user} />;
+        return <CVBuilder user={data.user} isVerified={isVerified} />;
       case View.SCHOLARSHIP:
         return <ScholarshipTracker
           scholarships={data.scholarships || []}
@@ -210,6 +209,7 @@ function App() {
         return <AIChat 
           chatHistory={data.chatHistory || []}
           setChatHistory={(msg) => setData({...data, chatHistory: msg})}
+          isVerified={isVerified}
         />;
       case View.SETTINGS:
         return <Settings 
@@ -240,6 +240,7 @@ function App() {
           currentView={view} 
           setView={setView} 
           isAdmin={currentUsername === 'admin'} 
+          isVerified={isVerified}
         />
       </div>
     </div>

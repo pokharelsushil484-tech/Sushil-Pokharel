@@ -1,6 +1,6 @@
-import React from 'react';
-import { UserProfile, Assignment } from '../types';
-import { Clock, CheckCircle2, BadgeCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { UserProfile, Assignment, ChangeRequest } from '../types';
+import { Clock, CheckCircle2, BadgeCheck, AlertTriangle, ChevronRight } from 'lucide-react';
 import { MOTIVATIONAL_QUOTES } from '../constants';
 
 interface DashboardProps {
@@ -10,6 +10,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerified }) => {
+  const [requestSent, setRequestSent] = useState(false);
   const pendingAssignments = assignments.filter(a => !a.completed).length;
   const completedAssignments = assignments.filter(a => a.completed).length;
   const total = assignments.length || 1;
@@ -17,6 +18,31 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   const quote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+
+  const handleRequestVerification = () => {
+     if(requestSent) return;
+     const request: ChangeRequest = {
+         id: Date.now().toString(),
+         username: user.name, // Assuming name matches username for initial setup
+         type: 'VERIFICATION_REQUEST',
+         status: 'PENDING',
+         timestamp: new Date().toISOString()
+     };
+     
+     const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
+     const reqs = JSON.parse(reqStr);
+     
+     if(reqs.find((r:any) => r.username === user.name && r.type === 'VERIFICATION_REQUEST' && r.status === 'PENDING')) {
+         alert("Request already pending.");
+         setRequestSent(true);
+         return;
+     }
+
+     reqs.push(request);
+     localStorage.setItem('studentpocket_requests', JSON.stringify(reqs));
+     setRequestSent(true);
+     alert("Verification request sent to Admin.");
+  };
 
   return (
     <div className="space-y-6 pb-20 animate-fade-in">
@@ -26,10 +52,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
           <p className="text-sm text-gray-500 font-medium uppercase tracking-wide">{today}</p>
           <div className="flex items-center space-x-2">
             <h1 className="text-2xl font-bold text-gray-900">Welcome back, {user.name.split(' ')[0]}</h1>
-            {isVerified && (
+            {isVerified ? (
               <div title="Verified Student">
                 <BadgeCheck className="w-6 h-6 text-blue-500 fill-blue-50" />
               </div>
+            ) : (
+                <div title="Unverified Account">
+                    <AlertTriangle className="w-6 h-6 text-yellow-500 fill-yellow-50" />
+                </div>
             )}
           </div>
         </div>
@@ -37,6 +67,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
           <img src={user.avatar} alt="Profile" className="w-12 h-12 rounded-full border-2 border-white shadow-md object-cover" />
         )}
       </header>
+      
+      {/* Verification Alert */}
+      {!isVerified && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-pulse">
+            <div className="flex items-center">
+                <AlertTriangle className="text-yellow-600 mr-3 flex-shrink-0" size={24} />
+                <div>
+                    <h3 className="text-yellow-800 font-bold text-sm">Limited Mode Active</h3>
+                    <p className="text-yellow-600 text-xs mt-1">Unlock AI Chat, Vault & CV by verifying email.</p>
+                </div>
+            </div>
+            <button 
+                onClick={handleRequestVerification}
+                disabled={requestSent}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white text-xs px-4 py-2 rounded-lg font-bold transition-colors whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+                {requestSent ? 'Request Pending' : 'Request Verification'}
+            </button>
+        </div>
+      )}
 
       {/* Progress Card */}
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-6 text-white shadow-xl shadow-indigo-200">
