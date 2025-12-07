@@ -10,7 +10,8 @@ import { CVBuilder } from './views/CVBuilder';
 import { Settings } from './views/Settings';
 import { ScholarshipTracker } from './views/ScholarshipTracker';
 import { AdminDashboard } from './views/AdminDashboard';
-import { View, UserProfile, Assignment, Note, VaultDocument, Scholarship } from './types';
+import { AIChat } from './views/AIChat';
+import { View, UserProfile, Assignment, Note, VaultDocument, Scholarship, ChatMessage } from './types';
 import { DEFAULT_USER } from './constants';
 
 interface AppData {
@@ -19,6 +20,7 @@ interface AppData {
   notes: Note[];
   vaultDocs: VaultDocument[];
   scholarships?: Scholarship[];
+  chatHistory?: ChatMessage[];
   darkMode?: boolean;
 }
 
@@ -28,6 +30,7 @@ const DEFAULT_DATA: AppData = {
   notes: [],
   vaultDocs: [],
   scholarships: [],
+  chatHistory: [],
   darkMode: false
 };
 
@@ -90,6 +93,8 @@ function App() {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
+        // Ensure chatHistory exists for older data
+        if (!parsed.chatHistory) parsed.chatHistory = [];
         setData(parsed);
         if (parsed.user) {
           setView(currentUsername === 'admin' ? View.ADMIN_DASHBOARD : View.DASHBOARD);
@@ -200,6 +205,11 @@ function App() {
         return <ScholarshipTracker
           scholarships={data.scholarships || []}
           setScholarships={(s) => setData({...data, scholarships: s})}
+        />;
+      case View.AI_CHAT:
+        return <AIChat 
+          chatHistory={data.chatHistory || []}
+          setChatHistory={(msg) => setData({...data, chatHistory: msg})}
         />;
       case View.SETTINGS:
         return <Settings 

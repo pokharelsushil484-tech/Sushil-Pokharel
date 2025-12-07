@@ -7,6 +7,7 @@ export enum View {
   VAULT = 'VAULT',
   CV_BUILDER = 'CV_BUILDER',
   SCHOLARSHIP = 'SCHOLARSHIP',
+  AI_CHAT = 'AI_CHAT',
   SETTINGS = 'SETTINGS',
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
 }
@@ -82,4 +83,11 @@ export interface ChangeRequest {
   payload?: any; // For profile updates, contains the new profile data
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   timestamp: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  text: string;
+  sender: 'user' | 'ai';
+  timestamp: number;
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Calendar, BookOpen, Shield, Briefcase, GraduationCap, Settings, ShieldCheck, LayoutDashboard } from 'lucide-react';
+import { Home, Calendar, BookOpen, Shield, Briefcase, GraduationCap, Settings, ShieldCheck, LayoutDashboard, MessageCircle } from 'lucide-react';
 import { View } from '../types';
 import { APP_NAME } from '../constants';
 
@@ -12,6 +12,7 @@ interface NavigationProps {
 export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, isAdmin }) => {
   let navItems = [
     { view: View.DASHBOARD, icon: Home, label: 'Home' },
+    { view: View.AI_CHAT, icon: MessageCircle, label: 'Ask AI' },
     { view: View.PLANNER, icon: Calendar, label: 'Plan' },
     { view: View.NOTES, icon: BookOpen, label: 'Notes' },
     { view: View.VAULT, icon: Shield, label: 'Vault' },

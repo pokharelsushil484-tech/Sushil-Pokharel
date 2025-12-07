@@ -38,3 +38,22 @@ export const generateStudyPlan = async (subject: string, hours: string): Promise
     return "Failed to generate plan.";
   }
 };
+
+export const chatWithAI = async (message: string): Promise<string> => {
+  const client = getClient();
+  if (!client) return "AI System is offline. Please check API Key configuration.";
+
+  try {
+    const response = await client.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: message,
+      config: {
+        systemInstruction: "You are a friendly, encouraging, and knowledgeable AI study companion inside the 'StudentPocket' app for Sushil Pokharel. Your goal is to help with homework, explain complex topics simply, provide career advice, and help organize study schedules. Keep answers concise, student-friendly, and motivating."
+      }
+    });
+    return response.text || "I'm having trouble thinking right now. Try again?";
+  } catch (error) {
+    console.error("Gemini Chat Error:", error);
+    return "Sorry, I couldn't connect to the AI server. Please check your connection.";
+  }
+};
