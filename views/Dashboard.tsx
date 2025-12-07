@@ -1,7 +1,9 @@
+
 import React, { useState } from 'react';
-import { UserProfile, Assignment, ChangeRequest } from '../types';
-import { Clock, CheckCircle2, BadgeCheck, AlertTriangle, ChevronRight } from 'lucide-react';
+import { UserProfile, Assignment } from '../types';
+import { Clock, CheckCircle2, BadgeCheck, AlertTriangle, Send } from 'lucide-react';
 import { MOTIVATIONAL_QUOTES } from '../constants';
+import { sendVerificationEmail } from '../services/emailService';
 
 interface DashboardProps {
   user: UserProfile;
@@ -11,7 +13,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerified, username }) => {
-  const [requestSent, setRequestSent] = useState(false);
+  const [isSendingLink, setIsSendingLink] = useState(false);
   const pendingAssignments = assignments.filter(a => !a.completed).length;
   const completedAssignments = assignments.filter(a => a.completed).length;
   const total = assignments.length || 1;
@@ -20,29 +22,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   const quote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
 
-  const handleRequestVerification = () => {
-     if(requestSent) return;
-     const request: ChangeRequest = {
-         id: Date.now().toString(),
-         username: username,
-         type: 'VERIFICATION_REQUEST',
-         status: 'PENDING',
-         timestamp: new Date().toISOString()
-     };
+  const handleSendVerification = async () => {
+     setIsSendingLink(true);
      
-     const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
-     const reqs = JSON.parse(reqStr);
+     const usersStr = localStorage.getItem('studentpocket_users');
+     if (!usersStr) return;
+     const users = JSON.parse(usersStr);
      
-     if(reqs.find((r:any) => r.username === username && r.type === 'VERIFICATION_REQUEST' && r.status === 'PENDING')) {
-         alert("Request already pending.");
-         setRequestSent(true);
-         return;
+     // Generate Server Token
+     const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+     
+     // Save token to user
+     if(users[username]) {
+         users[username] = { ...users[username], verificationToken: token };
+         localStorage.setItem('studentpocket_users', JSON.stringify(users));
      }
 
-     reqs.push(request);
-     localStorage.setItem('studentpocket_requests', JSON.stringify(reqs));
-     setRequestSent(true);
-     alert("Verification request sent to Admin.");
+     // Generate Link
+     const link = `${window.location.origin}${window.location.pathname}?mode=verify&user=${encodeURIComponent(username)}&token=${token}`;
+     
+     // Send Email
+     const sent = await sendVerificationEmail(user.email, user.name, link);
+     
+     setIsSendingLink(false);
+     if (sent) {
+         alert(`Verification link sent to ${user.email}. Please check your inbox.`);
+     }
   };
 
   const getPriorityStyles = (priority: string) => {
@@ -91,15 +96,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
                 </div>
                 <div>
                     <h3 className="text-yellow-900 font-bold text-lg">Limited Mode Active</h3>
-                    <p className="text-yellow-700 text-sm mt-0.5 font-medium">Unlock full features by verifying.</p>
+                    <p className="text-yellow-700 text-sm mt-0.5 font-medium">Verify your email to unlock all features.</p>
                 </div>
             </div>
             <button 
-                onClick={handleRequestVerification}
-                disabled={requestSent}
-                className="w-full sm:w-auto bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-yellow-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed text-sm"
+                onClick={handleSendVerification}
+                disabled={isSendingLink}
+                className="w-full sm:w-auto bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-yellow-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed text-sm flex items-center justify-center"
             >
-                {requestSent ? 'Request Pending' : 'Request Verification'}
+                <Send size={16} className="mr-2" />
+                {isSendingLink ? 'Sending...' : 'Verify via Email'}
             </button>
         </div>
       )}

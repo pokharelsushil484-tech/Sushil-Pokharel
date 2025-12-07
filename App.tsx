@@ -80,6 +80,24 @@ function App() {
           } else {
              alert("❌ Invalid or expired reset link.");
           }
+        } else if (mode === 'verify') {
+          // *** EMAIL VERIFICATION FLOW ***
+          if (userData && userData.verificationToken === token) {
+            // Verify User
+            users[user] = { ...userData, verified: true };
+            delete users[user].verificationToken; // Clean up token
+            localStorage.setItem('studentpocket_users', JSON.stringify(users));
+            
+            alert("✅ Account Successfully Verified! Logging you in...");
+            
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            // Log user in
+            setCurrentUsername(user);
+          } else {
+            alert("❌ Invalid or expired verification link.");
+          }
         }
       }
     }
