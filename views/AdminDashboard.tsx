@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ChangeRequest } from '../types';
 import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound } from 'lucide-react';
 import { sendPasswordResetEmail } from '../services/emailService';
+import { ADMIN_USERNAME } from '../constants';
 
 interface AdminDashboardProps {
   resetApp: () => void;
@@ -195,13 +196,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
 
     // Filter out students, keep admin if present (though typically admin is hardcoded)
     const preservedUsers: any = {};
+    if (users[ADMIN_USERNAME]) {
+        preservedUsers[ADMIN_USERNAME] = users[ADMIN_USERNAME];
+    }
+    // Also keep legacy admin if it exists just in case
     if (users['admin']) {
         preservedUsers['admin'] = users['admin'];
     }
 
     // Delete data for everyone else
     Object.keys(users).forEach(username => {
-        if (username !== 'admin') {
+        if (username !== ADMIN_USERNAME && username !== 'admin') {
             localStorage.removeItem(`studentpocket_data_${username}`);
         }
     });

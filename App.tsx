@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Navigation } from './components/Navigation';
 import { Onboarding } from './views/Onboarding';
@@ -12,7 +13,7 @@ import { ScholarshipTracker } from './views/ScholarshipTracker';
 import { AdminDashboard } from './views/AdminDashboard';
 import { AIChat } from './views/AIChat';
 import { View, UserProfile, Assignment, Note, VaultDocument, Scholarship, ChatMessage } from './types';
-import { DEFAULT_USER } from './constants';
+import { DEFAULT_USER, ADMIN_USERNAME } from './constants';
 
 interface AppData {
   user: UserProfile | null;
@@ -47,7 +48,7 @@ function App() {
   const isVerified = (() => {
     if (!currentUsername) return false;
     // Admin is always "verified" conceptually
-    if (currentUsername === 'admin') return true; 
+    if (currentUsername === ADMIN_USERNAME) return true; 
 
     try {
       const usersStr = localStorage.getItem('studentpocket_users');
@@ -95,7 +96,7 @@ function App() {
         if (!parsed.chatHistory) parsed.chatHistory = [];
         setData(parsed);
         if (parsed.user) {
-          setView(currentUsername === 'admin' ? View.ADMIN_DASHBOARD : View.DASHBOARD);
+          setView(currentUsername === ADMIN_USERNAME ? View.ADMIN_DASHBOARD : View.DASHBOARD);
         } else {
           setView(View.ONBOARDING);
         }
@@ -128,7 +129,7 @@ function App() {
 
   const handleOnboardingComplete = (profile: UserProfile) => {
     setData(prev => ({ ...prev, user: profile }));
-    setView(currentUsername === 'admin' ? View.ADMIN_DASHBOARD : View.DASHBOARD);
+    setView(currentUsername === ADMIN_USERNAME ? View.ADMIN_DASHBOARD : View.DASHBOARD);
   };
 
   const handleReset = () => {
@@ -174,11 +175,11 @@ function App() {
 
   // 3. Main App Views
   const renderView = () => {
-    const isAdmin = currentUsername === 'admin';
+    const isAdmin = currentUsername === ADMIN_USERNAME;
 
     switch (view) {
       case View.DASHBOARD:
-        return <Dashboard user={data.user} assignments={data.assignments} isVerified={isVerified} />;
+        return <Dashboard user={data.user} assignments={data.assignments} isVerified={isVerified} username={currentUsername} />;
       case View.PLANNER:
         return <StudyPlanner 
           assignments={data.assignments} 
@@ -239,7 +240,7 @@ function App() {
         <Navigation 
           currentView={view} 
           setView={setView} 
-          isAdmin={currentUsername === 'admin'} 
+          isAdmin={currentUsername === ADMIN_USERNAME} 
           isVerified={isVerified}
         />
       </div>

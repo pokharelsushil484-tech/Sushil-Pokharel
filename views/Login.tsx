@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { UserProfile, ChangeRequest } from '../types';
 import { Lock, ArrowRight, User, UserPlus, ArrowLeft, Mail, ShieldCheck, Send, KeyRound, CheckCircle2, Eye, EyeOff, Loader2, BadgeCheck, MessageSquarePlus, AlertTriangle } from 'lucide-react';
-import { APP_NAME, ADMIN_EMAIL } from '../constants';
+import { APP_NAME, ADMIN_EMAIL, ADMIN_USERNAME } from '../constants';
 import { sendPasswordResetEmail } from '../services/emailService';
 
 interface LoginProps {
@@ -62,8 +63,8 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
     setError('');
     
     // 1. Check Hardcoded Admin
-    if (username === 'admin' && password === 'admin@123') {
-      onLogin('admin');
+    if (username === ADMIN_USERNAME && password === 'Sushil@#$%123') {
+      onLogin(ADMIN_USERNAME);
       return;
     }
 
@@ -103,8 +104,8 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
       return;
     }
 
-    if (username === 'admin') {
-      setError('Username "admin" is reserved.');
+    if (username === ADMIN_USERNAME) {
+      setError(`Username "${ADMIN_USERNAME}" is reserved.`);
       return;
     }
 
@@ -296,7 +297,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
                  <BadgeCheck className="w-6 h-6 text-blue-500 fill-blue-50" />
                </div>
             )}
-             {view === 'LOGIN' && username && !isVerified && username !== 'admin' && (
+             {view === 'LOGIN' && username && !isVerified && username !== ADMIN_USERNAME && (
                <div className="absolute bottom-1 right-1 bg-white rounded-full p-0.5 shadow-sm">
                  <AlertTriangle className="w-6 h-6 text-yellow-500 fill-yellow-50" />
                </div>

@@ -7,9 +7,10 @@ interface DashboardProps {
   user: UserProfile;
   assignments: Assignment[];
   isVerified: boolean;
+  username: string;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerified }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerified, username }) => {
   const [requestSent, setRequestSent] = useState(false);
   const pendingAssignments = assignments.filter(a => !a.completed).length;
   const completedAssignments = assignments.filter(a => a.completed).length;
@@ -23,7 +24,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
      if(requestSent) return;
      const request: ChangeRequest = {
          id: Date.now().toString(),
-         username: user.name, // Assuming name matches username for initial setup
+         username: username,
          type: 'VERIFICATION_REQUEST',
          status: 'PENDING',
          timestamp: new Date().toISOString()
@@ -32,7 +33,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
      const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
      const reqs = JSON.parse(reqStr);
      
-     if(reqs.find((r:any) => r.username === user.name && r.type === 'VERIFICATION_REQUEST' && r.status === 'PENDING')) {
+     if(reqs.find((r:any) => r.username === username && r.type === 'VERIFICATION_REQUEST' && r.status === 'PENDING')) {
          alert("Request already pending.");
          setRequestSent(true);
          return;
@@ -44,44 +45,59 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
      alert("Verification request sent to Admin.");
   };
 
+  const getPriorityStyles = (priority: string) => {
+    switch (priority) {
+      case 'Urgent':
+        return 'bg-red-50 border-red-200 text-red-700';
+      case 'High':
+        return 'bg-orange-50 border-orange-200 text-orange-700';
+      case 'Medium':
+        return 'bg-blue-50 border-blue-200 text-blue-700';
+      default:
+        return 'bg-gray-50 border-gray-200 text-gray-700';
+    }
+  };
+
   return (
-    <div className="space-y-6 pb-20 animate-fade-in">
+    <div className="space-y-8 pb-24 animate-fade-in">
       {/* Header */}
       <header className="flex justify-between items-center">
         <div>
-          <p className="text-sm text-gray-500 font-medium uppercase tracking-wide">{today}</p>
-          <div className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold text-gray-900">Welcome back, {user.name.split(' ')[0]}</h1>
+          <p className="text-base text-gray-500 font-semibold uppercase tracking-wide">{today}</p>
+          <div className="flex items-center space-x-3 mt-1">
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Hi, {user.name.split(' ')[0]}</h1>
             {isVerified ? (
               <div title="Verified Student">
-                <BadgeCheck className="w-6 h-6 text-blue-500 fill-blue-50" />
+                <BadgeCheck className="w-7 h-7 text-blue-500 fill-blue-50" />
               </div>
             ) : (
                 <div title="Unverified Account">
-                    <AlertTriangle className="w-6 h-6 text-yellow-500 fill-yellow-50" />
+                    <AlertTriangle className="w-7 h-7 text-yellow-500 fill-yellow-50" />
                 </div>
             )}
           </div>
         </div>
         {user.avatar && (
-          <img src={user.avatar} alt="Profile" className="w-12 h-12 rounded-full border-2 border-white shadow-md object-cover" />
+          <img src={user.avatar} alt="Profile" className="w-16 h-16 rounded-full border-4 border-white shadow-lg object-cover" />
         )}
       </header>
       
       {/* Verification Alert */}
       {!isVerified && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-pulse">
+        <div className="bg-yellow-50 border-2 border-yellow-200 rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-scale-up shadow-sm">
             <div className="flex items-center">
-                <AlertTriangle className="text-yellow-600 mr-3 flex-shrink-0" size={24} />
+                <div className="bg-yellow-100 p-2 rounded-xl mr-4">
+                  <AlertTriangle className="text-yellow-600" size={28} />
+                </div>
                 <div>
-                    <h3 className="text-yellow-800 font-bold text-sm">Limited Mode Active</h3>
-                    <p className="text-yellow-600 text-xs mt-1">Unlock AI Chat, Vault & CV by verifying email.</p>
+                    <h3 className="text-yellow-900 font-bold text-lg">Limited Mode Active</h3>
+                    <p className="text-yellow-700 text-sm mt-0.5 font-medium">Unlock full features by verifying.</p>
                 </div>
             </div>
             <button 
                 onClick={handleRequestVerification}
                 disabled={requestSent}
-                className="bg-yellow-600 hover:bg-yellow-700 text-white text-xs px-4 py-2 rounded-lg font-bold transition-colors whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-yellow-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed text-sm"
             >
                 {requestSent ? 'Request Pending' : 'Request Verification'}
             </button>
@@ -89,63 +105,83 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
       )}
 
       {/* Progress Card */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-6 text-white shadow-xl shadow-indigo-200">
-        <div className="flex justify-between items-start">
+      <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-indigo-200 dark:shadow-none relative overflow-hidden">
+        {/* Decorative background circles */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl"></div>
+
+        <div className="relative z-10 flex justify-between items-center">
           <div>
-            <h3 className="text-indigo-100 font-medium mb-1">Weekly Progress</h3>
-            <p className="text-3xl font-bold mb-4">{progress}% <span className="text-sm font-normal text-indigo-200">Complete</span></p>
-            <div className="flex items-center space-x-2 text-sm bg-white/20 w-fit px-3 py-1 rounded-full backdrop-blur-sm">
-              <CheckCircle2 size={14} />
-              <span>{completedAssignments} finished tasks</span>
+            <h3 className="text-indigo-100 font-medium text-lg mb-2">Weekly Goal</h3>
+            <p className="text-5xl font-bold mb-6 tracking-tight">{progress}%</p>
+            <div className="flex items-center space-x-3 bg-white/10 w-fit px-4 py-2 rounded-2xl backdrop-blur-md border border-white/10">
+              <div className="bg-green-400 rounded-full p-1">
+                 <CheckCircle2 size={16} className="text-indigo-900" />
+              </div>
+              <span className="font-medium text-indigo-50">{completedAssignments} finished tasks</span>
             </div>
           </div>
           
           {/* Circular Progress SVG */}
-          <div className="relative w-24 h-24">
+          <div className="relative w-32 h-32 flex-shrink-0">
             <svg className="w-full h-full transform -rotate-90">
-              <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-indigo-800/30" />
-              <circle cx="48" cy="48" r="40" stroke="white" strokeWidth="8" fill="transparent" strokeDasharray={`${progress * 2.51} 251`} strokeLinecap="round" />
+              <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-indigo-900/30" />
+              <circle cx="64" cy="64" r="56" stroke="white" strokeWidth="12" fill="transparent" strokeDasharray={`${progress * 3.51} 351`} strokeLinecap="round" />
             </svg>
-            <div className="absolute inset-0 flex items-center justify-center font-bold text-xl">
-              {pendingAssignments}
-              <span className="text-xs font-normal ml-1">left</span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-3xl font-bold leading-none">{pendingAssignments}</span>
+              <span className="text-xs font-medium text-indigo-200 opacity-80 uppercase tracking-wide">Left</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Daily Quote */}
-      <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-xl flex items-center">
-         <p className="text-orange-800 italic font-medium text-sm">"{quote}"</p>
+      <div className="bg-gradient-to-r from-orange-50 to-orange-100/50 border-l-8 border-orange-400 p-6 rounded-r-3xl flex items-center shadow-sm">
+         <p className="text-orange-900 italic font-medium text-base leading-relaxed">"{quote}"</p>
       </div>
 
       {/* Upcoming Deadlines */}
       <div>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold text-gray-800">Upcoming Deadlines</h2>
-          <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full font-bold">{pendingAssignments} Pending</span>
+        <div className="flex justify-between items-center mb-5">
+          <h2 className="text-2xl font-bold text-gray-900">Deadlines</h2>
+          <span className="bg-red-50 text-red-600 text-sm px-3 py-1.5 rounded-full font-bold border border-red-100">
+             {pendingAssignments} Pending
+          </span>
         </div>
         
-        <div className="space-y-3">
-          {assignments.filter(a => !a.completed).slice(0, 3).map(task => (
-            <div key={task.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center">
-              <div className={`w-3 h-12 rounded-full mr-4 ${
-                task.priority === 'Urgent' ? 'bg-red-500' : 
-                task.priority === 'High' ? 'bg-orange-500' : 'bg-green-500'
-              }`} />
-              <div className="flex-1">
-                <h4 className="font-bold text-gray-800">{task.title}</h4>
-                <p className="text-xs text-gray-500">{task.subject} • Due {new Date(task.dueDate).toLocaleDateString()}</p>
+        <div className="space-y-4">
+          {assignments.filter(a => !a.completed).slice(0, 3).map(task => {
+            const styles = getPriorityStyles(task.priority);
+            return (
+              <div key={task.id} className={`p-5 rounded-2xl shadow-sm border-l-[6px] flex items-center transition-all hover:shadow-md ${styles.replace('bg-', 'border-l-').split(' ')[2].replace('text-', 'border-')} bg-white border-gray-100`}>
+                <div className="flex-1">
+                  <h4 className="font-bold text-gray-800 text-lg mb-1">{task.title}</h4>
+                  <div className="flex items-center space-x-3 text-sm">
+                    <span className="font-medium text-gray-500">{task.subject}</span>
+                    <span className="text-gray-300">•</span>
+                    <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide ${styles}`}>
+                      {task.priority}
+                    </span>
+                  </div>
+                </div>
+                <div className={`flex flex-col items-end ${styles.split(' ')[2]}`}>
+                  <div className="flex items-center text-sm font-bold mb-1">
+                    <Clock size={16} className="mr-1.5" />
+                    <span>Due {new Date(task.dueDate).toLocaleDateString(undefined, {month:'short', day:'numeric'})}</span>
+                  </div>
+                  <span className="text-xs text-gray-400">Est. {task.estimatedTime || 1}h</span>
+                </div>
               </div>
-              <div className="text-gray-400">
-                <Clock size={18} />
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {assignments.filter(a => !a.completed).length === 0 && (
-            <div className="text-center py-8 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
-              <CheckCircle2 className="w-12 h-12 mx-auto mb-2 text-green-400" />
-              <p>All caught up! Great job.</p>
+            <div className="text-center py-12 text-gray-400 bg-white rounded-3xl border-2 border-dashed border-gray-200">
+              <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                 <CheckCircle2 className="w-8 h-8 text-green-500" />
+              </div>
+              <p className="font-medium text-lg text-gray-600">All caught up!</p>
+              <p className="text-sm">Great job keeping up with your studies.</p>
             </div>
           )}
         </div>

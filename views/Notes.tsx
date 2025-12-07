@@ -70,39 +70,47 @@ export const Notes: React.FC<NotesProps> = ({ notes, setNotes, isAdmin }) => {
   if (isEditing) {
     return (
       <div className="fixed inset-0 bg-white z-50 flex flex-col animate-slide-up">
-        <div className="flex justify-between items-center p-4 border-b">
-          <button onClick={closeEditor} className="text-gray-500">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
+          <button onClick={closeEditor} className="text-gray-500 font-medium hover:text-gray-800 p-2 -ml-2">
              {isAdmin ? 'Cancel' : 'Close'}
           </button>
           <div className="flex space-x-3 items-center">
              {!isAdmin && (
-               <span className="text-xs text-gray-400 flex items-center bg-gray-100 px-2 py-1 rounded-full">
-                 <Lock size={10} className="mr-1"/> Read Only
+               <span className="text-xs text-gray-500 font-medium flex items-center bg-gray-100 px-3 py-1.5 rounded-full">
+                 <Lock size={12} className="mr-1.5"/> Read Only
                </span>
              )}
              <button 
               onClick={handleAISummary} 
               disabled={loadingAI}
-              className={`flex items-center text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-sm font-medium ${loadingAI ? 'opacity-50' : ''}`}
+              className={`flex items-center text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-full text-sm font-bold transition-colors ${loadingAI ? 'opacity-50' : ''}`}
             >
-              <Wand2 size={14} className="mr-1" />
+              <Wand2 size={16} className="mr-2" />
               {loadingAI ? 'Summarizing...' : 'AI Summarize'}
             </button>
-            {isAdmin && <button onClick={handleSave} className="font-bold text-indigo-600">Save</button>}
+            {isAdmin && (
+              <button 
+                onClick={handleSave} 
+                className="bg-indigo-600 text-white px-6 py-2 rounded-full font-bold text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all"
+              >
+                Save
+              </button>
+            )}
           </div>
         </div>
-        <div className="p-4 flex-1 flex flex-col">
+        <div className="p-6 flex-1 flex flex-col max-w-4xl mx-auto w-full">
           <input 
             type="text" 
             placeholder="Title" 
-            className="text-2xl font-bold outline-none mb-4 w-full bg-transparent"
+            className="text-4xl font-bold outline-none mb-6 w-full bg-transparent placeholder-gray-300 text-gray-800"
             value={currentTitle}
             onChange={e => setCurrentTitle(e.target.value)}
             readOnly={!isAdmin}
+            autoFocus
           />
           <textarea 
-            placeholder="Start typing notes..." 
-            className="flex-1 w-full outline-none resize-none text-gray-700 leading-relaxed bg-transparent"
+            placeholder="Start typing your notes here..." 
+            className="flex-1 w-full outline-none resize-none text-lg text-gray-600 leading-relaxed bg-transparent placeholder-gray-300"
             value={currentContent}
             onChange={e => setCurrentContent(e.target.value)}
             readOnly={!isAdmin}
@@ -113,50 +121,57 @@ export const Notes: React.FC<NotesProps> = ({ notes, setNotes, isAdmin }) => {
   }
 
   return (
-    <div className="pb-20 animate-fade-in">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Notes</h1>
+    <div className="pb-24 animate-fade-in">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">My Notes</h1>
         {isAdmin && (
-          <button onClick={() => openEditor()} className="bg-indigo-600 text-white p-2 rounded-full shadow-lg">
-            <Plus size={24} />
+          <button onClick={() => openEditor()} className="bg-indigo-600 text-white w-12 h-12 rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center">
+            <Plus size={28} />
           </button>
         )}
       </div>
 
-      <div className="relative mb-6">
-        <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+      <div className="relative mb-8">
+        <Search className="absolute left-4 top-4 text-indigo-300" size={24} />
         <input 
           type="text" 
-          placeholder="Search notes..." 
-          className="w-full bg-white py-3 pl-10 pr-4 rounded-xl shadow-sm border-none focus:ring-2 focus:ring-indigo-100"
+          placeholder="Search your notes..." 
+          className="w-full bg-white py-4 pl-12 pr-4 rounded-2xl shadow-sm border-2 border-transparent focus:border-indigo-200 outline-none text-lg text-gray-700 placeholder-gray-300 transition-all"
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-5">
         {notes.length === 0 && (
-             <div className="col-span-2 text-center p-8 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
-                <p>No notes available.</p>
+             <div className="col-span-2 text-center py-16 text-gray-400 bg-white rounded-3xl border-2 border-dashed border-gray-200">
+                <p className="text-lg font-medium">No notes created yet.</p>
             </div>
         )}
         {notes.map(note => (
           <div 
             key={note.id} 
             onClick={() => openEditor(note)}
-            className="bg-yellow-50 p-4 rounded-xl shadow-sm border border-yellow-100 flex flex-col h-40 relative group cursor-pointer hover:shadow-md transition-shadow"
+            className="bg-yellow-50 p-5 rounded-2xl shadow-sm border border-yellow-100 flex flex-col h-48 relative group cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all"
           >
-            <h3 className="font-bold text-gray-800 mb-2 line-clamp-2">{note.title}</h3>
-            <p className="text-xs text-gray-500 line-clamp-4 flex-1">{note.content}</p>
-            <span className="text-[10px] text-gray-400 mt-2 block">{new Date(note.date).toLocaleDateString()}</span>
+            <h3 className="font-bold text-gray-800 mb-3 text-lg line-clamp-2 leading-tight">{note.title}</h3>
+            <p className="text-sm text-gray-600 line-clamp-4 flex-1 font-medium opacity-80">{note.content}</p>
+            <div className="mt-3 pt-3 border-t border-yellow-100 flex justify-between items-center">
+                 <span className="text-xs text-yellow-700 font-bold opacity-60">{new Date(note.date).toLocaleDateString()}</span>
+                 <div className="bg-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                    <ChevronRight size={14} className="text-yellow-600" />
+                 </div>
+            </div>
           </div>
         ))}
         
         {isAdmin && (
           <button 
              onClick={() => openEditor()}
-             className="bg-gray-50 p-4 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center h-40 text-gray-400 hover:bg-gray-100 transition-colors"
+             className="bg-white p-5 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center h-48 text-gray-400 hover:bg-gray-50 hover:border-indigo-200 hover:text-indigo-400 transition-all group"
           >
-            <Plus size={32} className="mb-2" />
-            <span className="text-sm">New Note</span>
+            <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3 group-hover:bg-white group-hover:shadow-md transition-all">
+               <Plus size={24} />
+            </div>
+            <span className="font-bold">Create Note</span>
           </button>
         )}
       </div>

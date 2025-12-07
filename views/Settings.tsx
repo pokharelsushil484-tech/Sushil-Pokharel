@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest } from '../types';
 import { Moon, Bell, LogOut, Globe, ShieldCheck, Trash2, Sun, Check, X, Edit2, UserMinus, BadgeCheck, AlertTriangle } from 'lucide-react';
-import { WATERMARK } from '../constants';
+import { WATERMARK, ADMIN_USERNAME } from '../constants';
 
 interface SettingsProps {
   user: UserProfile;
@@ -188,7 +188,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                 <h2 className="font-bold text-lg">{user.name}</h2>
                 <p className="text-indigo-200 text-sm">{user.email}</p>
                 <div className="flex items-center mt-1">
-                     <p className="text-xs text-indigo-300 uppercase tracking-wider font-bold mr-2">{username === 'admin' ? 'Administrator' : 'Student'}</p>
+                     <p className="text-xs text-indigo-300 uppercase tracking-wider font-bold mr-2">{username === ADMIN_USERNAME ? 'Administrator' : 'Student'}</p>
                      {isVerified ? (
                         <span className="text-xs bg-indigo-500/50 px-1.5 py-0.5 rounded flex items-center text-white"><BadgeCheck size={10} className="mr-1"/> Verified</span>
                      ) : (
@@ -222,7 +222,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       <div className="mb-8">
         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 ml-2">Security</h3>
         
-        {!isVerified && username !== 'admin' && (
+        {!isVerified && username !== ADMIN_USERNAME && (
              <SettingItem icon={BadgeCheck} title="Request Verification" onClick={requestVerification} />
         )}
 
