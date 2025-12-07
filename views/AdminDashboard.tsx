@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest } from '../types';
-import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link } from 'lucide-react';
+import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound } from 'lucide-react';
 import { sendPasswordResetEmail } from '../services/emailService';
 
 interface AdminDashboardProps {
@@ -117,7 +117,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
     // Send Email
     const sent = await sendPasswordResetEmail(targetEmail, targetUser, link);
     if (sent) {
-        alert(`Reset link sent successfully to ${targetEmail}`);
+        if(!skipConfirm) alert(`Reset link sent successfully to ${targetEmail}`);
     } else {
         alert(`Failed to send reset link to ${targetEmail}`);
     }
@@ -144,14 +144,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
              if (userObj && userObj.email) {
                  // Automatically send link via email
                  sendResetLink(req.username, userObj.email, true);
+                 alert(`Approved & Link Sent to ${userObj.email}`);
              } else {
                  // Fallback to manual reset if no email found
                  adminResetPassword(req.username);
              }
           } else if (req.type === 'VERIFICATION_REQUEST') {
-             // Simply verify the user
-             toggleVerification(req.username, false); // false = current status, so it becomes true
-             alert(`User ${req.username} has been verified!`);
+             // Explicitly set verify to true (safer than toggle)
+             const usersStr = localStorage.getItem('studentpocket_users');
+             if (usersStr) {
+                 const users = JSON.parse(usersStr);
+                 if (users[req.username]) {
+                     users[req.username].verified = true;
+                     localStorage.setItem('studentpocket_users', JSON.stringify(users));
+                     setRefreshTrigger(prev => prev + 1);
+                     alert(`User ${req.username} has been verified!`);
+                 }
+             }
           } else if (req.type === 'DELETE_ACCOUNT') {
              executeUserDeletion(req.username);
              alert(`User ${req.username} has been deleted.`);
@@ -217,7 +226,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
       <div className="mb-8">
           <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 ml-2 flex items-center justify-between">
           <span className="flex items-center"><MessageSquare size={16} className="mr-2" /> Requests Inbox</span>
-          {requests.length > 0 && <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">{requests.length}</span>}
+          <div className="flex items-center space-x-2">
+            <button onClick={() => setRefreshTrigger(prev => prev + 1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full" title="Refresh Inbox">
+                <RefreshCw size={14} />
+            </button>
+            {requests.length > 0 && <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">{requests.length}</span>}
+          </div>
         </h3>
         
         <div className="space-y-3">
@@ -254,6 +268,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                          {req.type === 'VERIFICATION_REQUEST' && (
                             <div className="text-xs text-yellow-600 bg-yellow-50 p-2 rounded mb-3 flex items-center">
                                 <BadgeCheck size={12} className="mr-2"/> User is asking to unlock full features.
+                            </div>
+                        )}
+
+                         {req.type === 'PASSWORD_RESET' && (
+                            <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded mb-3 flex items-center">
+                                <KeyRound size={12} className="mr-2"/> User requested a password reset.
                             </div>
                         )}
                         
