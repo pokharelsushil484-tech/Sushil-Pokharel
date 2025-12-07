@@ -64,6 +64,41 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
     
     // 1. Check Hardcoded Admin
     if (username === ADMIN_USERNAME && password === 'Sushil@#$%123') {
+      // Ensure Admin exists in local storage and is VERIFIED
+      const usersStr = localStorage.getItem('studentpocket_users');
+      const users = usersStr ? JSON.parse(usersStr) : {};
+      
+      // Auto-create or Auto-update admin to be verified
+      if (!users[ADMIN_USERNAME] || !users[ADMIN_USERNAME].verified) {
+          users[ADMIN_USERNAME] = {
+              password: 'Sushil@#$%123', // Sync password
+              email: ADMIN_EMAIL,
+              verified: true // FORCE VERIFY
+          };
+          localStorage.setItem('studentpocket_users', JSON.stringify(users));
+          
+          // Ensure Admin Data Profile Exists
+          const dataKey = `studentpocket_data_${ADMIN_USERNAME}`;
+          if (!localStorage.getItem(dataKey)) {
+              const initialData = {
+                user: { 
+                    name: "Sushil Pokharel", 
+                    email: ADMIN_EMAIL, 
+                    phone: "9800000000", 
+                    education: "Administrator", 
+                    institution: "System", 
+                    country: "Nepal", 
+                    skills: ["System Admin"] 
+                },
+                assignments: [],
+                notes: [],
+                vaultDocs: [],
+                scholarships: []
+            };
+            localStorage.setItem(dataKey, JSON.stringify(initialData));
+          }
+      }
+
       onLogin(ADMIN_USERNAME);
       return;
     }

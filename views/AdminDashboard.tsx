@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest } from '../types';
-import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2 } from 'lucide-react';
+import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2, Search, ShieldAlert } from 'lucide-react';
 import { sendPasswordResetEmail } from '../services/emailService';
 import { ADMIN_USERNAME } from '../constants';
 
@@ -14,6 +14,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [userFilter, setUserFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED'>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const usersStr = localStorage.getItem('studentpocket_users');
@@ -47,6 +48,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   }, [refreshTrigger]);
 
   const toggleVerification = (targetUser: string, currentStatus: boolean) => {
+    if (targetUser === ADMIN_USERNAME) {
+        alert("Cannot change verification status of the System Administrator.");
+        return;
+    }
+
     const usersStr = localStorage.getItem('studentpocket_users');
     if (!usersStr) return;
     const users = JSON.parse(usersStr);
@@ -72,6 +78,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   };
 
   const deleteUser = (targetUser: string) => {
+    if (targetUser === ADMIN_USERNAME) {
+        alert("Cannot delete the System Administrator.");
+        return;
+    }
+
     if (!window.confirm(`Are you sure you want to delete user "${targetUser}"? This cannot be undone.`)) return;
     executeUserDeletion(targetUser);
     setRefreshTrigger(prev => prev + 1);
@@ -225,9 +236,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   };
 
   const filteredUsers = usersList.filter(u => {
-    if (userFilter === 'PENDING') return !u.verified;
-    if (userFilter === 'VERIFIED') return u.verified;
-    return true;
+    const matchesFilter = 
+        userFilter === 'ALL' || 
+        (userFilter === 'PENDING' && !u.verified) || 
+        (userFilter === 'VERIFIED' && u.verified);
+    
+    const matchesSearch = 
+        u.username.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (u.email && u.email.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    return matchesFilter && matchesSearch;
   });
 
   return (
@@ -319,35 +337,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
           <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-1 rounded-full">{usersList.length}</span>
         </h3>
 
-        {/* Filters */}
-        <div className="flex space-x-2 mb-4 overflow-x-auto px-1">
-             <button 
-                onClick={() => setUserFilter('ALL')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${userFilter === 'ALL' ? 'bg-gray-800 text-white dark:bg-white dark:text-gray-900' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}
-             >
-                 All
-             </button>
-             <button 
-                onClick={() => setUserFilter('PENDING')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center ${userFilter === 'PENDING' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}
-             >
-                 <AlertTriangle size={12} className="mr-1" /> Pending
-             </button>
-             <button 
-                onClick={() => setUserFilter('VERIFIED')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center ${userFilter === 'VERIFIED' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}
-             >
-                 <BadgeCheck size={12} className="mr-1" /> Verified
-             </button>
+        {/* Search & Filters */}
+        <div className="mb-4 space-y-3">
+             <div className="relative">
+                 <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                 <input 
+                    type="text" 
+                    placeholder="Search users..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-white dark:bg-gray-800 pl-10 pr-4 py-2 rounded-xl text-sm border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                 />
+             </div>
+
+             <div className="flex space-x-2 overflow-x-auto px-1">
+                <button 
+                    onClick={() => setUserFilter('ALL')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${userFilter === 'ALL' ? 'bg-gray-800 text-white dark:bg-white dark:text-gray-900' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}
+                >
+                    All
+                </button>
+                <button 
+                    onClick={() => setUserFilter('PENDING')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center ${userFilter === 'PENDING' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}
+                >
+                    <AlertTriangle size={12} className="mr-1" /> Pending
+                </button>
+                <button 
+                    onClick={() => setUserFilter('VERIFIED')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center ${userFilter === 'VERIFIED' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}
+                >
+                    <BadgeCheck size={12} className="mr-1" /> Verified
+                </button>
+            </div>
         </div>
 
         <div className="space-y-4">
           {filteredUsers.length === 0 ? (
             <div className="p-8 text-center text-gray-500 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
-              <p className="text-sm">No {userFilter === 'ALL' ? '' : userFilter.toLowerCase()} students found.</p>
+              <p className="text-sm">No users found matching your search.</p>
             </div>
           ) : (
-            filteredUsers.map((u, idx) => (
+            filteredUsers.map((u, idx) => {
+              const isSystemAdmin = u.username === ADMIN_USERNAME;
+              
+              return (
               <div key={idx} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                 {/* User Card Header */}
                 <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-start">
@@ -356,7 +390,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                         {u.username.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                          <h4 className="font-bold text-gray-900 dark:text-white text-base leading-tight">{u.username}</h4>
+                          <div className="flex items-center">
+                              <h4 className="font-bold text-gray-900 dark:text-white text-base leading-tight">{u.username}</h4>
+                              {isSystemAdmin && (
+                                  <span className="ml-2 bg-indigo-100 text-indigo-700 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-indigo-200 flex items-center">
+                                      <ShieldAlert size={8} className="mr-1"/> Admin
+                                  </span>
+                              )}
+                          </div>
                           <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{u.email}</p>
                           {u.verified ? (
                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800 border border-green-200">
@@ -394,7 +435,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                     <div className="flex gap-2 flex-wrap">
                         <button 
                           onClick={() => toggleVerification(u.username, u.verified)}
+                          disabled={isSystemAdmin}
                           className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+                              isSystemAdmin ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200' :
                               u.verified 
                               ? 'bg-white border-gray-200 text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200' 
                               : 'bg-green-600 text-white border-green-600 hover:bg-green-700'
@@ -420,14 +463,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
 
                     <button 
                         onClick={() => deleteUser(u.username)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                        disabled={isSystemAdmin}
+                        className={`p-1.5 rounded-lg transition-colors border border-transparent ${
+                            isSystemAdmin 
+                            ? 'text-gray-300 cursor-not-allowed' 
+                            : 'text-gray-400 hover:text-red-600 hover:bg-red-50 hover:border-red-100'
+                        }`}
                         title="Delete User"
                     >
                         <Trash2 size={16} />
                     </button>
                 </div>
               </div>
-            ))
+            );
+            })
           )}
         </div>
       </div>
