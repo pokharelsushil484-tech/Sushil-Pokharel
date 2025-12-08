@@ -25,7 +25,7 @@ interface AppData {
   darkMode?: boolean;
 }
 
-const DEFAULT_DATA: AppData = {
+const INITIAL_DATA: AppData = {
   user: null,
   assignments: [],
   notes: [],
@@ -42,7 +42,7 @@ function App() {
   // New state to handle reset password flow
   const [resetUser, setResetUser] = useState<string | null>(null);
 
-  const [data, setData] = useState<AppData>(DEFAULT_DATA);
+  const [data, setData] = useState<AppData>(INITIAL_DATA);
 
   // Helper to check verification status dynamically
   const isVerified = (() => {
@@ -60,44 +60,22 @@ function App() {
     }
   })();
 
-  // Handle URL Verification or Reset Links
+  // Handle URL Reset Links Only
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const mode = params.get('mode');
     const user = params.get('user');
     const token = params.get('token');
 
-    if (user && token) {
+    if (user && token && mode === 'reset') {
       const usersStr = localStorage.getItem('studentpocket_users');
       if (usersStr) {
         const users = JSON.parse(usersStr);
         const userData = users[user];
-
-        if (mode === 'reset') {
-          // *** PASSWORD RESET FLOW ***
-          if (userData && userData.resetToken === token) {
-             setResetUser(user);
-          } else {
-             alert("❌ Invalid or expired reset link.");
-          }
-        } else if (mode === 'verify') {
-          // *** EMAIL VERIFICATION FLOW ***
-          if (userData && userData.verificationToken === token) {
-            // Verify User
-            users[user] = { ...userData, verified: true };
-            delete users[user].verificationToken; // Clean up token
-            localStorage.setItem('studentpocket_users', JSON.stringify(users));
-            
-            alert("✅ Account Successfully Verified! Logging you in...");
-            
-            // Clean URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-            
-            // Log user in
-            setCurrentUsername(user);
-          } else {
-            alert("❌ Invalid or expired verification link.");
-          }
+        if (userData && userData.resetToken === token) {
+           setResetUser(user);
+        } else {
+           alert("❌ Invalid or expired reset link.");
         }
       }
     }
@@ -120,11 +98,11 @@ function App() {
         }
       } else {
         // No data for this user yet
-        setData(DEFAULT_DATA);
+        setData(INITIAL_DATA);
         setView(View.ONBOARDING);
       }
     } else {
-      setData(DEFAULT_DATA);
+      setData(INITIAL_DATA);
     }
   }, [currentUsername]);
 
@@ -154,7 +132,7 @@ function App() {
     if (currentUsername) {
        const storageKey = `studentpocket_data_${currentUsername}`;
        localStorage.removeItem(storageKey);
-       setData(DEFAULT_DATA);
+       setData(INITIAL_DATA);
        setView(View.ONBOARDING);
     }
   };

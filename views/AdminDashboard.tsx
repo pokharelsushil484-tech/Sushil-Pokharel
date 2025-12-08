@@ -83,7 +83,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
         return;
     }
 
-    if (!window.confirm(`Are you sure you want to delete user "${targetUser}"? This cannot be undone.`)) return;
+    if (!window.confirm(`PERMANENT DELETE WARNING:\n\nAre you sure you want to delete user "${targetUser}"?\n\nThis action will wipe all their data and cannot be undone.`)) return;
     executeUserDeletion(targetUser);
     setRefreshTrigger(prev => prev + 1);
   };
@@ -175,6 +175,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                  }
              }
           } else if (req.type === 'DELETE_ACCOUNT') {
+             // ADD CONFIRMATION FOR REQUEST APPROVAL
+             if (!window.confirm(`PERMANENT DELETE WARNING:\n\nAre you sure you want to approve the deletion for user "${req.username}"?\n\nThis will wipe all their data and cannot be undone.`)) {
+                 return; // Stop if cancelled
+             }
              executeUserDeletion(req.username);
              alert(`User ${req.username} has been deleted.`);
           }
@@ -194,7 +198,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   };
 
   const deleteAllStudents = () => {
-    if (!window.confirm("Are you sure you want to delete ALL registered students? This action cannot be undone. (Admin account will be preserved)")) return;
+    if (!window.confirm("CRITICAL WARNING: Are you sure you want to delete ALL registered students?\n\nThis action cannot be undone. (Admin account will be preserved)")) return;
     
     const usersStr = localStorage.getItem('studentpocket_users');
     let users = {};
@@ -291,7 +295,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
 
                         {req.type === 'DELETE_ACCOUNT' && (
                             <div className="text-xs text-red-600 bg-red-50 p-2 rounded mb-3 flex items-center">
-                                <AlertTriangle size={12} className="mr-2"/> User requested permanent account deletion.
+                                <AlertTriangle size={12} className="mr-2"/> <strong>Warning:</strong>&nbsp;User requested permanent account deletion.
                             </div>
                         )}
 

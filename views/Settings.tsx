@@ -76,7 +76,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
   };
 
   const requestAccountDeletion = () => {
-     if(!window.confirm("Are you sure you want to request account deletion? The Admin will review this request.")) return;
+     if(!window.confirm("Are you sure you want to request account deletion? This will permanently delete all your data once approved by the Admin.")) return;
 
      const request: ChangeRequest = {
          id: Date.now().toString(),
