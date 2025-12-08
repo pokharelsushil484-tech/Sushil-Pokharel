@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { UserProfile, VaultDocument } from '../types';
-import { Shield, Lock, Unlock, FileText, Image as ImageIcon, Camera, AlertTriangle } from 'lucide-react';
+import { Shield, Lock, Unlock, FileText, Image as ImageIcon, Camera, AlertTriangle, FolderPlus, Folder, ChevronRight, Home, LayoutGrid, List as ListIcon, MoreVertical, Search, ArrowLeft, HardDrive, Trash2, Download } from 'lucide-react';
 
 interface VaultProps {
   user: UserProfile;
@@ -10,12 +11,52 @@ interface VaultProps {
 }
 
 export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, isVerified }) => {
+  // Security State
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
+  const [keypadNumbers, setKeypadNumbers] = useState<number[]>([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutTime, setLockoutTime] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  // File Manager State
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const CORRECT_PIN = user.vaultPin || "1234"; 
-  
+
+  // Shuffle Keypad Helper
+  const shuffleKeypad = () => {
+    setKeypadNumbers(prev => [...prev].sort(() => Math.random() - 0.5));
+  };
+
+  // Initialize Keypad
+  useEffect(() => {
+    shuffleKeypad();
+  }, []);
+
+  // Lockout Timer Logic
+  useEffect(() => {
+    let interval: any;
+    if (lockoutTime > Date.now()) {
+        interval = setInterval(() => {
+            const diff = Math.ceil((lockoutTime - Date.now()) / 1000);
+            if (diff <= 0) {
+                setLockoutTime(0);
+                setFailedAttempts(0);
+                setError('');
+                shuffleKeypad();
+            } else {
+                setTimeLeft(diff);
+            }
+        }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [lockoutTime]);
+
+  // Locked View for Unverified Users
   if (isVerified === false) {
       return (
           <div className="h-[80vh] flex flex-col items-center justify-center animate-fade-in px-6">
@@ -34,13 +75,50 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, is
   }
 
   const handleUnlock = () => {
+    if (lockoutTime > Date.now()) return;
+
     if (pin === CORRECT_PIN) {
       setIsUnlocked(true);
       setError('');
+      setFailedAttempts(0);
     } else {
-      setError('Incorrect PIN');
+      const attempts = failedAttempts + 1;
+      setFailedAttempts(attempts);
       setPin('');
+      
+      if (attempts >= 3) {
+          setLockoutTime(Date.now() + 30000); // 30 seconds
+          setError("Too many failed attempts.");
+      } else {
+          setError(`Incorrect PIN. ${3 - attempts} attempts remaining.`);
+          shuffleKeypad(); // Reshuffle on error to prevent pattern guessing
+      }
     }
+  };
+
+  // --- FILE MANAGER LOGIC ---
+
+  const formatSize = (bytes?: number) => {
+    if (bytes === undefined) return '0 B';
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
+  const createFolder = () => {
+      const name = prompt("Enter folder name:");
+      if (!name) return;
+      const newFolder: VaultDocument = {
+          id: Date.now().toString(),
+          title: name,
+          type: 'FOLDER',
+          parentId: currentFolderId,
+          createdAt: Date.now(),
+          size: 0
+      };
+      saveDocuments([...documents, newFolder]);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,7 +130,11 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, is
           id: Date.now().toString(),
           title: file.name,
           type: 'OTHER',
-          content: reader.result as string
+          content: reader.result as string,
+          parentId: currentFolderId,
+          size: file.size,
+          mimeType: file.type,
+          createdAt: Date.now()
         };
         saveDocuments([...documents, newDoc]);
       };
@@ -60,103 +142,249 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, is
     }
   };
 
+  const handleDelete = (id: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if(window.confirm("Are you sure you want to delete this item?")) {
+          // If folder, technically should delete children, but keeping simple
+          saveDocuments(documents.filter(d => d.id !== id && d.parentId !== id));
+      }
+  };
+
+  const handleDownload = (doc: VaultDocument, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (doc.type === 'FOLDER' || !doc.content) return;
+      const link = document.createElement('a');
+      link.href = doc.content;
+      link.download = doc.title;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  };
+
+  // Filter items
+  const currentItems = documents.filter(doc => {
+      // If searching, search everything regardless of folder
+      if (searchQuery) {
+          return doc.title.toLowerCase().includes(searchQuery.toLowerCase());
+      }
+      // Otherwise respect folder hierarchy
+      return doc.parentId === (currentFolderId || undefined) || doc.parentId === currentFolderId;
+  });
+
+  // Calculate Storage
+  const usedSpace = documents.reduce((acc, doc) => acc + (doc.size || 0), 0);
+  const totalSpace = 2 * 1024 * 1024 * 1024; // 2GB Limit
+  const usedPercentage = Math.min((usedSpace / totalSpace) * 100, 100);
+
+  // Breadcrumbs
+  const getBreadcrumbs = () => {
+      const path = [];
+      let curr = currentFolderId;
+      while (curr) {
+          const folder = documents.find(d => d.id === curr);
+          if (folder) {
+              path.unshift(folder);
+              curr = folder.parentId || null;
+          } else {
+              break;
+          }
+      }
+      return path;
+  };
+
   if (!isUnlocked) {
     return (
       <div className="h-[80vh] flex flex-col items-center justify-center animate-fade-in px-4">
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] shadow-2xl w-full max-w-sm text-center">
-          <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Lock className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] shadow-2xl w-full max-w-sm text-center relative overflow-hidden">
+          
+          {lockoutTime > Date.now() && (
+              <div className="absolute inset-0 bg-red-500/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center text-white">
+                  <Lock size={48} className="mb-4 animate-bounce" />
+                  <h3 className="text-2xl font-bold mb-2">Vault Locked</h3>
+                  <p className="font-mono text-4xl font-bold">{timeLeft}s</p>
+                  <p className="text-sm mt-2 opacity-80">Security Timeout</p>
+              </div>
+          )}
+
+          <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Shield className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Security Check</h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-8 font-medium">Enter PIN to access vault.</p>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Secure Vault</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-6 text-xs">Enter your 4-digit PIN</p>
           
           <div className="flex justify-center space-x-4 mb-8">
-            {[1, 2, 3, 4].map((_, i) => (
-              <div key={i} className={`w-4 h-4 rounded-full transition-all duration-300 ${i < pin.length ? 'bg-indigo-600 scale-110' : 'bg-gray-200 dark:bg-gray-700'}`} />
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className={`w-3 h-3 rounded-full transition-all duration-200 ${i < pin.length ? 'bg-indigo-600 scale-125' : 'bg-gray-200 dark:bg-gray-700'}`} />
             ))}
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            {keypadNumbers.map(num => (
               <button 
                 key={num}
                 onClick={() => setPin(prev => (prev.length < 4 ? prev + num : prev))}
-                className="h-16 bg-gray-50 dark:bg-gray-700 rounded-2xl font-bold text-2xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 active:scale-95 transition-transform shadow-sm"
+                disabled={lockoutTime > Date.now()}
+                className="h-14 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold text-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 active:scale-95 transition-transform shadow-sm disabled:opacity-50"
               >
                 {num}
               </button>
             ))}
-            <button className="h-16 text-gray-400 dark:text-gray-500 font-bold text-sm uppercase tracking-wide" onClick={() => setPin('')}>Clear</button>
+            
+            <button className="h-14 text-red-500 font-bold text-xs uppercase tracking-wide flex items-center justify-center" onClick={() => setPin('')}>Clear</button>
             <button 
-              onClick={() => setPin(prev => (prev.length < 4 ? prev + '0' : prev))}
-              className="h-16 bg-gray-50 dark:bg-gray-700 rounded-2xl font-bold text-2xl text-gray-700 dark:text-gray-200 shadow-sm active:scale-95 transition-transform"
+                onClick={handleUnlock} 
+                disabled={lockoutTime > Date.now()}
+                className="col-span-2 h-14 bg-indigo-600 text-white rounded-xl font-bold text-sm uppercase tracking-wide shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none"
             >
-              0
+                Unlock
             </button>
-            <button onClick={handleUnlock} className="h-16 text-indigo-600 dark:text-indigo-400 font-bold text-sm uppercase tracking-wide">Enter</button>
           </div>
-          {error && <p className="text-red-500 font-bold mt-4 animate-shake">{error}</p>}
+          {error && <p className="text-red-500 text-xs font-bold mt-2 animate-shake">{error}</p>}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="pb-24 animate-fade-in">
-      <div className="bg-gradient-to-r from-indigo-600 to-indigo-800 -mx-4 md:-mx-8 -mt-8 p-10 rounded-b-[3rem] text-white mb-8 shadow-xl shadow-indigo-200 dark:shadow-none">
-        <div className="flex justify-between items-start">
-          <div>
-             <h1 className="text-3xl font-bold mb-2">My Vault</h1>
-             <p className="text-indigo-100 font-medium opacity-90 flex items-center">
-                <Shield size={16} className="mr-2" />
-                Secure Storage
-             </p>
-          </div>
-          <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-md">
-             <Unlock className="w-8 h-8 text-white" />
-          </div>
-        </div>
+    <div className="pb-24 animate-fade-in h-[calc(100vh-100px)] flex flex-col">
+      {/* Header / Storage Info */}
+      <div className="mb-4 bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+         <div className="flex justify-between items-center mb-3">
+             <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400">
+                 <HardDrive size={20} />
+                 <span className="font-bold text-sm">Cloud Storage</span>
+             </div>
+             <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                 {formatSize(usedSpace)} / 2 GB
+             </span>
+         </div>
+         <div className="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+             <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-1000" style={{ width: `${usedPercentage}%` }} />
+         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
-        {/* Upload Card */}
-        <label className="bg-white dark:bg-gray-800 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-3xl p-6 flex flex-col items-center justify-center h-48 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-indigo-200 transition-all group">
-          <div className="w-14 h-14 bg-indigo-50 dark:bg-gray-700 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform text-indigo-600 dark:text-indigo-400">
-            <ImageIcon size={28} />
-          </div>
-          <span className="text-base font-bold text-gray-700 dark:text-gray-200">Upload File</span>
-          <span className="text-xs text-gray-400 mt-1">Images or PDF</span>
-          <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf" />
-        </label>
+      {/* Toolbar */}
+      <div className="flex items-center space-x-2 mb-4 overflow-x-auto no-scrollbar py-1">
+         {currentFolderId && (
+             <button onClick={() => setCurrentFolderId(null)} className="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300">
+                 <Home size={20} />
+             </button>
+         )}
+         
+         <div className="flex-1 flex items-center bg-white dark:bg-gray-800 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700">
+             <Search size={18} className="text-gray-400 ml-2" />
+             <input 
+               className="flex-1 bg-transparent border-none outline-none px-2 text-sm text-gray-700 dark:text-gray-200" 
+               placeholder="Search files..." 
+               value={searchQuery}
+               onChange={e => setSearchQuery(e.target.value)}
+             />
+         </div>
 
-        {/* Camera Scan Card */}
-        <label className="bg-white dark:bg-gray-800 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-3xl p-6 flex flex-col items-center justify-center h-48 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-indigo-200 transition-all group">
-          <div className="w-14 h-14 bg-indigo-50 dark:bg-gray-700 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform text-indigo-600 dark:text-indigo-400">
-            <Camera size={28} />
-          </div>
-          <span className="text-base font-bold text-gray-700 dark:text-gray-200">Scan Doc</span>
-          <span className="text-xs text-gray-400 mt-1">Use Camera</span>
-          <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*" capture="environment" />
-        </label>
-
-        {documents.map(doc => (
-          <div key={doc.id} className="bg-white dark:bg-gray-800 rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col h-48 justify-between hover:shadow-md transition-all group">
-            <div className="w-12 h-12 bg-orange-50 dark:bg-orange-900/20 rounded-2xl flex items-center justify-center text-orange-500 dark:text-orange-400 mb-2 group-hover:bg-orange-100 transition-colors">
-              <FileText size={24} />
-            </div>
-            <div>
-              <h4 className="font-bold text-gray-800 dark:text-white text-base truncate mb-1">{doc.title}</h4>
-              <span className="inline-block bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wide">{doc.type}</span>
-            </div>
-          </div>
-        ))}
+         <button onClick={() => setViewMode(viewMode === 'GRID' ? 'LIST' : 'GRID')} className="p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-600 dark:text-gray-300">
+             {viewMode === 'GRID' ? <ListIcon size={20} /> : <LayoutGrid size={20} />}
+         </button>
       </div>
-      
+
+      {/* Breadcrumbs */}
+      <div className="flex items-center space-x-1 mb-4 text-sm overflow-x-auto no-scrollbar whitespace-nowrap">
+          <button 
+            onClick={() => setCurrentFolderId(null)} 
+            className={`font-medium ${!currentFolderId ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'}`}
+          >
+              Home
+          </button>
+          {getBreadcrumbs().map((folder) => (
+              <div key={folder.id} className="flex items-center">
+                  <ChevronRight size={14} className="text-gray-300 mx-1" />
+                  <button 
+                    onClick={() => setCurrentFolderId(folder.id)}
+                    className={`font-medium ${currentFolderId === folder.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'}`}
+                  >
+                      {folder.title}
+                  </button>
+              </div>
+          ))}
+      </div>
+
+      {/* Content Area */}
+      <div className="flex-1 overflow-y-auto pr-1 pb-20">
+          
+          {/* Action Buttons inside content area for empty states */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
+              <button 
+                onClick={createFolder} 
+                className="flex items-center justify-center space-x-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 p-4 rounded-2xl border border-dashed border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 transition-colors"
+              >
+                  <FolderPlus size={20} />
+                  <span className="font-bold text-sm">New Folder</span>
+              </button>
+              
+              <label className="flex items-center justify-center space-x-2 bg-indigo-600 text-white p-4 rounded-2xl shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition-colors cursor-pointer active:scale-95">
+                  <div className="flex items-center space-x-2">
+                     <ImageIcon size={20} />
+                     <span className="font-bold text-sm">Upload</span>
+                  </div>
+                  <input type="file" className="hidden" onChange={handleFileUpload} />
+              </label>
+          </div>
+
+          {currentItems.length === 0 ? (
+              <div className="text-center py-12 opacity-50">
+                  <Folder size={48} className="mx-auto text-gray-300 mb-2" />
+                  <p className="text-gray-400 text-sm font-medium">This folder is empty</p>
+              </div>
+          ) : (
+             <div className={viewMode === 'GRID' ? "grid grid-cols-2 gap-3" : "flex flex-col space-y-2"}>
+                 {currentItems.map(item => (
+                     <div 
+                        key={item.id}
+                        onClick={() => {
+                            if (item.type === 'FOLDER') setCurrentFolderId(item.id);
+                        }}
+                        className={`group relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-3 hover:shadow-md transition-all active:scale-[0.98] cursor-pointer ${
+                            viewMode === 'GRID' ? 'flex flex-col items-center text-center h-32 justify-center' : 'flex items-center p-4'
+                        }`}
+                     >
+                         <div className={`rounded-full flex items-center justify-center mb-2 ${
+                             viewMode === 'GRID' ? 'w-12 h-12' : 'w-10 h-10 mr-4 mb-0'
+                         } ${
+                             item.type === 'FOLDER' 
+                             ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-500' 
+                             : 'bg-blue-50 dark:bg-blue-900/20 text-blue-500'
+                         }`}>
+                             {item.type === 'FOLDER' ? <Folder size={viewMode === 'GRID' ? 24 : 20} fill="currentColor" className="fill-current opacity-80" /> : <FileText size={viewMode === 'GRID' ? 24 : 20} />}
+                         </div>
+                         
+                         <div className={`flex-1 min-w-0 ${viewMode === 'LIST' ? 'text-left' : ''}`}>
+                             <p className="text-sm font-bold text-gray-800 dark:text-gray-200 truncate w-full">{item.title}</p>
+                             <p className="text-[10px] text-gray-400 mt-0.5">
+                                 {item.type === 'FOLDER' ? 'Folder' : `${formatSize(item.size)} • ${new Date(item.createdAt || 0).toLocaleDateString()}`}
+                             </p>
+                         </div>
+
+                         {/* Quick Actions */}
+                         <div className={`absolute ${viewMode === 'GRID' ? 'top-2 right-2' : 'right-4'} opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-1`}>
+                             {item.type !== 'FOLDER' && (
+                                 <button onClick={(e) => handleDownload(item, e)} className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-indigo-100 hover:text-indigo-600">
+                                     <Download size={14} />
+                                 </button>
+                             )}
+                             <button onClick={(e) => handleDelete(item.id, e)} className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-red-100 hover:text-red-600">
+                                 <Trash2 size={14} />
+                             </button>
+                         </div>
+                     </div>
+                 ))}
+             </div>
+          )}
+      </div>
+
       <button 
          onClick={() => setIsUnlocked(false)} 
-         className="mt-10 w-full py-4 text-gray-400 dark:text-gray-500 font-bold flex items-center justify-center hover:text-red-500 transition-colors"
+         className="mt-auto w-full py-4 text-gray-400 dark:text-gray-500 font-bold flex items-center justify-center hover:text-red-500 transition-colors bg-gray-50 dark:bg-gray-900/50 rounded-t-3xl border-t border-gray-100 dark:border-gray-800"
       >
-        <Lock size={18} className="mr-2" /> Lock Vault Now
+        <Lock size={16} className="mr-2" /> Lock Vault
       </button>
     </div>
   );

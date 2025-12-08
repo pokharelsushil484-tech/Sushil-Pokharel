@@ -1,7 +1,8 @@
 
+
 import React, { useState, useEffect } from 'react';
-import { ChangeRequest } from '../types';
-import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2, Search, ShieldAlert } from 'lucide-react';
+import { ChangeRequest, Post } from '../types';
+import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2, Search, ShieldAlert, Megaphone, Plus, X } from 'lucide-react';
 import { sendPasswordResetEmail } from '../services/emailService';
 import { ADMIN_USERNAME } from '../constants';
 
@@ -15,6 +16,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [userFilter, setUserFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Post Management State
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [showPostForm, setShowPostForm] = useState(false);
+  const [newPost, setNewPost] = useState({ title: '', content: '' });
 
   useEffect(() => {
     const usersStr = localStorage.getItem('studentpocket_users');
@@ -44,6 +50,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
     const reqStr = localStorage.getItem('studentpocket_requests');
     if (reqStr) {
         setRequests(JSON.parse(reqStr));
+    }
+
+    // Load Posts
+    const postsStr = localStorage.getItem('studentpocket_global_posts');
+    if (postsStr) {
+        setPosts(JSON.parse(postsStr));
     }
   }, [refreshTrigger]);
 
@@ -191,6 +203,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
       setRefreshTrigger(prev => prev + 1);
   };
 
+  // --- Post Logic ---
+  const createPost = () => {
+    if (!newPost.title || !newPost.content) {
+        alert("Title and Content are required.");
+        return;
+    }
+
+    const post: Post = {
+        id: Date.now().toString(),
+        title: newPost.title,
+        content: newPost.content,
+        date: new Date().toISOString(),
+        author: ADMIN_USERNAME
+    };
+
+    const updatedPosts = [post, ...posts];
+    setPosts(updatedPosts);
+    localStorage.setItem('studentpocket_global_posts', JSON.stringify(updatedPosts));
+    setNewPost({ title: '', content: '' });
+    setShowPostForm(false);
+    alert("Announcement broadcasted successfully.");
+  };
+
+  const deletePost = (id: string) => {
+      if(!confirm("Delete this post?")) return;
+      const updatedPosts = posts.filter(p => p.id !== id);
+      setPosts(updatedPosts);
+      localStorage.setItem('studentpocket_global_posts', JSON.stringify(updatedPosts));
+  };
+
   const handleFactoryReset = () => {
     if (window.confirm('CRITICAL WARNING: This will DELETE ALL USERS and ALL DATA permanently. The app will be reset to its initial state. Are you sure?')) {
       resetApp();
@@ -255,6 +297,59 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   return (
     <div className="pb-20 animate-fade-in">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Admin Dashboard</h1>
+
+      {/* ANNOUNCEMENTS */}
+      <div className="mb-8">
+         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 ml-2 flex items-center justify-between">
+            <span className="flex items-center"><Megaphone size={16} className="mr-2" /> Broadcast Announcements</span>
+            <button 
+                onClick={() => setShowPostForm(!showPostForm)} 
+                className="bg-indigo-600 text-white p-1.5 rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+                {showPostForm ? <X size={16} /> : <Plus size={16} />}
+            </button>
+         </h3>
+
+         {showPostForm && (
+             <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg border border-indigo-100 dark:border-gray-700 mb-4 animate-slide-up">
+                 <input 
+                    className="w-full mb-3 p-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg font-bold"
+                    placeholder="Announcement Title"
+                    value={newPost.title}
+                    onChange={e => setNewPost({...newPost, title: e.target.value})}
+                 />
+                 <textarea 
+                    className="w-full mb-3 p-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg h-24 resize-none"
+                    placeholder="Write your message here..."
+                    value={newPost.content}
+                    onChange={e => setNewPost({...newPost, content: e.target.value})}
+                 />
+                 <button onClick={createPost} className="w-full bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700">
+                     Post Announcement
+                 </button>
+             </div>
+         )}
+
+         <div className="space-y-3">
+             {posts.length === 0 ? (
+                 <div className="text-gray-400 text-sm italic ml-2">No announcements posted.</div>
+             ) : (
+                 posts.map(post => (
+                     <div key={post.id} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm relative group">
+                         <h4 className="font-bold text-gray-800 dark:text-white pr-8">{post.title}</h4>
+                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 whitespace-pre-wrap">{post.content}</p>
+                         <p className="text-[10px] text-gray-400 mt-2">{new Date(post.date).toLocaleDateString()} • {new Date(post.date).toLocaleTimeString()}</p>
+                         <button 
+                            onClick={() => deletePost(post.id)}
+                            className="absolute top-2 right-2 p-1.5 text-gray-300 hover:text-red-500 bg-transparent hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                             <Trash2 size={14} />
+                         </button>
+                     </div>
+                 ))
+             )}
+         </div>
+      </div>
 
       {/* REQUESTS INBOX */}
       <div className="mb-8">

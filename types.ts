@@ -1,4 +1,5 @@
 
+
 export enum View {
   ONBOARDING = 'ONBOARDING',
   DASHBOARD = 'DASHBOARD',
@@ -48,6 +49,7 @@ export interface Assignment {
   priority: TaskPriority;
   completed: boolean;
   estimatedTime?: string;
+  reminderMinutes?: number;
 }
 
 export interface Note {
@@ -61,8 +63,12 @@ export interface Note {
 export interface VaultDocument {
   id: string;
   title: string;
-  type: 'ID' | 'CERTIFICATE' | 'MARKSHEET' | 'OTHER';
-  content?: string; // Base64 or Description
+  type: 'ID' | 'CERTIFICATE' | 'MARKSHEET' | 'OTHER' | 'FOLDER';
+  content?: string; // Base64
+  parentId?: string | null;
+  size?: number;
+  createdAt?: number;
+  mimeType?: string;
 }
 
 export interface Scholarship {
@@ -90,4 +96,12 @@ export interface ChatMessage {
   text: string;
   sender: 'user' | 'ai';
   timestamp: number;
+}
+
+export interface Post {
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+  author: string;
 }

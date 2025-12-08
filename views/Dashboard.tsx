@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
-import { UserProfile, Assignment, ChangeRequest } from '../types';
-import { Clock, CheckCircle2, BadgeCheck, AlertTriangle, Send } from 'lucide-react';
+
+import React, { useState, useEffect } from 'react';
+import { UserProfile, Assignment, ChangeRequest, Post } from '../types';
+import { Clock, CheckCircle2, BadgeCheck, AlertTriangle, Send, Megaphone, BarChart3 } from 'lucide-react';
 import { MOTIVATIONAL_QUOTES, ADMIN_USERNAME } from '../constants';
 
 interface DashboardProps {
@@ -13,6 +14,8 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerified, username }) => {
   const [isRequesting, setIsRequesting] = useState(false);
+  const [announcements, setAnnouncements] = useState<Post[]>([]);
+  
   const pendingAssignments = assignments.filter(a => !a.completed).length;
   const completedAssignments = assignments.filter(a => a.completed).length;
   const total = assignments.length || 1;
@@ -20,6 +23,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   const quote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+
+  // Subject Performance Calculations
+  const subjectStats = assignments.reduce((acc, curr) => {
+    // Normalize subject case
+    const subject = curr.subject.trim(); 
+    if (!acc[subject]) {
+      acc[subject] = { total: 0, completed: 0 };
+    }
+    acc[subject].total += 1;
+    if (curr.completed) {
+      acc[subject].completed += 1;
+    }
+    return acc;
+  }, {} as Record<string, { total: number; completed: number }>);
+
+  const subjectData = Object.entries(subjectStats).map(([subject, stats]) => ({
+    subject,
+    percentage: Math.round((stats.completed / stats.total) * 100),
+    total: stats.total,
+    completed: stats.completed
+  })).sort((a, b) => b.percentage - a.percentage); // Sort highest completion first
+
+  useEffect(() => {
+    const postsStr = localStorage.getItem('studentpocket_global_posts');
+    if (postsStr) {
+        setAnnouncements(JSON.parse(postsStr));
+    }
+  }, []);
 
   const handleRequestVerification = () => {
      if (username === ADMIN_USERNAME) return;
@@ -96,8 +127,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
                   <AlertTriangle className="text-yellow-600" size={28} />
                 </div>
                 <div>
-                    <h3 className="text-yellow-900 font-bold text-lg">Limited Mode Active</h3>
-                    <p className="text-yellow-700 text-sm mt-0.5 font-medium">Ask Admin to unlock full features.</p>
+                    <h3 className="text-yellow-900 font-bold text-lg">Unlock Full Features</h3>
+                    <p className="text-yellow-700 text-sm mt-0.5 font-medium">Verify your account to access Vault, CV Builder & AI.</p>
                 </div>
             </div>
             <button 
@@ -106,7 +137,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
                 className="w-full sm:w-auto bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-yellow-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed text-sm flex items-center justify-center"
             >
                 <Send size={16} className="mr-2" />
-                {isRequesting ? 'Sending...' : 'Request Access'}
+                {isRequesting ? 'Sending...' : 'Request Verification'}
             </button>
         </div>
       )}
@@ -142,6 +173,64 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
           </div>
         </div>
       </div>
+
+      {/* Subject Performance Charts */}
+      {assignments.length > 0 && (
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
+           <div className="flex items-center space-x-3 mb-6">
+              <div className="bg-indigo-50 p-2.5 rounded-xl">
+                 <BarChart3 className="text-indigo-600" size={24} />
+              </div>
+              <h3 className="font-bold text-gray-900 text-xl">Subject Performance</h3>
+           </div>
+           
+           <div className="space-y-6">
+             {subjectData.map((data) => (
+               <div key={data.subject}>
+                 <div className="flex justify-between items-center text-sm mb-2 font-bold">
+                   <span className="text-gray-700 capitalize">{data.subject}</span>
+                   <span className="text-indigo-600">{data.percentage}%</span>
+                 </div>
+                 <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                   <div
+                     className={`h-full rounded-full transition-all duration-1000 ${
+                       data.percentage === 100 ? 'bg-green-500' :
+                       data.percentage >= 75 ? 'bg-blue-500' :
+                       data.percentage >= 40 ? 'bg-orange-400' :
+                       'bg-red-400'
+                     }`}
+                     style={{ width: `${data.percentage}%` }}
+                   />
+                 </div>
+                 <div className="text-xs text-gray-400 mt-1.5 font-medium flex justify-between">
+                     <span>{data.completed} done</span>
+                     <span>{data.total} total</span>
+                 </div>
+               </div>
+             ))}
+           </div>
+        </div>
+      )}
+
+       {/* ANNOUNCEMENTS SECTION */}
+       {announcements.length > 0 && (
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-indigo-100">
+             <div className="flex items-center space-x-2 mb-4">
+               <Megaphone className="text-indigo-600" size={20} />
+               <h3 className="font-bold text-gray-800 text-lg">Announcements</h3>
+             </div>
+             <div className="space-y-4">
+               {announcements.slice(0, 3).map(post => (
+                 <div key={post.id} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                    <h4 className="font-bold text-gray-800 text-sm mb-1">{post.title}</h4>
+                    <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                    <p className="text-[10px] text-gray-400 mt-2 font-medium text-right">{new Date(post.date).toLocaleDateString()}</p>
+                 </div>
+               ))}
+             </div>
+          </div>
+       )}
 
       {/* Daily Quote */}
       <div className="bg-gradient-to-r from-orange-50 to-orange-100/50 border-l-8 border-orange-400 p-6 rounded-r-3xl flex items-center shadow-sm">
