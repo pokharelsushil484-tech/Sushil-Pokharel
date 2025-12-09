@@ -24,6 +24,7 @@ export const CVBuilder: React.FC<CVBuilderProps> = ({ user, isVerified, updateUs
   const [awards, setAwards] = useState<Award[]>(user.awards || []);
   const [languages, setLanguages] = useState<Language[]>(user.languages || []);
   const [interests, setInterests] = useState<string[]>(user.interests || []);
+  const [profession, setProfession] = useState(user.profession || '');
 
   // UI State for Accordion in Editor
   const [activeSection, setActiveSection] = useState<string | null>('statement');
@@ -79,6 +80,7 @@ export const CVBuilder: React.FC<CVBuilderProps> = ({ user, isVerified, updateUs
   const saveChanges = () => {
     updateUser({
       ...user,
+      profession,
       personalStatement,
       skills,
       experience: experiences,
@@ -137,6 +139,17 @@ export const CVBuilder: React.FC<CVBuilderProps> = ({ user, isVerified, updateUs
 
         <div className="space-y-2 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
            
+           {/* Profession / Title */}
+           <div className="p-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Professional Title</label>
+                <input 
+                   className="w-full p-2 text-sm border rounded dark:bg-gray-700 dark:text-white border-gray-300 dark:border-gray-600"
+                   value={profession}
+                   onChange={e => setProfession(e.target.value)}
+                   placeholder="e.g. Mechanical Engineer, Computer Science Student"
+                />
+           </div>
+
            {/* Personal Statement */}
            <SectionHeader id="statement" title="Personal Statement" icon={FileText} />
            {activeSection === 'statement' && (
@@ -283,6 +296,7 @@ export const CVBuilder: React.FC<CVBuilderProps> = ({ user, isVerified, updateUs
            <button 
             onClick={() => {
               // Sync state with user data before editing
+              setProfession(user.profession || '');
               setPersonalStatement(user.personalStatement || user.studyPreference || '');
               setSkills(user.skills || []);
               setExperiences(user.experience || []);
@@ -315,7 +329,7 @@ export const CVBuilder: React.FC<CVBuilderProps> = ({ user, isVerified, updateUs
         <div className="bg-[#2c3e50] text-white p-10 flex justify-between items-center">
             <div className="flex-1">
                <h1 className="text-4xl font-bold uppercase tracking-wider mb-2">{user.name}</h1>
-               <p className="text-gray-300 text-lg font-medium tracking-wide mb-2">{user.education}</p>
+               <p className="text-gray-300 text-lg font-medium tracking-wide mb-2 uppercase">{user.profession || user.education}</p>
                {user.personalStatement && (
                    <p className="text-sm text-gray-400 leading-tight max-w-md italic opacity-90">{user.personalStatement}</p>
                )}

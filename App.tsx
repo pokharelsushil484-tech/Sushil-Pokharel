@@ -13,7 +13,7 @@ import { ScholarshipTracker } from './views/ScholarshipTracker';
 import { AdminDashboard } from './views/AdminDashboard';
 import { AIChat } from './views/AIChat';
 import { ErrorPage } from './views/ErrorPage';
-import { View, UserProfile, Assignment, Note, VaultDocument, Scholarship, ChatMessage } from './types';
+import { View, UserProfile, Assignment, Note, VaultDocument, Scholarship, ChatMessage, ChangeRequest } from './types';
 import { DEFAULT_USER, ADMIN_USERNAME } from './constants';
 
 interface AppData {
@@ -85,8 +85,29 @@ function App() {
     }
   }, []);
 
-  // Load data when username changes
+  // System Cleanup & Data Load
   useEffect(() => {
+    // --- GLOBAL REQUEST CLEANUP (30 DAYS) ---
+    const reqStr = localStorage.getItem('studentpocket_requests');
+    if (reqStr) {
+        try {
+            const requests: ChangeRequest[] = JSON.parse(reqStr);
+            const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+            const now = Date.now();
+            
+            // Keep pending requests OR requests updated within 30 days
+            const validRequests = requests.filter(req => 
+                req.status === 'PENDING' || (now - new Date(req.timestamp).getTime() < thirtyDaysMs)
+            );
+            
+            if (validRequests.length !== requests.length) {
+                localStorage.setItem('studentpocket_requests', JSON.stringify(validRequests));
+            }
+        } catch (e) {
+            console.error("Cleanup Error", e);
+        }
+    }
+
     if (currentUsername) {
       const storageKey = `studentpocket_data_${currentUsername}`;
       const stored = localStorage.getItem(storageKey);
@@ -99,6 +120,24 @@ function App() {
              if (!parsed.user.experience) parsed.user.experience = [];
              if (!parsed.user.projects) parsed.user.projects = [];
         }
+        
+        // --- AUTO-DELETE TRASH LOGIC (30 DAYS) ---
+        const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+        const now = Date.now();
+        
+        // Filter out items that have been in trash for > 30 days
+        if (parsed.notes) {
+            parsed.notes = parsed.notes.filter((n: Note) => 
+                !n.deletedAt || (now - n.deletedAt < thirtyDaysMs)
+            );
+        }
+        if (parsed.vaultDocs) {
+            parsed.vaultDocs = parsed.vaultDocs.filter((d: VaultDocument) => 
+                !d.deletedAt || (now - d.deletedAt < thirtyDaysMs)
+            );
+        }
+        // ------------------------------------
+
         setData(parsed);
         if (parsed.user) {
           setView(currentUsername === ADMIN_USERNAME ? View.ADMIN_DASHBOARD : View.DASHBOARD);

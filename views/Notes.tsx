@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { Note } from '../types';
-import { Plus, Search, ChevronRight, Wand2, X, Lock } from 'lucide-react';
+import { Plus, Search, ChevronRight, Wand2, X, Lock, Trash2, RefreshCcw, Archive } from 'lucide-react';
 import { summarizeNote } from '../services/geminiService';
 
 interface NotesProps {
@@ -13,10 +14,14 @@ export const Notes: React.FC<NotesProps> = ({ notes, setNotes, isAdmin }) => {
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loadingAI, setLoadingAI] = useState(false);
+  const [showTrash, setShowTrash] = useState(false);
   
   // New Note State
   const [currentTitle, setCurrentTitle] = useState('');
   const [currentContent, setCurrentContent] = useState('');
+
+  // 30 Days in MS
+  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 
   const handleSave = () => {
     if (!currentTitle) return;
@@ -37,6 +42,23 @@ export const Notes: React.FC<NotesProps> = ({ notes, setNotes, isAdmin }) => {
       setNotes([newNote, ...notes]);
     }
     closeEditor();
+  };
+
+  const softDeleteNote = (id: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if(window.confirm("Move to Trash? It will be permanently deleted after 30 days.")) {
+          setNotes(notes.map(n => n.id === id ? { ...n, deletedAt: Date.now() } : n));
+      }
+  };
+
+  const restoreNote = (id: string) => {
+      setNotes(notes.map(n => n.id === id ? { ...n, deletedAt: undefined } : n));
+  };
+
+  const permanentDeleteNote = (id: string) => {
+      if(window.confirm("Permanently delete this note? This cannot be undone.")) {
+          setNotes(notes.filter(n => n.id !== id));
+      }
   };
 
   const openEditor = (note?: Note) => {
@@ -66,6 +88,10 @@ export const Notes: React.FC<NotesProps> = ({ notes, setNotes, isAdmin }) => {
     setCurrentContent(prev => `${prev}\n\n--- AI Summary ---\n${summary}`);
     setLoadingAI(false);
   };
+
+  // Filter Notes
+  const activeNotes = notes.filter(n => !n.deletedAt);
+  const deletedNotes = notes.filter(n => n.deletedAt);
 
   if (isEditing) {
     return (
@@ -123,47 +149,90 @@ export const Notes: React.FC<NotesProps> = ({ notes, setNotes, isAdmin }) => {
   return (
     <div className="pb-24 animate-fade-in">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">My Notes</h1>
-        {isAdmin && (
-          <button onClick={() => openEditor()} className="bg-indigo-600 text-white w-12 h-12 rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center">
-            <Plus size={28} />
-          </button>
-        )}
+        <div>
+           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+             {showTrash ? 'Trash Bin' : 'My Notes'}
+           </h1>
+           {showTrash && <p className="text-xs text-gray-400 mt-1">Items deleted {'>'} 30 days ago are removed.</p>}
+        </div>
+        
+        <div className="flex space-x-2">
+            <button 
+                onClick={() => setShowTrash(!showTrash)}
+                className={`p-3 rounded-2xl transition-all ${showTrash ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                title={showTrash ? "Back to Notes" : "View Trash"}
+            >
+                {showTrash ? <Archive size={24} /> : <Trash2 size={24} />}
+            </button>
+            {isAdmin && !showTrash && (
+            <button onClick={() => openEditor()} className="bg-indigo-600 text-white w-12 h-12 rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center">
+                <Plus size={28} />
+            </button>
+            )}
+        </div>
       </div>
 
-      <div className="relative mb-8">
-        <Search className="absolute left-4 top-4 text-indigo-300" size={24} />
-        <input 
-          type="text" 
-          placeholder="Search your notes..." 
-          className="w-full bg-white py-4 pl-12 pr-4 rounded-2xl shadow-sm border-2 border-transparent focus:border-indigo-200 outline-none text-lg text-gray-700 placeholder-gray-300 transition-all"
-        />
-      </div>
+      {!showTrash && (
+        <div className="relative mb-8">
+            <Search className="absolute left-4 top-4 text-indigo-300" size={24} />
+            <input 
+            type="text" 
+            placeholder="Search your notes..." 
+            className="w-full bg-white py-4 pl-12 pr-4 rounded-2xl shadow-sm border-2 border-transparent focus:border-indigo-200 outline-none text-lg text-gray-700 placeholder-gray-300 transition-all"
+            />
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-5">
-        {notes.length === 0 && (
+        {(showTrash ? deletedNotes : activeNotes).length === 0 && (
              <div className="col-span-2 text-center py-16 text-gray-400 bg-white rounded-3xl border-2 border-dashed border-gray-200">
-                <p className="text-lg font-medium">No notes created yet.</p>
+                <p className="text-lg font-medium">{showTrash ? "Trash is empty." : "No notes created yet."}</p>
             </div>
         )}
-        {notes.map(note => (
+
+        {(showTrash ? deletedNotes : activeNotes).map(note => (
           <div 
             key={note.id} 
-            onClick={() => openEditor(note)}
-            className="bg-yellow-50 p-5 rounded-2xl shadow-sm border border-yellow-100 flex flex-col h-48 relative group cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all"
+            onClick={() => !showTrash && openEditor(note)}
+            className={`p-5 rounded-2xl shadow-sm border flex flex-col h-48 relative group transition-all ${
+                showTrash 
+                ? 'bg-red-50 border-red-100 cursor-default opacity-80' 
+                : 'bg-yellow-50 border-yellow-100 cursor-pointer hover:shadow-lg hover:-translate-y-1'
+            }`}
           >
             <h3 className="font-bold text-gray-800 mb-3 text-lg line-clamp-2 leading-tight">{note.title}</h3>
             <p className="text-sm text-gray-600 line-clamp-4 flex-1 font-medium opacity-80">{note.content}</p>
-            <div className="mt-3 pt-3 border-t border-yellow-100 flex justify-between items-center">
-                 <span className="text-xs text-yellow-700 font-bold opacity-60">{new Date(note.date).toLocaleDateString()}</span>
-                 <div className="bg-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
-                    <ChevronRight size={14} className="text-yellow-600" />
-                 </div>
+            
+            <div className="mt-3 pt-3 border-t border-gray-200/20 flex justify-between items-center">
+                 <span className="text-xs text-gray-500 font-bold opacity-60">
+                     {showTrash ? `Deleted: ${new Date(note.deletedAt!).toLocaleDateString()}` : new Date(note.date).toLocaleDateString()}
+                 </span>
+                 
+                 {showTrash ? (
+                     <div className="flex space-x-2">
+                         <button onClick={() => restoreNote(note.id)} className="p-1.5 bg-white text-green-600 rounded-lg shadow-sm hover:bg-green-50" title="Restore"><RefreshCcw size={14} /></button>
+                         <button onClick={() => permanentDeleteNote(note.id)} className="p-1.5 bg-white text-red-600 rounded-lg shadow-sm hover:bg-red-50" title="Delete Forever"><Trash2 size={14} /></button>
+                     </div>
+                 ) : (
+                    <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                         {isAdmin && (
+                            <button 
+                                onClick={(e) => softDeleteNote(note.id, e)} 
+                                className="bg-white p-1.5 rounded-full shadow-sm text-red-400 hover:text-red-600"
+                            >
+                                <Trash2 size={14} />
+                            </button>
+                         )}
+                         <div className="bg-white p-1.5 rounded-full shadow-sm">
+                            <ChevronRight size={14} className="text-yellow-600" />
+                        </div>
+                    </div>
+                 )}
             </div>
           </div>
         ))}
         
-        {isAdmin && (
+        {isAdmin && !showTrash && (
           <button 
              onClick={() => openEditor()}
              className="bg-white p-5 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center h-48 text-gray-400 hover:bg-gray-50 hover:border-indigo-200 hover:text-indigo-400 transition-all group"

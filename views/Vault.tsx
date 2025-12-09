@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, VaultDocument } from '../types';
-import { Shield, Lock, Unlock, FileText, Image as ImageIcon, Camera, AlertTriangle, FolderPlus, Folder, ChevronRight, Home, LayoutGrid, List as ListIcon, MoreVertical, Search, ArrowLeft, HardDrive, Trash2, Download } from 'lucide-react';
+import { Shield, Lock, Unlock, FileText, Image as ImageIcon, Camera, AlertTriangle, FolderPlus, Folder, ChevronRight, Home, LayoutGrid, List as ListIcon, MoreVertical, Search, ArrowLeft, HardDrive, Trash2, Download, Archive, RefreshCcw } from 'lucide-react';
 
 interface VaultProps {
   user: UserProfile;
@@ -24,6 +24,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, is
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showTrash, setShowTrash] = useState(false);
 
   const CORRECT_PIN = user.vaultPin || "1234"; 
 
@@ -142,10 +143,24 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, is
     }
   };
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  const softDelete = (id: string, e: React.MouseEvent) => {
       e.stopPropagation();
-      if(window.confirm("Are you sure you want to delete this item?")) {
-          // If folder, technically should delete children, but keeping simple
+      if(window.confirm("Move to Trash?")) {
+           // Also soft delete children if folder
+           saveDocuments(documents.map(d => 
+               (d.id === id || d.parentId === id) ? { ...d, deletedAt: Date.now() } : d
+           ));
+      }
+  };
+
+  const restoreDoc = (id: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      saveDocuments(documents.map(d => d.id === id ? { ...d, deletedAt: undefined } : d));
+  };
+
+  const permanentDelete = (id: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if(window.confirm("Permanently delete? Cannot undo.")) {
           saveDocuments(documents.filter(d => d.id !== id && d.parentId !== id));
       }
   };
@@ -162,17 +177,16 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, is
   };
 
   // Filter items
-  const currentItems = documents.filter(doc => {
-      // If searching, search everything regardless of folder
-      if (searchQuery) {
-          return doc.title.toLowerCase().includes(searchQuery.toLowerCase());
-      }
-      // Otherwise respect folder hierarchy
+  const activeItems = documents.filter(doc => !doc.deletedAt);
+  const trashItems = documents.filter(doc => doc.deletedAt);
+
+  const displayedItems = showTrash ? trashItems : activeItems.filter(doc => {
+      if (searchQuery) return doc.title.toLowerCase().includes(searchQuery.toLowerCase());
       return doc.parentId === (currentFolderId || undefined) || doc.parentId === currentFolderId;
   });
 
   // Calculate Storage
-  const usedSpace = documents.reduce((acc, doc) => acc + (doc.size || 0), 0);
+  const usedSpace = activeItems.reduce((acc, doc) => acc + (doc.size || 0), 0);
   const totalSpace = 2 * 1024 * 1024 * 1024; // 2GB Limit
   const usedPercentage = Math.min((usedSpace / totalSpace) * 100, 100);
 
@@ -265,86 +279,101 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, is
 
       {/* Toolbar */}
       <div className="flex items-center space-x-2 mb-4 overflow-x-auto no-scrollbar py-1">
-         {currentFolderId && (
+         {currentFolderId && !showTrash && (
              <button onClick={() => setCurrentFolderId(null)} className="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300">
                  <Home size={20} />
              </button>
          )}
          
-         <div className="flex-1 flex items-center bg-white dark:bg-gray-800 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700">
-             <Search size={18} className="text-gray-400 ml-2" />
-             <input 
-               className="flex-1 bg-transparent border-none outline-none px-2 text-sm text-gray-700 dark:text-gray-200" 
-               placeholder="Search files..." 
-               value={searchQuery}
-               onChange={e => setSearchQuery(e.target.value)}
-             />
-         </div>
+         {!showTrash && (
+            <div className="flex-1 flex items-center bg-white dark:bg-gray-800 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700">
+                <Search size={18} className="text-gray-400 ml-2" />
+                <input 
+                className="flex-1 bg-transparent border-none outline-none px-2 text-sm text-gray-700 dark:text-gray-200" 
+                placeholder="Search files..." 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                />
+            </div>
+         )}
+         
+         {showTrash && <div className="flex-1 font-bold text-red-500 text-lg ml-2">Trash Bin</div>}
 
          <button onClick={() => setViewMode(viewMode === 'GRID' ? 'LIST' : 'GRID')} className="p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-600 dark:text-gray-300">
              {viewMode === 'GRID' ? <ListIcon size={20} /> : <LayoutGrid size={20} />}
          </button>
+
+         <button 
+            onClick={() => { setShowTrash(!showTrash); setCurrentFolderId(null); }}
+            className={`p-3 rounded-xl transition-colors ${showTrash ? 'bg-red-100 text-red-600' : 'bg-white dark:bg-gray-800 text-gray-400 border border-gray-200 dark:border-gray-700 hover:text-red-500'}`}
+         >
+             <Archive size={20} />
+         </button>
       </div>
 
-      {/* Breadcrumbs */}
-      <div className="flex items-center space-x-1 mb-4 text-sm overflow-x-auto no-scrollbar whitespace-nowrap">
-          <button 
-            onClick={() => setCurrentFolderId(null)} 
-            className={`font-medium ${!currentFolderId ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'}`}
-          >
-              Home
-          </button>
-          {getBreadcrumbs().map((folder) => (
-              <div key={folder.id} className="flex items-center">
-                  <ChevronRight size={14} className="text-gray-300 mx-1" />
-                  <button 
-                    onClick={() => setCurrentFolderId(folder.id)}
-                    className={`font-medium ${currentFolderId === folder.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'}`}
-                  >
-                      {folder.title}
-                  </button>
-              </div>
-          ))}
-      </div>
+      {/* Breadcrumbs (only if not in trash) */}
+      {!showTrash && (
+        <div className="flex items-center space-x-1 mb-4 text-sm overflow-x-auto no-scrollbar whitespace-nowrap">
+            <button 
+                onClick={() => setCurrentFolderId(null)} 
+                className={`font-medium ${!currentFolderId ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'}`}
+            >
+                Home
+            </button>
+            {getBreadcrumbs().map((folder) => (
+                <div key={folder.id} className="flex items-center">
+                    <ChevronRight size={14} className="text-gray-300 mx-1" />
+                    <button 
+                        onClick={() => setCurrentFolderId(folder.id)}
+                        className={`font-medium ${currentFolderId === folder.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'}`}
+                    >
+                        {folder.title}
+                    </button>
+                </div>
+            ))}
+        </div>
+      )}
 
       {/* Content Area */}
       <div className="flex-1 overflow-y-auto pr-1 pb-20">
           
           {/* Action Buttons inside content area for empty states */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
-              <button 
-                onClick={createFolder} 
-                className="flex items-center justify-center space-x-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 p-4 rounded-2xl border border-dashed border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 transition-colors"
-              >
-                  <FolderPlus size={20} />
-                  <span className="font-bold text-sm">New Folder</span>
-              </button>
-              
-              <label className="flex items-center justify-center space-x-2 bg-indigo-600 text-white p-4 rounded-2xl shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition-colors cursor-pointer active:scale-95">
-                  <div className="flex items-center space-x-2">
-                     <ImageIcon size={20} />
-                     <span className="font-bold text-sm">Upload</span>
-                  </div>
-                  <input type="file" className="hidden" onChange={handleFileUpload} />
-              </label>
-          </div>
+          {!showTrash && (
+            <div className="grid grid-cols-2 gap-3 mb-6">
+                <button 
+                    onClick={createFolder} 
+                    className="flex items-center justify-center space-x-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 p-4 rounded-2xl border border-dashed border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 transition-colors"
+                >
+                    <FolderPlus size={20} />
+                    <span className="font-bold text-sm">New Folder</span>
+                </button>
+                
+                <label className="flex items-center justify-center space-x-2 bg-indigo-600 text-white p-4 rounded-2xl shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition-colors cursor-pointer active:scale-95">
+                    <div className="flex items-center space-x-2">
+                        <ImageIcon size={20} />
+                        <span className="font-bold text-sm">Upload</span>
+                    </div>
+                    <input type="file" className="hidden" onChange={handleFileUpload} />
+                </label>
+            </div>
+          )}
 
-          {currentItems.length === 0 ? (
+          {displayedItems.length === 0 ? (
               <div className="text-center py-12 opacity-50">
                   <Folder size={48} className="mx-auto text-gray-300 mb-2" />
-                  <p className="text-gray-400 text-sm font-medium">This folder is empty</p>
+                  <p className="text-gray-400 text-sm font-medium">{showTrash ? "Trash is empty" : "This folder is empty"}</p>
               </div>
           ) : (
              <div className={viewMode === 'GRID' ? "grid grid-cols-2 gap-3" : "flex flex-col space-y-2"}>
-                 {currentItems.map(item => (
+                 {displayedItems.map(item => (
                      <div 
                         key={item.id}
                         onClick={() => {
-                            if (item.type === 'FOLDER') setCurrentFolderId(item.id);
+                            if (item.type === 'FOLDER' && !showTrash) setCurrentFolderId(item.id);
                         }}
                         className={`group relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-3 hover:shadow-md transition-all active:scale-[0.98] cursor-pointer ${
                             viewMode === 'GRID' ? 'flex flex-col items-center text-center h-32 justify-center' : 'flex items-center p-4'
-                        }`}
+                        } ${showTrash ? 'opacity-80 border-red-50 bg-red-50/10' : ''}`}
                      >
                          <div className={`rounded-full flex items-center justify-center mb-2 ${
                              viewMode === 'GRID' ? 'w-12 h-12' : 'w-10 h-10 mr-4 mb-0'
@@ -359,20 +388,29 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, is
                          <div className={`flex-1 min-w-0 ${viewMode === 'LIST' ? 'text-left' : ''}`}>
                              <p className="text-sm font-bold text-gray-800 dark:text-gray-200 truncate w-full">{item.title}</p>
                              <p className="text-[10px] text-gray-400 mt-0.5">
-                                 {item.type === 'FOLDER' ? 'Folder' : `${formatSize(item.size)} • ${new Date(item.createdAt || 0).toLocaleDateString()}`}
+                                 {showTrash ? 'Deleted' : (item.type === 'FOLDER' ? 'Folder' : `${formatSize(item.size)}`)}
                              </p>
                          </div>
 
                          {/* Quick Actions */}
-                         <div className={`absolute ${viewMode === 'GRID' ? 'top-2 right-2' : 'right-4'} opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-1`}>
-                             {item.type !== 'FOLDER' && (
-                                 <button onClick={(e) => handleDownload(item, e)} className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-indigo-100 hover:text-indigo-600">
-                                     <Download size={14} />
+                         <div className={`absolute ${viewMode === 'GRID' ? 'top-2 right-2' : 'right-4'} ${showTrash ? 'flex' : 'hidden group-hover:flex'} items-center space-x-1`}>
+                             {showTrash ? (
+                                <>
+                                 <button onClick={(e) => restoreDoc(item.id, e)} className="p-1.5 bg-white text-green-600 rounded-lg shadow-sm hover:bg-green-50" title="Restore"><RefreshCcw size={14} /></button>
+                                 <button onClick={(e) => permanentDelete(item.id, e)} className="p-1.5 bg-white text-red-600 rounded-lg shadow-sm hover:bg-red-50" title="Delete Forever"><Trash2 size={14} /></button>
+                                </>
+                             ) : (
+                                <>
+                                 {item.type !== 'FOLDER' && (
+                                     <button onClick={(e) => handleDownload(item, e)} className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-indigo-100 hover:text-indigo-600">
+                                         <Download size={14} />
+                                     </button>
+                                 )}
+                                 <button onClick={(e) => softDelete(item.id, e)} className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-red-100 hover:text-red-600">
+                                     <Trash2 size={14} />
                                  </button>
+                                </>
                              )}
-                             <button onClick={(e) => handleDelete(item.id, e)} className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-red-100 hover:text-red-600">
-                                 <Trash2 size={14} />
-                             </button>
                          </div>
                      </div>
                  ))}

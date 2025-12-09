@@ -64,6 +64,7 @@ export interface Language {
 
 export interface UserProfile {
   name: string;
+  profession?: string; // New field for Professional Title
   email: string;
   phone: string;
   education: string;
@@ -71,7 +72,7 @@ export interface UserProfile {
   country: string;
   avatar?: string;
   vaultPin?: string;
-  studyPreference?: string; // Kept for legacy, but Personal Statement is preferred for CV
+  studyPreference?: string;
   personalStatement?: string;
   skills: string[];
   experience: Experience[];
@@ -96,20 +97,22 @@ export interface Assignment {
 export interface Note {
   id: string;
   title: string;
-  content: string; // HTML or Rich text
+  content: string;
   date: string;
   tags: string[];
+  deletedAt?: number; // Timestamp for soft delete
 }
 
 export interface VaultDocument {
   id: string;
   title: string;
   type: 'ID' | 'CERTIFICATE' | 'MARKSHEET' | 'OTHER' | 'FOLDER';
-  content?: string; // Base64
+  content?: string;
   parentId?: string | null;
   size?: number;
   createdAt?: number;
   mimeType?: string;
+  deletedAt?: number; // Timestamp for soft delete
 }
 
 export interface Scholarship {
@@ -121,14 +124,14 @@ export interface Scholarship {
   link?: string;
 }
 
-export type RequestType = 'PROFILE_UPDATE' | 'PASSWORD_RESET' | 'VERIFICATION_REQUEST' | 'DELETE_ACCOUNT';
+export type RequestType = 'PROFILE_UPDATE' | 'PASSWORD_RESET' | 'VERIFICATION_REQUEST' | 'DELETE_ACCOUNT' | 'SUPPORT_TICKET';
 
 export interface ChangeRequest {
   id: string;
   username: string;
   type: RequestType;
-  payload?: any; // For profile updates, contains the new profile data
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  payload?: any; 
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'RESOLVED';
   timestamp: string;
 }
 
@@ -152,6 +155,6 @@ export interface Post {
   content: string;
   date: string;
   author: string;
-  likes: string[]; // Array of usernames
+  likes: string[];
   comments: Comment[];
 }

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, Post, UserProfile } from '../types';
-import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2, Search, ShieldAlert, Megaphone, Plus, X, Edit2, Save, Info, Image as ImageIcon } from 'lucide-react';
+import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2, Search, ShieldAlert, Megaphone, Plus, X, Edit2, Save, Info, Image as ImageIcon, HelpCircle } from 'lucide-react';
 import { sendPasswordResetEmail } from '../services/emailService';
 import { ADMIN_USERNAME } from '../constants';
 
@@ -163,7 +163,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   };
   
   // --- Request System Handlers (Admin) ---
-  const handleRequest = (req: ChangeRequest, action: 'APPROVE' | 'REJECT') => {
+  const handleRequest = (req: ChangeRequest, action: 'APPROVE' | 'REJECT' | 'RESOLVE') => {
       // 1. Process Logic
       if (action === 'APPROVE') {
           if (req.type === 'PROFILE_UPDATE' && req.payload) {
@@ -202,11 +202,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
              executeUserDeletion(req.username);
              showToast(`${req.username} deleted.`, 'info');
           }
+      } else if (action === 'RESOLVE') {
+          showToast(`Ticket resolved for ${req.username}`, 'success');
       } else {
           showToast("Request rejected.", 'info');
       }
 
-      // 2. Remove Request
+      // 2. Remove Request (For simplicity, remove immediately. In real app, mark as resolved)
       const newReqs = requests.filter(r => r.id !== req.id);
       setRequests(newReqs);
       localStorage.setItem('studentpocket_requests', JSON.stringify(newReqs));
@@ -292,6 +294,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
       setEditingUser(user.username);
       setEditFormData({
           name: user.profile?.name || '',
+          profession: user.profile?.profession || '',
           email: user.profile?.email || '',
           phone: user.profile?.phone || '',
           education: user.profile?.education || '',
@@ -468,6 +471,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                                 <span className="block font-bold mb-1">Proposed Changes:</span>
                                 {req.payload.avatar && <div className="mb-2"><img src={req.payload.avatar} alt="New Avatar" className="w-10 h-10 rounded-full object-cover border"/></div>}
                                 Name: {req.payload.name}<br/>
+                                Profession: {req.payload.profession}<br/>
                                 Institution: {req.payload.institution}<br/>
                                 Phone: {req.payload.phone}
                             </div>
@@ -500,6 +504,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                             </div>
                         )}
 
+                        {req.type === 'SUPPORT_TICKET' && (
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mb-3 bg-gray-50 dark:bg-gray-900/50 p-3 rounded italic border-l-4 border-indigo-500">
+                                "{req.payload?.message}"
+                            </div>
+                        )}
+
                          {req.type === 'PASSWORD_RESET' && (
                             <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded mb-3 flex items-center">
                                 <KeyRound size={12} className="mr-2"/> User requested a password reset.
@@ -507,21 +517,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                         )}
                         
                         <div className="flex space-x-2">
-                            <button 
-                              onClick={() => handleRequest(req, 'APPROVE')}
-                              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                                  req.type === 'DELETE_ACCOUNT' 
-                                  ? 'bg-red-600 text-white hover:bg-red-700' 
-                                  : 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100'
-                              }`}
-                            >
-                                {req.type === 'PASSWORD_RESET' ? 'Approve & Send Link' : req.type === 'VERIFICATION_REQUEST' ? 'Approve & Verify' : req.type === 'DELETE_ACCOUNT' ? 'Confirm Delete' : 'Approve Update'}
-                            </button>
+                            {req.type === 'SUPPORT_TICKET' ? (
+                                <button 
+                                    onClick={() => handleRequest(req, 'RESOLVE')}
+                                    className="flex-1 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 py-1.5 rounded-lg text-xs font-bold hover:bg-green-100"
+                                >
+                                    Mark as Resolved
+                                </button>
+                            ) : (
+                                <button 
+                                onClick={() => handleRequest(req, 'APPROVE')}
+                                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                                    req.type === 'DELETE_ACCOUNT' 
+                                    ? 'bg-red-600 text-white hover:bg-red-700' 
+                                    : 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100'
+                                }`}
+                                >
+                                    {req.type === 'PASSWORD_RESET' ? 'Approve & Send Link' : req.type === 'VERIFICATION_REQUEST' ? 'Approve & Verify' : req.type === 'DELETE_ACCOUNT' ? 'Confirm Delete' : 'Approve Update'}
+                                </button>
+                            )}
+                            
                             <button 
                               onClick={() => handleRequest(req, 'REJECT')}
                               className="px-3 bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 rounded-lg text-xs font-bold hover:bg-gray-200"
                             >
-                                Reject
+                                {req.type === 'SUPPORT_TICKET' ? 'Ignore' : 'Reject'}
                             </button>
                         </div>
                     </div>
@@ -594,6 +614,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                         </div>
                         <div className="flex-1 overflow-y-auto space-y-3">
                             <input className="w-full p-2 border rounded" placeholder="Full Name" value={editFormData.name} onChange={e => setEditFormData({...editFormData, name: e.target.value})} />
+                            <input className="w-full p-2 border rounded" placeholder="Profession" value={editFormData.profession} onChange={e => setEditFormData({...editFormData, profession: e.target.value})} />
                             <input className="w-full p-2 border rounded" placeholder="Email" value={editFormData.email} onChange={e => setEditFormData({...editFormData, email: e.target.value})} />
                             <input className="w-full p-2 border rounded" placeholder="Phone" value={editFormData.phone} onChange={e => setEditFormData({...editFormData, phone: e.target.value})} />
                             <input className="w-full p-2 border rounded" placeholder="Institution" value={editFormData.institution} onChange={e => setEditFormData({...editFormData, institution: e.target.value})} />
@@ -619,7 +640,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                                   </span>
                               )}
                           </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 truncate">{u.email}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 truncate">{u.profile?.profession || 'Student'}</p>
                           {u.verified ? (
                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800 border border-green-200">
                                <BadgeCheck size={12} className="mr-1" /> Verified

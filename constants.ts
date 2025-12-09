@@ -5,6 +5,7 @@ export const ADMIN_USERNAME = "sushilpokharel";
 
 export const DEFAULT_USER: UserProfile = {
   name: "Sushil Pokharel",
+  profession: "Computer Science Student",
   email: "pokharelsushil242@gmail.com",
   phone: "9765226385",
   education: "+2 Completed",

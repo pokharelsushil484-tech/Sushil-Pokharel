@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest } from '../types';
-import { Moon, Bell, LogOut, Globe, ShieldCheck, Trash2, Sun, Check, X, Edit2, UserMinus, BadgeCheck, AlertTriangle, Camera, CheckCircle2, Bug, Mail, Upload, ArrowRight, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Moon, Bell, LogOut, Globe, ShieldCheck, Trash2, Sun, Check, X, Edit2, UserMinus, BadgeCheck, AlertTriangle, Camera, CheckCircle2, Bug, Mail, Upload, ArrowRight, Loader2, Image as ImageIcon, Briefcase, HelpCircle } from 'lucide-react';
 import { WATERMARK, ADMIN_USERNAME } from '../constants';
 import { sendVerificationOTP } from '../services/emailService';
 
@@ -31,6 +31,10 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [idCardImage, setIdCardImage] = useState<string | null>(null);
   
+  // Support Ticket
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [supportMessage, setSupportMessage] = useState('');
+
   // Crash Simulation State
   const [shouldCrash, setShouldCrash] = useState(false);
 
@@ -58,7 +62,49 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       return false;
   })();
 
+  // --- RATE LIMITING LOGIC ---
+  const canSendRequest = (type: 'VERIFICATION_REQUEST' | 'OTHER') => {
+      const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
+      const reqs: ChangeRequest[] = JSON.parse(reqStr);
+      const userReqs = reqs.filter(r => r.username === username);
+      const now = Date.now();
+
+      if (type === 'VERIFICATION_REQUEST') {
+          // Check for ANY verification request in last 30 days
+          const lastVerif = userReqs
+              .filter(r => r.type === 'VERIFICATION_REQUEST')
+              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+          
+          if (lastVerif) {
+              const diff = now - new Date(lastVerif.timestamp).getTime();
+              const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+              if (diff < thirtyDaysMs) {
+                  const daysLeft = Math.ceil((thirtyDaysMs - diff) / (24 * 60 * 60 * 1000));
+                  showToast(`Verification cooldown active. Wait ${daysLeft} days.`, 'error');
+                  return false;
+              }
+          }
+      } else {
+          // Check for ANY request in last 24 hours (for spam prevention)
+          // "in 1 day only all request"
+          const lastAny = userReqs
+              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+          
+          if (lastAny) {
+              const diff = now - new Date(lastAny.timestamp).getTime();
+              const oneDayMs = 24 * 60 * 60 * 1000;
+              if (diff < oneDayMs) {
+                  showToast("Limit reached: You can send 1 request per day.", 'error');
+                  return false;
+              }
+          }
+      }
+      return true;
+  };
+
   const handleStartVerification = () => {
+    if (!canSendRequest('VERIFICATION_REQUEST')) return;
+
     const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
     const reqs = JSON.parse(reqStr);
     
@@ -155,6 +201,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
            }
            showToast("Admin profile picture updated!", 'success');
         } else {
+           if (!canSendRequest('OTHER')) return;
+
            // User sends request
            const request: ChangeRequest = {
                id: Date.now().toString(),
@@ -177,6 +225,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
   };
 
   const sendProfileUpdateRequest = () => {
+     if (!canSendRequest('OTHER')) return;
+
      const request: ChangeRequest = {
          id: Date.now().toString(),
          username: username,
@@ -195,7 +245,31 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
      showToast("Profile update request sent.", 'success');
   };
 
+  const submitSupportTicket = () => {
+      if (!canSendRequest('OTHER')) return;
+      if(!supportMessage.trim()) return;
+
+      const request: ChangeRequest = {
+          id: Date.now().toString(),
+          username: username,
+          type: 'SUPPORT_TICKET',
+          payload: { message: supportMessage },
+          status: 'PENDING',
+          timestamp: new Date().toISOString()
+      };
+
+      const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
+      const reqs = JSON.parse(reqStr);
+      reqs.push(request);
+      localStorage.setItem('studentpocket_requests', JSON.stringify(reqs));
+      
+      setShowSupportModal(false);
+      setSupportMessage('');
+      showToast("Support ticket sent to Admin.", 'success');
+  };
+
   const requestAccountDeletion = () => {
+     if (!canSendRequest('OTHER')) return;
      if(!window.confirm("Are you sure you want to request account deletion? This will permanently delete all your data once approved by the Admin.")) return;
 
      const request: ChangeRequest = {
@@ -354,6 +428,25 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
           </div>
       )}
       
+      {/* Support Ticket Modal */}
+      {showSupportModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+               <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-3xl p-6 shadow-2xl animate-scale-up border border-gray-200 dark:border-gray-700">
+                   <h2 className="text-xl font-bold dark:text-white mb-4">Report a Problem</h2>
+                   <textarea
+                     className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white h-32 text-sm mb-4"
+                     placeholder="Describe your issue or question..."
+                     value={supportMessage}
+                     onChange={e => setSupportMessage(e.target.value)}
+                   />
+                   <div className="flex gap-2">
+                       <button onClick={submitSupportTicket} className="flex-1 bg-indigo-600 text-white py-2 rounded-xl font-bold">Submit Ticket</button>
+                       <button onClick={() => setShowSupportModal(false)} className="px-4 py-2 text-gray-500 font-bold">Cancel</button>
+                   </div>
+               </div>
+          </div>
+      )}
+
       {/* Profile Card */}
       <div className="bg-indigo-600 dark:bg-indigo-700 rounded-3xl p-6 text-white mb-8 shadow-xl shadow-indigo-200 dark:shadow-none relative overflow-hidden">
         {isEditingProfile ? (
@@ -364,6 +457,12 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                   value={editProfileData.name}
                   onChange={e => setEditProfileData({...editProfileData, name: e.target.value})}
                   placeholder="Full Name"
+                />
+                <input 
+                  className="w-full p-3 rounded-xl text-gray-800 text-sm outline-none border-2 border-transparent focus:border-indigo-300"
+                  value={editProfileData.profession || ''}
+                  onChange={e => setEditProfileData({...editProfileData, profession: e.target.value})}
+                  placeholder="Profession (e.g. Student, Engineer)"
                 />
                 <input 
                   className="w-full p-3 rounded-xl text-gray-800 text-sm outline-none border-2 border-transparent focus:border-indigo-300"
@@ -410,7 +509,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                 </div>
                 <div className="flex-1">
                 <h2 className="font-bold text-lg">{user.name}</h2>
-                <p className="text-indigo-200 text-sm mb-1">{user.email}</p>
+                <p className="text-indigo-200 text-sm mb-1">{user.profession || user.email}</p>
                 <div className="flex items-center">
                      <p className="text-[10px] bg-white/10 px-2 py-0.5 rounded text-white font-bold mr-2 uppercase tracking-wide">{username === ADMIN_USERNAME ? 'Admin' : 'Student'}</p>
                      {isVerified ? (
@@ -478,6 +577,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
 
       <div>
          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 ml-2">Account Actions</h3>
+         <SettingItem icon={HelpCircle} title="Report a Problem" subTitle="Contact Admin for support" onClick={() => setShowSupportModal(true)} />
          <SettingItem icon={LogOut} title="Log Out" onClick={onLogout} />
          <SettingItem icon={UserMinus} title="Delete Account" subTitle="Request permanent deletion" danger onClick={requestAccountDeletion} />
          <SettingItem icon={Trash2} title="Factory Reset" subTitle="Clear local data on this device" danger onClick={() => {
