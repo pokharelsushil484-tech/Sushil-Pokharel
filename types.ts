@@ -1,5 +1,4 @@
 
-
 export enum View {
   ONBOARDING = 'ONBOARDING',
   DASHBOARD = 'DASHBOARD',
@@ -28,6 +27,21 @@ export enum ScholarshipStatus {
   REJECTED = 'Rejected',
 }
 
+export interface Experience {
+  id: string;
+  role: string;
+  company: string;
+  duration: string;
+  description: string;
+}
+
+export interface Project {
+  id: string;
+  title: string;
+  role?: string;
+  description: string;
+}
+
 export interface UserProfile {
   name: string;
   email: string;
@@ -39,6 +53,8 @@ export interface UserProfile {
   vaultPin?: string;
   studyPreference?: string;
   skills: string[];
+  experience: Experience[];
+  projects: Project[];
 }
 
 export interface Assignment {
@@ -98,10 +114,19 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+export interface Comment {
+  id: string;
+  username: string;
+  text: string;
+  timestamp: string;
+}
+
 export interface Post {
   id: string;
   title: string;
   content: string;
   date: string;
   author: string;
+  likes: string[]; // Array of usernames
+  comments: Comment[];
 }

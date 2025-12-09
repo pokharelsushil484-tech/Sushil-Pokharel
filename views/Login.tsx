@@ -306,20 +306,20 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
   };
 
   return (
-    <div className="min-h-screen bg-indigo-50 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-indigo-50 dark:bg-gray-900 flex flex-col items-center justify-center p-6 relative overflow-hidden transition-colors duration-500">
       
       {/* Background decoration */}
-      <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-100 rounded-full mix-blend-multiply filter blur-3xl opacity-70 -translate-x-1/2 -translate-y-1/2"></div>
-      <div className="absolute bottom-0 right-0 w-64 h-64 bg-purple-100 rounded-full mix-blend-multiply filter blur-3xl opacity-70 translate-x-1/2 translate-y-1/2"></div>
+      <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-100 dark:bg-indigo-900/30 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 -translate-x-1/2 -translate-y-1/2"></div>
+      <div className="absolute bottom-0 right-0 w-64 h-64 bg-purple-100 dark:bg-purple-900/30 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 translate-x-1/2 translate-y-1/2"></div>
 
-      <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-xl w-full max-w-sm p-8 text-center animate-scale-up relative z-10 border border-white/50">
+      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-3xl shadow-xl w-full max-w-sm p-8 text-center animate-scale-up relative z-10 border border-white/50 dark:border-gray-700 transition-colors duration-300">
         
         {/* Header Icon */}
-        <div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6 p-1 border-4 border-white shadow-lg overflow-hidden group relative">
+        <div className="w-24 h-24 bg-indigo-100 dark:bg-indigo-900 rounded-full flex items-center justify-center mx-auto mb-6 p-1 border-4 border-white dark:border-gray-700 shadow-lg overflow-hidden group relative">
             {user?.avatar ? (
                 <img src={user.avatar} alt="Profile" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
             ) : (
-                <span className="text-3xl font-bold text-indigo-600">
+                <span className="text-3xl font-bold text-indigo-600 dark:text-indigo-300">
                   {view === 'LINK_SENT' ? <Mail size={40} /> : 
                    view === 'FORGOT_PASSWORD' ? <KeyRound size={40} /> :
                    view === 'RESET_PASSWORD' ? <ShieldCheck size={40} /> :
@@ -328,25 +328,25 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
             )}
             {/* Badge on Login Screen if verified */}
             {view === 'LOGIN' && isVerified && (
-               <div className="absolute bottom-1 right-1 bg-white rounded-full p-0.5 shadow-sm">
-                 <BadgeCheck className="w-6 h-6 text-blue-500 fill-blue-50" />
+               <div className="absolute bottom-1 right-1 bg-white dark:bg-gray-800 rounded-full p-0.5 shadow-sm">
+                 <BadgeCheck className="w-6 h-6 text-blue-500 fill-blue-50 dark:fill-blue-900" />
                </div>
             )}
              {view === 'LOGIN' && username && !isVerified && username !== ADMIN_USERNAME && (
-               <div className="absolute bottom-1 right-1 bg-white rounded-full p-0.5 shadow-sm">
-                 <AlertTriangle className="w-6 h-6 text-yellow-500 fill-yellow-50" />
+               <div className="absolute bottom-1 right-1 bg-white dark:bg-gray-800 rounded-full p-0.5 shadow-sm">
+                 <AlertTriangle className="w-6 h-6 text-yellow-500 fill-yellow-50 dark:fill-yellow-900" />
                </div>
             )}
         </div>
 
-        <h1 className="text-2xl font-bold text-gray-800 mb-1">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-1">
           {view === 'LOGIN' ? 'Welcome Back' : 
            view === 'REGISTER' ? 'Create Account' : 
            view === 'FORGOT_PASSWORD' ? 'Recover Account' :
            view === 'RESET_PASSWORD' ? 'New Password' :
            'Check Your Inbox'}
         </h1>
-        <p className="text-gray-500 mb-8 font-medium">
+        <p className="text-gray-500 dark:text-gray-400 mb-8 font-medium">
           {view === 'LOGIN' ? APP_NAME : 
            view === 'REGISTER' ? 'Join StudentPocket' : 
            view === 'FORGOT_PASSWORD' ? 'Enter details to reset password' :
@@ -357,9 +357,9 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
         {/* LINK_SENT VIEW */}
         {view === 'LINK_SENT' && (
            <div className="space-y-6">
-              <div className="bg-indigo-50 p-4 rounded-xl text-sm text-indigo-800">
+              <div className="bg-indigo-50 dark:bg-indigo-900/30 p-4 rounded-xl text-sm text-indigo-800 dark:text-indigo-200">
                   <p className="mb-2 font-medium">Link Sent!</p>
-                  <p className="text-xs text-indigo-500">
+                  <p className="text-xs text-indigo-500 dark:text-indigo-300">
                     Check your email inbox to reset your password.
                   </p>
               </div>
@@ -367,7 +367,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
               <button 
                 type="button" 
                 onClick={() => { setView('LOGIN'); setSuccessMsg(''); setError(''); }}
-                className="w-full text-gray-500 text-sm py-2 hover:text-indigo-600 flex items-center justify-center"
+                className="w-full text-gray-500 dark:text-gray-400 text-sm py-2 hover:text-indigo-600 dark:hover:text-indigo-300 flex items-center justify-center"
               >
                 <ArrowLeft className="w-4 h-4 mr-1" /> Back to Login
               </button>
@@ -378,22 +378,22 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
         {view === 'FORGOT_PASSWORD' && (
            <form onSubmit={handleForgotPassword} className="space-y-4">
               <div className="text-left">
-                  <label className="text-xs font-bold text-gray-500 ml-1">Username (User ID)</label>
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400 ml-1">Username (User ID)</label>
                   <input
                       type="text"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="block w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 text-gray-800 mt-1"
+                      className="block w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-800 focus:border-indigo-500 transition-all bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white mt-1"
                       placeholder="Enter Username"
                   />
               </div>
               <div className="text-left">
-                  <label className="text-xs font-bold text-gray-500 ml-1">Email Address</label>
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400 ml-1">Email Address</label>
                   <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="block w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 text-gray-800 mt-1"
+                      className="block w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-800 focus:border-indigo-500 transition-all bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white mt-1"
                       placeholder="Enter registered email"
                   />
               </div>
@@ -410,13 +410,13 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
               </button>
 
               <div className="flex items-center justify-center">
-                 <span className="text-gray-300 text-xs px-2">OR</span>
+                 <span className="text-gray-300 dark:text-gray-600 text-xs px-2">OR</span>
               </div>
 
               <button 
                 type="button"
                 onClick={() => requestAdminAction('PASSWORD_RESET')}
-                className="w-full bg-orange-50 text-orange-600 border border-orange-200 py-2 rounded-xl text-sm font-bold hover:bg-orange-100 transition-all flex items-center justify-center"
+                className="w-full bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-900/50 py-2 rounded-xl text-sm font-bold hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-all flex items-center justify-center"
               >
                  <MessageSquarePlus className="mr-2 w-4 h-4" /> Ask Admin to Reset
               </button>
@@ -424,7 +424,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
               <button 
                 type="button" 
                 onClick={() => { setView('LOGIN'); setError(''); }}
-                className="w-full text-gray-500 text-sm py-2 hover:text-indigo-600 flex items-center justify-center"
+                className="w-full text-gray-500 dark:text-gray-400 text-sm py-2 hover:text-indigo-600 dark:hover:text-indigo-300 flex items-center justify-center"
               >
                 <ArrowLeft className="w-4 h-4 mr-1" /> Back to Login
               </button>
@@ -439,7 +439,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="block w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 text-gray-800"
+                      className="block w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-800 focus:border-indigo-500 transition-all bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white"
                       placeholder="New Password"
                   />
               </div>
@@ -448,7 +448,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
                       type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="block w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 text-gray-800"
+                      className="block w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-800 focus:border-indigo-500 transition-all bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white"
                       placeholder="Confirm New Password"
                   />
               </div>
@@ -472,7 +472,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
                       type="text"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="block w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 text-gray-800"
+                      className="block w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-800 focus:border-indigo-500 transition-all bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white"
                       placeholder="Username"
                   />
               </div>
@@ -481,7 +481,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="block w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 text-gray-800"
+                      className="block w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-800 focus:border-indigo-500 transition-all bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white"
                       placeholder="Email Address"
                   />
               </div>
@@ -490,7 +490,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="block w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 text-gray-800"
+                      className="block w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-800 focus:border-indigo-500 transition-all bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white"
                       placeholder="Password"
                   />
               </div>
@@ -499,7 +499,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
                       type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="block w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 text-gray-800"
+                      className="block w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-800 focus:border-indigo-500 transition-all bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white"
                       placeholder="Confirm Password"
                   />
               </div>
@@ -518,7 +518,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
               <button 
                 type="button" 
                 onClick={() => { setView('LOGIN'); setError(''); }}
-                className="w-full text-gray-500 text-sm py-2 hover:text-indigo-600 flex items-center justify-center"
+                className="w-full text-gray-500 dark:text-gray-400 text-sm py-2 hover:text-indigo-600 dark:hover:text-indigo-300 flex items-center justify-center"
               >
                 <ArrowLeft className="w-4 h-4 mr-1" /> Back to Login
               </button>
@@ -531,7 +531,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
               <div className="text-left">
                   <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <User className="h-5 w-5 text-gray-400" />
+                          <User className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                       </div>
                       <input
                           type="text"
@@ -540,7 +540,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
                               setUsername(e.target.value);
                               setError('');
                           }}
-                          className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 text-gray-800"
+                          className="block w-full pl-10 pr-3 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-800 focus:border-indigo-500 transition-all bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white"
                           placeholder="Username"
                           autoCapitalize="none"
                       />
@@ -550,7 +550,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
               <div className="text-left">
                   <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Lock className="h-5 w-5 text-gray-400" />
+                          <Lock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                       </div>
                       <input
                           type={showPassword ? "text" : "password"}
@@ -559,13 +559,13 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
                               setPassword(e.target.value);
                               setError('');
                           }}
-                          className="block w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all bg-gray-50 text-gray-800"
+                          className="block w-full pl-10 pr-10 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-800 focus:border-indigo-500 transition-all bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white"
                           placeholder="Password"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-indigo-600 focus:outline-none"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-300 focus:outline-none"
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -574,7 +574,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
                     <button 
                       type="button"
                       onClick={() => { setView('FORGOT_PASSWORD'); setError(''); }}
-                      className="text-xs text-indigo-500 hover:text-indigo-700 font-medium"
+                      className="text-xs text-indigo-500 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-200 font-medium"
                     >
                       Forgot Password?
                     </button>
@@ -585,7 +585,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
 
               <button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-indigo-200 active:scale-[0.98] transition-all flex items-center justify-center group mt-4"
+                  className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-indigo-200 dark:hover:shadow-indigo-900/50 active:scale-[0.98] transition-all flex items-center justify-center group mt-4"
               >
                   <span>Login</span>
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -594,7 +594,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
               <button 
                 type="button" 
                 onClick={() => { setView('REGISTER'); setError(''); }}
-                className="w-full text-indigo-600 text-sm font-medium py-2 hover:underline"
+                className="w-full text-indigo-600 dark:text-indigo-400 text-sm font-medium py-2 hover:underline"
               >
                 <UserPlus className="inline w-4 h-4 mr-1" /> Create New Account
               </button>
@@ -603,7 +603,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
       </div>
       
        <div className="mt-8 text-center">
-        <p className="text-indigo-300 text-sm font-medium animate-pulse mb-2">{APP_NAME}</p>
+        <p className="text-indigo-300 dark:text-indigo-500 text-sm font-medium animate-pulse mb-2">{APP_NAME}</p>
         <button 
             onClick={() => {
                 if(window.confirm("RESET ALL DATA? This will delete all users and data.")) {
@@ -611,7 +611,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
                     window.location.reload();
                 }
             }}
-            className="text-[10px] text-indigo-300/50 hover:text-indigo-300 underline"
+            className="text-[10px] text-indigo-300/50 dark:text-gray-600 hover:text-indigo-300 dark:hover:text-gray-400 underline"
         >
             Reset Application
         </button>

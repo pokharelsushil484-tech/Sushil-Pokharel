@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Home, Calendar, BookOpen, Shield, Briefcase, GraduationCap, Settings, LayoutDashboard, MessageCircle, Lock } from 'lucide-react';
 import { View } from '../types';
@@ -44,9 +45,12 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
     <>
       {/* Desktop Sidebar (hidden on mobile) */}
       <div className="hidden md:flex flex-col w-64 bg-white border-r border-gray-200 h-full fixed left-0 top-0 z-20 shadow-sm">
-        <div className="p-8 border-b border-gray-100">
-          <h1 className="text-2xl font-bold text-indigo-600 tracking-tight">{APP_NAME}</h1>
-          <p className="text-sm text-gray-400 font-medium">Student Manager</p>
+        <div className="p-8 border-b border-gray-100 flex items-center space-x-3">
+          <img src="/icon.png" alt="App Icon" className="w-10 h-10 rounded-xl shadow-sm object-cover bg-indigo-50" onError={(e) => e.currentTarget.style.display = 'none'} />
+          <div>
+            <h1 className="text-xl font-bold text-indigo-600 tracking-tight leading-none">{APP_NAME}</h1>
+            <p className="text-xs text-gray-400 font-medium mt-1">Student Manager</p>
+          </div>
         </div>
         <nav className="flex-1 p-4 space-y-3 overflow-y-auto">
           {navItems.map((item) => {

@@ -12,6 +12,7 @@ import { Settings } from './views/Settings';
 import { ScholarshipTracker } from './views/ScholarshipTracker';
 import { AdminDashboard } from './views/AdminDashboard';
 import { AIChat } from './views/AIChat';
+import { ErrorPage } from './views/ErrorPage';
 import { View, UserProfile, Assignment, Note, VaultDocument, Scholarship, ChatMessage } from './types';
 import { DEFAULT_USER, ADMIN_USERNAME } from './constants';
 
@@ -22,7 +23,6 @@ interface AppData {
   vaultDocs: VaultDocument[];
   scholarships?: Scholarship[];
   chatHistory?: ChatMessage[];
-  darkMode?: boolean;
 }
 
 const INITIAL_DATA: AppData = {
@@ -31,8 +31,7 @@ const INITIAL_DATA: AppData = {
   notes: [],
   vaultDocs: [],
   scholarships: [],
-  chatHistory: [],
-  darkMode: false
+  chatHistory: []
 };
 
 function App() {
@@ -41,6 +40,11 @@ function App() {
   
   // New state to handle reset password flow
   const [resetUser, setResetUser] = useState<string | null>(null);
+
+  // Global Theme State
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem('studentpocket_theme') === 'true';
+  });
 
   const [data, setData] = useState<AppData>(INITIAL_DATA);
 
@@ -90,6 +94,11 @@ function App() {
         const parsed = JSON.parse(stored);
         // Ensure chatHistory exists for older data
         if (!parsed.chatHistory) parsed.chatHistory = [];
+        // Ensure arrays exist for new fields
+        if (parsed.user) {
+             if (!parsed.user.experience) parsed.user.experience = [];
+             if (!parsed.user.projects) parsed.user.projects = [];
+        }
         setData(parsed);
         if (parsed.user) {
           setView(currentUsername === ADMIN_USERNAME ? View.ADMIN_DASHBOARD : View.DASHBOARD);
@@ -114,14 +123,20 @@ function App() {
     }
   }, [data, currentUsername]);
 
-  // Sync Dark Mode with HTML element
+  // Sync Dark Mode with HTML element and LocalStorage
   useEffect(() => {
-    if (data.darkMode) {
+    if (darkMode) {
       document.documentElement.classList.add('dark');
+      localStorage.setItem('studentpocket_theme', 'true');
     } else {
       document.documentElement.classList.remove('dark');
+      localStorage.setItem('studentpocket_theme', 'false');
     }
-  }, [data.darkMode]);
+  }, [darkMode]);
+
+  const toggleDarkMode = () => {
+    setDarkMode(prev => !prev);
+  };
 
   const handleOnboardingComplete = (profile: UserProfile) => {
     setData(prev => ({ ...prev, user: profile }));
@@ -149,10 +164,6 @@ function App() {
   const handleLogout = () => {
     setCurrentUsername(null);
     setView(View.ONBOARDING); // Will render Login because currentUsername is null
-  };
-
-  const toggleDarkMode = () => {
-    setData(prev => ({ ...prev, darkMode: !prev.darkMode }));
   };
 
   const handleUpdateUser = (updatedProfile: UserProfile) => {
@@ -196,7 +207,11 @@ function App() {
           isVerified={isVerified}
         />;
       case View.CV_BUILDER:
-        return <CVBuilder user={data.user} isVerified={isVerified} />;
+        return <CVBuilder 
+          user={data.user} 
+          isVerified={isVerified} 
+          updateUser={handleUpdateUser}
+        />;
       case View.SCHOLARSHIP:
         return <ScholarshipTracker
           scholarships={data.scholarships || []}
@@ -214,14 +229,14 @@ function App() {
           resetApp={handleReset} 
           onLogout={handleLogout} 
           username={currentUsername}
-          darkMode={!!data.darkMode}
+          darkMode={darkMode}
           toggleDarkMode={toggleDarkMode}
           updateUser={handleUpdateUser}
         />;
       case View.ADMIN_DASHBOARD:
-        return isAdmin ? <AdminDashboard resetApp={handleFactoryReset} /> : <div className="text-red-500">Access Denied</div>;
+        return isAdmin ? <AdminDashboard resetApp={handleFactoryReset} /> : <ErrorPage type="404" title="Access Denied" message="You do not have permission to view this page." />;
       default:
-        return <div className="p-8 text-center text-gray-500">Coming Soon: {view}</div>;
+        return <ErrorPage type="404" onAction={() => setView(View.DASHBOARD)} actionLabel="Return to Dashboard" />;
     }
   };
 

@@ -1,8 +1,7 @@
 
-
 import React, { useState, useEffect } from 'react';
-import { ChangeRequest, Post } from '../types';
-import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2, Search, ShieldAlert, Megaphone, Plus, X } from 'lucide-react';
+import { ChangeRequest, Post, UserProfile } from '../types';
+import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2, Search, ShieldAlert, Megaphone, Plus, X, Edit2, Save } from 'lucide-react';
 import { sendPasswordResetEmail } from '../services/emailService';
 import { ADMIN_USERNAME } from '../constants';
 
@@ -21,6 +20,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [showPostForm, setShowPostForm] = useState(false);
   const [newPost, setNewPost] = useState({ title: '', content: '' });
+
+  // User Editing State
+  const [editingUser, setEditingUser] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<UserProfile>>({});
 
   useEffect(() => {
     const usersStr = localStorage.getItem('studentpocket_users');
@@ -157,25 +160,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
              const stored = localStorage.getItem(key);
              if (stored) {
                  const data = JSON.parse(stored);
-                 data.user = { ...data.user, ...req.payload };
+                 data.user = { ...data.user, ...req.payload }; // Merge payload including avatar
                  localStorage.setItem(key, JSON.stringify(data));
-                 alert(`Profile data updated for ${req.username}:\nName: ${req.payload.name}\nInstitution: ${req.payload.institution}`);
+                 alert(`Profile data updated for ${req.username}.`);
              } else {
                  alert("User data not found, cannot update.");
              }
           } else if (req.type === 'PASSWORD_RESET') {
-             // Look up user email to send link
              const userObj = usersList.find(u => u.username === req.username);
              if (userObj && userObj.email) {
-                 // Automatically send link via email
                  sendResetLink(req.username, userObj.email, true);
                  alert(`Approved & Link Sent to ${userObj.email}`);
              } else {
-                 // Fallback to manual reset if no email found
                  adminResetPassword(req.username);
              }
           } else if (req.type === 'VERIFICATION_REQUEST') {
-             // Explicitly set verify to true (safer than toggle)
              const usersStr = localStorage.getItem('studentpocket_users');
              if (usersStr) {
                  const users = JSON.parse(usersStr);
@@ -187,9 +186,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                  }
              }
           } else if (req.type === 'DELETE_ACCOUNT') {
-             // ADD CONFIRMATION FOR REQUEST APPROVAL
              if (!window.confirm(`PERMANENT DELETE WARNING:\n\nAre you sure you want to approve the deletion for user "${req.username}"?\n\nThis will wipe all their data and cannot be undone.`)) {
-                 return; // Stop if cancelled
+                 return;
              }
              executeUserDeletion(req.username);
              alert(`User ${req.username} has been deleted.`);
@@ -215,7 +213,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
         title: newPost.title,
         content: newPost.content,
         date: new Date().toISOString(),
-        author: ADMIN_USERNAME
+        author: ADMIN_USERNAME,
+        likes: [],
+        comments: []
     };
 
     const updatedPosts = [post, ...posts];
@@ -252,33 +252,69 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
         }
     }
 
-    // Filter out students, keep admin if present (though typically admin is hardcoded)
     const preservedUsers: any = {};
     if (users[ADMIN_USERNAME]) {
         preservedUsers[ADMIN_USERNAME] = users[ADMIN_USERNAME];
     }
-    // Also keep legacy admin if it exists just in case
     if (users['admin']) {
         preservedUsers['admin'] = users['admin'];
     }
 
-    // Delete data for everyone else
     Object.keys(users).forEach(username => {
         if (username !== ADMIN_USERNAME && username !== 'admin') {
             localStorage.removeItem(`studentpocket_data_${username}`);
         }
     });
     
-    // Update registry with only admin remaining
     localStorage.setItem('studentpocket_users', JSON.stringify(preservedUsers));
-    
-    // Clear all pending requests
     localStorage.removeItem('studentpocket_requests');
     setRequests([]);
-    
     setRefreshTrigger(prev => prev + 1);
     
     alert("All student accounts and their data have been deleted successfully.");
+  };
+
+  // --- Admin User Editing ---
+  const startEditing = (user: any) => {
+      setEditingUser(user.username);
+      setEditFormData({
+          name: user.profile?.name || '',
+          email: user.profile?.email || '',
+          phone: user.profile?.phone || '',
+          education: user.profile?.education || '',
+          institution: user.profile?.institution || '',
+          country: user.profile?.country || ''
+      });
+  };
+
+  const saveUserEdits = () => {
+      if (!editingUser) return;
+
+      const key = `studentpocket_data_${editingUser}`;
+      const stored = localStorage.getItem(key);
+      if (stored) {
+          const data = JSON.parse(stored);
+          data.user = { ...data.user, ...editFormData };
+          localStorage.setItem(key, JSON.stringify(data));
+          
+          // Also update email in auth registry if changed
+          if (editFormData.email) {
+              const usersStr = localStorage.getItem('studentpocket_users');
+              if (usersStr) {
+                  const users = JSON.parse(usersStr);
+                  if (users[editingUser]) {
+                      users[editingUser].email = editFormData.email;
+                      localStorage.setItem('studentpocket_users', JSON.stringify(users));
+                  }
+              }
+          }
+
+          setEditingUser(null);
+          setRefreshTrigger(prev => prev + 1);
+          alert(`User ${editingUser} updated successfully.`);
+      } else {
+          alert("Could not find user data to update.");
+      }
   };
 
   const filteredUsers = usersList.filter(u => {
@@ -338,7 +374,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                      <div key={post.id} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm relative group">
                          <h4 className="font-bold text-gray-800 dark:text-white pr-8">{post.title}</h4>
                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 whitespace-pre-wrap">{post.content}</p>
-                         <p className="text-[10px] text-gray-400 mt-2">{new Date(post.date).toLocaleDateString()} • {new Date(post.date).toLocaleTimeString()}</p>
+                         <div className="flex justify-between items-center mt-2">
+                            <p className="text-[10px] text-gray-400">{new Date(post.date).toLocaleDateString()} • {new Date(post.date).toLocaleTimeString()}</p>
+                            <div className="flex space-x-3 text-xs text-gray-400">
+                                <span>{post.likes?.length || 0} Likes</span>
+                                <span>{post.comments?.length || 0} Comments</span>
+                            </div>
+                         </div>
                          <button 
                             onClick={() => deletePost(post.id)}
                             className="absolute top-2 right-2 p-1.5 text-gray-300 hover:text-red-500 bg-transparent hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
@@ -382,6 +424,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                         {req.type === 'PROFILE_UPDATE' && (
                             <div className="text-xs text-gray-600 dark:text-gray-400 mb-3 bg-gray-50 dark:bg-gray-900/50 p-2 rounded">
                                 <span className="block font-bold mb-1">Proposed Changes:</span>
+                                {req.payload.avatar && <div className="mb-2"><img src={req.payload.avatar} alt="New Avatar" className="w-10 h-10 rounded-full object-cover border"/></div>}
                                 Name: {req.payload.name}<br/>
                                 Institution: {req.payload.institution}<br/>
                                 Phone: {req.payload.phone}
@@ -430,6 +473,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
         </div>
       </div>
 
+      {/* USER MANAGEMENT */}
       <div className="mb-8">
         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 ml-2 flex items-center justify-between">
           <span className="flex items-center"><Users size={16} className="mr-2" /> Registered Users</span>
@@ -479,14 +523,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
           ) : (
             filteredUsers.map((u, idx) => {
               const isSystemAdmin = u.username === ADMIN_USERNAME;
-              
+              const isEditing = editingUser === u.username;
+
               return (
-              <div key={idx} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+              <div key={idx} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden relative">
+                
+                {/* Editing Overlay */}
+                {isEditing && (
+                    <div className="absolute inset-0 bg-white dark:bg-gray-800 z-10 p-4 flex flex-col">
+                        <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-2">
+                            <h4 className="font-bold">Edit User: {u.username}</h4>
+                            <button onClick={() => setEditingUser(null)} className="text-gray-400"><X size={16}/></button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto space-y-3">
+                            <input className="w-full p-2 border rounded" placeholder="Full Name" value={editFormData.name} onChange={e => setEditFormData({...editFormData, name: e.target.value})} />
+                            <input className="w-full p-2 border rounded" placeholder="Email" value={editFormData.email} onChange={e => setEditFormData({...editFormData, email: e.target.value})} />
+                            <input className="w-full p-2 border rounded" placeholder="Phone" value={editFormData.phone} onChange={e => setEditFormData({...editFormData, phone: e.target.value})} />
+                            <input className="w-full p-2 border rounded" placeholder="Institution" value={editFormData.institution} onChange={e => setEditFormData({...editFormData, institution: e.target.value})} />
+                        </div>
+                        <button onClick={saveUserEdits} className="mt-3 w-full bg-green-600 text-white py-2 rounded-lg font-bold flex items-center justify-center">
+                            <Save size={16} className="mr-2"/> Save Changes
+                        </button>
+                    </div>
+                )}
+
                 {/* User Card Header */}
                 <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-start">
                     <div className="flex items-center space-x-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg ${u.verified ? 'bg-indigo-500' : 'bg-gray-400'}`}>
-                        {u.username.charAt(0).toUpperCase()}
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden ${u.verified ? 'bg-indigo-500' : 'bg-gray-400'}`}>
+                        {u.profile?.avatar ? <img src={u.profile.avatar} className="w-full h-full object-cover"/> : u.username.charAt(0).toUpperCase()}
                       </div>
                       <div>
                           <div className="flex items-center">
@@ -544,19 +609,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                         >
                           {u.verified ? 'Unverify' : 'Verify'}
                         </button>
+                        
+                        <button 
+                            onClick={() => startEditing(u)}
+                            className="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 flex items-center"
+                        >
+                            <Edit2 size={12} className="mr-1"/> Edit
+                        </button>
 
                         <button 
                           onClick={() => adminResetPassword(u.username)}
                           className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-bold hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors flex items-center"
                         >
-                          <RefreshCw size={12} className="mr-1" /> Manual Reset
-                        </button>
-
-                        <button 
-                          onClick={() => sendResetLink(u.username, u.email)}
-                          className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors flex items-center"
-                        >
-                          <Link size={12} className="mr-1" /> Send Link
+                          <RefreshCw size={12} className="mr-1" /> Reset
                         </button>
                     </div>
 

@@ -1,8 +1,7 @@
 
-
 import React, { useState, useEffect } from 'react';
-import { UserProfile, Assignment, ChangeRequest, Post } from '../types';
-import { Clock, CheckCircle2, BadgeCheck, AlertTriangle, Send, Megaphone, BarChart3 } from 'lucide-react';
+import { UserProfile, Assignment, ChangeRequest, Post, Comment } from '../types';
+import { Clock, CheckCircle2, BadgeCheck, AlertTriangle, Send, Megaphone, BarChart3, Heart, MessageCircle, User } from 'lucide-react';
 import { MOTIVATIONAL_QUOTES, ADMIN_USERNAME } from '../constants';
 
 interface DashboardProps {
@@ -15,6 +14,8 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerified, username }) => {
   const [isRequesting, setIsRequesting] = useState(false);
   const [announcements, setAnnouncements] = useState<Post[]>([]);
+  const [commentText, setCommentText] = useState<{[key: string]: string}>({});
+  const [showComments, setShowComments] = useState<{[key: string]: boolean}>({});
   
   const pendingAssignments = assignments.filter(a => !a.completed).length;
   const completedAssignments = assignments.filter(a => a.completed).length;
@@ -25,7 +26,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
   const quote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
 
   // Subject Performance Calculations
-  const subjectStats = assignments.reduce((acc, curr) => {
+  const subjectStats = assignments.reduce<Record<string, { total: number; completed: number }>>((acc, curr) => {
     // Normalize subject case
     const subject = curr.subject.trim(); 
     if (!acc[subject]) {
@@ -36,21 +37,77 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
       acc[subject].completed += 1;
     }
     return acc;
-  }, {} as Record<string, { total: number; completed: number }>);
+  }, {});
 
   const subjectData = Object.entries(subjectStats).map(([subject, stats]) => ({
     subject,
     percentage: Math.round((stats.completed / stats.total) * 100),
     total: stats.total,
     completed: stats.completed
-  })).sort((a, b) => b.percentage - a.percentage); // Sort highest completion first
+  })).sort((a, b) => b.percentage - a.percentage);
 
   useEffect(() => {
+    loadPosts();
+    // Poll for updates (simple real-time simulation)
+    const interval = setInterval(loadPosts, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadPosts = () => {
     const postsStr = localStorage.getItem('studentpocket_global_posts');
     if (postsStr) {
-        setAnnouncements(JSON.parse(postsStr));
+        const loadedPosts: Post[] = JSON.parse(postsStr);
+        // Ensure likes/comments arrays exist for legacy posts
+        const sanitizedPosts = loadedPosts.map(p => ({
+            ...p,
+            likes: p.likes || [],
+            comments: p.comments || []
+        }));
+        setAnnouncements(sanitizedPosts);
     }
-  }, []);
+  };
+
+  const savePosts = (updatedPosts: Post[]) => {
+      setAnnouncements(updatedPosts);
+      localStorage.setItem('studentpocket_global_posts', JSON.stringify(updatedPosts));
+  };
+
+  const handleLike = (postId: string) => {
+      const updatedPosts = announcements.map(post => {
+          if (post.id === postId) {
+              const isLiked = post.likes.includes(username);
+              const newLikes = isLiked 
+                  ? post.likes.filter(u => u !== username)
+                  : [...post.likes, username];
+              return { ...post, likes: newLikes };
+          }
+          return post;
+      });
+      savePosts(updatedPosts);
+  };
+
+  const handleComment = (postId: string) => {
+      const text = commentText[postId];
+      if (!text || !text.trim()) return;
+
+      const newComment: Comment = {
+          id: Date.now().toString(),
+          username: username,
+          text: text.trim(),
+          timestamp: new Date().toISOString()
+      };
+
+      const updatedPosts = announcements.map(post => {
+          if (post.id === postId) {
+              return { ...post, comments: [...post.comments, newComment] };
+          }
+          return post;
+      });
+
+      savePosts(updatedPosts);
+      setCommentText({ ...commentText, [postId]: '' });
+      setShowComments({ ...showComments, [postId]: true });
+  };
 
   const handleRequestVerification = () => {
      if (username === ADMIN_USERNAME) return;
@@ -142,6 +199,92 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
         </div>
       )}
 
+       {/* ANNOUNCEMENTS SECTION - SOCIAL FEED */}
+       {announcements.length > 0 && (
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-indigo-100">
+             <div className="flex items-center space-x-2 mb-4">
+               <Megaphone className="text-indigo-600" size={20} />
+               <h3 className="font-bold text-gray-800 text-lg">Announcements</h3>
+             </div>
+             <div className="space-y-6">
+               {announcements.map(post => {
+                 const isLiked = post.likes.includes(username);
+                 const commentsVisible = showComments[post.id];
+                 
+                 return (
+                   <div key={post.id} className="bg-gray-50 rounded-2xl p-5 border border-gray-100 relative overflow-hidden transition-all hover:shadow-md">
+                      <div className="flex items-center mb-3">
+                          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs mr-3">
+                              {post.author.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                              <p className="text-xs font-bold text-gray-700">{post.author === ADMIN_USERNAME ? 'System Admin' : post.author}</p>
+                              <p className="text-[10px] text-gray-400">{new Date(post.date).toLocaleDateString()}</p>
+                          </div>
+                      </div>
+                      
+                      <h4 className="font-bold text-gray-800 text-base mb-2">{post.title}</h4>
+                      <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap mb-4">{post.content}</p>
+                      
+                      {/* Social Actions */}
+                      <div className="flex items-center space-x-6 border-t border-gray-200 pt-3">
+                          <button 
+                            onClick={() => handleLike(post.id)}
+                            className={`flex items-center space-x-2 text-sm font-medium transition-colors ${isLiked ? 'text-pink-500' : 'text-gray-500 hover:text-pink-500'}`}
+                          >
+                              <Heart size={18} className={isLiked ? 'fill-pink-500' : ''} />
+                              <span>{post.likes.length}</span>
+                          </button>
+                          
+                          <button 
+                            onClick={() => setShowComments({...showComments, [post.id]: !commentsVisible})}
+                            className="flex items-center space-x-2 text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors"
+                          >
+                              <MessageCircle size={18} />
+                              <span>{post.comments.length}</span>
+                          </button>
+                      </div>
+
+                      {/* Comments Section */}
+                      {commentsVisible && (
+                          <div className="mt-4 animate-fade-in">
+                              <div className="space-y-3 mb-4 max-h-40 overflow-y-auto pr-2 no-scrollbar">
+                                  {post.comments.map(comment => (
+                                      <div key={comment.id} className="bg-white p-3 rounded-xl text-sm border border-gray-100">
+                                          <div className="flex justify-between items-baseline mb-1">
+                                              <span className="font-bold text-xs text-indigo-600">{comment.username}</span>
+                                              <span className="text-[10px] text-gray-400">{new Date(comment.timestamp).toLocaleDateString()}</span>
+                                          </div>
+                                          <p className="text-gray-700">{comment.text}</p>
+                                      </div>
+                                  ))}
+                                  {post.comments.length === 0 && <p className="text-xs text-gray-400 italic">No comments yet.</p>}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                  <input 
+                                    type="text" 
+                                    placeholder="Write a comment..." 
+                                    className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                                    value={commentText[post.id] || ''}
+                                    onChange={(e) => setCommentText({...commentText, [post.id]: e.target.value})}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleComment(post.id)}
+                                  />
+                                  <button 
+                                    onClick={() => handleComment(post.id)}
+                                    className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700"
+                                  >
+                                      <Send size={16} />
+                                  </button>
+                              </div>
+                          </div>
+                      )}
+                   </div>
+                 );
+               })}
+             </div>
+          </div>
+       )}
+
       {/* Progress Card */}
       <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-indigo-200 dark:shadow-none relative overflow-hidden">
         {/* Decorative background circles */}
@@ -211,26 +354,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
            </div>
         </div>
       )}
-
-       {/* ANNOUNCEMENTS SECTION */}
-       {announcements.length > 0 && (
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-indigo-100">
-             <div className="flex items-center space-x-2 mb-4">
-               <Megaphone className="text-indigo-600" size={20} />
-               <h3 className="font-bold text-gray-800 text-lg">Announcements</h3>
-             </div>
-             <div className="space-y-4">
-               {announcements.slice(0, 3).map(post => (
-                 <div key={post.id} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
-                    <h4 className="font-bold text-gray-800 text-sm mb-1">{post.title}</h4>
-                    <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">{post.content}</p>
-                    <p className="text-[10px] text-gray-400 mt-2 font-medium text-right">{new Date(post.date).toLocaleDateString()}</p>
-                 </div>
-               ))}
-             </div>
-          </div>
-       )}
 
       {/* Daily Quote */}
       <div className="bg-gradient-to-r from-orange-50 to-orange-100/50 border-l-8 border-orange-400 p-6 rounded-r-3xl flex items-center shadow-sm">

@@ -1,4 +1,5 @@
 
+
 import { UserProfile } from './types';
 
 export const ADMIN_USERNAME = "sushilpokharel";
@@ -11,7 +12,9 @@ export const DEFAULT_USER: UserProfile = {
   institution: "Nobel Academy",
   country: "Nepal",
   studyPreference: "Morning person, visual learner",
-  skills: ["Communication", "Leadership", "Microsoft Office", "Time Management"]
+  skills: ["Communication", "Leadership", "Microsoft Office", "Time Management"],
+  experience: [],
+  projects: []
 };
 
 export const APP_NAME = "Sushil Pokharel";

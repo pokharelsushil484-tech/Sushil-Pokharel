@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest } from '../types';
-import { Moon, Bell, LogOut, Globe, ShieldCheck, Trash2, Sun, Check, X, Edit2, UserMinus, BadgeCheck, AlertTriangle } from 'lucide-react';
+import { Moon, Bell, LogOut, Globe, ShieldCheck, Trash2, Sun, Check, X, Edit2, UserMinus, BadgeCheck, AlertTriangle, Camera } from 'lucide-react';
 import { WATERMARK, ADMIN_USERNAME } from '../constants';
 
 interface SettingsProps {
@@ -22,7 +22,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editProfileData, setEditProfileData] = useState<UserProfile>(user);
 
-  // Check verification status (crude check against local storage as props don't carry isVerified yet here, but App updates this view)
+  // Check verification status
   const isVerified = (() => {
       try {
           const usersStr = localStorage.getItem('studentpocket_users');
@@ -54,6 +54,48 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
      reqs.push(request);
      localStorage.setItem('studentpocket_requests', JSON.stringify(reqs));
      alert("Verification request sent to Admin.");
+  };
+
+  const handleProfileImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        
+        if (username === ADMIN_USERNAME) {
+           // Admin updates immediately
+           const updated = { ...user, avatar: base64 };
+           updateUser(updated);
+           // Force update local storage for admin immediately
+           const key = `studentpocket_data_${ADMIN_USERNAME}`;
+           const stored = localStorage.getItem(key);
+           if (stored) {
+               const data = JSON.parse(stored);
+               data.user = updated;
+               localStorage.setItem(key, JSON.stringify(data));
+           }
+           alert("Admin profile picture updated!");
+        } else {
+           // User sends request
+           const request: ChangeRequest = {
+               id: Date.now().toString(),
+               username: username,
+               type: 'PROFILE_UPDATE',
+               payload: { ...user, avatar: base64 },
+               status: 'PENDING',
+               timestamp: new Date().toISOString()
+           };
+           
+           const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
+           const reqs = JSON.parse(reqStr);
+           reqs.push(request);
+           localStorage.setItem('studentpocket_requests', JSON.stringify(reqs));
+           alert("Profile picture change request sent to Admin.");
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const sendProfileUpdateRequest = () => {
@@ -181,8 +223,15 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
             </div>
         ) : (
             <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
-                {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : <span className="text-2xl font-bold">{user.name.charAt(0)}</span>}
+                <div className="relative group">
+                    <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center overflow-hidden border-2 border-white/30">
+                    {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : <span className="text-2xl font-bold">{user.name.charAt(0)}</span>}
+                    </div>
+                    {/* Picture Upload Overlay */}
+                    <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                        <Camera size={20} className="text-white"/>
+                        <input type="file" accept="image/*" className="hidden" onChange={handleProfileImageUpload} />
+                    </label>
                 </div>
                 <div className="flex-1">
                 <h2 className="font-bold text-lg">{user.name}</h2>
