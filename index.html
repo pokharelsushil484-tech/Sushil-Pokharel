@@ -23,6 +23,21 @@
                 900: '#111827',
                 800: '#1f2937',
                 700: '#374151',
+                950: '#030712', // Added darker shade for modern dark mode
+              }
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.5s ease-out',
+              'scale-up': 'scaleUp 0.3s ease-out',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              scaleUp: {
+                '0%': { transform: 'scale(0.95)', opacity: '0' },
+                '100%': { transform: 'scale(1)', opacity: '1' },
               }
             }
           }
@@ -36,14 +51,41 @@
       html, body {
         height: 100%;
         -webkit-tap-highlight-color: transparent;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        scroll-behavior: smooth;
       }
       body {
-        background-color: #f3f4f6;
+        background-color: #f8fafc; /* Slightly lighter gray for cleaner look */
         font-family: 'Poppins', sans-serif;
       }
       .dark body {
-        background-color: #111827;
+        background-color: #030712; /* Rich dark background */
       }
+
+      /* Professional Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+      .dark ::-webkit-scrollbar-thumb {
+        background: #374151;
+      }
+      .dark ::-webkit-scrollbar-thumb:hover {
+        background: #4b5563;
+      }
+
+      /* Utilities */
       .no-scrollbar::-webkit-scrollbar {
         display: none;
       }
@@ -51,6 +93,10 @@
         -ms-overflow-style: none;
         scrollbar-width: none;
       }
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      
       @media print {
         .no-print {
           display: none !important;

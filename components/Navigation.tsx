@@ -43,93 +43,87 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
 
   return (
     <>
-      {/* Desktop Sidebar (hidden on mobile) */}
-      <div className="hidden md:flex flex-col w-64 bg-white border-r border-gray-200 h-full fixed left-0 top-0 z-20 shadow-sm">
-        <div className="p-8 border-b border-gray-100 flex items-center space-x-3">
-          <img src="/icon.png" alt="App Icon" className="w-10 h-10 rounded-xl shadow-sm object-cover bg-indigo-50" onError={(e) => e.currentTarget.style.display = 'none'} />
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex flex-col w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 h-full fixed left-0 top-0 z-20 transition-colors duration-300">
+        <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex items-center space-x-3">
+          <img src="/icon.png" alt="App Icon" className="w-10 h-10 rounded-xl shadow-md object-cover bg-indigo-50 dark:bg-gray-800" onError={(e) => e.currentTarget.style.display = 'none'} />
           <div>
-            <h1 className="text-xl font-bold text-indigo-600 tracking-tight leading-none">{APP_NAME}</h1>
-            <p className="text-xs text-gray-400 font-medium mt-1">Student Manager</p>
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight leading-none">{APP_NAME}</h1>
+            <p className="text-[10px] text-gray-400 font-semibold tracking-wider uppercase mt-1">Student Manager</p>
           </div>
         </div>
-        <nav className="flex-1 p-4 space-y-3 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto no-scrollbar">
           {navItems.map((item) => {
-            const locked = isLocked(item.view);
-            return (
-              <button
-                key={item.view}
-                onClick={() => setView(item.view)}
-                className={`flex items-center w-full px-5 py-4 rounded-2xl transition-all justify-between text-base font-medium ${
-                  currentView === item.view
-                    ? 'bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100'
-                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-                }`}
-              >
-                <div className="flex items-center">
-                  <item.icon className={`w-6 h-6 mr-4 ${currentView === item.view ? 'stroke-2' : 'stroke-[1.5]'}`} />
-                  {item.label}
-                </div>
-                {locked && <Lock size={16} className="text-gray-300" />}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* Mobile Bottom Bar (hidden on desktop) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <div className="flex justify-around items-center h-[72px] px-2">
-          {/* Show top 5 items for mobile bottom bar, prioritizing Admin if admin */}
-          {navItems.slice(0, 5).map((item) => {
             const locked = isLocked(item.view);
             const isActive = currentView === item.view;
             return (
               <button
                 key={item.view}
                 onClick={() => setView(item.view)}
-                className={`flex flex-col items-center justify-center w-full h-full space-y-1 relative active:scale-95 transition-transform ${
-                  isActive ? 'text-indigo-600' : 'text-gray-400'
+                className={`flex items-center w-full px-4 py-3.5 rounded-xl transition-all duration-200 justify-between text-sm font-medium ${
+                  isActive
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
-                <div className={`p-1.5 rounded-xl ${isActive ? 'bg-indigo-50' : ''}`}>
-                   <item.icon className={`w-6 h-6 ${isActive ? 'stroke-2' : 'stroke-[1.5]'}`} />
+                <div className="flex items-center">
+                  <item.icon className={`w-5 h-5 mr-3 ${isActive ? 'opacity-100' : 'opacity-70'}`} strokeWidth={isActive ? 2.5 : 2} />
+                  {item.label}
                 </div>
-                <span className={`text-xs font-medium ${isActive ? 'text-indigo-700' : ''}`}>{item.label}</span>
-                {locked && (
-                  <div className="absolute top-1 right-2 bg-gray-100 rounded-full p-0.5 border border-white shadow-sm">
-                    <Lock size={10} className="text-gray-400" />
-                  </div>
-                )}
+                {locked && <Lock size={14} className="text-gray-300 dark:text-gray-600" />}
               </button>
             );
           })}
-           {/* 'More' button to access Settings or others if list is long */}
-           {!isAdmin && (
-              <button
-                onClick={() => setView(View.SETTINGS)}
-                className={`flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-95 transition-transform ${
-                    currentView === View.SETTINGS ? 'text-indigo-600' : 'text-gray-400'
-                }`}
+        </nav>
+        <div className="p-4 border-t border-gray-100 dark:border-gray-800">
+            <p className="text-[10px] text-center text-gray-300 dark:text-gray-700 font-medium">© 2024 StudentPocket</p>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Bar (Glassmorphism) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 pb-safe">
+        <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]">
+          <div className="flex justify-around items-center h-[72px] px-2">
+            {/* Show top 5 items for mobile bottom bar */}
+            {navItems.slice(0, 5).map((item) => {
+              const locked = isLocked(item.view);
+              const isActive = currentView === item.view;
+              return (
+                <button
+                  key={item.view}
+                  onClick={() => setView(item.view)}
+                  className={`flex flex-col items-center justify-center w-full h-full space-y-1 relative active:scale-90 transition-transform duration-200 ${
+                    isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'
+                  }`}
                 >
-                <div className={`p-1.5 rounded-xl ${currentView === View.SETTINGS ? 'bg-indigo-50' : ''}`}>
-                    <Settings className={`w-6 h-6 ${currentView === View.SETTINGS ? 'stroke-2' : 'stroke-[1.5]'}`} />
-                </div>
-                <span className="text-xs font-medium">More</span>
-             </button>
-           )}
-           {isAdmin && (
-              <button
-                onClick={() => setView(View.SETTINGS)}
-                className={`flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-95 transition-transform ${
-                    currentView === View.SETTINGS ? 'text-indigo-600' : 'text-gray-400'
-                }`}
-                >
-                <div className={`p-1.5 rounded-xl ${currentView === View.SETTINGS ? 'bg-indigo-50' : ''}`}>
-                    <Settings className={`w-6 h-6 ${currentView === View.SETTINGS ? 'stroke-2' : 'stroke-[1.5]'}`} />
-                </div>
-                <span className="text-xs font-medium">Settings</span>
-             </button>
-           )}
+                  <div className={`p-1.5 rounded-xl transition-colors ${isActive ? 'bg-indigo-50 dark:bg-indigo-900/30' : ''}`}>
+                    <item.icon className={`w-6 h-6 ${isActive ? 'stroke-2' : 'stroke-[1.5]'}`} />
+                  </div>
+                  <span className={`text-[10px] font-medium ${isActive ? 'font-bold' : ''}`}>{item.label}</span>
+                  {locked && (
+                    <div className="absolute top-1 right-3 bg-gray-100 dark:bg-gray-800 rounded-full p-0.5 border border-white dark:border-gray-700 shadow-sm">
+                      <Lock size={8} className="text-gray-400" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+            
+            {/* Contextual More Button */}
+            <button
+              onClick={() => setView(View.SETTINGS)}
+              className={`flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-90 transition-transform duration-200 ${
+                  currentView === View.SETTINGS ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'
+              }`}
+            >
+              <div className={`p-1.5 rounded-xl transition-colors ${currentView === View.SETTINGS ? 'bg-indigo-50 dark:bg-indigo-900/30' : ''}`}>
+                  <Settings className={`w-6 h-6 ${currentView === View.SETTINGS ? 'stroke-2' : 'stroke-[1.5]'}`} />
+              </div>
+              <span className={`text-[10px] font-medium ${currentView === View.SETTINGS ? 'font-bold' : ''}`}>
+                  {isAdmin ? 'Settings' : 'More'}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
     </>
