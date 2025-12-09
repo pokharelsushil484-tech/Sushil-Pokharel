@@ -1,8 +1,7 @@
 
-
 import React, { useState } from 'react';
-import { UserProfile, Experience, Project } from '../types';
-import { Mail, Phone, MapPin, Download, Loader2, Lock, Plus, Trash2, Edit2, Check, Briefcase, GraduationCap, Code } from 'lucide-react';
+import { UserProfile, Experience, Project, Certification, Award, Language } from '../types';
+import { Mail, Phone, MapPin, Download, Loader2, Lock, Plus, Trash2, Edit2, Check, Briefcase, GraduationCap, Code, Award as AwardIcon, Globe, Heart, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 
 declare var html2pdf: any;
 
@@ -17,8 +16,17 @@ export const CVBuilder: React.FC<CVBuilderProps> = ({ user, isVerified, updateUs
   const [isEditing, setIsEditing] = useState(false);
 
   // Local state for editing form
+  const [personalStatement, setPersonalStatement] = useState(user.personalStatement || user.studyPreference || '');
+  const [skills, setSkills] = useState<string[]>(user.skills || []);
   const [experiences, setExperiences] = useState<Experience[]>(user.experience || []);
   const [projects, setProjects] = useState<Project[]>(user.projects || []);
+  const [certifications, setCertifications] = useState<Certification[]>(user.certifications || []);
+  const [awards, setAwards] = useState<Award[]>(user.awards || []);
+  const [languages, setLanguages] = useState<Language[]>(user.languages || []);
+  const [interests, setInterests] = useState<string[]>(user.interests || []);
+
+  // UI State for Accordion in Editor
+  const [activeSection, setActiveSection] = useState<string | null>('statement');
 
   // LOCK FOR UNVERIFIED USERS
   if (isVerified === false) {
@@ -71,55 +79,54 @@ export const CVBuilder: React.FC<CVBuilderProps> = ({ user, isVerified, updateUs
   const saveChanges = () => {
     updateUser({
       ...user,
+      personalStatement,
+      skills,
       experience: experiences,
-      projects: projects
+      projects,
+      certifications,
+      awards,
+      languages,
+      interests
     });
     setIsEditing(false);
   };
 
+  // Generic List Handlers
   const addExperience = () => {
-    const newExp: Experience = {
-      id: Date.now().toString(),
-      role: 'New Role',
-      company: 'Company Name',
-      duration: 'Year - Year',
-      description: 'Brief description of your responsibilities.'
-    };
-    setExperiences([...experiences, newExp]);
+    setExperiences([...experiences, { id: Date.now().toString(), role: 'New Role', company: 'Company', duration: 'YYYY - YYYY', description: 'Description' }]);
   };
-
-  const removeExperience = (id: string) => {
-    setExperiences(experiences.filter(e => e.id !== id));
-  };
-
-  const updateExperience = (id: string, field: keyof Experience, value: string) => {
-    setExperiences(experiences.map(e => e.id === id ? { ...e, [field]: value } : e));
-  };
-
   const addProject = () => {
-    const newProj: Project = {
-      id: Date.now().toString(),
-      title: 'Project Title',
-      role: 'Lead',
-      description: 'What did you build or achieve?'
-    };
-    setProjects([...projects, newProj]);
+    setProjects([...projects, { id: Date.now().toString(), title: 'New Project', role: 'Lead', description: 'Description' }]);
   };
-
-  const removeProject = (id: string) => {
-    setProjects(projects.filter(p => p.id !== id));
+  const addCertification = () => {
+    setCertifications([...certifications, { id: Date.now().toString(), name: 'Certificate Name', issuer: 'Issuer', date: 'YYYY' }]);
   };
-
-  const updateProject = (id: string, field: keyof Project, value: string) => {
-    setProjects(projects.map(p => p.id === id ? { ...p, [field]: value } : p));
+  const addAward = () => {
+    setAwards([...awards, { id: Date.now().toString(), title: 'Award Title', date: 'YYYY', description: 'Achievement details' }]);
   };
+  const addLanguage = () => {
+    setLanguages([...languages, { id: Date.now().toString(), language: 'New Language', proficiency: 'Basic' }]);
+  };
+  
+  // Render Helpers for Editor
+  const SectionHeader = ({ id, title, icon: Icon }: any) => (
+    <div 
+      onClick={() => setActiveSection(activeSection === id ? null : id)}
+      className={`flex justify-between items-center p-4 cursor-pointer transition-colors ${activeSection === id ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'bg-white dark:bg-gray-800 hover:bg-gray-50'}`}
+    >
+        <div className="flex items-center font-bold text-gray-700 dark:text-gray-200">
+            <Icon size={18} className="mr-3 text-indigo-500" /> {title}
+        </div>
+        {activeSection === id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+    </div>
+  );
 
   // --- Render Editor ---
   if (isEditing) {
     return (
       <div className="pb-20 animate-fade-in">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Edit CV Details</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Edit CV</h1>
           <button 
             onClick={saveChanges}
             className="bg-green-600 text-white px-6 py-2 rounded-full text-sm font-bold flex items-center shadow-lg hover:bg-green-700 transition-all active:scale-95"
@@ -128,57 +135,140 @@ export const CVBuilder: React.FC<CVBuilderProps> = ({ user, isVerified, updateUs
           </button>
         </div>
 
-        <div className="space-y-6">
-           {/* Experience Editor */}
-           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-              <div className="flex justify-between items-center mb-4">
-                 <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100 flex items-center">
-                    <Briefcase size={20} className="mr-2 text-indigo-500"/> Experience
-                 </h3>
-                 <button onClick={addExperience} className="text-indigo-600 dark:text-indigo-400 text-xs font-bold hover:underline flex items-center">
-                    <Plus size={14} className="mr-1"/> Add Item
-                 </button>
-              </div>
-              <div className="space-y-4">
-                 {experiences.map(exp => (
-                   <div key={exp.id} className="p-4 bg-gray-50 dark:bg-gray-900 rounded-xl relative group">
-                      <button onClick={() => removeExperience(exp.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 p-1"><Trash2 size={16}/></button>
-                      <div className="grid grid-cols-2 gap-3 mb-3">
-                         <input className="p-2 rounded border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-sm font-bold" value={exp.role} onChange={e => updateExperience(exp.id, 'role', e.target.value)} placeholder="Role" />
-                         <input className="p-2 rounded border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-sm" value={exp.company} onChange={e => updateExperience(exp.id, 'company', e.target.value)} placeholder="Company" />
-                         <input className="col-span-2 p-2 rounded border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-sm" value={exp.duration} onChange={e => updateExperience(exp.id, 'duration', e.target.value)} placeholder="Duration (e.g. 2022 - Present)" />
-                      </div>
-                      <textarea className="w-full p-2 rounded border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-sm h-20 resize-none" value={exp.description} onChange={e => updateExperience(exp.id, 'description', e.target.value)} placeholder="Description" />
-                   </div>
-                 ))}
-                 {experiences.length === 0 && <p className="text-gray-400 text-sm italic">No experience added.</p>}
-              </div>
-           </div>
+        <div className="space-y-2 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+           
+           {/* Personal Statement */}
+           <SectionHeader id="statement" title="Personal Statement" icon={FileText} />
+           {activeSection === 'statement' && (
+               <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
+                   <textarea 
+                      className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white h-32 text-sm"
+                      placeholder="Write a brief professional summary..."
+                      value={personalStatement}
+                      onChange={e => setPersonalStatement(e.target.value)}
+                   />
+               </div>
+           )}
 
-           {/* Projects Editor */}
-           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-              <div className="flex justify-between items-center mb-4">
-                 <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100 flex items-center">
-                    <Code size={20} className="mr-2 text-indigo-500"/> Projects
-                 </h3>
-                 <button onClick={addProject} className="text-indigo-600 dark:text-indigo-400 text-xs font-bold hover:underline flex items-center">
-                    <Plus size={14} className="mr-1"/> Add Item
-                 </button>
+           {/* Skills */}
+           <SectionHeader id="skills" title="Key Skills" icon={Check} />
+           {activeSection === 'skills' && (
+              <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
+                  <textarea 
+                    className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm mb-2"
+                    placeholder="Enter skills separated by commas (e.g. Leadership, Python, Public Speaking)"
+                    value={skills.join(', ')}
+                    onChange={e => setSkills(e.target.value.split(',').map(s => s.trim()))}
+                  />
+                  <p className="text-xs text-gray-400">Separate skills with commas.</p>
               </div>
-              <div className="space-y-4">
-                 {projects.map(proj => (
-                   <div key={proj.id} className="p-4 bg-gray-50 dark:bg-gray-900 rounded-xl relative group">
-                      <button onClick={() => removeProject(proj.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 p-1"><Trash2 size={16}/></button>
-                      <div className="grid grid-cols-2 gap-3 mb-3">
-                         <input className="p-2 rounded border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-sm font-bold" value={proj.title} onChange={e => updateProject(proj.id, 'title', e.target.value)} placeholder="Project Title" />
-                         <input className="p-2 rounded border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-sm" value={proj.role} onChange={e => updateProject(proj.id, 'role', e.target.value)} placeholder="Your Role (Optional)" />
-                      </div>
-                      <textarea className="w-full p-2 rounded border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-sm h-20 resize-none" value={proj.description} onChange={e => updateProject(proj.id, 'description', e.target.value)} placeholder="Description" />
-                   </div>
-                 ))}
-                 {projects.length === 0 && <p className="text-gray-400 text-sm italic">No projects added.</p>}
+           )}
+
+           {/* Experience */}
+           <SectionHeader id="exp" title="Work Experience" icon={Briefcase} />
+           {activeSection === 'exp' && (
+               <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 space-y-4">
+                   {experiences.map((exp, idx) => (
+                       <div key={exp.id} className="p-4 border rounded-xl relative bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-700">
+                           <button onClick={() => setExperiences(experiences.filter(e => e.id !== exp.id))} className="absolute top-2 right-2 text-red-400"><Trash2 size={16}/></button>
+                           <div className="grid grid-cols-2 gap-2 mb-2">
+                              <input className="p-2 text-sm border rounded dark:bg-gray-800 dark:text-white" value={exp.role} onChange={e => { const n = [...experiences]; n[idx].role = e.target.value; setExperiences(n); }} placeholder="Role" />
+                              <input className="p-2 text-sm border rounded dark:bg-gray-800 dark:text-white" value={exp.company} onChange={e => { const n = [...experiences]; n[idx].company = e.target.value; setExperiences(n); }} placeholder="Company" />
+                              <input className="p-2 text-sm border rounded dark:bg-gray-800 dark:text-white col-span-2" value={exp.duration} onChange={e => { const n = [...experiences]; n[idx].duration = e.target.value; setExperiences(n); }} placeholder="Duration" />
+                           </div>
+                           <textarea className="w-full p-2 text-sm border rounded dark:bg-gray-800 dark:text-white" value={exp.description} onChange={e => { const n = [...experiences]; n[idx].description = e.target.value; setExperiences(n); }} placeholder="Description" />
+                       </div>
+                   ))}
+                   <button onClick={addExperience} className="w-full py-2 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-bold flex items-center justify-center"><Plus size={16} className="mr-1"/> Add Experience</button>
+               </div>
+           )}
+
+           {/* Projects */}
+           <SectionHeader id="proj" title="Projects" icon={Code} />
+           {activeSection === 'proj' && (
+               <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 space-y-4">
+                   {projects.map((proj, idx) => (
+                       <div key={proj.id} className="p-4 border rounded-xl relative bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-700">
+                           <button onClick={() => setProjects(projects.filter(p => p.id !== proj.id))} className="absolute top-2 right-2 text-red-400"><Trash2 size={16}/></button>
+                           <input className="w-full p-2 text-sm border rounded mb-2 dark:bg-gray-800 dark:text-white font-bold" value={proj.title} onChange={e => { const n = [...projects]; n[idx].title = e.target.value; setProjects(n); }} placeholder="Project Title" />
+                           <input className="w-full p-2 text-sm border rounded mb-2 dark:bg-gray-800 dark:text-white" value={proj.role} onChange={e => { const n = [...projects]; n[idx].role = e.target.value; setProjects(n); }} placeholder="Your Role" />
+                           <textarea className="w-full p-2 text-sm border rounded dark:bg-gray-800 dark:text-white" value={proj.description} onChange={e => { const n = [...projects]; n[idx].description = e.target.value; setProjects(n); }} placeholder="Description" />
+                       </div>
+                   ))}
+                   <button onClick={addProject} className="w-full py-2 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-bold flex items-center justify-center"><Plus size={16} className="mr-1"/> Add Project</button>
+               </div>
+           )}
+
+           {/* Certifications */}
+           <SectionHeader id="cert" title="Certifications" icon={AwardIcon} />
+           {activeSection === 'cert' && (
+               <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 space-y-4">
+                   {certifications.map((cert, idx) => (
+                       <div key={cert.id} className="p-4 border rounded-xl relative bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-700 grid grid-cols-2 gap-2">
+                           <button onClick={() => setCertifications(certifications.filter(c => c.id !== cert.id))} className="absolute top-2 right-2 text-red-400"><Trash2 size={16}/></button>
+                           <input className="col-span-2 p-2 text-sm border rounded dark:bg-gray-800 dark:text-white font-bold" value={cert.name} onChange={e => { const n = [...certifications]; n[idx].name = e.target.value; setCertifications(n); }} placeholder="Certificate Name" />
+                           <input className="p-2 text-sm border rounded dark:bg-gray-800 dark:text-white" value={cert.issuer} onChange={e => { const n = [...certifications]; n[idx].issuer = e.target.value; setCertifications(n); }} placeholder="Issuer" />
+                           <input className="p-2 text-sm border rounded dark:bg-gray-800 dark:text-white" value={cert.date} onChange={e => { const n = [...certifications]; n[idx].date = e.target.value; setCertifications(n); }} placeholder="Date" />
+                       </div>
+                   ))}
+                   <button onClick={addCertification} className="w-full py-2 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-bold flex items-center justify-center"><Plus size={16} className="mr-1"/> Add Certificate</button>
+               </div>
+           )}
+
+           {/* Awards */}
+           <SectionHeader id="award" title="Awards & Achievements" icon={GraduationCap} />
+           {activeSection === 'award' && (
+               <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 space-y-4">
+                   {awards.map((award, idx) => (
+                       <div key={award.id} className="p-4 border rounded-xl relative bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-700">
+                           <button onClick={() => setAwards(awards.filter(a => a.id !== award.id))} className="absolute top-2 right-2 text-red-400"><Trash2 size={16}/></button>
+                           <div className="flex gap-2 mb-2">
+                              <input className="flex-1 p-2 text-sm border rounded dark:bg-gray-800 dark:text-white font-bold" value={award.title} onChange={e => { const n = [...awards]; n[idx].title = e.target.value; setAwards(n); }} placeholder="Award Title" />
+                              <input className="w-24 p-2 text-sm border rounded dark:bg-gray-800 dark:text-white" value={award.date} onChange={e => { const n = [...awards]; n[idx].date = e.target.value; setAwards(n); }} placeholder="Date" />
+                           </div>
+                           <textarea className="w-full p-2 text-sm border rounded dark:bg-gray-800 dark:text-white" value={award.description} onChange={e => { const n = [...awards]; n[idx].description = e.target.value; setAwards(n); }} placeholder="Description" />
+                       </div>
+                   ))}
+                   <button onClick={addAward} className="w-full py-2 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-bold flex items-center justify-center"><Plus size={16} className="mr-1"/> Add Award</button>
+               </div>
+           )}
+
+           {/* Languages */}
+           <SectionHeader id="lang" title="Languages" icon={Globe} />
+           {activeSection === 'lang' && (
+               <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 space-y-4">
+                   {languages.map((lang, idx) => (
+                       <div key={lang.id} className="flex gap-2 items-center">
+                           <input className="flex-1 p-2 text-sm border rounded dark:bg-gray-800 dark:text-white" value={lang.language} onChange={e => { const n = [...languages]; n[idx].language = e.target.value; setLanguages(n); }} placeholder="Language" />
+                           <select 
+                            className="p-2 text-sm border rounded dark:bg-gray-800 dark:text-white"
+                            value={lang.proficiency}
+                            onChange={e => { const n = [...languages]; n[idx].proficiency = e.target.value as any; setLanguages(n); }}
+                           >
+                               <option>Native</option>
+                               <option>Fluent</option>
+                               <option>Intermediate</option>
+                               <option>Basic</option>
+                           </select>
+                           <button onClick={() => setLanguages(languages.filter(l => l.id !== lang.id))} className="text-red-400 p-2"><Trash2 size={16}/></button>
+                       </div>
+                   ))}
+                   <button onClick={addLanguage} className="w-full py-2 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-bold flex items-center justify-center"><Plus size={16} className="mr-1"/> Add Language</button>
+               </div>
+           )}
+
+           {/* Interests */}
+           <SectionHeader id="interest" title="Interests" icon={Heart} />
+           {activeSection === 'interest' && (
+              <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
+                  <textarea 
+                    className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm mb-2"
+                    placeholder="Enter interests separated by commas (e.g. Reading, Football, Traveling)"
+                    value={interests.join(', ')}
+                    onChange={e => setInterests(e.target.value.split(',').map(s => s.trim()))}
+                  />
               </div>
-           </div>
+           )}
         </div>
       </div>
     );
@@ -192,13 +282,20 @@ export const CVBuilder: React.FC<CVBuilderProps> = ({ user, isVerified, updateUs
         <div className="flex space-x-2">
            <button 
             onClick={() => {
+              // Sync state with user data before editing
+              setPersonalStatement(user.personalStatement || user.studyPreference || '');
+              setSkills(user.skills || []);
               setExperiences(user.experience || []);
               setProjects(user.projects || []);
+              setCertifications(user.certifications || []);
+              setAwards(user.awards || []);
+              setLanguages(user.languages || []);
+              setInterests(user.interests || []);
               setIsEditing(true);
             }}
             className="bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-gray-700 px-4 py-2 rounded-full text-sm font-bold flex items-center shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-95"
           >
-             <Edit2 size={16} className="mr-2" /> Edit Details
+             <Edit2 size={16} className="mr-2" /> Edit CV
           </button>
           <button 
             onClick={handleExport}
@@ -216,73 +313,92 @@ export const CVBuilder: React.FC<CVBuilderProps> = ({ user, isVerified, updateUs
         
         {/* Modern Header */}
         <div className="bg-[#2c3e50] text-white p-10 flex justify-between items-center">
-            <div>
+            <div className="flex-1">
                <h1 className="text-4xl font-bold uppercase tracking-wider mb-2">{user.name}</h1>
-               <p className="text-gray-300 text-lg font-medium tracking-wide">{user.education}</p>
+               <p className="text-gray-300 text-lg font-medium tracking-wide mb-2">{user.education}</p>
+               {user.personalStatement && (
+                   <p className="text-sm text-gray-400 leading-tight max-w-md italic opacity-90">{user.personalStatement}</p>
+               )}
             </div>
             {user.avatar && (
-              <img src={user.avatar} className="w-28 h-28 rounded-full object-cover border-4 border-white/20 shadow-lg" alt="Profile" />
+              <img src={user.avatar} className="w-32 h-32 rounded-full object-cover border-4 border-white/20 shadow-lg ml-6" alt="Profile" />
             )}
         </div>
 
         <div className="flex flex-1">
             {/* Sidebar (Left) */}
-            <div className="w-1/3 bg-[#f8f9fa] p-8 border-r border-gray-200">
+            <div className="w-1/3 bg-[#f8f9fa] p-8 border-r border-gray-200 flex flex-col gap-8">
+               
                {/* Contact */}
-               <div className="mb-8">
-                  <h3 className="text-sm font-bold text-[#2c3e50] uppercase tracking-widest mb-4 border-b-2 border-indigo-500 pb-1 w-10">Contact</h3>
+               <div>
+                  <h3 className="text-xs font-bold text-[#2c3e50] uppercase tracking-widest mb-4 border-b-2 border-indigo-500 pb-1 w-10">Contact</h3>
                   <div className="space-y-3 text-sm text-gray-600">
-                     <div className="flex items-center"><Phone size={14} className="mr-3 text-indigo-600" /> {user.phone}</div>
-                     <div className="flex items-center"><Mail size={14} className="mr-3 text-indigo-600" /> <span className="text-xs break-all">{user.email}</span></div>
-                     <div className="flex items-center"><MapPin size={14} className="mr-3 text-indigo-600" /> {user.country}</div>
+                     <div className="flex items-center"><Phone size={14} className="mr-3 text-indigo-600 flex-shrink-0" /> {user.phone}</div>
+                     <div className="flex items-center"><Mail size={14} className="mr-3 text-indigo-600 flex-shrink-0" /> <span className="text-xs break-all">{user.email}</span></div>
+                     <div className="flex items-center"><MapPin size={14} className="mr-3 text-indigo-600 flex-shrink-0" /> {user.country}</div>
                   </div>
                </div>
 
                {/* Education */}
-               <div className="mb-8">
-                  <h3 className="text-sm font-bold text-[#2c3e50] uppercase tracking-widest mb-4 border-b-2 border-indigo-500 pb-1 w-10">Education</h3>
-                  <div className="mb-4">
-                     <h4 className="font-bold text-gray-900">{user.institution}</h4>
-                     <p className="text-indigo-600 text-sm font-medium">{user.education}</p>
-                     <p className="text-gray-500 text-xs mt-1">Academic Focus</p>
+               <div>
+                  <h3 className="text-xs font-bold text-[#2c3e50] uppercase tracking-widest mb-4 border-b-2 border-indigo-500 pb-1 w-10">Education</h3>
+                  <div>
+                     <h4 className="font-bold text-gray-900 text-sm">{user.institution}</h4>
+                     <p className="text-indigo-600 text-xs font-medium">{user.education}</p>
                   </div>
                </div>
 
                {/* Skills */}
-               <div>
-                  <h3 className="text-sm font-bold text-[#2c3e50] uppercase tracking-widest mb-4 border-b-2 border-indigo-500 pb-1 w-10">Skills</h3>
-                  <div className="flex flex-wrap gap-2">
-                     {user.skills.map((skill, i) => (
-                        <span key={i} className="bg-white border border-gray-200 text-gray-700 text-xs px-2 py-1 rounded shadow-sm">{skill}</span>
-                     ))}
-                  </div>
-               </div>
+               {user.skills && user.skills.length > 0 && (
+                <div>
+                    <h3 className="text-xs font-bold text-[#2c3e50] uppercase tracking-widest mb-4 border-b-2 border-indigo-500 pb-1 w-10">Skills</h3>
+                    <div className="flex flex-wrap gap-2">
+                        {user.skills.map((skill, i) => (
+                            <span key={i} className="bg-white border border-gray-200 text-gray-700 text-[10px] px-2 py-1 rounded shadow-sm font-semibold">{skill}</span>
+                        ))}
+                    </div>
+                </div>
+               )}
+
+               {/* Languages */}
+               {user.languages && user.languages.length > 0 && (
+                   <div>
+                       <h3 className="text-xs font-bold text-[#2c3e50] uppercase tracking-widest mb-4 border-b-2 border-indigo-500 pb-1 w-10">Language</h3>
+                       <ul className="space-y-2">
+                           {user.languages.map(lang => (
+                               <li key={lang.id} className="text-sm flex justify-between">
+                                   <span className="text-gray-700 font-medium">{lang.language}</span>
+                                   <span className="text-gray-500 text-xs">{lang.proficiency}</span>
+                               </li>
+                           ))}
+                       </ul>
+                   </div>
+               )}
+
+               {/* Interests */}
+               {user.interests && user.interests.length > 0 && (
+                   <div>
+                       <h3 className="text-xs font-bold text-[#2c3e50] uppercase tracking-widest mb-4 border-b-2 border-indigo-500 pb-1 w-10">Interests</h3>
+                       <div className="text-sm text-gray-600 leading-relaxed">
+                           {user.interests.join(' • ')}
+                       </div>
+                   </div>
+               )}
             </div>
 
             {/* Main Content (Right) */}
             <div className="w-2/3 p-8 space-y-8">
                
-               {/* Profile */}
-               <div>
-                  <h3 className="text-lg font-bold text-[#2c3e50] uppercase tracking-widest mb-4 flex items-center">
-                     <span className="w-8 h-1 bg-indigo-500 mr-3"></span> Profile
-                  </h3>
-                  <p className="text-sm text-gray-600 leading-relaxed text-justify">
-                     Motivated student from {user.country} with a strong academic record at {user.institution}. 
-                     {user.studyPreference} looking for opportunities to grow and learn. 
-                     Eager to apply learned skills in a practical environment.
-                  </p>
-               </div>
-
                {/* Experience */}
                {user.experience && user.experience.length > 0 && (
                   <div>
-                      <h3 className="text-lg font-bold text-[#2c3e50] uppercase tracking-widest mb-4 flex items-center">
-                        <span className="w-8 h-1 bg-indigo-500 mr-3"></span> Experience
+                      <h3 className="text-base font-bold text-[#2c3e50] uppercase tracking-widest mb-5 flex items-center">
+                        <span className="w-2 h-2 bg-indigo-500 mr-3 rounded-full"></span> Work Experience
                       </h3>
-                      <div className="space-y-6">
+                      <div className="space-y-6 border-l-2 border-gray-100 pl-4 ml-1">
                         {user.experience.map(exp => (
-                           <div key={exp.id}>
+                           <div key={exp.id} className="relative">
+                              <div className="absolute -left-[21px] top-1.5 w-3 h-3 bg-white border-2 border-indigo-500 rounded-full"></div>
                               <div className="flex justify-between items-baseline mb-1">
                                  <h4 className="font-bold text-gray-900 text-base">{exp.role}</h4>
                                  <span className="text-xs font-bold text-gray-400 uppercase">{exp.duration}</span>
@@ -298,14 +414,16 @@ export const CVBuilder: React.FC<CVBuilderProps> = ({ user, isVerified, updateUs
                {/* Projects */}
                {user.projects && user.projects.length > 0 && (
                   <div>
-                      <h3 className="text-lg font-bold text-[#2c3e50] uppercase tracking-widest mb-4 flex items-center">
-                        <span className="w-8 h-1 bg-indigo-500 mr-3"></span> Projects
+                      <h3 className="text-base font-bold text-[#2c3e50] uppercase tracking-widest mb-5 flex items-center">
+                        <span className="w-2 h-2 bg-indigo-500 mr-3 rounded-full"></span> Key Projects
                       </h3>
-                      <div className="space-y-6">
+                      <div className="space-y-5">
                         {user.projects.map(proj => (
-                           <div key={proj.id}>
-                              <h4 className="font-bold text-gray-900 text-base mb-1">{proj.title}</h4>
-                              {proj.role && <p className="text-xs text-gray-400 font-bold uppercase mb-1">{proj.role}</p>}
+                           <div key={proj.id} className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                              <div className="flex justify-between items-start mb-1">
+                                <h4 className="font-bold text-gray-900 text-sm">{proj.title}</h4>
+                                {proj.role && <span className="text-[10px] bg-white px-2 py-0.5 rounded border border-gray-200 text-gray-500 font-bold uppercase">{proj.role}</span>}
+                              </div>
                               <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{proj.description}</p>
                            </div>
                         ))}
@@ -313,12 +431,52 @@ export const CVBuilder: React.FC<CVBuilderProps> = ({ user, isVerified, updateUs
                   </div>
                )}
 
+               {/* Certifications */}
+               {user.certifications && user.certifications.length > 0 && (
+                   <div>
+                       <h3 className="text-base font-bold text-[#2c3e50] uppercase tracking-widest mb-5 flex items-center">
+                         <span className="w-2 h-2 bg-indigo-500 mr-3 rounded-full"></span> Certifications
+                       </h3>
+                       <div className="grid grid-cols-1 gap-3">
+                           {user.certifications.map(cert => (
+                               <div key={cert.id} className="flex justify-between items-center text-sm border-b border-gray-100 pb-2 last:border-0">
+                                   <div>
+                                       <p className="font-bold text-gray-800">{cert.name}</p>
+                                       <p className="text-xs text-gray-500">{cert.issuer}</p>
+                                   </div>
+                                   <span className="text-xs font-mono text-gray-400 bg-gray-50 px-2 py-1 rounded">{cert.date}</span>
+                               </div>
+                           ))}
+                       </div>
+                   </div>
+               )}
+
+               {/* Awards */}
+               {user.awards && user.awards.length > 0 && (
+                   <div>
+                       <h3 className="text-base font-bold text-[#2c3e50] uppercase tracking-widest mb-5 flex items-center">
+                         <span className="w-2 h-2 bg-indigo-500 mr-3 rounded-full"></span> Honors & Awards
+                       </h3>
+                       <div className="space-y-4">
+                           {user.awards.map(award => (
+                               <div key={award.id}>
+                                   <div className="flex justify-between items-baseline mb-1">
+                                       <h4 className="font-bold text-gray-900 text-sm">{award.title}</h4>
+                                       <span className="text-xs text-gray-400 font-bold">{award.date}</span>
+                                   </div>
+                                   <p className="text-xs text-gray-600">{award.description}</p>
+                               </div>
+                           ))}
+                       </div>
+                   </div>
+               )}
+
             </div>
         </div>
 
         {/* Footer */}
         <div className="bg-[#2c3e50] p-4 text-center mt-auto">
-           <p className="text-[10px] text-gray-400 tracking-wider">GENERATED BY STUDENTPOCKET APP</p>
+           <p className="text-[10px] text-gray-400 tracking-wider">Created by Sushil Pokharel • Generated via StudentPocket</p>
         </div>
 
       </div>

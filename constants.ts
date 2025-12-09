@@ -1,5 +1,4 @@
 
-
 import { UserProfile } from './types';
 
 export const ADMIN_USERNAME = "sushilpokharel";
@@ -12,9 +11,14 @@ export const DEFAULT_USER: UserProfile = {
   institution: "Nobel Academy",
   country: "Nepal",
   studyPreference: "Morning person, visual learner",
+  personalStatement: "Motivated and dedicated student with a strong passion for learning and self-improvement. Eager to apply academic knowledge in practical settings.",
   skills: ["Communication", "Leadership", "Microsoft Office", "Time Management"],
   experience: [],
-  projects: []
+  projects: [],
+  certifications: [],
+  awards: [],
+  languages: [{ id: '1', language: 'English', proficiency: 'Fluent' }, { id: '2', language: 'Nepali', proficiency: 'Native' }],
+  interests: ["Technology", "Reading", "Travel"]
 };
 
 export const APP_NAME = "Sushil Pokharel";

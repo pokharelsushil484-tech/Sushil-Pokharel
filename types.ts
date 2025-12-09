@@ -42,6 +42,26 @@ export interface Project {
   description: string;
 }
 
+export interface Certification {
+  id: string;
+  name: string;
+  issuer: string;
+  date: string;
+}
+
+export interface Award {
+  id: string;
+  title: string;
+  date: string;
+  description: string;
+}
+
+export interface Language {
+  id: string;
+  language: string;
+  proficiency: 'Native' | 'Fluent' | 'Intermediate' | 'Basic';
+}
+
 export interface UserProfile {
   name: string;
   email: string;
@@ -51,10 +71,15 @@ export interface UserProfile {
   country: string;
   avatar?: string;
   vaultPin?: string;
-  studyPreference?: string;
+  studyPreference?: string; // Kept for legacy, but Personal Statement is preferred for CV
+  personalStatement?: string;
   skills: string[];
   experience: Experience[];
   projects: Project[];
+  certifications: Certification[];
+  awards: Award[];
+  languages: Language[];
+  interests: string[];
 }
 
 export interface Assignment {
