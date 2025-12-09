@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest } from '../types';
-import { Moon, Bell, LogOut, Globe, ShieldCheck, Trash2, Sun, Check, X, Edit2, UserMinus, BadgeCheck, AlertTriangle, Camera, CheckCircle2, Bug } from 'lucide-react';
+import { Moon, Bell, LogOut, Globe, ShieldCheck, Trash2, Sun, Check, X, Edit2, UserMinus, BadgeCheck, AlertTriangle, Camera, CheckCircle2, Bug, Mail, Upload, ArrowRight, Loader2, Image as ImageIcon } from 'lucide-react';
 import { WATERMARK, ADMIN_USERNAME } from '../constants';
+import { sendVerificationOTP } from '../services/emailService';
 
 interface SettingsProps {
   user: UserProfile;
@@ -21,6 +22,14 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
   // New State for Profile Editing (User side)
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editProfileData, setEditProfileData] = useState<UserProfile>(user);
+  
+  // Verification Logic State
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [verifStep, setVerifStep] = useState<1 | 2 | 3>(1); // 1: Email, 2: ID Upload, 3: Success
+  const [otp, setOtp] = useState('');
+  const [enteredOtp, setEnteredOtp] = useState('');
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [idCardImage, setIdCardImage] = useState<string | null>(null);
   
   // Crash Simulation State
   const [shouldCrash, setShouldCrash] = useState(false);
@@ -49,26 +58,80 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       return false;
   })();
 
-  const requestVerification = () => {
-     const request: ChangeRequest = {
+  const handleStartVerification = () => {
+    const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
+    const reqs = JSON.parse(reqStr);
+    
+    if(reqs.find((r:any) => r.username === username && r.type === 'VERIFICATION_REQUEST' && r.status === 'PENDING')) {
+        showToast("Verification request already pending approval.", 'error');
+        return;
+    }
+    setShowVerificationModal(true);
+    setVerifStep(1);
+    setOtp('');
+    setEnteredOtp('');
+    setIdCardImage(null);
+  };
+
+  const handleSendOtp = async () => {
+    setIsSendingOtp(true);
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setOtp(code);
+    
+    const sent = await sendVerificationOTP(user.email, user.name, code);
+    setIsSendingOtp(false);
+    
+    if (sent) {
+        showToast("OTP sent to your email.", 'success');
+    } else {
+        showToast("Failed to send OTP. Try again.", 'error');
+    }
+  };
+
+  const handleVerifyOtp = () => {
+      if (enteredOtp === otp && otp !== '') {
+          setVerifStep(2);
+      } else {
+          showToast("Invalid Verification Code.", 'error');
+      }
+  };
+
+  const handleIdUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+              setIdCardImage(reader.result as string);
+          };
+          reader.readAsDataURL(file);
+      }
+  };
+
+  const submitVerificationRequest = () => {
+      if (!idCardImage) {
+          showToast("Please upload your Student ID.", 'error');
+          return;
+      }
+
+      const request: ChangeRequest = {
          id: Date.now().toString(),
          username: username,
          type: 'VERIFICATION_REQUEST',
+         payload: {
+             idCardImage: idCardImage,
+             emailVerified: true
+         },
          status: 'PENDING',
          timestamp: new Date().toISOString()
      };
      
      const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
      const reqs = JSON.parse(reqStr);
-     
-     if(reqs.find((r:any) => r.username === username && r.type === 'VERIFICATION_REQUEST' && r.status === 'PENDING')) {
-         showToast("Verification request already pending.", 'error');
-         return;
-     }
-
      reqs.push(request);
      localStorage.setItem('studentpocket_requests', JSON.stringify(reqs));
-     showToast("Verification request sent to Admin.", 'success');
+     
+     setShowVerificationModal(false);
+     showToast("Verification request & ID sent to Admin.", 'success');
   };
 
   const handleProfileImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,6 +267,92 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
            <span className="text-sm font-medium">{toast.message}</span>
         </div>
       )}
+
+      {/* Verification Modal */}
+      {showVerificationModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+              <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-3xl p-6 shadow-2xl animate-scale-up border border-gray-200 dark:border-gray-700">
+                  <div className="flex justify-between items-center mb-6">
+                      <h2 className="text-xl font-bold dark:text-white">Verify Account</h2>
+                      <button onClick={() => setShowVerificationModal(false)} className="text-gray-400 hover:text-red-500"><X size={20}/></button>
+                  </div>
+
+                  {verifStep === 1 && (
+                      <div className="space-y-4">
+                          <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl flex items-center mb-2">
+                              <Mail className="text-indigo-600 dark:text-indigo-400 mr-3" size={24} />
+                              <div>
+                                  <p className="font-bold text-sm dark:text-white">Step 1: Email Check</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">We'll send a code to {user.email}</p>
+                              </div>
+                          </div>
+                          
+                          {otp === '' ? (
+                              <button 
+                                onClick={handleSendOtp} 
+                                disabled={isSendingOtp}
+                                className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold flex items-center justify-center hover:bg-indigo-700 transition-colors"
+                              >
+                                  {isSendingOtp ? <Loader2 className="animate-spin mr-2"/> : <Mail className="mr-2" size={18}/>}
+                                  {isSendingOtp ? 'Sending...' : 'Send Verification Code'}
+                              </button>
+                          ) : (
+                              <div className="animate-fade-in">
+                                  <input 
+                                    type="text" 
+                                    placeholder="Enter 6-digit code"
+                                    className="w-full text-center text-2xl tracking-[0.5em] font-mono p-3 border border-gray-200 dark:border-gray-700 rounded-xl mb-4 dark:bg-gray-800 dark:text-white"
+                                    value={enteredOtp}
+                                    onChange={e => setEnteredOtp(e.target.value)}
+                                    maxLength={6}
+                                  />
+                                  <button 
+                                    onClick={handleVerifyOtp}
+                                    className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-colors"
+                                  >
+                                      Verify & Continue
+                                  </button>
+                              </div>
+                          )}
+                      </div>
+                  )}
+
+                  {verifStep === 2 && (
+                       <div className="space-y-4 animate-fade-in">
+                          <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl flex items-center mb-2">
+                              <ShieldCheck className="text-indigo-600 dark:text-indigo-400 mr-3" size={24} />
+                              <div>
+                                  <p className="font-bold text-sm dark:text-white">Step 2: Upload Student ID</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">Upload a clear photo of your ID Card</p>
+                              </div>
+                          </div>
+
+                          <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors relative">
+                              {idCardImage ? (
+                                  <div className="relative w-full h-48">
+                                      <img src={idCardImage} className="w-full h-full object-contain rounded-lg" alt="ID Preview" />
+                                      <button onClick={() => setIdCardImage(null)} className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full"><X size={14}/></button>
+                                  </div>
+                              ) : (
+                                  <>
+                                    <ImageIcon className="text-gray-400 mb-2" size={40} />
+                                    <p className="text-sm font-bold text-gray-500">Tap to upload ID Card</p>
+                                    <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleIdUpload} />
+                                  </>
+                              )}
+                          </div>
+
+                          <button 
+                            onClick={submitVerificationRequest}
+                            className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold flex items-center justify-center hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 dark:shadow-none"
+                          >
+                              Submit Request <ArrowRight className="ml-2" size={18}/>
+                          </button>
+                       </div>
+                  )}
+              </div>
+          </div>
+      )}
       
       {/* Profile Card */}
       <div className="bg-indigo-600 dark:bg-indigo-700 rounded-3xl p-6 text-white mb-8 shadow-xl shadow-indigo-200 dark:shadow-none relative overflow-hidden">
@@ -299,7 +448,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
         <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 ml-2">Security & Access</h3>
         
         {!isVerified && username !== ADMIN_USERNAME && (
-             <SettingItem icon={BadgeCheck} title="Request Verification" subTitle="Unlock full features" onClick={requestVerification} />
+             <SettingItem icon={BadgeCheck} title="Request Verification" subTitle="Unlock full features" onClick={handleStartVerification} />
         )}
 
         {!showPinInput ? (

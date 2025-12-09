@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, Post, UserProfile } from '../types';
-import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2, Search, ShieldAlert, Megaphone, Plus, X, Edit2, Save } from 'lucide-react';
+import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2, Search, ShieldAlert, Megaphone, Plus, X, Edit2, Save, Info, Image as ImageIcon } from 'lucide-react';
 import { sendPasswordResetEmail } from '../services/emailService';
 import { ADMIN_USERNAME } from '../constants';
 
@@ -15,6 +15,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [userFilter, setUserFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [toast, setToast] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
   
   // Post Management State
   const [posts, setPosts] = useState<Post[]>([]);
@@ -24,6 +25,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   // User Editing State
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<UserProfile>>({});
+  
+  // ID Card Viewing
+  const [viewIdCard, setViewIdCard] = useState<string | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     const usersStr = localStorage.getItem('studentpocket_users');
@@ -64,7 +73,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
 
   const toggleVerification = (targetUser: string, currentStatus: boolean) => {
     if (targetUser === ADMIN_USERNAME) {
-        alert("Cannot change verification status of the System Administrator.");
+        showToast("Cannot change verification status of the System Administrator.", 'error');
         return;
     }
 
@@ -76,6 +85,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
       users[targetUser].verified = !currentStatus;
       localStorage.setItem('studentpocket_users', JSON.stringify(users));
       setRefreshTrigger(prev => prev + 1);
+      showToast(`User ${targetUser} ${!currentStatus ? 'Verified' : 'Unverified'}`, 'success');
     }
   };
 
@@ -94,13 +104,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
 
   const deleteUser = (targetUser: string) => {
     if (targetUser === ADMIN_USERNAME) {
-        alert("Cannot delete the System Administrator.");
+        showToast("Cannot delete the System Administrator.", 'error');
         return;
     }
 
     if (!window.confirm(`PERMANENT DELETE WARNING:\n\nAre you sure you want to delete user "${targetUser}"?\n\nThis action will wipe all their data and cannot be undone.`)) return;
     executeUserDeletion(targetUser);
     setRefreshTrigger(prev => prev + 1);
+    showToast(`User ${targetUser} deleted permanently.`, 'info');
   };
 
   const adminResetPassword = (targetUser: string) => {
@@ -116,7 +127,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
         delete users[targetUser].resetToken; 
         localStorage.setItem('studentpocket_users', JSON.stringify(users));
         setRefreshTrigger(prev => prev + 1);
-        alert(`Password for ${targetUser} changed to: ${newPass}`);
+        showToast(`Password updated for ${targetUser}`, 'success');
       }
     }
   };
@@ -145,9 +156,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
     // Send Email
     const sent = await sendPasswordResetEmail(targetEmail, targetUser, link);
     if (sent) {
-        if(!skipConfirm) alert(`Reset link sent successfully to ${targetEmail}`);
+        showToast(`Reset link sent to ${targetEmail}`, 'success');
     } else {
-        alert(`Failed to send reset link to ${targetEmail}`);
+        showToast(`Failed to send email to ${targetEmail}`, 'error');
     }
   };
   
@@ -162,15 +173,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                  const data = JSON.parse(stored);
                  data.user = { ...data.user, ...req.payload }; // Merge payload including avatar
                  localStorage.setItem(key, JSON.stringify(data));
-                 alert(`Profile data updated for ${req.username}.`);
+                 showToast(`Profile updated for ${req.username}`, 'success');
              } else {
-                 alert("User data not found, cannot update.");
+                 showToast("User data not found.", 'error');
              }
           } else if (req.type === 'PASSWORD_RESET') {
              const userObj = usersList.find(u => u.username === req.username);
              if (userObj && userObj.email) {
                  sendResetLink(req.username, userObj.email, true);
-                 alert(`Approved & Link Sent to ${userObj.email}`);
              } else {
                  adminResetPassword(req.username);
              }
@@ -182,7 +192,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                      users[req.username].verified = true;
                      localStorage.setItem('studentpocket_users', JSON.stringify(users));
                      setRefreshTrigger(prev => prev + 1);
-                     alert(`User ${req.username} has been verified!`);
+                     showToast(`${req.username} verified!`, 'success');
                  }
              }
           } else if (req.type === 'DELETE_ACCOUNT') {
@@ -190,8 +200,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                  return;
              }
              executeUserDeletion(req.username);
-             alert(`User ${req.username} has been deleted.`);
+             showToast(`${req.username} deleted.`, 'info');
           }
+      } else {
+          showToast("Request rejected.", 'info');
       }
 
       // 2. Remove Request
@@ -204,7 +216,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   // --- Post Logic ---
   const createPost = () => {
     if (!newPost.title || !newPost.content) {
-        alert("Title and Content are required.");
+        showToast("Title and Content are required.", 'error');
         return;
     }
 
@@ -223,7 +235,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
     localStorage.setItem('studentpocket_global_posts', JSON.stringify(updatedPosts));
     setNewPost({ title: '', content: '' });
     setShowPostForm(false);
-    alert("Announcement broadcasted successfully.");
+    showToast("Announcement broadcasted!", 'success');
   };
 
   const deletePost = (id: string) => {
@@ -231,6 +243,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
       const updatedPosts = posts.filter(p => p.id !== id);
       setPosts(updatedPosts);
       localStorage.setItem('studentpocket_global_posts', JSON.stringify(updatedPosts));
+      showToast("Announcement deleted.", 'info');
   };
 
   const handleFactoryReset = () => {
@@ -271,7 +284,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
     setRequests([]);
     setRefreshTrigger(prev => prev + 1);
     
-    alert("All student accounts and their data have been deleted successfully.");
+    showToast("All student accounts deleted.", 'success');
   };
 
   // --- Admin User Editing ---
@@ -311,9 +324,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
 
           setEditingUser(null);
           setRefreshTrigger(prev => prev + 1);
-          alert(`User ${editingUser} updated successfully.`);
+          showToast(`User ${editingUser} saved.`, 'success');
       } else {
-          alert("Could not find user data to update.");
+          showToast("User data not found.", 'error');
       }
   };
 
@@ -330,8 +343,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
     return matchesFilter && matchesSearch;
   });
 
+  // Sorting: Pending users first, then by username
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+      if (a.verified === b.verified) return a.username.localeCompare(b.username);
+      return a.verified ? 1 : -1;
+  });
+
   return (
-    <div className="pb-20 animate-fade-in">
+    <div className="pb-20 animate-fade-in relative">
+      {toast && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-3 rounded-full shadow-xl animate-fade-in">
+           {toast.type === 'success' && <CheckCircle2 size={18} className="text-green-400 dark:text-green-600 mr-2" />}
+           {toast.type === 'error' && <AlertTriangle size={18} className="text-red-400 dark:text-red-600 mr-2" />}
+           {toast.type === 'info' && <Info size={18} className="text-blue-400 dark:text-blue-600 mr-2" />}
+           <span className="text-sm font-medium">{toast.message}</span>
+        </div>
+      )}
+
+      {viewIdCard && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setViewIdCard(null)}>
+           <div className="relative max-w-2xl w-full bg-white dark:bg-gray-800 rounded-2xl p-2 animate-scale-up" onClick={e => e.stopPropagation()}>
+              <img src={viewIdCard} className="w-full h-auto rounded-xl" alt="Student ID" />
+              <button 
+                onClick={() => setViewIdCard(null)}
+                className="absolute -top-4 -right-4 bg-white dark:bg-gray-700 text-black dark:text-white p-2 rounded-full shadow-lg hover:bg-red-500 hover:text-white"
+              >
+                  <X size={20}/>
+              </button>
+           </div>
+        </div>
+      )}
+
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Admin Dashboard</h1>
 
       {/* ANNOUNCEMENTS */}
@@ -438,8 +480,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                         )}
 
                          {req.type === 'VERIFICATION_REQUEST' && (
-                            <div className="text-xs text-yellow-600 bg-yellow-50 p-2 rounded mb-3 flex items-center">
-                                <BadgeCheck size={12} className="mr-2"/> User is asking to unlock full features.
+                            <div className="text-xs text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded mb-3">
+                                <div className="flex items-center mb-2 font-bold text-yellow-800 dark:text-yellow-400">
+                                   <BadgeCheck size={14} className="mr-2"/> Verification Request
+                                </div>
+                                {req.payload?.emailVerified && (
+                                   <div className="flex items-center text-green-600 dark:text-green-400 mb-2">
+                                       <CheckCircle2 size={12} className="mr-1"/> Email Verified via OTP
+                                   </div>
+                                )}
+                                {req.payload?.idCardImage && (
+                                   <button 
+                                      onClick={() => setViewIdCard(req.payload.idCardImage)}
+                                      className="flex items-center text-indigo-600 dark:text-indigo-400 hover:underline mt-1"
+                                   >
+                                      <ImageIcon size={14} className="mr-1"/> View Student ID Card
+                                   </button>
+                                )}
                             </div>
                         )}
 
@@ -515,18 +572,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
             </div>
         </div>
 
-        <div className="space-y-4">
-          {filteredUsers.length === 0 ? (
-            <div className="p-8 text-center text-gray-500 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sortedUsers.length === 0 ? (
+            <div className="col-span-full p-8 text-center text-gray-500 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
               <p className="text-sm">No users found matching your search.</p>
             </div>
           ) : (
-            filteredUsers.map((u, idx) => {
+            sortedUsers.map((u, idx) => {
               const isSystemAdmin = u.username === ADMIN_USERNAME;
               const isEditing = editingUser === u.username;
 
               return (
-              <div key={idx} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden relative">
+              <div key={idx} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden relative flex flex-col">
                 
                 {/* Editing Overlay */}
                 {isEditing && (
@@ -550,19 +607,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                 {/* User Card Header */}
                 <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-start">
                     <div className="flex items-center space-x-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden ${u.verified ? 'bg-indigo-500' : 'bg-gray-400'}`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden flex-shrink-0 ${u.verified ? 'bg-indigo-500' : 'bg-gray-400'}`}>
                         {u.profile?.avatar ? <img src={u.profile.avatar} className="w-full h-full object-cover"/> : u.username.charAt(0).toUpperCase()}
                       </div>
-                      <div>
+                      <div className="min-w-0">
                           <div className="flex items-center">
-                              <h4 className="font-bold text-gray-900 dark:text-white text-base leading-tight">{u.username}</h4>
+                              <h4 className="font-bold text-gray-900 dark:text-white text-base leading-tight truncate">{u.username}</h4>
                               {isSystemAdmin && (
-                                  <span className="ml-2 bg-indigo-100 text-indigo-700 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-indigo-200 flex items-center">
+                                  <span className="ml-2 bg-indigo-100 text-indigo-700 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase border border-indigo-200 flex items-center flex-shrink-0">
                                       <ShieldAlert size={8} className="mr-1"/> Admin
                                   </span>
                               )}
                           </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{u.email}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 truncate">{u.email}</p>
                           {u.verified ? (
                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800 border border-green-200">
                                <BadgeCheck size={12} className="mr-1" /> Verified
@@ -574,29 +631,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                            )}
                       </div>
                     </div>
-                    <div className="text-right">
-                       <span className="text-[10px] text-gray-400 uppercase font-bold block mb-1">Password</span>
-                       <div className="font-mono bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded text-xs text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 select-all mb-2">
-                          {u.password}
-                       </div>
-                       
-                       <span className="text-[10px] text-gray-400 uppercase font-bold block mb-1">Vault PIN</span>
-                       <div className="font-mono bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded text-xs text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-gray-700 select-all">
-                          {u.profile?.vaultPin || '1234'}
-                       </div>
-                    </div>
                 </div>
 
                 {/* User Details */}
-                <div className="px-4 py-3 bg-gray-50/50 dark:bg-gray-900/30 text-xs text-gray-600 dark:text-gray-400 grid grid-cols-2 gap-y-1 gap-x-2 border-b border-gray-100 dark:border-gray-700">
-                    <p><span className="font-bold text-gray-500">Name:</span> {u.profile?.name || 'N/A'}</p>
-                    <p><span className="font-bold text-gray-500">Phone:</span> {u.profile?.phone || 'N/A'}</p>
-                    <p className="col-span-2"><span className="font-bold text-gray-500">Education:</span> {u.profile?.education || 'N/A'}</p>
+                <div className="px-4 py-3 bg-gray-50/50 dark:bg-gray-900/30 text-xs text-gray-600 dark:text-gray-400 grid grid-cols-2 gap-y-1 gap-x-2 border-b border-gray-100 dark:border-gray-700 flex-1">
+                    <p className="truncate"><span className="font-bold text-gray-500">Name:</span> {u.profile?.name || 'N/A'}</p>
+                    <p className="truncate"><span className="font-bold text-gray-500">Phone:</span> {u.profile?.phone || 'N/A'}</p>
+                    <p className="col-span-2 truncate"><span className="font-bold text-gray-500">Education:</span> {u.profile?.education || 'N/A'}</p>
+                    <div className="col-span-2 mt-1 pt-1 border-t border-gray-200 dark:border-gray-700 flex justify-between">
+                         <span className="text-[10px] text-gray-400 font-mono">PWD: {u.password}</span>
+                         <span className="text-[10px] text-gray-400 font-mono">PIN: {u.profile?.vaultPin || '1234'}</span>
+                    </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="p-3 bg-gray-50 dark:bg-gray-900/50 flex justify-between items-center gap-2 flex-wrap">
-                    <div className="flex gap-2 flex-wrap">
+                <div className="p-3 bg-gray-50 dark:bg-gray-900/50 flex justify-between items-center gap-2">
+                    <div className="flex gap-2">
                         <button 
                           onClick={() => toggleVerification(u.username, u.verified)}
                           disabled={isSystemAdmin}
@@ -612,16 +662,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                         
                         <button 
                             onClick={() => startEditing(u)}
-                            className="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 flex items-center"
+                            className="p-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 flex items-center"
+                            title="Edit User"
                         >
-                            <Edit2 size={12} className="mr-1"/> Edit
+                            <Edit2 size={14} />
                         </button>
 
                         <button 
                           onClick={() => adminResetPassword(u.username)}
-                          className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-bold hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors flex items-center"
+                          className="p-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors flex items-center"
+                          title="Reset Password"
                         >
-                          <RefreshCw size={12} className="mr-1" /> Reset
+                          <RefreshCw size={14} />
                         </button>
                     </div>
 

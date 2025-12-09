@@ -32,3 +32,26 @@ export const sendPasswordResetEmail = async (email: string, name: string, link: 
     return false;
   }
 };
+
+export const sendVerificationOTP = async (email: string, name: string, otp: string): Promise<boolean> => {
+  // Fallback for simulation
+  if (PUBLIC_KEY.startsWith('YOUR_')) {
+    console.log(`(Simulation) OTP for ${email}: ${otp}`);
+    alert(`(Simulation) Email sent to ${email}.\n\nYour Verification Code is: ${otp}`);
+    return true;
+  }
+
+  try {
+    await emailjs.send(SERVICE_ID, TEMPLATE_ID, {
+      to_email: email,
+      to_name: name,
+      message: `Your verification code is: ${otp}`,
+      subject: "Verify your Account",
+      type: "verification"
+    }, PUBLIC_KEY);
+    return true;
+  } catch (error) {
+    console.error("Failed to send OTP:", error);
+    return false;
+  }
+};
