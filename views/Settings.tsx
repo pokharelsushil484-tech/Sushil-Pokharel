@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile, ChangeRequest } from '../types';
-import { Moon, Bell, LogOut, Globe, ShieldCheck, Trash2, Sun, Check, X, Edit2, UserMinus, BadgeCheck, AlertTriangle, Camera, CheckCircle2, Bug, Mail, Upload, ArrowRight, Loader2, Image as ImageIcon, Briefcase, HelpCircle } from 'lucide-react';
+import { Moon, Bell, LogOut, Globe, ShieldCheck, Trash2, Sun, Check, X, Edit2, UserMinus, BadgeCheck, AlertTriangle, Camera, CheckCircle2, Bug, Mail, Upload, ArrowRight, Loader2, Image as ImageIcon, HelpCircle, MessageSquare, Clock, ChevronRight } from 'lucide-react';
 import { WATERMARK, ADMIN_USERNAME } from '../constants';
 import { sendVerificationOTP } from '../services/emailService';
 
@@ -33,13 +33,35 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
   
   // Support Ticket
   const [showSupportModal, setShowSupportModal] = useState(false);
+  const [supportMode, setSupportMode] = useState<'NEW' | 'HISTORY'>('NEW');
   const [supportMessage, setSupportMessage] = useState('');
+  const [myTickets, setMyTickets] = useState<ChangeRequest[]>([]);
 
   // Crash Simulation State
   const [shouldCrash, setShouldCrash] = useState(false);
 
   // Toast Notification State
   const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+
+  useEffect(() => {
+    if (showSupportModal) {
+      loadTickets();
+    }
+  }, [showSupportModal]);
+
+  const loadTickets = () => {
+    try {
+      const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
+      const allReqs: ChangeRequest[] = JSON.parse(reqStr);
+      // Filter for this user and type SUPPORT_TICKET
+      const tickets = allReqs
+        .filter(r => r.username === username && r.type === 'SUPPORT_TICKET')
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      setMyTickets(tickets);
+    } catch (e) {
+      console.error("Failed to load tickets", e);
+    }
+  };
 
   if (shouldCrash) {
     throw new Error("This is a simulated crash to demonstrate the Professional Error Page.");
@@ -86,7 +108,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
           }
       } else {
           // Check for ANY request in last 24 hours (for spam prevention)
-          // "in 1 day only all request"
           const lastAny = userReqs
               .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
           
@@ -188,10 +209,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
         const base64 = reader.result as string;
         
         if (username === ADMIN_USERNAME) {
-           // Admin updates immediately
            const updated = { ...user, avatar: base64 };
            updateUser(updated);
-           // Force update local storage for admin immediately
            const key = `studentpocket_data_${ADMIN_USERNAME}`;
            const stored = localStorage.getItem(key);
            if (stored) {
@@ -203,7 +222,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
         } else {
            if (!canSendRequest('OTHER')) return;
 
-           // User sends request
            const request: ChangeRequest = {
                id: Date.now().toString(),
                username: username,
@@ -263,9 +281,10 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       reqs.push(request);
       localStorage.setItem('studentpocket_requests', JSON.stringify(reqs));
       
-      setShowSupportModal(false);
       setSupportMessage('');
-      showToast("Support ticket sent to Admin.", 'success');
+      setSupportMode('HISTORY');
+      loadTickets(); // Refresh list
+      showToast("Ticket sent! Check 'My Tickets' for updates.", 'success');
   };
 
   const requestAccountDeletion = () => {
@@ -283,7 +302,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
      const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
      const reqs = JSON.parse(reqStr);
      
-     // Avoid duplicates
      if(reqs.find((r:any) => r.username === username && r.type === 'DELETE_ACCOUNT' && r.status === 'PENDING')) {
          showToast("Deletion request already pending.", 'error');
          return;
@@ -428,21 +446,84 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
           </div>
       )}
       
-      {/* Support Ticket Modal */}
+      {/* Help & Support Modal */}
       {showSupportModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-               <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-3xl p-6 shadow-2xl animate-scale-up border border-gray-200 dark:border-gray-700">
-                   <h2 className="text-xl font-bold dark:text-white mb-4">Report a Problem</h2>
-                   <textarea
-                     className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white h-32 text-sm mb-4"
-                     placeholder="Describe your issue or question..."
-                     value={supportMessage}
-                     onChange={e => setSupportMessage(e.target.value)}
-                   />
-                   <div className="flex gap-2">
-                       <button onClick={submitSupportTicket} className="flex-1 bg-indigo-600 text-white py-2 rounded-xl font-bold">Submit Ticket</button>
-                       <button onClick={() => setShowSupportModal(false)} className="px-4 py-2 text-gray-500 font-bold">Cancel</button>
+               <div className="bg-white dark:bg-gray-900 w-full max-w-lg rounded-[2rem] p-6 shadow-2xl animate-scale-up border border-gray-200 dark:border-gray-700 flex flex-col max-h-[85vh]">
+                   <div className="flex justify-between items-center mb-6">
+                       <h2 className="text-xl font-bold dark:text-white flex items-center">
+                         <HelpCircle className="mr-2 text-indigo-600" /> Help & Support
+                       </h2>
+                       <button onClick={() => setShowSupportModal(false)} className="text-gray-400 hover:text-red-500"><X size={20}/></button>
                    </div>
+
+                   {/* Toggle Tabs */}
+                   <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl mb-4 shrink-0">
+                      <button 
+                        onClick={() => setSupportMode('NEW')}
+                        className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${supportMode === 'NEW' ? 'bg-white dark:bg-gray-700 shadow-sm text-indigo-600 dark:text-white' : 'text-gray-500'}`}
+                      >
+                        New Ticket
+                      </button>
+                      <button 
+                        onClick={() => setSupportMode('HISTORY')}
+                        className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${supportMode === 'HISTORY' ? 'bg-white dark:bg-gray-700 shadow-sm text-indigo-600 dark:text-white' : 'text-gray-500'}`}
+                      >
+                        My Tickets ({myTickets.length})
+                      </button>
+                   </div>
+
+                   {supportMode === 'NEW' ? (
+                     <div className="flex-1 overflow-y-auto">
+                        <textarea
+                          className="w-full p-4 rounded-xl border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white h-40 text-sm mb-4 outline-none focus:ring-2 focus:ring-indigo-500"
+                          placeholder="Describe your issue, report a bug, or ask a question..."
+                          value={supportMessage}
+                          onChange={e => setSupportMessage(e.target.value)}
+                        />
+                        <button 
+                          onClick={submitSupportTicket} 
+                          className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition-colors flex items-center justify-center"
+                        >
+                          <Mail className="mr-2" size={18}/> Submit Ticket
+                        </button>
+                        <p className="text-center text-xs text-gray-400 mt-4">
+                          Admins typically respond within 24 hours.
+                        </p>
+                     </div>
+                   ) : (
+                     <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+                        {myTickets.length === 0 ? (
+                          <div className="text-center py-10 opacity-50">
+                             <MessageSquare size={48} className="mx-auto mb-2 text-gray-300"/>
+                             <p className="text-sm font-bold text-gray-400">No tickets found.</p>
+                          </div>
+                        ) : (
+                          myTickets.map(ticket => (
+                            <div key={ticket.id} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 relative">
+                               <div className="flex justify-between items-start mb-2">
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wide ${
+                                    ticket.status === 'RESOLVED' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                                  }`}>
+                                    {ticket.status}
+                                  </span>
+                                  <span className="text-[10px] text-gray-400 flex items-center">
+                                    <Clock size={10} className="mr-1"/> {new Date(ticket.timestamp).toLocaleDateString()}
+                                  </span>
+                               </div>
+                               <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-3">"{ticket.payload.message}"</p>
+                               
+                               {ticket.payload.adminResponse && (
+                                 <div className="bg-white dark:bg-gray-900 p-3 rounded-xl border-l-4 border-indigo-500 text-xs shadow-sm">
+                                    <p className="font-bold text-indigo-600 mb-1 flex items-center"><ShieldCheck size={12} className="mr-1"/> Admin Response:</p>
+                                    <p className="text-gray-600 dark:text-gray-400">{ticket.payload.adminResponse}</p>
+                                 </div>
+                               )}
+                            </div>
+                          ))
+                        )}
+                     </div>
+                   )}
                </div>
           </div>
       )}
@@ -577,7 +658,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
 
       <div>
          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 ml-2">Account Actions</h3>
-         <SettingItem icon={HelpCircle} title="Report a Problem" subTitle="Contact Admin for support" onClick={() => setShowSupportModal(true)} />
+         <SettingItem icon={HelpCircle} title="Help & Support" subTitle="Tickets and Admin status" onClick={() => setShowSupportModal(true)} />
          <SettingItem icon={LogOut} title="Log Out" onClick={onLogout} />
          <SettingItem icon={UserMinus} title="Delete Account" subTitle="Request permanent deletion" danger onClick={requestAccountDeletion} />
          <SettingItem icon={Trash2} title="Factory Reset" subTitle="Clear local data on this device" danger onClick={() => {

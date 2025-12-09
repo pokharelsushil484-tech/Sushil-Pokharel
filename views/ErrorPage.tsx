@@ -55,7 +55,7 @@ export const ErrorPage: React.FC<ErrorPageProps> = ({
           icon: AlertTriangle,
           defaultTitle: "Application Error",
           defaultMessage: "An unexpected error has occurred. Our team has been notified.",
-          action: "Reload Application",
+          action: "Try Again",
           accentColor: "red"
         };
     }

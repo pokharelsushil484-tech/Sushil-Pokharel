@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, Post, UserProfile } from '../types';
-import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2, Search, ShieldAlert, Megaphone, Plus, X, Edit2, Save, Info, Image as ImageIcon, HelpCircle } from 'lucide-react';
+import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2, Search, ShieldAlert, Megaphone, Plus, X, Edit2, Save, Info, Image as ImageIcon, HelpCircle, Send } from 'lucide-react';
 import { sendPasswordResetEmail } from '../services/emailService';
 import { ADMIN_USERNAME } from '../constants';
 
@@ -28,6 +28,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   
   // ID Card Viewing
   const [viewIdCard, setViewIdCard] = useState<string | null>(null);
+
+  // Admin Reply State for Support Tickets
+  const [adminReplies, setAdminReplies] = useState<{ [id: string]: string }>({});
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
@@ -163,7 +166,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   };
   
   // --- Request System Handlers (Admin) ---
-  const handleRequest = (req: ChangeRequest, action: 'APPROVE' | 'REJECT' | 'RESOLVE') => {
+  const handleRequest = (req: ChangeRequest, action: 'APPROVE' | 'REJECT' | 'RESOLVE', responseText?: string) => {
+      let updatedReqs = [...requests];
+      const index = updatedReqs.findIndex(r => r.id === req.id);
+      if (index === -1) return;
+
       // 1. Process Logic
       if (action === 'APPROVE') {
           if (req.type === 'PROFILE_UPDATE' && req.payload) {
@@ -177,6 +184,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
              } else {
                  showToast("User data not found.", 'error');
              }
+             // Remove approved profile request
+             updatedReqs = updatedReqs.filter(r => r.id !== req.id);
+
           } else if (req.type === 'PASSWORD_RESET') {
              const userObj = usersList.find(u => u.username === req.username);
              if (userObj && userObj.email) {
@@ -184,6 +194,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
              } else {
                  adminResetPassword(req.username);
              }
+             // Remove processed request
+             updatedReqs = updatedReqs.filter(r => r.id !== req.id);
+
           } else if (req.type === 'VERIFICATION_REQUEST') {
              const usersStr = localStorage.getItem('studentpocket_users');
              if (usersStr) {
@@ -195,23 +208,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                      showToast(`${req.username} verified!`, 'success');
                  }
              }
+             // Remove processed request
+             updatedReqs = updatedReqs.filter(r => r.id !== req.id);
+
           } else if (req.type === 'DELETE_ACCOUNT') {
              if (!window.confirm(`PERMANENT DELETE WARNING:\n\nAre you sure you want to approve the deletion for user "${req.username}"?\n\nThis will wipe all their data and cannot be undone.`)) {
                  return;
              }
              executeUserDeletion(req.username);
              showToast(`${req.username} deleted.`, 'info');
+             // Remove processed request
+             updatedReqs = updatedReqs.filter(r => r.id !== req.id);
           }
       } else if (action === 'RESOLVE') {
+          // For Support Tickets, we UPDATE them to 'RESOLVED' and add the response, we don't delete them yet.
+          // This allows the user to see the response.
+          updatedReqs[index] = {
+              ...updatedReqs[index],
+              status: 'RESOLVED',
+              payload: {
+                  ...updatedReqs[index].payload,
+                  adminResponse: responseText || 'Issue marked as resolved.'
+              },
+              timestamp: new Date().toISOString() // Update timestamp to reset 30-day cleanup timer
+          };
           showToast(`Ticket resolved for ${req.username}`, 'success');
       } else {
+          // Reject
           showToast("Request rejected.", 'info');
+          updatedReqs = updatedReqs.filter(r => r.id !== req.id);
       }
 
-      // 2. Remove Request (For simplicity, remove immediately. In real app, mark as resolved)
-      const newReqs = requests.filter(r => r.id !== req.id);
-      setRequests(newReqs);
-      localStorage.setItem('studentpocket_requests', JSON.stringify(newReqs));
+      setRequests(updatedReqs);
+      localStorage.setItem('studentpocket_requests', JSON.stringify(updatedReqs));
       setRefreshTrigger(prev => prev + 1);
   };
 
@@ -352,6 +381,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
       return a.verified ? 1 : -1;
   });
 
+  const pendingRequests = requests.filter(r => r.status === 'PENDING');
+
   return (
     <div className="pb-20 animate-fade-in relative">
       {toast && (
@@ -446,15 +477,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
             <button onClick={() => setRefreshTrigger(prev => prev + 1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full" title="Refresh Inbox">
                 <RefreshCw size={14} />
             </button>
-            {requests.length > 0 && <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">{requests.length}</span>}
+            {pendingRequests.length > 0 && <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">{pendingRequests.length}</span>}
           </div>
         </h3>
         
         <div className="space-y-3">
-            {requests.length === 0 ? (
+            {pendingRequests.length === 0 ? (
                 <div className="p-4 text-center text-gray-400 text-sm bg-gray-50 dark:bg-gray-800 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">No pending requests</div>
             ) : (
-                requests.map(req => (
+                pendingRequests.map(req => (
                     <div key={req.id} className={`bg-white dark:bg-gray-800 p-4 rounded-xl border shadow-sm relative overflow-hidden ${req.type === 'DELETE_ACCOUNT' ? 'border-red-200 dark:border-red-900/50' : 'border-indigo-100 dark:border-gray-700'}`}>
                         <div className="flex justify-between items-start mb-2">
                             <div>
@@ -505,8 +536,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                         )}
 
                         {req.type === 'SUPPORT_TICKET' && (
-                            <div className="text-xs text-gray-600 dark:text-gray-400 mb-3 bg-gray-50 dark:bg-gray-900/50 p-3 rounded italic border-l-4 border-indigo-500">
-                                "{req.payload?.message}"
+                            <div className="mb-3">
+                                <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50 p-3 rounded italic border-l-4 border-indigo-500 mb-2">
+                                    "{req.payload?.message}"
+                                </div>
+                                <div className="flex items-center">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Write a reply..."
+                                        className="flex-1 text-xs p-2 rounded-l-lg border border-r-0 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none"
+                                        value={adminReplies[req.id] || ''}
+                                        onChange={(e) => setAdminReplies({...adminReplies, [req.id]: e.target.value})}
+                                    />
+                                    <button 
+                                        onClick={() => handleRequest(req, 'RESOLVE', adminReplies[req.id])}
+                                        className="bg-indigo-600 text-white px-3 py-2 rounded-r-lg text-xs font-bold hover:bg-indigo-700 transition-colors flex items-center"
+                                        title="Send Reply & Resolve"
+                                    >
+                                        <Send size={12} className="mr-1"/> Reply
+                                    </button>
+                                </div>
                             </div>
                         )}
 
@@ -516,15 +565,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                             </div>
                         )}
                         
-                        <div className="flex space-x-2">
-                            {req.type === 'SUPPORT_TICKET' ? (
-                                <button 
-                                    onClick={() => handleRequest(req, 'RESOLVE')}
-                                    className="flex-1 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 py-1.5 rounded-lg text-xs font-bold hover:bg-green-100"
-                                >
-                                    Mark as Resolved
-                                </button>
-                            ) : (
+                        <div className="flex space-x-2 mt-2">
+                            {req.type !== 'SUPPORT_TICKET' && (
                                 <button 
                                 onClick={() => handleRequest(req, 'APPROVE')}
                                 className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${
@@ -541,7 +583,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                               onClick={() => handleRequest(req, 'REJECT')}
                               className="px-3 bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 rounded-lg text-xs font-bold hover:bg-gray-200"
                             >
-                                {req.type === 'SUPPORT_TICKET' ? 'Ignore' : 'Reject'}
+                                {req.type === 'SUPPORT_TICKET' ? 'Reject / Close' : 'Reject'}
                             </button>
                         </div>
                     </div>

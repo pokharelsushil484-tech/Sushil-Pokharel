@@ -18,12 +18,19 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   public static getDerivedStateFromError(error: Error): State {
+    // Update state so the next render will show the fallback UI.
     return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
+    // Here you could also log the error to an error reporting service
   }
+
+  private handleReset = () => {
+    // Attempt to recover by resetting error state
+    this.setState({ hasError: false, error: null });
+  };
 
   public render() {
     if (this.state.hasError) {
@@ -31,6 +38,8 @@ export class ErrorBoundary extends Component<Props, State> {
         <ErrorPage 
           type="CRASH" 
           errorDetails={this.state.error?.toString()} 
+          onAction={this.handleReset}
+          actionLabel="Try Again"
         />
       );
     }
