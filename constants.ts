@@ -19,7 +19,11 @@ export const DEFAULT_USER: UserProfile = {
   certifications: [],
   awards: [],
   languages: [{ id: '1', language: 'English', proficiency: 'Fluent' }, { id: '2', language: 'Nepali', proficiency: 'Native' }],
-  interests: ["Technology", "Reading", "Travel"]
+  interests: ["Technology", "Reading", "Travel"],
+  streak: 1,
+  points: 150,
+  rank: 1204,
+  isPro: false
 };
 
 export const APP_NAME = "Sushil Pokharel";

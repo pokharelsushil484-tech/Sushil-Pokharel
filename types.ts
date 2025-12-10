@@ -82,6 +82,11 @@ export interface UserProfile {
   awards: Award[];
   languages: Language[];
   interests: string[];
+  // Gamification & Viral Features
+  streak?: number;
+  points?: number;
+  rank?: number;
+  isPro?: boolean;
 }
 
 export interface Assignment {
