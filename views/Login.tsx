@@ -88,7 +88,8 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
                     education: "Administrator", 
                     institution: "System", 
                     country: "Nepal", 
-                    skills: ["System Admin"] 
+                    skills: ["System Admin"],
+                    badges: ["👑 System Admin"] 
                 },
                 assignments: [],
                 notes: [],
@@ -177,7 +178,8 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
             education: "", 
             institution: "", 
             country: "Nepal", 
-            skills: [] 
+            skills: [],
+            badges: ["🌱 New Member"] // Automatically assign new member badge
         },
         assignments: [],
         notes: [],

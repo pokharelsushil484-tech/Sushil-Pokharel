@@ -75,6 +75,7 @@ export interface UserProfile {
   studyPreference?: string;
   personalStatement?: string;
   skills: string[];
+  badges?: string[]; // AI Generated Badges
   experience: Experience[];
   projects: Project[];
   certifications: Certification[];
@@ -92,6 +93,7 @@ export interface Assignment {
   completed: boolean;
   estimatedTime?: string;
   reminderMinutes?: number;
+  assignedBy?: string; // 'admin' or 'user'
 }
 
 export interface Note {
@@ -100,6 +102,7 @@ export interface Note {
   content: string;
   date: string;
   tags: string[];
+  author?: string; // 'admin' or 'user'
   deletedAt?: number; // Timestamp for soft delete
 }
 

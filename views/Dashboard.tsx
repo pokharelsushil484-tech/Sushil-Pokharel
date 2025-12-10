@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, Assignment, ChangeRequest, Post, Comment } from '../types';
-import { Clock, CheckCircle2, BadgeCheck, AlertTriangle, Send, Megaphone, BarChart3, Heart, MessageCircle, User } from 'lucide-react';
+import { Clock, CheckCircle2, BadgeCheck, AlertTriangle, Send, Megaphone, BarChart3, Heart, MessageCircle, User, Award } from 'lucide-react';
 import { MOTIVATIONAL_QUOTES, ADMIN_USERNAME } from '../constants';
 
 interface DashboardProps {
@@ -170,6 +170,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
                 </div>
             )}
           </div>
+          {user.badges && user.badges.length > 0 && (
+             <div className="flex flex-wrap gap-2 mt-2">
+                {user.badges.map((badge, idx) => (
+                    <span key={idx} className="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide flex items-center shadow-sm">
+                        <Award size={10} className="mr-1" /> {badge}
+                    </span>
+                ))}
+             </div>
+          )}
         </div>
         {user.avatar && (
           <img src={user.avatar} alt="Profile" className="w-16 h-16 rounded-full border-4 border-white shadow-lg object-cover" />
@@ -382,6 +391,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, assignments, isVerif
                     <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide ${styles}`}>
                       {task.priority}
                     </span>
+                    {task.assignedBy === ADMIN_USERNAME && (
+                        <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded border border-purple-200">
+                            Admin Assigned
+                        </span>
+                    )}
                   </div>
                 </div>
                 <div className={`flex flex-col items-end ${styles.split(' ')[2]}`}>

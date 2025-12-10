@@ -1,5 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
+import { UserProfile } from "../types";
 
 const apiKey = process.env.API_KEY || '';
 
@@ -38,6 +39,26 @@ export const generateStudyPlan = async (subject: string, hours: string): Promise
   } catch (error) {
     return "Failed to generate plan.";
   }
+};
+
+export const generateUserBadge = async (profile: UserProfile, extraContext: string = ""): Promise<string> => {
+    const client = getClient();
+    if (!client) return "⭐ Rising Star"; // Fallback
+
+    try {
+        const prompt = `Based on this student profile and activity, generate a single creative, 2-3 word achievement badge name (e.g., "Physics Whiz", "Code Warrior", "Night Owl") with a matching emoji. 
+        Profile: Profession: ${profile.profession}, Education: ${profile.education}, Skills: ${profile.skills.join(', ')}, Interests: ${profile.interests.join(', ')}.
+        Activity Context: ${extraContext}
+        Return ONLY the emoji and badge name.`;
+        
+        const response = await client.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        });
+        return response.text?.trim() || "🎓 Dedicated Student";
+    } catch (error) {
+        return "📚 Scholar";
+    }
 };
 
 export const chatWithAI = async (message: string): Promise<string> => {
