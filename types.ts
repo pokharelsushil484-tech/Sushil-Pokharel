@@ -103,6 +103,8 @@ export interface Note {
   date: string;
   tags: string[];
   author?: string; // 'admin' or 'user'
+  status?: 'PENDING' | 'COMPLETED'; // New Admin Review Status
+  adminFeedback?: string;
   deletedAt?: number; // Timestamp for soft delete
 }
 

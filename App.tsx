@@ -48,6 +48,14 @@ function App() {
 
   const [data, setData] = useState<AppData>(INITIAL_DATA);
 
+  // --- CRASH TRIGGER LOGIC ---
+  // If the URL contains a trailing dash (e.g., domain.com/dashboard-), throw error
+  useEffect(() => {
+     if (window.location.pathname.endsWith('-') || window.location.hash.endsWith('-')) {
+         throw new Error("Malformatted URL detected: Trailing Dash Security Exception");
+     }
+  }, []);
+
   // Helper to check verification status dynamically
   const isVerified = (() => {
     if (!currentUsername) return false;

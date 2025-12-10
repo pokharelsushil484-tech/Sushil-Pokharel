@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, Post, UserProfile, Note, Assignment, TaskPriority } from '../types';
-import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2, Search, ShieldAlert, Megaphone, Plus, X, Edit2, Save, Info, Image as ImageIcon, HelpCircle, Send, UserPlus, HardDrive, Download, Upload, Eye, BookOpen, Calendar, Award, Wand2 } from 'lucide-react';
+import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2, Search, ShieldAlert, Megaphone, Plus, X, Edit2, Save, Info, Image as ImageIcon, HelpCircle, Send, UserPlus, HardDrive, Download, Upload, Eye, BookOpen, Calendar, Award, Wand2, Clock } from 'lucide-react';
 import { sendPasswordResetEmail } from '../services/emailService';
 import { generateUserBadge } from '../services/geminiService';
 import { ADMIN_USERNAME } from '../constants';
@@ -165,7 +165,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
           content: adminNote.content,
           date: new Date().toISOString(),
           tags: ['Admin'],
-          author: ADMIN_USERNAME
+          author: ADMIN_USERNAME,
+          status: 'COMPLETED'
       };
       
       const key = `studentpocket_data_${inspectingUser}`;
@@ -176,6 +177,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
       setInspectData({ ...inspectData!, notes: fullData.notes });
       setAdminNote({ title: '', content: '' });
       showToast("Note added to user's notebook.", 'success');
+  };
+
+  const markNoteComplete = (noteId: string) => {
+      if (!inspectingUser) return;
+      const key = `studentpocket_data_${inspectingUser}`;
+      const fullData = JSON.parse(localStorage.getItem(key) || '{}');
+      
+      fullData.notes = fullData.notes.map((n: Note) => n.id === noteId ? { ...n, status: 'COMPLETED' } : n);
+      localStorage.setItem(key, JSON.stringify(fullData));
+      
+      setInspectData({ ...inspectData!, notes: fullData.notes });
+      showToast("Note marked as Completed.", 'success');
   };
 
   const addAdminTask = () => {
@@ -423,12 +436,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                           <div className="lg:col-span-2 space-y-4">
                               {inspectData.notes.length === 0 && <p className="text-center text-gray-400 py-10">User has no notes.</p>}
                               {inspectData.notes.map(note => (
-                                  <div key={note.id} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                                  <div key={note.id} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 relative">
                                       <div className="flex justify-between items-start mb-2">
                                           <h4 className="font-bold">{note.title}</h4>
                                           {note.author === ADMIN_USERNAME && <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full border border-purple-200">Admin Note</span>}
+                                          {note.status === 'COMPLETED' ? (
+                                              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center border border-green-200"><CheckCircle2 size={10} className="mr-1"/> Reviewed</span>
+                                          ) : (
+                                              <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full flex items-center border border-orange-200"><Clock size={10} className="mr-1"/> Pending</span>
+                                          )}
                                       </div>
                                       <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{note.content}</p>
+                                      {note.status !== 'COMPLETED' && (
+                                          <button 
+                                            onClick={() => markNoteComplete(note.id)}
+                                            className="mt-3 w-full bg-green-50 hover:bg-green-100 text-green-700 py-1.5 rounded-lg text-xs font-bold border border-green-200 transition-colors"
+                                          >
+                                              Mark as Reviewed
+                                          </button>
+                                      )}
                                   </div>
                               ))}
                           </div>
