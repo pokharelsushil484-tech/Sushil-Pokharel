@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, Post, UserProfile, Note, Assignment, TaskPriority } from '../types';
-import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2, Search, ShieldAlert, Megaphone, Plus, X, Edit2, Save, Info, Image as ImageIcon, HelpCircle, Send, UserPlus, HardDrive, Download, Upload, Eye, BookOpen, Calendar, Award, Wand2, Clock } from 'lucide-react';
+import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2, Search, ShieldAlert, Megaphone, Plus, X, Edit2, Save, Info, Image as ImageIcon, HelpCircle, Send, UserPlus, HardDrive, Download, Upload, Eye, BookOpen, Calendar, Award, Wand2, Clock, Inbox } from 'lucide-react';
 import { sendPasswordResetEmail } from '../services/emailService';
 import { generateUserBadge } from '../services/geminiService';
 import { ADMIN_USERNAME } from '../constants';
@@ -32,6 +32,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   const [inspectingUser, setInspectingUser] = useState<string | null>(null);
   const [inspectData, setInspectData] = useState<{ user: UserProfile, notes: Note[], assignments: Assignment[] } | null>(null);
   const [inspectTab, setInspectTab] = useState<'PROFILE' | 'NOTES' | 'PLANNER'>('PROFILE');
+
+  // Support Tab
+  const [viewMode, setViewMode] = useState<'DASHBOARD' | 'SUPPORT'>('DASHBOARD');
 
   // Badge Generator State
   const [isGeneratingBadge, setIsGeneratingBadge] = useState(false);
@@ -73,6 +76,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
     const postsStr = localStorage.getItem('studentpocket_global_posts');
     if (postsStr) setPosts(JSON.parse(postsStr));
   }, [refreshTrigger]);
+
+  // --- TICKET MANAGEMENT ---
+  const deleteTicket = (ticketId: string) => {
+      if(!confirm("Delete this ticket?")) return;
+      
+      const updatedRequests = requests.filter(r => r.id !== ticketId);
+      setRequests(updatedRequests);
+      localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
+      showToast("Ticket deleted successfully.", 'success');
+  };
+
+  const resolveTicket = (ticketId: string) => {
+      const updatedRequests = requests.map(r => r.id === ticketId ? { ...r, status: 'RESOLVED' as const } : r);
+      setRequests(updatedRequests);
+      localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
+      showToast("Ticket marked as resolved.", 'success');
+  };
 
   // --- INSPECTION LOGIC ---
   const handleInspectUser = (username: string) => {
@@ -365,6 +385,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
     return matchesFilter && matchesSearch;
   });
 
+  // Filter support tickets
+  const supportTickets = requests.filter(r => r.type === 'SUPPORT_TICKET');
+
   return (
     <div className="pb-20 animate-fade-in relative">
       {toast && (
@@ -496,142 +519,208 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
 
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Admin Dashboard</h1>
 
-      {/* SYSTEM CONTROLS ROW */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-           <button onClick={() => setShowCreateUser(true)} className="bg-indigo-600 text-white p-4 rounded-2xl shadow-lg hover:bg-indigo-700 flex flex-col items-center justify-center transition-all active:scale-95">
-               <UserPlus size={24} className="mb-2" />
-               <span className="font-bold text-sm">New User</span>
-           </button>
-           <button onClick={backupData} className="bg-blue-600 text-white p-4 rounded-2xl shadow-lg hover:bg-blue-700 flex flex-col items-center justify-center transition-all active:scale-95">
-               <Download size={24} className="mb-2" />
-               <span className="font-bold text-sm">Backup Data</span>
-           </button>
-           <label className="bg-teal-600 text-white p-4 rounded-2xl shadow-lg hover:bg-teal-700 flex flex-col items-center justify-center transition-all active:scale-95 cursor-pointer">
-               <Upload size={24} className="mb-2" />
-               <span className="font-bold text-sm">Restore Data</span>
-               <input type="file" className="hidden" accept=".json" onChange={restoreData} />
-           </label>
-           <button onClick={() => setShowPostForm(true)} className="bg-purple-600 text-white p-4 rounded-2xl shadow-lg hover:bg-purple-700 flex flex-col items-center justify-center transition-all active:scale-95">
-               <Megaphone size={24} className="mb-2" />
-               <span className="font-bold text-sm">New Post</span>
-           </button>
+      {/* VIEW TOGGLE */}
+      <div className="flex bg-gray-200 dark:bg-gray-700 p-1 rounded-xl mb-6 max-w-sm">
+          <button 
+            onClick={() => setViewMode('DASHBOARD')}
+            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${viewMode === 'DASHBOARD' ? 'bg-white dark:bg-gray-800 shadow text-indigo-600 dark:text-white' : 'text-gray-500'}`}
+          >
+            Dashboard
+          </button>
+          <button 
+            onClick={() => setViewMode('SUPPORT')}
+            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${viewMode === 'SUPPORT' ? 'bg-white dark:bg-gray-800 shadow text-indigo-600 dark:text-white' : 'text-gray-500'}`}
+          >
+            Support Tickets
+          </button>
       </div>
 
-      {/* CREATE USER MODAL */}
-      {showCreateUser && (
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-indigo-100 mb-8 animate-slide-up">
-              <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold text-lg">Create New Student</h3>
-                  <button onClick={() => setShowCreateUser(false)} className="text-gray-400 hover:text-red-500"><X size={20}/></button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <input className="p-3 border rounded-xl" placeholder="Username" value={newUser.username} onChange={e => setNewUser({...newUser, username: e.target.value})} />
-                  <input className="p-3 border rounded-xl" placeholder="Email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} />
-                  <input className="p-3 border rounded-xl" placeholder="Password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} />
-              </div>
-              <button onClick={createUser} className="mt-4 w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700">Create & Verify User</button>
-          </div>
-      )}
+      {viewMode === 'DASHBOARD' && (
+        <>
+            {/* SYSTEM CONTROLS ROW */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <button onClick={() => setShowCreateUser(true)} className="bg-indigo-600 text-white p-4 rounded-2xl shadow-lg hover:bg-indigo-700 flex flex-col items-center justify-center transition-all active:scale-95">
+                    <UserPlus size={24} className="mb-2" />
+                    <span className="font-bold text-sm">New User</span>
+                </button>
+                <button onClick={backupData} className="bg-blue-600 text-white p-4 rounded-2xl shadow-lg hover:bg-blue-700 flex flex-col items-center justify-center transition-all active:scale-95">
+                    <Download size={24} className="mb-2" />
+                    <span className="font-bold text-sm">Backup Data</span>
+                </button>
+                <label className="bg-teal-600 text-white p-4 rounded-2xl shadow-lg hover:bg-teal-700 flex flex-col items-center justify-center transition-all active:scale-95 cursor-pointer">
+                    <Upload size={24} className="mb-2" />
+                    <span className="font-bold text-sm">Restore Data</span>
+                    <input type="file" className="hidden" accept=".json" onChange={restoreData} />
+                </label>
+                <button onClick={() => setShowPostForm(true)} className="bg-purple-600 text-white p-4 rounded-2xl shadow-lg hover:bg-purple-700 flex flex-col items-center justify-center transition-all active:scale-95">
+                    <Megaphone size={24} className="mb-2" />
+                    <span className="font-bold text-sm">New Post</span>
+                </button>
+            </div>
 
-      {/* POST EDITOR */}
-      {showPostForm && (
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-purple-100 mb-8 animate-slide-up">
-              <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold text-lg">{editingPostId ? 'Edit Announcement' : 'New Announcement'}</h3>
-                  <button onClick={() => { setShowPostForm(false); setEditingPostId(null); setPostForm({title:'',content:''}); }} className="text-gray-400 hover:text-red-500"><X size={20}/></button>
-              </div>
-              <input className="w-full mb-3 p-3 border rounded-xl font-bold" placeholder="Title" value={postForm.title} onChange={e => setPostForm({...postForm, title: e.target.value})} />
-              <textarea className="w-full mb-3 p-3 border rounded-xl h-32" placeholder="Content" value={postForm.content} onChange={e => setPostForm({...postForm, content: e.target.value})} />
-              <button onClick={savePost} className="w-full bg-purple-600 text-white py-3 rounded-xl font-bold hover:bg-purple-700">
-                  {editingPostId ? 'Update Post' : 'Publish Post'}
-              </button>
-          </div>
-      )}
-
-      {/* POST LIST */}
-      {posts.length > 0 && (
-          <div className="mb-8">
-              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 ml-2">Active Announcements</h3>
-              <div className="space-y-3">
-                  {posts.map(post => (
-                      <div key={post.id} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 relative group">
-                          <h4 className="font-bold pr-16">{post.title}</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{post.content}</p>
-                          <div className="absolute top-3 right-3 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => startEditPost(post)} className="p-1.5 bg-gray-100 text-indigo-600 rounded-lg hover:bg-indigo-100"><Edit2 size={14}/></button>
-                              <button onClick={() => deletePost(post.id)} className="p-1.5 bg-gray-100 text-red-600 rounded-lg hover:bg-red-100"><Trash2 size={14}/></button>
-                          </div>
-                      </div>
-                  ))}
-              </div>
-          </div>
-      )}
-
-      {/* USER MANAGEMENT */}
-      <div className="mb-8">
-        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 ml-2 flex items-center justify-between">
-          <span className="flex items-center"><Users size={16} className="mr-2" /> Registered Users</span>
-          <div className="flex space-x-2">
-             <button 
-                onClick={handleBulkBadgeAssign} 
-                className="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-full text-xs font-bold flex items-center hover:bg-yellow-200"
-             >
-                <Wand2 size={12} className="mr-1"/> Auto-Award AI Badges
-             </button>
-             <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-1.5 rounded-full">{usersList.length}</span>
-          </div>
-        </h3>
-
-        {/* Search */}
-        <div className="mb-4 relative">
-             <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
-             <input 
-                type="text" 
-                placeholder="Search users..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white dark:bg-gray-800 pl-10 pr-4 py-2 rounded-xl text-sm border border-gray-200 dark:border-gray-700"
-             />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredUsers.map((u, idx) => (
-                <div key={idx} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 relative group">
-                    <div className="flex justify-between items-start mb-2">
-                         <div className="flex items-center space-x-3">
-                             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden ${u.verified ? 'bg-indigo-500' : 'bg-gray-400'}`}>
-                                 {u.profile?.avatar ? <img src={u.profile.avatar} className="w-full h-full object-cover"/> : u.username.charAt(0).toUpperCase()}
-                             </div>
-                             <div>
-                                 <h4 className="font-bold">{u.username}</h4>
-                                 <p className="text-xs text-gray-500">{u.profile?.profession || 'Student'}</p>
-                             </div>
-                         </div>
-                         <button 
-                            onClick={() => handleInspectUser(u.username)} 
-                            className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg text-xs font-bold flex items-center hover:bg-indigo-100 transition-colors"
-                         >
-                             <Eye size={12} className="mr-1" /> Inspect
-                         </button>
+            {/* CREATE USER MODAL */}
+            {showCreateUser && (
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-indigo-100 mb-8 animate-slide-up">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-bold text-lg">Create New Student</h3>
+                        <button onClick={() => setShowCreateUser(false)} className="text-gray-400 hover:text-red-500"><X size={20}/></button>
                     </div>
-                    
-                    <div className="mt-3 flex justify-between items-center pt-3 border-t border-gray-100 dark:border-gray-700">
-                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${u.verified ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                            {u.verified ? 'Verified' : 'Pending'}
-                        </span>
-                        <div className="flex space-x-2">
-                            {u.username !== ADMIN_USERNAME && (
-                                <>
-                                <button onClick={() => toggleVerification(u.username, u.verified)} className="text-xs text-gray-400 hover:text-indigo-600 font-bold">{u.verified ? 'Unverify' : 'Verify'}</button>
-                                <button onClick={() => deleteUser(u.username)} className="text-gray-300 hover:text-red-500"><Trash2 size={16}/></button>
-                                </>
-                            )}
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input className="p-3 border rounded-xl" placeholder="Username" value={newUser.username} onChange={e => setNewUser({...newUser, username: e.target.value})} />
+                        <input className="p-3 border rounded-xl" placeholder="Email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} />
+                        <input className="p-3 border rounded-xl" placeholder="Password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} />
+                    </div>
+                    <button onClick={createUser} className="mt-4 w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700">Create & Verify User</button>
+                </div>
+            )}
+
+            {/* POST EDITOR */}
+            {showPostForm && (
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-purple-100 mb-8 animate-slide-up">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-bold text-lg">{editingPostId ? 'Edit Announcement' : 'New Announcement'}</h3>
+                        <button onClick={() => { setShowPostForm(false); setEditingPostId(null); setPostForm({title:'',content:''}); }} className="text-gray-400 hover:text-red-500"><X size={20}/></button>
+                    </div>
+                    <input className="w-full mb-3 p-3 border rounded-xl font-bold" placeholder="Title" value={postForm.title} onChange={e => setPostForm({...postForm, title: e.target.value})} />
+                    <textarea className="w-full mb-3 p-3 border rounded-xl h-32" placeholder="Content" value={postForm.content} onChange={e => setPostForm({...postForm, content: e.target.value})} />
+                    <button onClick={savePost} className="w-full bg-purple-600 text-white py-3 rounded-xl font-bold hover:bg-purple-700">
+                        {editingPostId ? 'Update Post' : 'Publish Post'}
+                    </button>
+                </div>
+            )}
+
+            {/* POST LIST */}
+            {posts.length > 0 && (
+                <div className="mb-8">
+                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 ml-2">Active Announcements</h3>
+                    <div className="space-y-3">
+                        {posts.map(post => (
+                            <div key={post.id} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 relative group">
+                                <h4 className="font-bold pr-16">{post.title}</h4>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{post.content}</p>
+                                <div className="absolute top-3 right-3 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => startEditPost(post)} className="p-1.5 bg-gray-100 text-indigo-600 rounded-lg hover:bg-indigo-100"><Edit2 size={14}/></button>
+                                    <button onClick={() => deletePost(post.id)} className="p-1.5 bg-gray-100 text-red-600 rounded-lg hover:bg-red-100"><Trash2 size={14}/></button>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
-            ))}
-        </div>
-      </div>
+            )}
+
+            {/* USER MANAGEMENT */}
+            <div className="mb-8">
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 ml-2 flex items-center justify-between">
+                <span className="flex items-center"><Users size={16} className="mr-2" /> Registered Users</span>
+                <div className="flex space-x-2">
+                    <button 
+                        onClick={handleBulkBadgeAssign} 
+                        className="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-full text-xs font-bold flex items-center hover:bg-yellow-200"
+                    >
+                        <Wand2 size={12} className="mr-1"/> Auto-Award AI Badges
+                    </button>
+                    <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-1.5 rounded-full">{usersList.length}</span>
+                </div>
+                </h3>
+
+                {/* Search */}
+                <div className="mb-4 relative">
+                    <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                    <input 
+                        type="text" 
+                        placeholder="Search users..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-white dark:bg-gray-800 pl-10 pr-4 py-2 rounded-xl text-sm border border-gray-200 dark:border-gray-700"
+                    />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredUsers.map((u, idx) => (
+                        <div key={idx} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 relative group">
+                            <div className="flex justify-between items-start mb-2">
+                                <div className="flex items-center space-x-3">
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden ${u.verified ? 'bg-indigo-500' : 'bg-gray-400'}`}>
+                                        {u.profile?.avatar ? <img src={u.profile.avatar} className="w-full h-full object-cover"/> : u.username.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold">{u.username}</h4>
+                                        <p className="text-xs text-gray-500">{u.profile?.profession || 'Student'}</p>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => handleInspectUser(u.username)} 
+                                    className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg text-xs font-bold flex items-center hover:bg-indigo-100 transition-colors"
+                                >
+                                    <Eye size={12} className="mr-1" /> Inspect
+                                </button>
+                            </div>
+                            
+                            <div className="mt-3 flex justify-between items-center pt-3 border-t border-gray-100 dark:border-gray-700">
+                                <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${u.verified ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                    {u.verified ? 'Verified' : 'Pending'}
+                                </span>
+                                <div className="flex space-x-2">
+                                    {u.username !== ADMIN_USERNAME && (
+                                        <>
+                                        <button onClick={() => toggleVerification(u.username, u.verified)} className="text-xs text-gray-400 hover:text-indigo-600 font-bold">{u.verified ? 'Unverify' : 'Verify'}</button>
+                                        <button onClick={() => deleteUser(u.username)} className="text-gray-300 hover:text-red-500"><Trash2 size={16}/></button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </>
+      )}
+
+      {viewMode === 'SUPPORT' && (
+          <div className="space-y-4">
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2 ml-2">Support Tickets</h3>
+              {supportTickets.length === 0 ? (
+                  <div className="text-center py-20 text-gray-400 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700">
+                      <Inbox size={48} className="mx-auto mb-3 opacity-50" />
+                      <p>No active support tickets.</p>
+                  </div>
+              ) : (
+                  <div className="space-y-4">
+                      {supportTickets.map(ticket => (
+                          <div key={ticket.id} className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm relative">
+                              <div className="flex justify-between items-start mb-2">
+                                  <div className="flex items-center space-x-2">
+                                      <span className="font-bold text-indigo-600">{ticket.username}</span>
+                                      <span className="text-gray-300">•</span>
+                                      <span className="text-xs text-gray-400">{new Date(ticket.timestamp).toLocaleString()}</span>
+                                  </div>
+                                  <div className="flex space-x-2">
+                                      <button 
+                                        onClick={() => resolveTicket(ticket.id)}
+                                        className="text-xs bg-green-50 text-green-600 px-3 py-1 rounded-lg font-bold hover:bg-green-100 transition-colors"
+                                      >
+                                          Mark Resolved
+                                      </button>
+                                      <button 
+                                        onClick={() => deleteTicket(ticket.id)}
+                                        className="text-gray-300 hover:text-red-500 p-1"
+                                      >
+                                          <Trash2 size={16} />
+                                      </button>
+                                  </div>
+                              </div>
+                              <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-3 bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                                  "{ticket.payload.message}"
+                              </p>
+                              <div className="flex items-center text-xs text-green-600">
+                                  <CheckCircle2 size={12} className="mr-1"/> System Auto-Response sent within 24h.
+                              </div>
+                          </div>
+                      ))}
+                  </div>
+              )}
+          </div>
+      )}
     </div>
   );
 };

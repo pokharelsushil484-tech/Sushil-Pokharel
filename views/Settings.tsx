@@ -271,7 +271,11 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
           id: Date.now().toString(),
           username: username,
           type: 'SUPPORT_TICKET',
-          payload: { message: supportMessage },
+          payload: { 
+              message: supportMessage,
+              // AUTOMATIC RESPONSE SIMULATION
+              adminResponse: "Thank you for reaching out. We have received your request and our admin team will review it within 24 hours." 
+          },
           status: 'PENDING',
           timestamp: new Date().toISOString()
       };
@@ -284,7 +288,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       setSupportMessage('');
       setSupportMode('HISTORY');
       loadTickets(); // Refresh list
-      showToast("Ticket sent! Check 'My Tickets' for updates.", 'success');
+      showToast("Ticket sent! Automatic confirmation received.", 'success');
   };
 
   const requestAccountDeletion = () => {
@@ -514,9 +518,9 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                                <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-3">"{ticket.payload.message}"</p>
                                
                                {ticket.payload.adminResponse && (
-                                 <div className="bg-white dark:bg-gray-900 p-3 rounded-xl border-l-4 border-indigo-500 text-xs shadow-sm">
-                                    <p className="font-bold text-indigo-600 mb-1 flex items-center"><ShieldCheck size={12} className="mr-1"/> Admin Response:</p>
-                                    <p className="text-gray-600 dark:text-gray-400">{ticket.payload.adminResponse}</p>
+                                 <div className="bg-white dark:bg-gray-900 p-3 rounded-xl border-l-4 border-indigo-500 text-xs shadow-sm animate-fade-in">
+                                    <p className="font-bold text-indigo-600 mb-1 flex items-center"><ShieldCheck size={12} className="mr-1"/> Automatic Response:</p>
+                                    <p className="text-gray-600 dark:text-gray-400 italic">{ticket.payload.adminResponse}</p>
                                  </div>
                                )}
                             </div>

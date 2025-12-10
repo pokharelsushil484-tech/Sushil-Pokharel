@@ -51,8 +51,8 @@ function App() {
   // --- CRASH TRIGGER LOGIC ---
   // If the URL contains a trailing dash (e.g., domain.com/dashboard-), throw error
   useEffect(() => {
-     if (window.location.pathname.endsWith('-') || window.location.hash.endsWith('-')) {
-         throw new Error("Malformatted URL detected: Trailing Dash Security Exception");
+     if (window.location.href.endsWith('-') || window.location.hash.endsWith('-')) {
+         throw new Error("System Alert: Malformed URL detected (Trailing Dash Exception). Redirecting to Error Handler.");
      }
   }, []);
 

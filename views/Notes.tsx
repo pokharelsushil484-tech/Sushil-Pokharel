@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Note } from '../types';
-import { Plus, Search, ChevronRight, Wand2, X, Lock, Trash2, RefreshCcw, Archive, CheckCircle2, Clock } from 'lucide-react';
+import { Plus, Search, ChevronRight, Wand2, X, Lock, Trash2, RefreshCcw, Archive, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
 import { summarizeNote } from '../services/geminiService';
 
 interface NotesProps {
@@ -32,7 +32,7 @@ export const Notes: React.FC<NotesProps> = ({ notes, setNotes, isAdmin }) => {
           ...n, 
           title: currentTitle, 
           content: currentContent,
-          status: isAdmin ? n.status : 'PENDING' // Reset to pending on edit if user
+          status: isAdmin ? n.status : 'PENDING' // User edit resets status to pending
       } : n);
       setNotes(updatedNotes);
     } else {
@@ -53,8 +53,11 @@ export const Notes: React.FC<NotesProps> = ({ notes, setNotes, isAdmin }) => {
 
   const softDeleteNote = (id: string, e: React.MouseEvent) => {
       e.stopPropagation();
-      // Only Admin can delete items not in trash yet
-      if (!isAdmin) return; 
+      // STRICTLY ONLY ADMIN CAN DELETE
+      if (!isAdmin) {
+          alert("Only Administrators can delete notes.");
+          return;
+      }
 
       if(window.confirm("Move to Trash? It will be permanently deleted after 30 days.")) {
           setNotes(notes.map(n => n.id === id ? { ...n, deletedAt: Date.now() } : n));
@@ -237,7 +240,8 @@ export const Notes: React.FC<NotesProps> = ({ notes, setNotes, isAdmin }) => {
                      )
                  ) : (
                     <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                         {isAdmin && (
+                         {/* Only Admin can delete */}
+                         {isAdmin ? (
                             <button 
                                 onClick={(e) => softDeleteNote(note.id, e)} 
                                 className="bg-white p-1.5 rounded-full shadow-sm text-red-400 hover:text-red-600"
@@ -245,6 +249,10 @@ export const Notes: React.FC<NotesProps> = ({ notes, setNotes, isAdmin }) => {
                             >
                                 <Trash2 size={14} />
                             </button>
+                         ) : (
+                             <div title="Users cannot delete notes" className="bg-gray-100 p-1 rounded-full">
+                                <Lock size={12} className="text-gray-400" />
+                             </div>
                          )}
                          <div className="bg-white p-1.5 rounded-full shadow-sm">
                             <ChevronRight size={14} className="text-yellow-600" />
