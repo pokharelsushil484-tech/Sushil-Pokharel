@@ -28,6 +28,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
   const [successMsg, setSuccessMsg] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   // Handle incoming reset request from App.tsx
   useEffect(() => {
@@ -37,10 +38,17 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
     }
   }, [resetUser]);
 
-  // Check verification status when username changes
+  // Check verification status and Avatar when username changes
   useEffect(() => {
-    if (username) {
-       try {
+    const checkUserStatus = () => {
+        if (!username) {
+            setIsVerified(false);
+            setAvatarPreview(null);
+            return;
+        }
+
+        // 1. Check Verification
+        try {
            const usersStr = localStorage.getItem('studentpocket_users');
            if (usersStr) {
                const users = JSON.parse(usersStr);
@@ -53,9 +61,29 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
        } catch(e) {
            setIsVerified(false);
        }
-    } else {
-        setIsVerified(false);
-    }
+
+       // 2. Fetch Avatar
+       try {
+            const dataKey = `studentpocket_data_${username}`;
+            const dataStr = localStorage.getItem(dataKey);
+            if (dataStr) {
+                const data = JSON.parse(dataStr);
+                if (data.user?.avatar) {
+                    setAvatarPreview(data.user.avatar);
+                } else {
+                    setAvatarPreview(null);
+                }
+            } else {
+                setAvatarPreview(null);
+            }
+       } catch(e) {
+           setAvatarPreview(null);
+       }
+    };
+
+    // Debounce to prevent flickering
+    const timeoutId = setTimeout(checkUserStatus, 300);
+    return () => clearTimeout(timeoutId);
   }, [username]);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -318,7 +346,9 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
         
         {/* Header Icon */}
         <div className="w-24 h-24 bg-indigo-100 dark:bg-indigo-900 rounded-full flex items-center justify-center mx-auto mb-6 p-1 border-4 border-white dark:border-gray-700 shadow-lg overflow-hidden group relative">
-            {user?.avatar ? (
+            {avatarPreview ? (
+                <img src={avatarPreview} alt="Profile" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 animate-fade-in" />
+            ) : user?.avatar ? (
                 <img src={user.avatar} alt="Profile" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
             ) : (
                 <span className="text-3xl font-bold text-indigo-600 dark:text-indigo-300">
@@ -330,11 +360,11 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
             )}
             {/* Badge on Login Screen if verified */}
             {view === 'LOGIN' && isVerified && (
-               <div className="absolute bottom-1 right-1 bg-white dark:bg-gray-800 rounded-full p-0.5 shadow-sm">
+               <div className="absolute bottom-1 right-1 bg-white dark:bg-gray-800 rounded-full p-0.5 shadow-sm animate-scale-up">
                  <BadgeCheck className="w-6 h-6 text-blue-500 fill-blue-50 dark:fill-blue-900" />
                </div>
             )}
-             {view === 'LOGIN' && username && !isVerified && username !== ADMIN_USERNAME && (
+             {view === 'LOGIN' && username && !isVerified && username !== ADMIN_USERNAME && !avatarPreview && (
                <div className="absolute bottom-1 right-1 bg-white dark:bg-gray-800 rounded-full p-0.5 shadow-sm">
                  <AlertTriangle className="w-6 h-6 text-yellow-500 fill-yellow-50 dark:fill-yellow-900" />
                </div>
