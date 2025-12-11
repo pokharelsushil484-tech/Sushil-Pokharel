@@ -31,6 +31,7 @@ function App() {
   
   // New state to handle reset password flow
   const [resetUser, setResetUser] = useState<string | null>(null);
+  const [isPathError, setIsPathError] = useState(false);
 
   // Global Theme State
   const [darkMode, setDarkMode] = useState(() => {
@@ -39,8 +40,18 @@ function App() {
 
   const [data, setData] = useState<AppData>(INITIAL_DATA);
 
-  // --- CRASH TRIGGER LOGIC ---
+  // --- URL ROUTING & ERROR HANDLING ---
   useEffect(() => {
+     // Check for malformed URLs or non-root paths to simulate 404/Crash
+     const path = window.location.pathname;
+     
+     // Allow root, index.html, or reset mode params
+     const isValidPath = path === '/' || path === '/index.html';
+     
+     if (!isValidPath) {
+         setIsPathError(true);
+     }
+     
      if (window.location.href.endsWith('-') || window.location.hash.endsWith('-')) {
          throw new Error("System Alert: Malformed URL detected (Trailing Dash Exception). Redirecting to Error Handler.");
      }
@@ -182,6 +193,19 @@ function App() {
   const handleUpdateUser = (updatedProfile: UserProfile) => {
     setData(prev => ({ ...prev, user: updatedProfile }));
   };
+
+  // 0. Path Error Check
+  if (isPathError) {
+      return (
+        <ErrorPage 
+          type="404" 
+          title="Page Not Found"
+          message="The link you followed may be broken, or the page may have been removed."
+          onAction={() => window.location.href = '/'} 
+          actionLabel="Return Home" 
+        />
+      );
+  }
 
   // 1. Authentication Check
   if (!currentUsername) {

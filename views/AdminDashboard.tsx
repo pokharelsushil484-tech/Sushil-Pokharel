@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, Post, UserProfile, Note, Assignment, TaskPriority } from '../types';
-import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2, Search, ShieldAlert, Megaphone, Plus, X, Edit2, Save, Info, Image as ImageIcon, HelpCircle, Send, UserPlus, HardDrive, Download, Upload, Eye, BookOpen, Calendar, Award, Wand2, Clock, Inbox } from 'lucide-react';
+import { Users, AlertTriangle, Trash2, RefreshCw, BadgeCheck, MessageSquare, Power, Link, KeyRound, Filter, CheckCircle2, Search, ShieldAlert, Megaphone, Plus, X, Edit2, Save, Info, Image as ImageIcon, HelpCircle, Send, UserPlus, HardDrive, Download, Upload, Eye, BookOpen, Calendar, Award, Wand2, Clock, Inbox, UserCog, Check } from 'lucide-react';
 import { sendPasswordResetEmail } from '../services/emailService';
 import { generateUserBadge } from '../services/geminiService';
 import { ADMIN_USERNAME } from '../constants';
@@ -33,8 +33,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   const [inspectData, setInspectData] = useState<{ user: UserProfile, notes: Note[], assignments: Assignment[] } | null>(null);
   const [inspectTab, setInspectTab] = useState<'PROFILE' | 'NOTES' | 'PLANNER'>('PROFILE');
 
-  // Support Tab
-  const [viewMode, setViewMode] = useState<'DASHBOARD' | 'SUPPORT'>('DASHBOARD');
+  // View Mode
+  const [viewMode, setViewMode] = useState<'DASHBOARD' | 'REQUESTS' | 'SUPPORT'>('DASHBOARD');
 
   // Badge Generator State
   const [isGeneratingBadge, setIsGeneratingBadge] = useState(false);
@@ -42,6 +42,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   // Inspector - Add Note/Assignment State
   const [adminNote, setAdminNote] = useState({ title: '', content: '' });
   const [adminTask, setAdminTask] = useState<Partial<Assignment>>({ priority: TaskPriority.MEDIUM });
+
+  // Ticket Reply State
+  const [replyText, setReplyText] = useState<{[key: string]: string}>({});
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
@@ -77,6 +80,47 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
     if (postsStr) setPosts(JSON.parse(postsStr));
   }, [refreshTrigger]);
 
+  // --- REQUEST MANAGEMENT ---
+  const handleProfileUpdate = (req: ChangeRequest, approved: boolean) => {
+      if (approved && req.payload) {
+          // Update User Data
+          const key = `studentpocket_data_${req.username}`;
+          const stored = localStorage.getItem(key);
+          if (stored) {
+              const data = JSON.parse(stored);
+              // Merge payload into user profile
+              data.user = { ...data.user, ...req.payload };
+              localStorage.setItem(key, JSON.stringify(data));
+          }
+      }
+
+      // Update Request Status
+      const updatedRequests = requests.map(r => r.id === req.id ? { ...r, status: approved ? 'APPROVED' as const : 'REJECTED' as const } : r);
+      setRequests(updatedRequests);
+      localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
+      setRefreshTrigger(prev => prev + 1);
+      showToast(approved ? "Request Approved & Profile Updated" : "Request Rejected", approved ? 'success' : 'info');
+  };
+
+  const handleVerificationRequest = (req: ChangeRequest, approved: boolean) => {
+      if (approved) {
+          const usersStr = localStorage.getItem('studentpocket_users');
+          if (usersStr) {
+              const users = JSON.parse(usersStr);
+              if (users[req.username]) {
+                  users[req.username].verified = true;
+                  localStorage.setItem('studentpocket_users', JSON.stringify(users));
+              }
+          }
+      }
+
+      const updatedRequests = requests.map(r => r.id === req.id ? { ...r, status: approved ? 'APPROVED' as const : 'REJECTED' as const } : r);
+      setRequests(updatedRequests);
+      localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
+      setRefreshTrigger(prev => prev + 1);
+      showToast(approved ? "User Verified Successfully" : "Verification Rejected", approved ? 'success' : 'info');
+  };
+
   // --- TICKET MANAGEMENT ---
   const deleteTicket = (ticketId: string) => {
       if(!confirm("Delete this ticket?")) return;
@@ -88,10 +132,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   };
 
   const resolveTicket = (ticketId: string) => {
-      const updatedRequests = requests.map(r => r.id === ticketId ? { ...r, status: 'RESOLVED' as const } : r);
+      const response = replyText[ticketId];
+      if (!response) {
+          alert("Please write a message to the user before resolving.");
+          return;
+      }
+
+      const updatedRequests = requests.map(r => r.id === ticketId ? { 
+          ...r, 
+          status: 'RESOLVED' as const,
+          payload: { ...r.payload, adminResponse: response }
+      } : r);
+      
       setRequests(updatedRequests);
       localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
-      showToast("Ticket marked as resolved.", 'success');
+      
+      // Clear reply text
+      const newReplies = {...replyText};
+      delete newReplies[ticketId];
+      setReplyText(newReplies);
+      
+      showToast("Ticket resolved and reply sent.", 'success');
   };
 
   // --- INSPECTION LOGIC ---
@@ -385,8 +446,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
     return matchesFilter && matchesSearch;
   });
 
-  // Filter support tickets
+  // Filter Requests
+  const pendingProfileRequests = requests.filter(r => r.type === 'PROFILE_UPDATE' && r.status === 'PENDING');
+  const pendingVerificationRequests = requests.filter(r => r.type === 'VERIFICATION_REQUEST' && r.status === 'PENDING');
   const supportTickets = requests.filter(r => r.type === 'SUPPORT_TICKET');
+  
+  const activeRequestCount = pendingProfileRequests.length + pendingVerificationRequests.length;
 
   return (
     <div className="pb-20 animate-fade-in relative">
@@ -520,7 +585,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Admin Dashboard</h1>
 
       {/* VIEW TOGGLE */}
-      <div className="flex bg-gray-200 dark:bg-gray-700 p-1 rounded-xl mb-6 max-w-sm">
+      <div className="flex bg-gray-200 dark:bg-gray-700 p-1 rounded-xl mb-6 max-w-lg">
           <button 
             onClick={() => setViewMode('DASHBOARD')}
             className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${viewMode === 'DASHBOARD' ? 'bg-white dark:bg-gray-800 shadow text-indigo-600 dark:text-white' : 'text-gray-500'}`}
@@ -528,10 +593,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
             Dashboard
           </button>
           <button 
+            onClick={() => setViewMode('REQUESTS')}
+            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${viewMode === 'REQUESTS' ? 'bg-white dark:bg-gray-800 shadow text-indigo-600 dark:text-white' : 'text-gray-500'}`}
+          >
+            User Requests {activeRequestCount > 0 && <span className="ml-1 bg-red-500 text-white text-[10px] px-1.5 rounded-full">{activeRequestCount}</span>}
+          </button>
+          <button 
             onClick={() => setViewMode('SUPPORT')}
             className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${viewMode === 'SUPPORT' ? 'bg-white dark:bg-gray-800 shadow text-indigo-600 dark:text-white' : 'text-gray-500'}`}
           >
-            Support Tickets
+            Support ({supportTickets.filter(t => t.status === 'PENDING').length})
           </button>
       </div>
 
@@ -676,8 +747,80 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
         </>
       )}
 
+      {viewMode === 'REQUESTS' && (
+          <div className="space-y-6 animate-fade-in">
+              {/* Profile Updates */}
+              <div>
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2 ml-2 flex items-center">
+                     <UserCog size={16} className="mr-2"/> Profile Update Requests ({pendingProfileRequests.length})
+                  </h3>
+                  {pendingProfileRequests.length === 0 ? (
+                      <div className="text-center py-6 text-gray-400 text-sm bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-200">No pending profile requests.</div>
+                  ) : (
+                      pendingProfileRequests.map(req => (
+                          <div key={req.id} className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-100 dark:border-gray-700 mb-4 shadow-sm">
+                              <div className="flex justify-between items-center mb-4">
+                                  <div className="flex items-center space-x-3">
+                                      <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                                          {req.username.charAt(0).toUpperCase()}
+                                      </div>
+                                      <div>
+                                          <h4 className="font-bold">{req.username}</h4>
+                                          <p className="text-xs text-gray-500">Requested: {new Date(req.timestamp).toLocaleDateString()}</p>
+                                      </div>
+                                  </div>
+                              </div>
+                              <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg text-sm mb-4">
+                                  {req.payload.avatar && <div className="mb-2 text-xs text-indigo-600 font-bold">[New Profile Picture Included]</div>}
+                                  <div className="grid grid-cols-2 gap-2">
+                                      <div><span className="font-bold">Name:</span> {req.payload.name}</div>
+                                      <div><span className="font-bold">Title:</span> {req.payload.profession}</div>
+                                  </div>
+                              </div>
+                              <div className="flex justify-end space-x-3">
+                                  <button onClick={() => handleProfileUpdate(req, false)} className="px-4 py-2 text-red-600 text-sm font-bold hover:bg-red-50 rounded-lg">Reject</button>
+                                  <button onClick={() => handleProfileUpdate(req, true)} className="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700">Approve & Update</button>
+                              </div>
+                          </div>
+                      ))
+                  )}
+              </div>
+
+              {/* Verification Requests */}
+              <div>
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2 ml-2 flex items-center">
+                     <ShieldAlert size={16} className="mr-2"/> Verification Requests ({pendingVerificationRequests.length})
+                  </h3>
+                  {pendingVerificationRequests.length === 0 ? (
+                      <div className="text-center py-6 text-gray-400 text-sm bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-200">No pending verification requests.</div>
+                  ) : (
+                      pendingVerificationRequests.map(req => (
+                          <div key={req.id} className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-100 dark:border-gray-700 mb-4 shadow-sm">
+                              <div className="flex justify-between items-center mb-4">
+                                  <h4 className="font-bold">{req.username}</h4>
+                                  <p className="text-xs text-gray-500">{new Date(req.timestamp).toLocaleDateString()}</p>
+                              </div>
+                              {req.payload.idCardImage ? (
+                                  <div className="mb-4">
+                                      <p className="text-xs font-bold mb-1">ID Card Proof:</p>
+                                      <img src={req.payload.idCardImage} alt="ID Proof" className="max-h-40 rounded-lg border border-gray-200" />
+                                  </div>
+                              ) : (
+                                  <p className="text-red-500 text-xs mb-4">No ID Image Attached</p>
+                              )}
+                              <div className="flex justify-end space-x-3">
+                                  <button onClick={() => handleVerificationRequest(req, false)} className="px-4 py-2 text-red-600 text-sm font-bold hover:bg-red-50 rounded-lg">Reject</button>
+                                  <button onClick={() => handleVerificationRequest(req, true)} className="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700">Verify User</button>
+                              </div>
+                          </div>
+                      ))
+                  )}
+              </div>
+          </div>
+      )}
+
       {viewMode === 'SUPPORT' && (
-          <div className="space-y-4">
+          <div className="space-y-4 animate-fade-in">
               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2 ml-2">Support Tickets</h3>
               {supportTickets.length === 0 ? (
                   <div className="text-center py-20 text-gray-400 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700">
@@ -695,12 +838,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                                       <span className="text-xs text-gray-400">{new Date(ticket.timestamp).toLocaleString()}</span>
                                   </div>
                                   <div className="flex space-x-2">
-                                      <button 
-                                        onClick={() => resolveTicket(ticket.id)}
-                                        className="text-xs bg-green-50 text-green-600 px-3 py-1 rounded-lg font-bold hover:bg-green-100 transition-colors"
-                                      >
-                                          Mark Resolved
-                                      </button>
+                                      {ticket.status === 'PENDING' ? (
+                                          <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold">Pending</span>
+                                      ) : (
+                                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">Resolved</span>
+                                      )}
                                       <button 
                                         onClick={() => deleteTicket(ticket.id)}
                                         className="text-gray-300 hover:text-red-500 p-1"
@@ -709,12 +851,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                                       </button>
                                   </div>
                               </div>
-                              <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-3 bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                              <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-4 bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                                   "{ticket.payload.message}"
                               </p>
-                              <div className="flex items-center text-xs text-green-600">
-                                  <CheckCircle2 size={12} className="mr-1"/> System Auto-Response sent within 24h.
-                              </div>
+
+                              {ticket.status === 'PENDING' ? (
+                                  <div className="mt-3">
+                                      <label className="text-xs font-bold text-gray-500 mb-1 block">Reply to User:</label>
+                                      <div className="flex gap-2">
+                                          <input 
+                                              className="flex-1 border rounded-lg px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 dark:text-white"
+                                              placeholder="Write your response here..."
+                                              value={replyText[ticket.id] || ''}
+                                              onChange={(e) => setReplyText({...replyText, [ticket.id]: e.target.value})}
+                                          />
+                                          <button 
+                                            onClick={() => resolveTicket(ticket.id)}
+                                            className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 flex items-center"
+                                          >
+                                              <Send size={14} className="mr-2" /> Resolve
+                                          </button>
+                                      </div>
+                                  </div>
+                              ) : (
+                                  <div className="mt-3 bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-100 dark:border-green-900/50">
+                                      <p className="text-xs font-bold text-green-700 dark:text-green-400 mb-1">Your Response:</p>
+                                      <p className="text-sm text-gray-700 dark:text-gray-300">{ticket.payload.adminResponse}</p>
+                                  </div>
+                              )}
                           </div>
                       ))}
                   </div>
