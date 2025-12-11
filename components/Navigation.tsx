@@ -71,7 +71,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
           })}
         </nav>
         <div className="p-4 border-t border-gray-100 dark:border-gray-800">
-            <p className="text-[10px] text-center text-gray-300 dark:text-gray-700 font-medium">© 2024 StudentPocket</p>
+            <p className="text-[10px] text-center text-gray-300 dark:text-gray-700 font-medium">© 2025 Sushil Pokharel</p>
         </div>
       </div>
 

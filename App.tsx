@@ -31,7 +31,15 @@ function App() {
   
   // New state to handle reset password flow
   const [resetUser, setResetUser] = useState<string | null>(null);
-  const [isPathError, setIsPathError] = useState(false);
+  
+  // IMMEDIATE CHECK: Initialize state based on URL to prevent main app flash
+  const [isPathError, setIsPathError] = useState(() => {
+     // Check for malformed URLs or non-root paths immediately
+     const path = window.location.pathname;
+     // Allow root, index.html. Reset params are handled by search params, not path.
+     const isValidPath = path === '/' || path === '/index.html';
+     return !isValidPath;
+  });
 
   // Global Theme State
   const [darkMode, setDarkMode] = useState(() => {
@@ -40,19 +48,10 @@ function App() {
 
   const [data, setData] = useState<AppData>(INITIAL_DATA);
 
-  // --- URL ROUTING & ERROR HANDLING ---
+  // --- CRASH SIMULATION CHECK ---
   useEffect(() => {
-     // Check for malformed URLs or non-root paths to simulate 404/Crash
-     const path = window.location.pathname;
-     
-     // Allow root, index.html, or reset mode params
-     const isValidPath = path === '/' || path === '/index.html';
-     
-     if (!isValidPath) {
-         setIsPathError(true);
-     }
-     
      if (window.location.href.endsWith('-') || window.location.hash.endsWith('-')) {
+         // Immediate crash simulation
          throw new Error("System Alert: Malformed URL detected (Trailing Dash Exception). Redirecting to Error Handler.");
      }
   }, []);
@@ -194,7 +193,7 @@ function App() {
     setData(prev => ({ ...prev, user: updatedProfile }));
   };
 
-  // 0. Path Error Check
+  // 0. Path Error Check - Renders immediately if true
   if (isPathError) {
       return (
         <ErrorPage 

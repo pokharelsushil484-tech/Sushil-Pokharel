@@ -133,8 +133,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
 
   const resolveTicket = (ticketId: string) => {
       const response = replyText[ticketId];
-      if (!response) {
-          alert("Please write a message to the user before resolving.");
+      // STRICT REQUIREMENT: Admin MUST write a message
+      if (!response || !response.trim()) {
+          alert("⚠️ Message Required: You must write a reply to the user before resolving the ticket.");
           return;
       }
 
@@ -152,7 +153,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
       delete newReplies[ticketId];
       setReplyText(newReplies);
       
-      showToast("Ticket resolved and reply sent.", 'success');
+      showToast("Message sent & Ticket resolved.", 'success');
   };
 
   // --- INSPECTION LOGIC ---
@@ -857,7 +858,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
 
                               {ticket.status === 'PENDING' ? (
                                   <div className="mt-3">
-                                      <label className="text-xs font-bold text-gray-500 mb-1 block">Reply to User:</label>
+                                      <label className="text-xs font-bold text-gray-500 mb-1 block">Reply to User (Required):</label>
                                       <div className="flex gap-2">
                                           <input 
                                               className="flex-1 border rounded-lg px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 dark:text-white"
