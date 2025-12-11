@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, ChangeRequest } from '../types';
-import { Moon, Bell, LogOut, Globe, ShieldCheck, Trash2, Sun, Check, X, Edit2, UserMinus, BadgeCheck, AlertTriangle, Camera, CheckCircle2, Bug, Mail, Upload, ArrowRight, Loader2, Image as ImageIcon, HelpCircle, MessageSquare, Clock, ChevronRight } from 'lucide-react';
+import { Moon, Bell, LogOut, Globe, Trash2, Sun, Edit2, UserMinus, BadgeCheck, AlertTriangle, Camera, CheckCircle2, Bug, Mail, ArrowRight, Loader2, Image as ImageIcon, HelpCircle, MessageSquare, Clock, X } from 'lucide-react';
 import { WATERMARK, ADMIN_USERNAME } from '../constants';
 import { sendVerificationOTP } from '../services/emailService';
 
@@ -16,9 +16,6 @@ interface SettingsProps {
 }
 
 export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, username, darkMode, toggleDarkMode, updateUser }) => {
-  const [showPinInput, setShowPinInput] = useState(false);
-  const [newPin, setNewPin] = useState('');
-  
   // New State for Profile Editing (User side)
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editProfileData, setEditProfileData] = useState<UserProfile>(user);
@@ -341,17 +338,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
     </div>
   );
 
-  const saveNewPin = () => {
-    if (newPin.length < 4) {
-      showToast("PIN must be at least 4 digits", 'error');
-      return;
-    }
-    updateUser({ ...user, vaultPin: newPin });
-    setShowPinInput(false);
-    setNewPin('');
-    showToast("Vault PIN updated successfully.", 'success');
-  };
-
   return (
     <div className="pb-20 animate-fade-in relative">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Settings</h1>
@@ -416,7 +402,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                   {verifStep === 2 && (
                        <div className="space-y-4 animate-fade-in">
                           <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl flex items-center mb-2">
-                              <ShieldCheck className="text-indigo-600 dark:text-indigo-400 mr-3" size={24} />
+                              <BadgeCheck className="text-indigo-600 dark:text-indigo-400 mr-3" size={24} />
                               <div>
                                   <p className="font-bold text-sm dark:text-white">Step 2: Upload Student ID</p>
                                   <p className="text-xs text-gray-500 dark:text-gray-400">Upload a clear photo of your ID Card</p>
@@ -491,9 +477,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                         >
                           <Mail className="mr-2" size={18}/> Submit Ticket
                         </button>
-                        <p className="text-center text-xs text-gray-400 mt-4">
-                          Admins typically respond within 24 hours.
-                        </p>
                      </div>
                    ) : (
                      <div className="flex-1 overflow-y-auto space-y-3 pr-1">
@@ -519,7 +502,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                                
                                {ticket.payload.adminResponse && (
                                  <div className="bg-white dark:bg-gray-900 p-3 rounded-xl border-l-4 border-indigo-500 text-xs shadow-sm animate-fade-in">
-                                    <p className="font-bold text-indigo-600 mb-1 flex items-center"><ShieldCheck size={12} className="mr-1"/> Automatic Response:</p>
+                                    <p className="font-bold text-indigo-600 mb-1 flex items-center"><BadgeCheck size={12} className="mr-1"/> Response:</p>
                                     <p className="text-gray-600 dark:text-gray-400 italic">{ticket.payload.adminResponse}</p>
                                  </div>
                                )}
@@ -547,33 +530,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                   className="w-full p-3 rounded-xl text-gray-800 text-sm outline-none border-2 border-transparent focus:border-indigo-300"
                   value={editProfileData.profession || ''}
                   onChange={e => setEditProfileData({...editProfileData, profession: e.target.value})}
-                  placeholder="Profession (e.g. Student, Engineer)"
-                />
-                <input 
-                  className="w-full p-3 rounded-xl text-gray-800 text-sm outline-none border-2 border-transparent focus:border-indigo-300"
-                  value={editProfileData.institution}
-                  onChange={e => setEditProfileData({...editProfileData, institution: e.target.value})}
-                  placeholder="Institution"
-                />
-                <div className="grid grid-cols-2 gap-2">
-                   <input 
-                    className="w-full p-3 rounded-xl text-gray-800 text-sm outline-none border-2 border-transparent focus:border-indigo-300"
-                    value={editProfileData.phone}
-                    onChange={e => setEditProfileData({...editProfileData, phone: e.target.value})}
-                    placeholder="Phone"
-                  />
-                  <input 
-                    className="w-full p-3 rounded-xl text-gray-800 text-sm outline-none border-2 border-transparent focus:border-indigo-300"
-                    value={editProfileData.country}
-                    onChange={e => setEditProfileData({...editProfileData, country: e.target.value})}
-                    placeholder="Country"
-                  />
-                </div>
-                <input 
-                  className="w-full p-3 rounded-xl text-gray-800 text-sm outline-none border-2 border-transparent focus:border-indigo-300"
-                  value={editProfileData.education}
-                  onChange={e => setEditProfileData({...editProfileData, education: e.target.value})}
-                  placeholder="Education"
+                  placeholder="Title (e.g. Student)"
                 />
                 <div className="flex space-x-2 pt-2">
                     <button onClick={sendProfileUpdateRequest} className="flex-1 bg-white text-indigo-600 py-3 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors shadow-sm">Send Request</button>
@@ -586,7 +543,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                     <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center overflow-hidden border-2 border-white/30 backdrop-blur-sm">
                     {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : <span className="text-2xl font-bold">{user.name.charAt(0)}</span>}
                     </div>
-                    {/* Picture Upload Overlay */}
                     <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                         <Camera size={20} className="text-white"/>
                         <input type="file" accept="image/*" className="hidden" onChange={handleProfileImageUpload} />
@@ -594,9 +550,9 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                 </div>
                 <div className="flex-1">
                 <h2 className="font-bold text-lg">{user.name}</h2>
-                <p className="text-indigo-200 text-sm mb-1">{user.profession || user.email}</p>
+                <p className="text-indigo-200 text-sm mb-1">{user.profession || 'Student'}</p>
                 <div className="flex items-center">
-                     <p className="text-[10px] bg-white/10 px-2 py-0.5 rounded text-white font-bold mr-2 uppercase tracking-wide">{username === ADMIN_USERNAME ? 'Admin' : 'Student'}</p>
+                     <p className="text-[10px] bg-white/10 px-2 py-0.5 rounded text-white font-bold mr-2 uppercase tracking-wide">{username === ADMIN_USERNAME ? 'Teacher' : 'Student'}</p>
                      {isVerified ? (
                         <span className="text-[10px] bg-green-400/20 px-2 py-0.5 rounded flex items-center text-green-100 border border-green-400/30"><BadgeCheck size={10} className="mr-1"/> Verified</span>
                      ) : (
@@ -634,30 +590,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
         {!isVerified && username !== ADMIN_USERNAME && (
              <SettingItem icon={BadgeCheck} title="Request Verification" subTitle="Unlock full features" onClick={handleStartVerification} />
         )}
-
-        {!showPinInput ? (
-           <SettingItem icon={ShieldCheck} title="Change Vault PIN" subTitle="Secure your documents" onClick={() => setShowPinInput(true)} />
-        ) : (
-           <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-indigo-200 dark:border-indigo-800 mb-3 animate-slide-up">
-              <label className="block text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase mb-3">Set New 4-Digit PIN</label>
-              <div className="flex space-x-2">
-                 <input 
-                   type="text" 
-                   value={newPin}
-                   onChange={e => setNewPin(e.target.value.replace(/\D/g,'').slice(0, 4))}
-                   placeholder="0000"
-                   className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-mono text-lg text-center tracking-[0.5em] outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                   autoFocus
-                 />
-                 <button onClick={saveNewPin} className="bg-green-100 text-green-700 p-3 rounded-xl hover:bg-green-200 transition-colors">
-                    <Check size={20} />
-                 </button>
-                 <button onClick={() => setShowPinInput(false)} className="bg-red-100 text-red-700 p-3 rounded-xl hover:bg-red-200 transition-colors">
-                    <X size={20} />
-                 </button>
-              </div>
-           </div>
-        )}
       </div>
 
       <div>
@@ -669,7 +601,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
            if(window.confirm('Are you sure you want to delete ONLY your data and reset?')) resetApp();
          }} />
          
-         {/* Crash Simulator Button for Testing Error Page */}
          <SettingItem 
             icon={Bug} 
             title="Simulate Crash" 
@@ -681,7 +612,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       <div className="mt-12 text-center pb-8">
         <div className="w-12 h-1 bg-gray-200 dark:bg-gray-800 mx-auto rounded-full mb-4"></div>
         <p className="text-gray-400 dark:text-gray-500 font-bold text-sm">{WATERMARK}</p>
-        <p className="text-gray-300 dark:text-gray-600 text-[10px] mt-1 uppercase tracking-wider">Version 2.5.0 • Built with React</p>
+        <p className="text-gray-300 dark:text-gray-600 text-[10px] mt-1 uppercase tracking-wider">Version 3.0.0 • Classroom Edition</p>
       </div>
     </div>
   );

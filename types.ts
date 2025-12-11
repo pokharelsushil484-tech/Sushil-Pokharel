@@ -2,11 +2,6 @@
 export enum View {
   ONBOARDING = 'ONBOARDING',
   DASHBOARD = 'DASHBOARD',
-  PLANNER = 'PLANNER',
-  NOTES = 'NOTES',
-  VAULT = 'VAULT',
-  CV_BUILDER = 'CV_BUILDER',
-  SCHOLARSHIP = 'SCHOLARSHIP',
   AI_CHAT = 'AI_CHAT',
   SETTINGS = 'SETTINGS',
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
@@ -101,30 +96,6 @@ export interface Assignment {
   assignedBy?: string; // 'admin' or 'user'
 }
 
-export interface Note {
-  id: string;
-  title: string;
-  content: string;
-  date: string;
-  tags: string[];
-  author?: string; // 'admin' or 'user'
-  status?: 'PENDING' | 'COMPLETED'; // New Admin Review Status
-  adminFeedback?: string;
-  deletedAt?: number; // Timestamp for soft delete
-}
-
-export interface VaultDocument {
-  id: string;
-  title: string;
-  type: 'ID' | 'CERTIFICATE' | 'MARKSHEET' | 'OTHER' | 'FOLDER';
-  content?: string;
-  parentId?: string | null;
-  size?: number;
-  createdAt?: number;
-  mimeType?: string;
-  deletedAt?: number; // Timestamp for soft delete
-}
-
 export interface Scholarship {
   id: string;
   name: string;
@@ -132,6 +103,29 @@ export interface Scholarship {
   requirements: string;
   status: ScholarshipStatus;
   link?: string;
+}
+
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+  tags?: string[];
+  status?: 'PENDING' | 'COMPLETED';
+  author?: string;
+  deletedAt?: number;
+}
+
+export interface VaultDocument {
+  id: string;
+  title: string;
+  type: 'FOLDER' | 'OTHER';
+  content?: string;
+  parentId: string | null;
+  size?: number;
+  mimeType?: string;
+  createdAt: number;
+  deletedAt?: number;
 }
 
 export type RequestType = 'PROFILE_UPDATE' | 'PASSWORD_RESET' | 'VERIFICATION_REQUEST' | 'DELETE_ACCOUNT' | 'SUPPORT_TICKET';
@@ -159,6 +153,14 @@ export interface Comment {
   timestamp: string;
 }
 
+export interface PostAttachment {
+  name: string;
+  type: 'image' | 'file';
+  data: string; // base64
+  mimeType: string;
+  size: number;
+}
+
 export interface Post {
   id: string;
   title: string;
@@ -167,4 +169,5 @@ export interface Post {
   author: string;
   likes: string[];
   comments: Comment[];
+  attachments?: PostAttachment[];
 }

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Home, Calendar, BookOpen, Shield, Briefcase, GraduationCap, Settings, LayoutDashboard, MessageCircle, Lock } from 'lucide-react';
+import { Layout, Settings, LayoutDashboard, MessageCircle, Lock, BookOpen } from 'lucide-react';
 import { View } from '../types';
 import { APP_NAME } from '../constants';
 
@@ -16,17 +16,12 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
   const isLocked = (view: View) => {
     if (isAdmin) return false;
     if (isVerified) return false;
-    return [View.VAULT, View.CV_BUILDER, View.AI_CHAT].includes(view);
+    return [View.AI_CHAT].includes(view);
   };
 
   let navItems = [
-    { view: View.DASHBOARD, icon: Home, label: 'Home' },
-    { view: View.AI_CHAT, icon: MessageCircle, label: 'Ask AI' },
-    { view: View.PLANNER, icon: Calendar, label: 'Plan' },
-    { view: View.NOTES, icon: BookOpen, label: 'Notes' },
-    { view: View.VAULT, icon: Shield, label: 'Vault' },
-    { view: View.CV_BUILDER, icon: Briefcase, label: 'CV' },
-    { view: View.SCHOLARSHIP, icon: GraduationCap, label: 'Apps' },
+    { view: View.DASHBOARD, icon: Layout, label: 'Stream' },
+    { view: View.AI_CHAT, icon: MessageCircle, label: 'AI Tutor' },
     { 
       view: View.SETTINGS, 
       icon: Settings, 
@@ -36,7 +31,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
 
   if (isAdmin) {
     navItems = [
-      { view: View.ADMIN_DASHBOARD, icon: LayoutDashboard, label: 'Admin' },
+      { view: View.ADMIN_DASHBOARD, icon: LayoutDashboard, label: 'Classroom Manager' },
       ...navItems
     ];
   }
@@ -49,7 +44,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
           <img src="/icon.png" alt="App Icon" className="w-10 h-10 rounded-xl shadow-md object-cover bg-indigo-50 dark:bg-gray-800" onError={(e) => e.currentTarget.style.display = 'none'} />
           <div>
             <h1 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight leading-none">{APP_NAME}</h1>
-            <p className="text-[10px] text-gray-400 font-semibold tracking-wider uppercase mt-1">Student Manager</p>
+            <p className="text-[10px] text-gray-400 font-semibold tracking-wider uppercase mt-1">Classroom</p>
           </div>
         </div>
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto no-scrollbar">
@@ -84,8 +79,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 pb-safe">
         <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]">
           <div className="flex justify-around items-center h-[72px] px-2">
-            {/* Show top 5 items for mobile bottom bar */}
-            {navItems.slice(0, 5).map((item) => {
+            {navItems.map((item) => {
               const locked = isLocked(item.view);
               const isActive = currentView === item.view;
               return (
@@ -108,21 +102,6 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
                 </button>
               );
             })}
-            
-            {/* Contextual More Button */}
-            <button
-              onClick={() => setView(View.SETTINGS)}
-              className={`flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-90 transition-transform duration-200 ${
-                  currentView === View.SETTINGS ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'
-              }`}
-            >
-              <div className={`p-1.5 rounded-xl transition-colors ${currentView === View.SETTINGS ? 'bg-indigo-50 dark:bg-indigo-900/30' : ''}`}>
-                  <Settings className={`w-6 h-6 ${currentView === View.SETTINGS ? 'stroke-2' : 'stroke-[1.5]'}`} />
-              </div>
-              <span className={`text-[10px] font-medium ${currentView === View.SETTINGS ? 'font-bold' : ''}`}>
-                  {isAdmin ? 'Settings' : 'More'}
-              </span>
-            </button>
           </div>
         </div>
       </div>

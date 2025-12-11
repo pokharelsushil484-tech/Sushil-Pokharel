@@ -4,23 +4,16 @@ import { Navigation } from './components/Navigation';
 import { Onboarding } from './views/Onboarding';
 import { Login } from './views/Login';
 import { Dashboard } from './views/Dashboard';
-import { StudyPlanner } from './views/StudyPlanner';
-import { Notes } from './views/Notes';
-import { Vault } from './views/Vault';
-import { CVBuilder } from './views/CVBuilder';
 import { Settings } from './views/Settings';
-import { ScholarshipTracker } from './views/ScholarshipTracker';
 import { AdminDashboard } from './views/AdminDashboard';
 import { AIChat } from './views/AIChat';
 import { ErrorPage } from './views/ErrorPage';
-import { View, UserProfile, Assignment, Note, VaultDocument, Scholarship, ChatMessage, ChangeRequest } from './types';
+import { View, UserProfile, Assignment, Scholarship, ChatMessage, ChangeRequest } from './types';
 import { DEFAULT_USER, ADMIN_USERNAME } from './constants';
 
 interface AppData {
   user: UserProfile | null;
-  assignments: Assignment[];
-  notes: Note[];
-  vaultDocs: VaultDocument[];
+  assignments: Assignment[]; // Kept for backend compatibility, but UI removed
   scholarships?: Scholarship[];
   chatHistory?: ChatMessage[];
 }
@@ -28,8 +21,6 @@ interface AppData {
 const INITIAL_DATA: AppData = {
   user: null,
   assignments: [],
-  notes: [],
-  vaultDocs: [],
   scholarships: [],
   chatHistory: []
 };
@@ -49,7 +40,6 @@ function App() {
   const [data, setData] = useState<AppData>(INITIAL_DATA);
 
   // --- CRASH TRIGGER LOGIC ---
-  // If the URL contains a trailing dash (e.g., domain.com/dashboard-), throw error
   useEffect(() => {
      if (window.location.href.endsWith('-') || window.location.hash.endsWith('-')) {
          throw new Error("System Alert: Malformed URL detected (Trailing Dash Exception). Redirecting to Error Handler.");
@@ -59,7 +49,6 @@ function App() {
   // Helper to check verification status dynamically
   const isVerified = (() => {
     if (!currentUsername) return false;
-    // Admin is always "verified" conceptually
     if (currentUsername === ADMIN_USERNAME) return true; 
 
     try {
@@ -95,7 +84,6 @@ function App() {
 
   // System Cleanup & Data Load
   useEffect(() => {
-    // --- GLOBAL REQUEST CLEANUP (30 DAYS) ---
     const reqStr = localStorage.getItem('studentpocket_requests');
     if (reqStr) {
         try {
@@ -103,7 +91,6 @@ function App() {
             const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
             const now = Date.now();
             
-            // Keep pending requests OR requests updated within 30 days
             const validRequests = requests.filter(req => 
                 req.status === 'PENDING' || (now - new Date(req.timestamp).getTime() < thirtyDaysMs)
             );
@@ -121,31 +108,12 @@ function App() {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Ensure chatHistory exists for older data
         if (!parsed.chatHistory) parsed.chatHistory = [];
-        // Ensure arrays exist for new fields
         if (parsed.user) {
              if (!parsed.user.experience) parsed.user.experience = [];
              if (!parsed.user.projects) parsed.user.projects = [];
         }
         
-        // --- AUTO-DELETE TRASH LOGIC (30 DAYS) ---
-        const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-        const now = Date.now();
-        
-        // Filter out items that have been in trash for > 30 days
-        if (parsed.notes) {
-            parsed.notes = parsed.notes.filter((n: Note) => 
-                !n.deletedAt || (now - n.deletedAt < thirtyDaysMs)
-            );
-        }
-        if (parsed.vaultDocs) {
-            parsed.vaultDocs = parsed.vaultDocs.filter((d: VaultDocument) => 
-                !d.deletedAt || (now - d.deletedAt < thirtyDaysMs)
-            );
-        }
-        // ------------------------------------
-
         setData(parsed);
         if (parsed.user) {
           setView(currentUsername === ADMIN_USERNAME ? View.ADMIN_DASHBOARD : View.DASHBOARD);
@@ -153,7 +121,6 @@ function App() {
           setView(View.ONBOARDING);
         }
       } else {
-        // No data for this user yet
         setData(INITIAL_DATA);
         setView(View.ONBOARDING);
       }
@@ -170,7 +137,6 @@ function App() {
     }
   }, [data, currentUsername]);
 
-  // Sync Dark Mode with HTML element and LocalStorage
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -210,19 +176,19 @@ function App() {
   
   const handleLogout = () => {
     setCurrentUsername(null);
-    setView(View.ONBOARDING); // Will render Login because currentUsername is null
+    setView(View.ONBOARDING); 
   };
 
   const handleUpdateUser = (updatedProfile: UserProfile) => {
     setData(prev => ({ ...prev, user: updatedProfile }));
   };
 
-  // 1. Authentication Check (Login Screen)
+  // 1. Authentication Check
   if (!currentUsername) {
     return <Login user={null} onLogin={handleLogin} resetUser={resetUser} />;
   }
 
-  // 2. Onboarding Check (If logged in but no profile data)
+  // 2. Onboarding Check
   if (!data.user) {
     return <Onboarding onComplete={handleOnboardingComplete} />;
   }
@@ -233,37 +199,7 @@ function App() {
 
     switch (view) {
       case View.DASHBOARD:
-        return <Dashboard user={data.user} assignments={data.assignments} isVerified={isVerified} username={currentUsername} />;
-      case View.PLANNER:
-        return <StudyPlanner 
-          assignments={data.assignments} 
-          setAssignments={(a) => setData({...data, assignments: a})} 
-          isAdmin={isAdmin}
-        />;
-      case View.NOTES:
-        return <Notes 
-          notes={data.notes} 
-          setNotes={(n) => setData({...data, notes: n})} 
-          isAdmin={isAdmin}
-        />;
-      case View.VAULT:
-        return <Vault 
-          user={data.user} 
-          documents={data.vaultDocs} 
-          saveDocuments={(d) => setData({...data, vaultDocs: d})} 
-          isVerified={isVerified}
-        />;
-      case View.CV_BUILDER:
-        return <CVBuilder 
-          user={data.user} 
-          isVerified={isVerified} 
-          updateUser={handleUpdateUser}
-        />;
-      case View.SCHOLARSHIP:
-        return <ScholarshipTracker
-          scholarships={data.scholarships || []}
-          setScholarships={(s) => setData({...data, scholarships: s})}
-        />;
+        return <Dashboard user={data.user} isVerified={isVerified} username={currentUsername} />;
       case View.AI_CHAT:
         return <AIChat 
           chatHistory={data.chatHistory || []}
@@ -283,7 +219,7 @@ function App() {
       case View.ADMIN_DASHBOARD:
         return isAdmin ? <AdminDashboard resetApp={handleFactoryReset} /> : <ErrorPage type="404" title="Access Denied" message="You do not have permission to view this page." />;
       default:
-        return <ErrorPage type="404" onAction={() => setView(View.DASHBOARD)} actionLabel="Return to Dashboard" />;
+        return <ErrorPage type="404" onAction={() => setView(View.DASHBOARD)} actionLabel="Return to Stream" />;
     }
   };
 
