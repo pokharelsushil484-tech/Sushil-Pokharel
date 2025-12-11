@@ -38,6 +38,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
 
   // Badge Generator State
   const [isGeneratingBadge, setIsGeneratingBadge] = useState(false);
+  const [manualBadgeName, setManualBadgeName] = useState('');
 
   // Inspector - Add Note/Assignment State
   const [adminNote, setAdminNote] = useState({ title: '', content: '' });
@@ -184,6 +185,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
 
       const badge = await generateUserBadge(inspectData.user, context);
       
+      addBadgeToUser(badge);
+      setIsGeneratingBadge(false);
+  };
+
+  const handleManualBadge = () => {
+      if(!manualBadgeName.trim()) return;
+      addBadgeToUser(manualBadgeName.trim());
+      setManualBadgeName('');
+  };
+
+  const addBadgeToUser = (badge: string) => {
+      if (!inspectData?.user || !inspectingUser) return;
+
       const currentBadges = inspectData.user.badges || [];
       if (!currentBadges.includes(badge)) {
           const updatedUser = { ...inspectData.user, badges: [...currentBadges, badge] };
@@ -195,9 +209,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
           localStorage.setItem(key, JSON.stringify(fullData));
           
           setInspectData({...inspectData, user: updatedUser});
-          showToast(`Badge Assigned: ${badge}`, 'success');
+          showToast(`Assigned: ${badge}`, 'success');
+      } else {
+          showToast("User already has this badge.", 'info');
       }
-      setIsGeneratingBadge(false);
+  };
+
+  const removeBadge = (badgeToRemove: string) => {
+      if (!inspectData?.user || !inspectingUser) return;
+      if (!confirm(`Remove "${badgeToRemove}" from user?`)) return;
+
+      const currentBadges = inspectData.user.badges || [];
+      const updatedBadges = currentBadges.filter(b => b !== badgeToRemove);
+      
+      const updatedUser = { ...inspectData.user, badges: updatedBadges };
+      
+      // Save
+      const key = `studentpocket_data_${inspectingUser}`;
+      const fullData = JSON.parse(localStorage.getItem(key) || '{}');
+      fullData.user = updatedUser;
+      localStorage.setItem(key, JSON.stringify(fullData));
+      
+      setInspectData({...inspectData, user: updatedUser});
+      showToast("Badge removed.", 'success');
   };
 
   const handleBulkBadgeAssign = async () => {
@@ -484,20 +518,56 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                   {inspectTab === 'PROFILE' && (
                       <div className="max-w-4xl mx-auto space-y-6">
                           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                              <h3 className="text-lg font-bold mb-4 flex items-center"><Award className="mr-2 text-yellow-500"/> Badges</h3>
+                              <h3 className="text-lg font-bold mb-4 flex items-center justify-between">
+                                  <span className="flex items-center"><Award className="mr-2 text-yellow-500"/> Badges & Roles</span>
+                              </h3>
+                              
                               <div className="flex flex-wrap gap-2 mb-4">
                                   {inspectData.user.badges?.map((b, i) => (
-                                      <span key={i} className="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold border border-yellow-200">{b}</span>
+                                      <div key={i} className="group relative">
+                                          <span className="bg-yellow-50 text-yellow-700 px-3 py-1.5 rounded-full text-sm font-bold border border-yellow-200 flex items-center">
+                                              {b}
+                                              <button 
+                                                onClick={() => removeBadge(b)} 
+                                                className="ml-2 bg-yellow-200 text-yellow-800 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                title="Remove Badge"
+                                              >
+                                                  <X size={10} />
+                                              </button>
+                                          </span>
+                                      </div>
                                   ))}
-                                  {(!inspectData.user.badges || inspectData.user.badges.length === 0) && <span className="text-gray-400 text-sm">No badges yet.</span>}
+                                  {(!inspectData.user.badges || inspectData.user.badges.length === 0) && <span className="text-gray-400 text-sm italic">No badges assigned.</span>}
                               </div>
-                              <button 
-                                onClick={handleGenerateBadge} 
-                                disabled={isGeneratingBadge}
-                                className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center hover:bg-indigo-700 disabled:opacity-50"
-                              >
-                                  <Wand2 size={16} className="mr-2" /> {isGeneratingBadge ? 'Analyzing...' : 'Generate AI Badge'}
-                              </button>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                                  {/* AI Generator */}
+                                  <button 
+                                    onClick={handleGenerateBadge} 
+                                    disabled={isGeneratingBadge}
+                                    className="bg-indigo-50 text-indigo-700 px-4 py-3 rounded-xl text-sm font-bold flex items-center justify-center hover:bg-indigo-100 disabled:opacity-50 border border-indigo-200"
+                                  >
+                                      <Wand2 size={16} className="mr-2" /> {isGeneratingBadge ? 'Analyzing...' : 'Generate AI Badge'}
+                                  </button>
+                                  
+                                  {/* Manual Add */}
+                                  <div className="flex gap-2">
+                                      <input 
+                                        type="text" 
+                                        placeholder="Custom Role (e.g. Head Boy)" 
+                                        className="flex-1 px-3 py-2 rounded-xl text-sm border border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                                        value={manualBadgeName}
+                                        onChange={(e) => setManualBadgeName(e.target.value)}
+                                      />
+                                      <button 
+                                        onClick={handleManualBadge}
+                                        className="bg-green-600 text-white px-3 rounded-xl hover:bg-green-700 font-bold"
+                                      >
+                                          <Plus size={18} />
+                                      </button>
+                                  </div>
+                              </div>
+                              <p className="text-[10px] text-gray-400 mt-2 text-center">*Assigning a badge verifies the role for this student.</p>
                           </div>
 
                           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">

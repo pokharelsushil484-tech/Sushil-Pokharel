@@ -32,29 +32,12 @@ function App() {
   // New state to handle reset password flow
   const [resetUser, setResetUser] = useState<string | null>(null);
   
-  // IMMEDIATE CHECK: Initialize state based on URL to prevent main app flash
-  const [isPathError, setIsPathError] = useState(() => {
-     // Check for malformed URLs or non-root paths immediately
-     const path = window.location.pathname;
-     // Allow root, index.html. Reset params are handled by search params, not path.
-     const isValidPath = path === '/' || path === '/index.html';
-     return !isValidPath;
-  });
-
   // Global Theme State
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem('studentpocket_theme') === 'true';
   });
 
   const [data, setData] = useState<AppData>(INITIAL_DATA);
-
-  // --- CRASH SIMULATION CHECK ---
-  useEffect(() => {
-     if (window.location.href.endsWith('-') || window.location.hash.endsWith('-')) {
-         // Immediate crash simulation
-         throw new Error("System Alert: Malformed URL detected (Trailing Dash Exception). Redirecting to Error Handler.");
-     }
-  }, []);
 
   // Helper to check verification status dynamically
   const isVerified = (() => {
@@ -73,6 +56,12 @@ function App() {
 
   // Handle URL Reset Links Only
   useEffect(() => {
+    // If the path is not root, we soft-redirect to root internally to prevent 404s
+    // while preserving query params for reset functionality
+    if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
+        window.history.replaceState(null, '', '/' + window.location.search);
+    }
+
     const params = new URLSearchParams(window.location.search);
     const mode = params.get('mode');
     const user = params.get('user');
@@ -85,8 +74,6 @@ function App() {
         const userData = users[user];
         if (userData && userData.resetToken === token) {
            setResetUser(user);
-        } else {
-           alert("❌ Invalid or expired reset link.");
         }
       }
     }
@@ -193,19 +180,6 @@ function App() {
     setData(prev => ({ ...prev, user: updatedProfile }));
   };
 
-  // 0. Path Error Check - Renders immediately if true
-  if (isPathError) {
-      return (
-        <ErrorPage 
-          type="404" 
-          title="Page Not Found"
-          message="The link you followed may be broken, or the page may have been removed."
-          onAction={() => window.location.href = '/'} 
-          actionLabel="Return Home" 
-        />
-      );
-  }
-
   // 1. Authentication Check
   if (!currentUsername) {
     return <Login user={null} onLogin={handleLogin} resetUser={resetUser} />;
@@ -242,7 +216,8 @@ function App() {
       case View.ADMIN_DASHBOARD:
         return isAdmin ? <AdminDashboard resetApp={handleFactoryReset} /> : <ErrorPage type="404" title="Access Denied" message="You do not have permission to view this page." />;
       default:
-        return <ErrorPage type="404" onAction={() => setView(View.DASHBOARD)} actionLabel="Return to Stream" />;
+        // Graceful fallback instead of crash
+        return <Dashboard user={data.user} isVerified={isVerified} username={currentUsername} />;
     }
   };
 
