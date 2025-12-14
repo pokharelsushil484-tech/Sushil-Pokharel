@@ -8,26 +8,43 @@ import { Settings } from './views/Settings';
 import { AdminDashboard } from './views/AdminDashboard';
 import { AIChat } from './views/AIChat';
 import { ErrorPage } from './views/ErrorPage';
-import { View, UserProfile, Assignment, Scholarship, ChatMessage, ChangeRequest } from './types';
+import { StudyPlanner } from './views/StudyPlanner'; // Reusing for Tasks
+import { Notes } from './views/Notes'; // New import (using existing file if available, assuming structure)
+import { Vault } from './views/Vault'; // New import
+import { CVBuilder } from './views/CVBuilder'; // New import
+import { ScholarshipTracker } from './views/ScholarshipTracker';
+import { ExpenseTracker } from './views/ExpenseTracker';
+import { GlobalLoader } from './components/GlobalLoader';
+
+import { View, UserProfile, Assignment, Scholarship, ChatMessage, ChangeRequest, Expense, Note, VaultDocument } from './types';
 import { DEFAULT_USER, ADMIN_USERNAME } from './constants';
 
 interface AppData {
   user: UserProfile | null;
-  assignments: Assignment[]; // Kept for backend compatibility, but UI removed
+  assignments: Assignment[];
   scholarships?: Scholarship[];
   chatHistory?: ChatMessage[];
+  expenses?: Expense[];
+  notes?: Note[];
+  vaultDocs?: VaultDocument[];
 }
 
 const INITIAL_DATA: AppData = {
   user: null,
   assignments: [],
   scholarships: [],
-  chatHistory: []
+  chatHistory: [],
+  expenses: [],
+  notes: [],
+  vaultDocs: []
 };
 
 function App() {
   const [view, setView] = useState<View>(View.ONBOARDING);
   const [currentUsername, setCurrentUsername] = useState<string | null>(null);
+  
+  // Loading State for transitions
+  const [isLoading, setIsLoading] = useState(false);
   
   // New state to handle reset password flow
   const [resetUser, setResetUser] = useState<string | null>(null);
@@ -56,10 +73,12 @@ function App() {
 
   // Handle URL Reset Links Only
   useEffect(() => {
-    // If the path is not root, we soft-redirect to root internally to prevent 404s
-    // while preserving query params for reset functionality
     if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
-        window.history.replaceState(null, '', '/' + window.location.search);
+        try {
+            window.history.replaceState(null, '', '/' + window.location.search);
+        } catch (e) {
+            // Ignore history errors in restricted environments
+        }
     }
 
     const params = new URLSearchParams(window.location.search);
@@ -81,6 +100,10 @@ function App() {
 
   // System Cleanup & Data Load
   useEffect(() => {
+    // Show loader on initial mount
+    setIsLoading(true);
+    setTimeout(() => setIsLoading(false), 1000);
+
     const reqStr = localStorage.getItem('studentpocket_requests');
     if (reqStr) {
         try {
@@ -106,10 +129,9 @@ function App() {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (!parsed.chatHistory) parsed.chatHistory = [];
-        if (parsed.user) {
-             if (!parsed.user.experience) parsed.user.experience = [];
-             if (!parsed.user.projects) parsed.user.projects = [];
-        }
+        if (!parsed.expenses) parsed.expenses = [];
+        if (!parsed.notes) parsed.notes = [];
+        if (!parsed.vaultDocs) parsed.vaultDocs = [];
         
         setData(parsed);
         if (parsed.user) {
@@ -149,8 +171,12 @@ function App() {
   };
 
   const handleOnboardingComplete = (profile: UserProfile) => {
-    setData(prev => ({ ...prev, user: profile }));
-    setView(currentUsername === ADMIN_USERNAME ? View.ADMIN_DASHBOARD : View.DASHBOARD);
+    setIsLoading(true);
+    setTimeout(() => {
+        setData(prev => ({ ...prev, user: profile }));
+        setView(currentUsername === ADMIN_USERNAME ? View.ADMIN_DASHBOARD : View.DASHBOARD);
+        setIsLoading(false);
+    }, 1000);
   };
 
   const handleReset = () => {
@@ -168,26 +194,59 @@ function App() {
   };
 
   const handleLogin = (username: string) => {
-    setCurrentUsername(username);
+    setIsLoading(true);
+    setTimeout(() => {
+        setCurrentUsername(username);
+        setIsLoading(false);
+    }, 800);
   };
   
   const handleLogout = () => {
-    setCurrentUsername(null);
-    setView(View.ONBOARDING); 
+    setIsLoading(true);
+    setTimeout(() => {
+        setCurrentUsername(null);
+        setView(View.ONBOARDING); 
+        setIsLoading(false);
+    }, 800);
   };
 
   const handleUpdateUser = (updatedProfile: UserProfile) => {
     setData(prev => ({ ...prev, user: updatedProfile }));
   };
 
+  const handleViewChange = (newView: View) => {
+      // Small simulated delay for smoothness
+      // setIsLoading(true);
+      // setTimeout(() => {
+          setView(newView);
+      //    setIsLoading(false);
+      // }, 300);
+  };
+
+  // Convert string View to enum View safely for Navigation callbacks
+  const handleStringNav = (viewName: string) => {
+      // @ts-ignore
+      if (View[viewName]) handleViewChange(View[viewName]);
+  };
+
   // 1. Authentication Check
   if (!currentUsername) {
-    return <Login user={null} onLogin={handleLogin} resetUser={resetUser} />;
+    return (
+        <>
+            <GlobalLoader isLoading={isLoading} message="Authenticating..." />
+            <Login user={null} onLogin={handleLogin} resetUser={resetUser} />
+        </>
+    );
   }
 
   // 2. Onboarding Check
   if (!data.user) {
-    return <Onboarding onComplete={handleOnboardingComplete} />;
+    return (
+        <>
+             <GlobalLoader isLoading={isLoading} message="Setting up profile..." />
+             <Onboarding onComplete={handleOnboardingComplete} />
+        </>
+    );
   }
 
   // 3. Main App Views
@@ -196,7 +255,41 @@ function App() {
 
     switch (view) {
       case View.DASHBOARD:
-        return <Dashboard user={data.user} isVerified={isVerified} username={currentUsername} />;
+        return <Dashboard 
+                  user={data.user} 
+                  isVerified={isVerified} 
+                  username={currentUsername} 
+                  expenses={data.expenses || []}
+                  onNavigate={handleStringNav}
+                />;
+      case View.EXPENSES:
+        return <ExpenseTracker 
+                  expenses={data.expenses || []}
+                  setExpenses={(e) => setData({...data, expenses: e})}
+                />;
+      case View.PLANNER: // Using StudyPlanner logic for general Tasks
+        return <StudyPlanner 
+                  assignments={data.assignments} 
+                  setAssignments={(a) => setData({...data, assignments: a})}
+                  isAdmin={isAdmin}
+                />;
+      case View.NOTES: // If previously existing, or we can use placeholder
+        return <Notes 
+                notes={data.notes || []}
+                setNotes={(n) => setData({...data, notes: n})}
+                isAdmin={isAdmin}
+               />;
+      case View.VAULT:
+        return <Vault 
+                user={data.user}
+                documents={data.vaultDocs || []}
+                saveDocuments={(d) => setData({...data, vaultDocs: d})}
+                isVerified={isVerified}
+               />;
+      case View.CV_BUILDER:
+        return <CVBuilder user={data.user} updateUser={handleUpdateUser} isVerified={isVerified} />;
+      case View.SCHOLARSHIPS:
+        return <ScholarshipTracker scholarships={data.scholarships} setScholarships={(s) => setData({...data, scholarships: s})} />;
       case View.AI_CHAT:
         return <AIChat 
           chatHistory={data.chatHistory || []}
@@ -216,13 +309,13 @@ function App() {
       case View.ADMIN_DASHBOARD:
         return isAdmin ? <AdminDashboard resetApp={handleFactoryReset} /> : <ErrorPage type="404" title="Access Denied" message="You do not have permission to view this page." />;
       default:
-        // Graceful fallback instead of crash
-        return <Dashboard user={data.user} isVerified={isVerified} username={currentUsername} />;
+        return <Dashboard user={data.user} isVerified={isVerified} username={currentUsername} expenses={data.expenses || []} onNavigate={handleStringNav} />;
     }
   };
 
   return (
     <div className="min-h-screen transition-colors duration-300">
+      <GlobalLoader isLoading={isLoading} />
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100 transition-colors duration-300">
         <div className="md:ml-64 min-h-screen transition-all">
           <main className="max-w-3xl mx-auto p-4 md:p-8 pt-8 md:pt-12">
@@ -231,7 +324,7 @@ function App() {
         </div>
         <Navigation 
           currentView={view} 
-          setView={setView} 
+          setView={handleViewChange} 
           isAdmin={currentUsername === ADMIN_USERNAME} 
           isVerified={isVerified}
         />

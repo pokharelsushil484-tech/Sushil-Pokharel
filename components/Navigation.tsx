@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Layout, Settings, LayoutDashboard, MessageCircle, Lock, BookOpen } from 'lucide-react';
+import { Layout, Settings, LayoutDashboard, MessageCircle, Lock, BookOpen, Wallet, ListChecks, CheckSquare } from 'lucide-react';
 import { View } from '../types';
 import { APP_NAME } from '../constants';
 
@@ -16,11 +16,13 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
   const isLocked = (view: View) => {
     if (isAdmin) return false;
     if (isVerified) return false;
-    return [View.AI_CHAT].includes(view);
+    return [View.AI_CHAT, View.EXPENSES].includes(view);
   };
 
   let navItems = [
-    { view: View.DASHBOARD, icon: Layout, label: 'Stream' },
+    { view: View.DASHBOARD, icon: Layout, label: 'Home' },
+    { view: View.PLANNER, icon: CheckSquare, label: 'Tasks' },
+    { view: View.EXPENSES, icon: Wallet, label: 'Wallet' },
     { view: View.AI_CHAT, icon: MessageCircle, label: 'AI Tutor' },
     { 
       view: View.SETTINGS, 
@@ -31,7 +33,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
 
   if (isAdmin) {
     navItems = [
-      { view: View.ADMIN_DASHBOARD, icon: LayoutDashboard, label: 'Classroom Manager' },
+      { view: View.ADMIN_DASHBOARD, icon: LayoutDashboard, label: 'Admin' },
       ...navItems
     ];
   }
@@ -44,7 +46,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
           <img src="/icon.png" alt="App Icon" className="w-10 h-10 rounded-xl shadow-md object-cover bg-indigo-50 dark:bg-gray-800" onError={(e) => e.currentTarget.style.display = 'none'} />
           <div>
             <h1 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight leading-none">{APP_NAME}</h1>
-            <p className="text-[10px] text-gray-400 font-semibold tracking-wider uppercase mt-1">Classroom</p>
+            <p className="text-[10px] text-gray-400 font-semibold tracking-wider uppercase mt-1">Productivity</p>
           </div>
         </div>
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto no-scrollbar">
@@ -91,7 +93,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
                   }`}
                 >
                   <div className={`p-1.5 rounded-xl transition-colors ${isActive ? 'bg-indigo-50 dark:bg-indigo-900/30' : ''}`}>
-                    <item.icon className={`w-6 h-6 ${isActive ? 'stroke-2' : 'stroke-[1.5]'}`} />
+                    <item.icon className={`w-5 h-5 ${isActive ? 'stroke-2' : 'stroke-[1.5]'}`} />
                   </div>
                   <span className={`text-[10px] font-medium ${isActive ? 'font-bold' : ''}`}>{item.label}</span>
                   {locked && (

@@ -331,7 +331,11 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin, resetUser }) => {
       setPassword('');
       setConfirmPassword('');
       // Clean URL if present
-      window.history.replaceState({}, document.title, window.location.pathname);
+      try {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (e) {
+          // Ignore history errors
+      }
     }
   };
 

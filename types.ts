@@ -5,6 +5,12 @@ export enum View {
   AI_CHAT = 'AI_CHAT',
   SETTINGS = 'SETTINGS',
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
+  EXPENSES = 'EXPENSES',
+  PLANNER = 'PLANNER', // Alias for StudyPlanner to be more generic
+  NOTES = 'NOTES',     // Alias for Notes view
+  VAULT = 'VAULT',
+  CV_BUILDER = 'CV_BUILDER',
+  SCHOLARSHIPS = 'SCHOLARSHIPS'
 }
 
 export enum TaskPriority {
@@ -170,4 +176,15 @@ export interface Post {
   likes: string[];
   comments: Comment[];
   attachments?: PostAttachment[];
+}
+
+// --- NEW PRODUCTIVITY TYPES ---
+
+export interface Expense {
+  id: string;
+  amount: number;
+  description: string;
+  category: string;
+  date: string;
+  type: 'INCOME' | 'EXPENSE';
 }
