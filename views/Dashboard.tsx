@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { UserProfile, Post, Comment, PostAttachment, Expense } from '../types';
-import { Megaphone, Heart, MessageCircle, Send, Paperclip, Image as ImageIcon, FileText, Download, X, Crown, BadgeCheck, AlertTriangle, Sun, Cloud, CloudRain, Flame, Wallet, ListChecks, Calendar } from 'lucide-react';
-import { ADMIN_USERNAME } from '../constants';
+import { UserProfile, Post, Expense } from '../types';
+import { Megaphone, Flame, Wallet, ListChecks, Sun, Cloud, CloudRain, CheckCircle2, Circle, ShieldCheck, Moon, Coffee, ArrowRight, Zap } from 'lucide-react';
 
 interface DashboardProps {
   user: UserProfile;
@@ -13,142 +12,180 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username, expenses, onNavigate }) => {
-  const [announcements, setAnnouncements] = useState<Post[]>([]);
-  const [commentText, setCommentText] = useState<{[key: string]: string}>({});
-  const [showComments, setShowComments] = useState<{[key: string]: boolean}>({});
   const [greeting, setGreeting] = useState('');
+  const [timeOfDay, setTimeOfDay] = useState<'MORNING' | 'AFTERNOON' | 'EVENING'>('MORNING');
   const [weather, setWeather] = useState<{temp: number, condition: string}>({ temp: 24, condition: 'Sunny' });
   
-  const isAdmin = username === ADMIN_USERNAME;
+  const [habits, setHabits] = useState<{id: string, name: string, done: boolean}[]>([
+      { id: '1', name: 'Drink Water (2L)', done: false },
+      { id: '2', name: 'Read for 15 mins', done: false },
+      { id: '3', name: 'Focus Session', done: false }
+  ]);
 
   useEffect(() => {
-    // Set Greeting
     const hour = new Date().getHours();
-    if (hour < 12) setGreeting('Good Morning');
-    else if (hour < 18) setGreeting('Good Afternoon');
-    else setGreeting('Good Evening');
+    if (hour < 12) {
+        setGreeting('Good Morning');
+        setTimeOfDay('MORNING');
+    } else if (hour < 18) {
+        setGreeting('Good Afternoon');
+        setTimeOfDay('AFTERNOON');
+    } else {
+        setGreeting('Good Evening');
+        setTimeOfDay('EVENING');
+    }
 
-    // Simulate Weather (Randomized slightly for "Realism" without API)
-    const conditions = ['Sunny', 'Cloudy', 'Partly Cloudy', 'Rain'];
     setWeather({
-        temp: Math.floor(Math.random() * (30 - 15) + 15),
-        condition: conditions[Math.floor(Math.random() * conditions.length)]
+        temp: Math.floor(Math.random() * (28 - 18) + 18),
+        condition: ['Sunny', 'Cloudy', 'Clear'][Math.floor(Math.random() * 3)]
     });
-
-    loadPosts();
   }, []);
 
-  const loadPosts = () => {
-    const postsStr = localStorage.getItem('studentpocket_global_posts');
-    if (postsStr) {
-        const loadedPosts: Post[] = JSON.parse(postsStr);
-        setAnnouncements(loadedPosts.map(p => ({
-            ...p,
-            likes: p.likes || [],
-            comments: p.comments || [],
-            attachments: p.attachments || []
-        })));
-    }
-  };
-
-  const getWeatherIcon = () => {
-      switch(weather.condition) {
-          case 'Rain': return <CloudRain className="text-blue-400" size={28} />;
-          case 'Cloudy': return <Cloud className="text-gray-400" size={28} />;
-          default: return <Sun className="text-yellow-400" size={28} />;
-      }
+  const toggleHabit = (id: string) => {
+      setHabits(habits.map(h => h.id === id ? { ...h, done: !h.done } : h));
   };
 
   const balance = expenses.reduce((acc, curr) => curr.type === 'INCOME' ? acc + curr.amount : acc - curr.amount, 0);
 
-  return (
-    <div className="space-y-6 pb-24 animate-fade-in">
-      
-      {/* Daily Briefing Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
-              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wide mb-1">{new Date().toLocaleDateString(undefined, {weekday: 'long', month: 'long', day: 'numeric'})}</p>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{greeting}, {user.name.split(' ')[0]}!</h1>
-              
-              <div className="flex items-center space-x-6">
-                  <div className="flex items-center bg-gray-50 dark:bg-gray-700 px-4 py-2 rounded-2xl">
-                      {getWeatherIcon()}
-                      <div className="ml-3">
-                          <p className="font-bold text-xl dark:text-white">{weather.temp}°C</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{weather.condition}</p>
-                      </div>
-                  </div>
-                  <div className="flex items-center">
-                      <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full mr-2">
-                          <Flame className="text-orange-500" size={20} />
-                      </div>
-                      <div>
-                          <p className="font-bold text-lg dark:text-white">{user.streak || 1} Day</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Daily Streak</p>
-                      </div>
-                  </div>
-              </div>
-          </div>
+  // Dynamic Background based on time
+  const getHeaderGradient = () => {
+      switch(timeOfDay) {
+          case 'MORNING': return 'from-orange-400 to-rose-500';
+          case 'AFTERNOON': return 'from-blue-400 to-indigo-500';
+          case 'EVENING': return 'from-indigo-600 to-purple-800';
+      }
+  };
 
-          {/* Quick Actions / Stats */}
-          <div className="grid grid-cols-2 gap-3">
-              <div 
-                onClick={() => onNavigate('EXPENSES')}
-                className="bg-indigo-600 text-white p-5 rounded-3xl shadow-lg shadow-indigo-200 dark:shadow-none cursor-pointer hover:bg-indigo-700 transition-colors flex flex-col justify-between"
-              >
-                  <Wallet size={24} className="opacity-80"/>
+  return (
+    <div className="space-y-6 animate-fade-in">
+      
+      {/* V2.0 Dynamic Header */}
+      <div className={`relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br ${getHeaderGradient()} shadow-xl shadow-indigo-200/50 dark:shadow-none p-8 text-white`}>
+          {/* Background Decor */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/3 blur-2xl"></div>
+
+          <div className="relative z-10">
+              <div className="flex justify-between items-start mb-6">
                   <div>
-                      <p className="text-indigo-100 text-xs font-bold uppercase mb-1">Balance</p>
-                      <p className="font-bold text-xl truncate">NPR {balance.toLocaleString()}</p>
+                      <p className="text-white/80 font-medium text-sm tracking-wide uppercase mb-1">
+                          {new Date().toLocaleDateString(undefined, {weekday: 'long', month: 'long', day: 'numeric'})}
+                      </p>
+                      <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
+                          {greeting}, <br/>
+                          <span className="opacity-90">{user.name.split(' ')[0]}</span>
+                      </h1>
+                  </div>
+                  <div className="bg-white/20 backdrop-blur-md p-3 rounded-2xl flex flex-col items-center min-w-[80px] border border-white/30">
+                      {timeOfDay === 'MORNING' ? <Sun className="mb-1 text-yellow-300" /> : 
+                       timeOfDay === 'AFTERNOON' ? <Cloud className="mb-1 text-white" /> : 
+                       <Moon className="mb-1 text-indigo-200" />}
+                      <span className="font-bold text-lg">{weather.temp}°</span>
                   </div>
               </div>
-              <div 
-                onClick={() => onNavigate('PLANNER')}
-                className="bg-white dark:bg-gray-800 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 cursor-pointer hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors flex flex-col justify-between"
-              >
-                  <ListChecks size={24} className="text-indigo-500"/>
-                  <div>
-                      <p className="text-gray-400 text-xs font-bold uppercase mb-1">Tasks</p>
-                      <p className="font-bold text-xl dark:text-white">View List</p>
+
+              <div className="flex gap-3">
+                  <div className="flex items-center bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10">
+                      <Flame size={16} className="text-orange-300 mr-2" />
+                      <span className="font-bold text-sm">{user.streak || 0} Day Streak</span>
+                  </div>
+                  <div className="flex items-center bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10">
+                      <ShieldCheck size={16} className="text-green-300 mr-2" />
+                      <span className="font-bold text-sm">{isVerified ? 'Verified Pro' : 'Private Mode'}</span>
                   </div>
               </div>
           </div>
       </div>
 
-      {/* Classroom Stream Feed (Existing Logic) */}
-      <div className="mt-8">
-          <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
-                  <Megaphone size={18} className="mr-2 text-indigo-500" /> Classroom Stream
-              </h2>
-          </div>
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           
-          <div className="space-y-4">
-              {announcements.length === 0 ? (
-                  <div className="text-center py-10 text-gray-400 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
-                      <p className="text-sm">No announcements yet.</p>
+          {/* Productivity Widget */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between h-64 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Zap size={100} className="text-indigo-500" />
+              </div>
+              
+              <div>
+                  <div className="flex justify-between items-center mb-4">
+                      <h2 className="font-bold text-gray-900 dark:text-white text-lg">Daily Habits</h2>
+                      <button className="bg-indigo-50 dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 p-2 rounded-xl">
+                          <Coffee size={18} />
+                      </button>
                   </div>
-              ) : (
-                  announcements.map(post => (
-                       <div key={post.id} className="bg-white dark:bg-gray-800 rounded-3xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden transition-all">
-                          <div className="flex items-center mb-3">
-                              <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-xs mr-3">
-                                  {post.author.charAt(0).toUpperCase()}
-                              </div>
-                              <div>
-                                  <p className="font-bold text-sm text-gray-800 dark:text-white">
-                                      {post.author === ADMIN_USERNAME ? 'Teacher' : post.author}
-                                  </p>
-                                  <p className="text-[10px] text-gray-400">{new Date(post.date).toLocaleDateString()}</p>
+                  <div className="space-y-3">
+                      {habits.map(habit => (
+                          <div 
+                            key={habit.id} 
+                            onClick={() => toggleHabit(habit.id)}
+                            className="flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-all"
+                          >
+                              <div className="flex items-center space-x-3">
+                                  {habit.done ? (
+                                      <CheckCircle2 className="text-green-500" size={20} />
+                                  ) : (
+                                      <Circle className="text-gray-300" size={20} />
+                                  )}
+                                  <span className={`text-sm font-medium ${habit.done ? 'text-gray-400 line-through' : 'text-gray-700 dark:text-gray-200'}`}>
+                                      {habit.name}
+                                  </span>
                               </div>
                           </div>
-                          
-                          <h4 className="font-bold text-base text-gray-900 dark:text-white mb-1">{post.title}</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">{post.content}</p>
-                       </div>
-                   ))
-              )}
+                      ))}
+                  </div>
+              </div>
+              
+              <div className="w-full bg-gray-100 dark:bg-gray-700 h-1.5 rounded-full mt-4 overflow-hidden">
+                  <div 
+                    className="bg-green-500 h-full rounded-full transition-all duration-1000" 
+                    style={{width: `${(habits.filter(h => h.done).length / habits.length) * 100}%`}}
+                  ></div>
+              </div>
           </div>
+
+          {/* Stats & Navigation Grid */}
+          <div className="grid grid-cols-2 gap-4 h-64">
+              
+              <div 
+                onClick={() => onNavigate('EXPENSES')}
+                className="bg-gray-900 dark:bg-black p-5 rounded-[2rem] shadow-lg text-white cursor-pointer hover:scale-[1.02] transition-transform flex flex-col justify-between"
+              >
+                  <div className="bg-white/10 w-10 h-10 rounded-full flex items-center justify-center">
+                      <Wallet size={20} />
+                  </div>
+                  <div>
+                      <p className="text-gray-400 text-xs font-bold uppercase mb-1">Balance</p>
+                      <p className="font-bold text-xl truncate">NPR {balance.toLocaleString()}</p>
+                  </div>
+              </div>
+
+              <div 
+                onClick={() => onNavigate('PLANNER')}
+                className="bg-indigo-50 dark:bg-indigo-900/20 p-5 rounded-[2rem] border border-indigo-100 dark:border-indigo-800 cursor-pointer hover:scale-[1.02] transition-transform flex flex-col justify-between"
+              >
+                  <div className="bg-indigo-100 dark:bg-indigo-800 w-10 h-10 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-300">
+                      <ListChecks size={20} />
+                  </div>
+                  <div>
+                      <p className="text-indigo-400 dark:text-indigo-300 text-xs font-bold uppercase mb-1">Tasks</p>
+                      <p className="font-bold text-gray-900 dark:text-white text-lg">View Planner</p>
+                  </div>
+              </div>
+
+              <div className="col-span-2 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-[2rem] p-5 text-white flex justify-between items-center cursor-pointer shadow-lg shadow-purple-200 dark:shadow-none hover:shadow-xl transition-shadow" onClick={() => onNavigate('AI_CHAT')}>
+                   <div>
+                       <p className="font-bold text-lg">AI Tutor</p>
+                       <p className="text-purple-100 text-xs">Ask anything</p>
+                   </div>
+                   <div className="bg-white/20 p-2 rounded-full">
+                       <ArrowRight size={20} />
+                   </div>
+              </div>
+          </div>
+      </div>
+
+      <div className="text-center pt-8 pb-4">
+          <p className="text-[10px] text-gray-400 font-medium">StudentPocket v2.0 • Secure Local Workspace</p>
       </div>
     </div>
   );

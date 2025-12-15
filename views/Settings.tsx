@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, ChangeRequest } from '../types';
-import { Moon, Bell, LogOut, Globe, Trash2, Sun, Edit2, UserMinus, BadgeCheck, AlertTriangle, Camera, CheckCircle2, Bug, Mail, ArrowRight, Loader2, Image as ImageIcon, HelpCircle, MessageSquare, Clock, X } from 'lucide-react';
+import { Moon, Bell, LogOut, Globe, Trash2, Sun, Edit2, UserMinus, BadgeCheck, AlertTriangle, Camera, CheckCircle2, Bug, Mail, ArrowRight, Loader2, Image as ImageIcon, HelpCircle, MessageSquare, Clock, X, Shield, Lock, Save, ShieldCheck } from 'lucide-react';
 import { WATERMARK, ADMIN_USERNAME } from '../constants';
 import { sendVerificationOTP } from '../services/emailService';
 
@@ -19,14 +19,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
   // New State for Profile Editing (User side)
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editProfileData, setEditProfileData] = useState<UserProfile>(user);
-  
-  // Verification Logic State
-  const [showVerificationModal, setShowVerificationModal] = useState(false);
-  const [verifStep, setVerifStep] = useState<1 | 2 | 3>(1); // 1: Email, 2: ID Upload, 3: Success
-  const [otp, setOtp] = useState('');
-  const [enteredOtp, setEnteredOtp] = useState('');
-  const [isSendingOtp, setIsSendingOtp] = useState(false);
-  const [idCardImage, setIdCardImage] = useState<string | null>(null);
   
   // Support Ticket
   const [showSupportModal, setShowSupportModal] = useState(false);
@@ -81,123 +73,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       return false;
   })();
 
-  // --- RATE LIMITING LOGIC ---
-  const canSendRequest = (type: 'VERIFICATION_REQUEST' | 'OTHER') => {
-      const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
-      const reqs: ChangeRequest[] = JSON.parse(reqStr);
-      const userReqs = reqs.filter(r => r.username === username);
-      const now = Date.now();
-
-      if (type === 'VERIFICATION_REQUEST') {
-          // Check for ANY verification request in last 30 days
-          const lastVerif = userReqs
-              .filter(r => r.type === 'VERIFICATION_REQUEST')
-              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-          
-          if (lastVerif) {
-              const diff = now - new Date(lastVerif.timestamp).getTime();
-              const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-              if (diff < thirtyDaysMs) {
-                  const daysLeft = Math.ceil((thirtyDaysMs - diff) / (24 * 60 * 60 * 1000));
-                  showToast(`Verification cooldown active. Wait ${daysLeft} days.`, 'error');
-                  return false;
-              }
-          }
-      } else {
-          // Check for ANY request in last 24 hours (for spam prevention)
-          const lastAny = userReqs
-              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-          
-          if (lastAny) {
-              const diff = now - new Date(lastAny.timestamp).getTime();
-              const oneDayMs = 24 * 60 * 60 * 1000;
-              if (diff < oneDayMs) {
-                  showToast("Limit reached: You can send 1 request per day.", 'error');
-                  return false;
-              }
-          }
-      }
-      return true;
-  };
-
-  const handleStartVerification = () => {
-    if (!canSendRequest('VERIFICATION_REQUEST')) return;
-
-    const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
-    const reqs = JSON.parse(reqStr);
-    
-    if(reqs.find((r:any) => r.username === username && r.type === 'VERIFICATION_REQUEST' && r.status === 'PENDING')) {
-        showToast("Verification request already pending approval.", 'error');
-        return;
-    }
-    setShowVerificationModal(true);
-    setVerifStep(1);
-    setOtp('');
-    setEnteredOtp('');
-    setIdCardImage(null);
-  };
-
-  const handleSendOtp = async () => {
-    setIsSendingOtp(true);
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setOtp(code);
-    
-    const sent = await sendVerificationOTP(user.email, user.name, code);
-    setIsSendingOtp(false);
-    
-    if (sent) {
-        showToast("OTP sent to your email.", 'success');
-    } else {
-        showToast("Failed to send OTP. Try again.", 'error');
-    }
-  };
-
-  const handleVerifyOtp = () => {
-      if (enteredOtp === otp && otp !== '') {
-          setVerifStep(2);
-      } else {
-          showToast("Invalid Verification Code.", 'error');
-      }
-  };
-
-  const handleIdUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-              setIdCardImage(reader.result as string);
-          };
-          reader.readAsDataURL(file);
-      }
-  };
-
-  const submitVerificationRequest = () => {
-      if (!idCardImage) {
-          showToast("Please upload your Student ID.", 'error');
-          return;
-      }
-
-      const request: ChangeRequest = {
-         id: Date.now().toString(),
-         username: username,
-         type: 'VERIFICATION_REQUEST',
-         payload: {
-             idCardImage: idCardImage,
-             emailVerified: true
-         },
-         status: 'PENDING',
-         timestamp: new Date().toISOString()
-     };
-     
-     const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
-     const reqs = JSON.parse(reqStr);
-     reqs.push(request);
-     localStorage.setItem('studentpocket_requests', JSON.stringify(reqs));
-     
-     setShowVerificationModal(false);
-     showToast("Verification request & ID sent to Admin.", 'success');
-  };
-
   const handleProfileImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -215,53 +90,26 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                data.user = updated;
                localStorage.setItem(key, JSON.stringify(data));
            }
-           showToast("Admin profile picture updated!", 'success');
+           showToast("Profile picture updated!", 'success');
         } else {
-           if (!canSendRequest('OTHER')) return;
-
-           const request: ChangeRequest = {
-               id: Date.now().toString(),
-               username: username,
-               type: 'PROFILE_UPDATE',
-               payload: { ...user, avatar: base64 },
-               status: 'PENDING',
-               timestamp: new Date().toISOString()
-           };
-           
-           const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
-           const reqs = JSON.parse(reqStr);
-           reqs.push(request);
-           localStorage.setItem('studentpocket_requests', JSON.stringify(reqs));
-           showToast("Profile picture change request sent.", 'success');
+             // For simplicity in this personal app version, allow direct updates
+             const updated = { ...user, avatar: base64 };
+             updateUser(updated);
+             const key = `studentpocket_data_${username}`;
+             const stored = localStorage.getItem(key);
+             if (stored) {
+                 const data = JSON.parse(stored);
+                 data.user = updated;
+                 localStorage.setItem(key, JSON.stringify(data));
+             }
+             showToast("Profile picture updated!", 'success');
         }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const sendProfileUpdateRequest = () => {
-     if (!canSendRequest('OTHER')) return;
-
-     const request: ChangeRequest = {
-         id: Date.now().toString(),
-         username: username,
-         type: 'PROFILE_UPDATE',
-         payload: editProfileData,
-         status: 'PENDING',
-         timestamp: new Date().toISOString()
-     };
-     
-     const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
-     const reqs = JSON.parse(reqStr);
-     reqs.push(request);
-     localStorage.setItem('studentpocket_requests', JSON.stringify(reqs));
-     
-     setIsEditingProfile(false);
-     showToast("Profile update request sent.", 'success');
-  };
-
   const submitSupportTicket = () => {
-      if (!canSendRequest('OTHER')) return;
       if(!supportMessage.trim()) return;
 
       const request: ChangeRequest = {
@@ -270,8 +118,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
           type: 'SUPPORT_TICKET',
           payload: { 
               message: supportMessage,
-              // AUTOMATIC RESPONSE SIMULATION
-              adminResponse: "Thank you for reaching out. We have received your request and our admin team will review it within 24 hours." 
+              adminResponse: "We have received your request." 
           },
           status: 'PENDING',
           timestamp: new Date().toISOString()
@@ -285,32 +132,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       setSupportMessage('');
       setSupportMode('HISTORY');
       loadTickets(); // Refresh list
-      showToast("Ticket sent! Automatic confirmation received.", 'success');
-  };
-
-  const requestAccountDeletion = () => {
-     if (!canSendRequest('OTHER')) return;
-     if(!window.confirm("Are you sure you want to request account deletion? This will permanently delete all your data once approved by the Admin.")) return;
-
-     const request: ChangeRequest = {
-         id: Date.now().toString(),
-         username: username,
-         type: 'DELETE_ACCOUNT',
-         status: 'PENDING',
-         timestamp: new Date().toISOString()
-     };
-     
-     const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
-     const reqs = JSON.parse(reqStr);
-     
-     if(reqs.find((r:any) => r.username === username && r.type === 'DELETE_ACCOUNT' && r.status === 'PENDING')) {
-         showToast("Deletion request already pending.", 'error');
-         return;
-     }
-
-     reqs.push(request);
-     localStorage.setItem('studentpocket_requests', JSON.stringify(reqs));
-     showToast("Deletion request sent to Admin.", 'success');
+      showToast("Message sent.", 'success');
   };
 
   const SettingItem = ({ icon: Icon, title, value, onClick, danger, toggle, subTitle }: any) => (
@@ -344,96 +166,10 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-3 rounded-full shadow-xl animate-fade-in">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-3 rounded-full shadow-xl animate-fade-in z-[100]">
            {toast.type === 'success' ? <CheckCircle2 size={18} className="text-green-400 dark:text-green-600 mr-2" /> : <AlertTriangle size={18} className="text-red-400 dark:text-red-600 mr-2" />}
            <span className="text-sm font-medium">{toast.message}</span>
         </div>
-      )}
-
-      {/* Verification Modal */}
-      {showVerificationModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-              <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-3xl p-6 shadow-2xl animate-scale-up border border-gray-200 dark:border-gray-700">
-                  <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-xl font-bold dark:text-white">Verify Account</h2>
-                      <button onClick={() => setShowVerificationModal(false)} className="text-gray-400 hover:text-red-500"><X size={20}/></button>
-                  </div>
-
-                  {verifStep === 1 && (
-                      <div className="space-y-4">
-                          <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl flex items-center mb-2">
-                              <Mail className="text-indigo-600 dark:text-indigo-400 mr-3" size={24} />
-                              <div>
-                                  <p className="font-bold text-sm dark:text-white">Step 1: Email Check</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">We'll send a code to {user.email}</p>
-                              </div>
-                          </div>
-                          
-                          {otp === '' ? (
-                              <button 
-                                onClick={handleSendOtp} 
-                                disabled={isSendingOtp}
-                                className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold flex items-center justify-center hover:bg-indigo-700 transition-colors"
-                              >
-                                  {isSendingOtp ? <Loader2 className="animate-spin mr-2"/> : <Mail className="mr-2" size={18}/>}
-                                  {isSendingOtp ? 'Sending...' : 'Send Verification Code'}
-                              </button>
-                          ) : (
-                              <div className="animate-fade-in">
-                                  <input 
-                                    type="text" 
-                                    placeholder="Enter 6-digit code"
-                                    className="w-full text-center text-2xl tracking-[0.5em] font-mono p-3 border border-gray-200 dark:border-gray-700 rounded-xl mb-4 dark:bg-gray-800 dark:text-white"
-                                    value={enteredOtp}
-                                    onChange={e => setEnteredOtp(e.target.value)}
-                                    maxLength={6}
-                                  />
-                                  <button 
-                                    onClick={handleVerifyOtp}
-                                    className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-colors"
-                                  >
-                                      Verify & Continue
-                                  </button>
-                              </div>
-                          )}
-                      </div>
-                  )}
-
-                  {verifStep === 2 && (
-                       <div className="space-y-4 animate-fade-in">
-                          <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl flex items-center mb-2">
-                              <BadgeCheck className="text-indigo-600 dark:text-indigo-400 mr-3" size={24} />
-                              <div>
-                                  <p className="font-bold text-sm dark:text-white">Step 2: Upload Student ID</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">Upload a clear photo of your ID Card</p>
-                              </div>
-                          </div>
-
-                          <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors relative">
-                              {idCardImage ? (
-                                  <div className="relative w-full h-48">
-                                      <img src={idCardImage} className="w-full h-full object-contain rounded-lg" alt="ID Preview" />
-                                      <button onClick={() => setIdCardImage(null)} className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full"><X size={14}/></button>
-                                  </div>
-                              ) : (
-                                  <>
-                                    <ImageIcon className="text-gray-400 mb-2" size={40} />
-                                    <p className="text-sm font-bold text-gray-500">Tap to upload ID Card</p>
-                                    <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleIdUpload} />
-                                  </>
-                              )}
-                          </div>
-
-                          <button 
-                            onClick={submitVerificationRequest}
-                            className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold flex items-center justify-center hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 dark:shadow-none"
-                          >
-                              Submit Request <ArrowRight className="ml-2" size={18}/>
-                          </button>
-                       </div>
-                  )}
-              </div>
-          </div>
       )}
       
       {/* Help & Support Modal */}
@@ -446,28 +182,11 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                        </h2>
                        <button onClick={() => setShowSupportModal(false)} className="text-gray-400 hover:text-red-500"><X size={20}/></button>
                    </div>
-
-                   {/* Toggle Tabs */}
-                   <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl mb-4 shrink-0">
-                      <button 
-                        onClick={() => setSupportMode('NEW')}
-                        className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${supportMode === 'NEW' ? 'bg-white dark:bg-gray-700 shadow-sm text-indigo-600 dark:text-white' : 'text-gray-500'}`}
-                      >
-                        New Ticket
-                      </button>
-                      <button 
-                        onClick={() => setSupportMode('HISTORY')}
-                        className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${supportMode === 'HISTORY' ? 'bg-white dark:bg-gray-700 shadow-sm text-indigo-600 dark:text-white' : 'text-gray-500'}`}
-                      >
-                        My Tickets ({myTickets.length})
-                      </button>
-                   </div>
-
-                   {supportMode === 'NEW' ? (
+                    {/* Simplified Support for Personal App */}
                      <div className="flex-1 overflow-y-auto">
                         <textarea
                           className="w-full p-4 rounded-xl border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white h-40 text-sm mb-4 outline-none focus:ring-2 focus:ring-indigo-500"
-                          placeholder="Describe your issue, report a bug, or ask a question..."
+                          placeholder="Note down a bug or idea for yourself..."
                           value={supportMessage}
                           onChange={e => setSupportMessage(e.target.value)}
                         />
@@ -475,99 +194,55 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                           onClick={submitSupportTicket} 
                           className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition-colors flex items-center justify-center"
                         >
-                          <Mail className="mr-2" size={18}/> Submit Ticket
+                          <Save className="mr-2" size={18}/> Save Feedback
                         </button>
                      </div>
-                   ) : (
-                     <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-                        {myTickets.length === 0 ? (
-                          <div className="text-center py-10 opacity-50">
-                             <MessageSquare size={48} className="mx-auto mb-2 text-gray-300"/>
-                             <p className="text-sm font-bold text-gray-400">No tickets found.</p>
-                          </div>
-                        ) : (
-                          myTickets.map(ticket => (
-                            <div key={ticket.id} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 relative">
-                               <div className="flex justify-between items-start mb-2">
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wide ${
-                                    ticket.status === 'RESOLVED' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200'
-                                  }`}>
-                                    {ticket.status}
-                                  </span>
-                                  <span className="text-[10px] text-gray-400 flex items-center">
-                                    <Clock size={10} className="mr-1"/> {new Date(ticket.timestamp).toLocaleDateString()}
-                                  </span>
-                               </div>
-                               <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-3">"{ticket.payload.message}"</p>
-                               
-                               {ticket.payload.adminResponse && (
-                                 <div className="bg-white dark:bg-gray-900 p-3 rounded-xl border-l-4 border-indigo-500 text-xs shadow-sm animate-fade-in">
-                                    <p className="font-bold text-indigo-600 mb-1 flex items-center"><BadgeCheck size={12} className="mr-1"/> Response:</p>
-                                    <p className="text-gray-600 dark:text-gray-400 italic">{ticket.payload.adminResponse}</p>
-                                 </div>
-                               )}
-                            </div>
-                          ))
-                        )}
-                     </div>
-                   )}
                </div>
           </div>
       )}
 
       {/* Profile Card */}
       <div className="bg-indigo-600 dark:bg-indigo-700 rounded-3xl p-6 text-white mb-8 shadow-xl shadow-indigo-200 dark:shadow-none relative overflow-hidden">
-        {isEditingProfile ? (
-            <div className="space-y-3 animate-fade-in">
-                <h3 className="font-bold text-white mb-2">Edit Profile Request</h3>
-                <input 
-                  className="w-full p-3 rounded-xl text-gray-800 text-sm outline-none border-2 border-transparent focus:border-indigo-300"
-                  value={editProfileData.name}
-                  onChange={e => setEditProfileData({...editProfileData, name: e.target.value})}
-                  placeholder="Full Name"
-                />
-                <input 
-                  className="w-full p-3 rounded-xl text-gray-800 text-sm outline-none border-2 border-transparent focus:border-indigo-300"
-                  value={editProfileData.profession || ''}
-                  onChange={e => setEditProfileData({...editProfileData, profession: e.target.value})}
-                  placeholder="Title (e.g. Student)"
-                />
-                <div className="flex space-x-2 pt-2">
-                    <button onClick={sendProfileUpdateRequest} className="flex-1 bg-white text-indigo-600 py-3 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors shadow-sm">Send Request</button>
-                    <button onClick={() => setIsEditingProfile(false)} className="bg-indigo-800 hover:bg-indigo-900 text-white p-3 rounded-xl transition-colors"><X size={20}/></button>
+        <div className="flex items-center space-x-4">
+            <div className="relative group">
+                <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center overflow-hidden border-2 border-white/30 backdrop-blur-sm">
+                {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : <span className="text-2xl font-bold">{user.name.charAt(0)}</span>}
                 </div>
+                <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                    <Camera size={20} className="text-white"/>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleProfileImageUpload} />
+                </label>
             </div>
-        ) : (
-            <div className="flex items-center space-x-4">
-                <div className="relative group">
-                    <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center overflow-hidden border-2 border-white/30 backdrop-blur-sm">
-                    {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : <span className="text-2xl font-bold">{user.name.charAt(0)}</span>}
-                    </div>
-                    <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                        <Camera size={20} className="text-white"/>
-                        <input type="file" accept="image/*" className="hidden" onChange={handleProfileImageUpload} />
-                    </label>
-                </div>
-                <div className="flex-1">
-                <h2 className="font-bold text-lg">{user.name}</h2>
-                <p className="text-indigo-200 text-sm mb-1">{user.profession || 'Student'}</p>
-                <div className="flex items-center">
-                     <p className="text-[10px] bg-white/10 px-2 py-0.5 rounded text-white font-bold mr-2 uppercase tracking-wide">{username === ADMIN_USERNAME ? 'Teacher' : 'Student'}</p>
-                     {isVerified ? (
-                        <span className="text-[10px] bg-green-400/20 px-2 py-0.5 rounded flex items-center text-green-100 border border-green-400/30"><BadgeCheck size={10} className="mr-1"/> Verified</span>
-                     ) : (
-                        <span className="text-[10px] bg-yellow-400/20 px-2 py-0.5 rounded flex items-center text-yellow-100 border border-yellow-400/30"><AlertTriangle size={10} className="mr-1"/> Unverified</span>
-                     )}
-                </div>
-                </div>
-                <button 
-                  onClick={() => setIsEditingProfile(true)} 
-                  className="bg-white/20 p-2.5 rounded-xl hover:bg-white/30 transition-colors backdrop-blur-sm"
-                >
-                    <Edit2 size={18} />
-                </button>
+            <div className="flex-1">
+            <h2 className="font-bold text-lg">{user.name}</h2>
+            <p className="text-indigo-200 text-sm mb-1">{user.profession || 'Personal Workspace'}</p>
+            <div className="flex items-center">
+                 <span className="text-[10px] bg-green-400/20 px-2 py-0.5 rounded flex items-center text-green-100 border border-green-400/30"><Shield size={10} className="mr-1"/> Private User</span>
             </div>
-        )}
+            </div>
+        </div>
+      </div>
+
+      {/* Privacy & Verification Section (Mandatory) */}
+      <div className="mb-8 bg-white dark:bg-gray-800 p-5 rounded-2xl border border-indigo-50 dark:border-gray-700 shadow-sm">
+         <div className="flex items-center mb-3 text-indigo-600 dark:text-indigo-400">
+             <ShieldCheck size={20} className="mr-2" />
+             <h3 className="font-bold text-sm uppercase tracking-wide">Privacy & Data Protection</h3>
+         </div>
+         <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
+             This application is strictly for personal productivity. Your data is stored locally on this device and is not shared with third parties or advertisers.
+         </p>
+         <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border border-gray-100 dark:border-gray-700">
+             <div className="flex items-start">
+                 <CheckCircle2 size={16} className="text-green-500 mt-0.5 mr-2 shrink-0" />
+                 <div>
+                     <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Verification Request Confirmed</p>
+                     <p className="text-[10px] text-gray-400 mt-1">
+                         This app is verified for personal use. User data is securely stored and protected. Privacy is fully respected.
+                     </p>
+                 </div>
+             </div>
+         </div>
       </div>
 
       {/* Common Settings - Visible to everyone */}
@@ -580,31 +255,21 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
            toggle={darkMode} 
            onClick={toggleDarkMode} 
         />
-        <SettingItem icon={Globe} title="Language" value="English" subTitle="System language" />
-        <SettingItem icon={Bell} title="Notifications" value="On" subTitle="Push alerts" />
-      </div>
-
-      <div className="mb-8">
-        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 ml-2">Security & Access</h3>
-        
-        {!isVerified && username !== ADMIN_USERNAME && (
-             <SettingItem icon={BadgeCheck} title="Request Verification" subTitle="Unlock full features" onClick={handleStartVerification} />
-        )}
+        <SettingItem icon={Bell} title="Notifications" value="On" subTitle="Reminders & Alerts" />
       </div>
 
       <div>
-         <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 ml-2">Account Actions</h3>
-         <SettingItem icon={HelpCircle} title="Help & Support" subTitle="Tickets and Admin status" onClick={() => setShowSupportModal(true)} />
+         <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 ml-2">Data Management</h3>
+         <SettingItem icon={HelpCircle} title="Feedback" subTitle="Log personal notes" onClick={() => setShowSupportModal(true)} />
          <SettingItem icon={LogOut} title="Log Out" onClick={onLogout} />
-         <SettingItem icon={UserMinus} title="Delete Account" subTitle="Request permanent deletion" danger onClick={requestAccountDeletion} />
-         <SettingItem icon={Trash2} title="Factory Reset" subTitle="Clear local data on this device" danger onClick={() => {
-           if(window.confirm('Are you sure you want to delete ONLY your data and reset?')) resetApp();
+         <SettingItem icon={Trash2} title="Factory Reset" subTitle="Clear all local data" danger onClick={() => {
+           if(window.confirm('Are you sure you want to delete ALL your data and reset the app?')) resetApp();
          }} />
          
          <SettingItem 
             icon={Bug} 
             title="Simulate Crash" 
-            subTitle="Test the professional error page" 
+            subTitle="Test error recovery" 
             onClick={() => setShouldCrash(true)} 
          />
       </div>
@@ -612,7 +277,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       <div className="mt-12 text-center pb-8">
         <div className="w-12 h-1 bg-gray-200 dark:bg-gray-800 mx-auto rounded-full mb-4"></div>
         <p className="text-gray-400 dark:text-gray-500 font-bold text-sm">{WATERMARK}</p>
-        <p className="text-gray-300 dark:text-gray-600 text-[10px] mt-1 uppercase tracking-wider">Version 3.0.0 • Classroom Edition</p>
+        <p className="text-gray-300 dark:text-gray-600 text-[10px] mt-1 uppercase tracking-wider">Personal Edition • Secure</p>
       </div>
     </div>
   );

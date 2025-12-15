@@ -1,38 +1,39 @@
 
 import { UserProfile } from './types';
 
-export const ADMIN_USERNAME = "sushilpokharel";
+export const APP_VERSION = "2.0.0"; // Increment to force reset
+export const ADMIN_USERNAME = "admin"; // Simplified for generic use
 
 export const DEFAULT_USER: UserProfile = {
-  name: "Sushil Pokharel",
-  profession: "Computer Science Student",
-  email: "pokharelsushil242@gmail.com",
-  phone: "9765226385",
-  education: "+2 Completed",
-  institution: "Nobel Academy",
-  country: "Nepal",
-  studyPreference: "Morning person, visual learner",
-  personalStatement: "Motivated and dedicated student with a strong passion for learning and self-improvement. Eager to apply academic knowledge in practical settings.",
-  skills: ["Communication", "Leadership", "Microsoft Office", "Time Management"],
+  name: "Student",
+  profession: "Lifelong Learner",
+  email: "student@example.com",
+  phone: "",
+  education: "University",
+  institution: "Campus",
+  country: "Global",
+  studyPreference: "Flexible",
+  personalStatement: "Focused on personal growth and academic excellence.",
+  skills: ["Time Management", "Planning"],
   experience: [],
   projects: [],
   certifications: [],
   awards: [],
-  languages: [{ id: '1', language: 'English', proficiency: 'Fluent' }, { id: '2', language: 'Nepali', proficiency: 'Native' }],
-  interests: ["Technology", "Reading", "Travel"],
-  streak: 1,
-  points: 150,
-  rank: 1204,
-  isPro: false
+  languages: [{ id: '1', language: 'English', proficiency: 'Fluent' }],
+  interests: ["Technology", "Productivity"],
+  streak: 0,
+  points: 0,
+  rank: 0,
+  isPro: true
 };
 
-export const APP_NAME = "Sushil Pokharel";
-export const WATERMARK = "Created by Sushil Pokharel";
-export const ADMIN_EMAIL = "pokharelsushil242@gmail.com";
+export const APP_NAME = "StudentPocket";
+export const WATERMARK = "StudentPocket v2.0 • Personal Edition";
+export const ADMIN_EMAIL = "support@studentpocket.app";
 
 export const MOTIVATIONAL_QUOTES = [
-  "Education is the passport to the future.",
-  "The beautiful thing about learning is that no one can take it away from you.",
-  "Don't watch the clock; do what it does. Keep going.",
-  "Believe you can and you're halfway there."
+  "The best way to predict the future is to create it.",
+  "Small daily improvements are the key to staggering long-term results.",
+  "Focus on being productive instead of busy.",
+  "Discipline is choosing between what you want now and what you want most."
 ];
