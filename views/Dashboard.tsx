@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, Post, Expense } from '../types';
-import { Megaphone, Flame, Wallet, ListChecks, Sun, Cloud, CloudRain, CheckCircle2, Circle, ShieldCheck, Moon, Coffee, ArrowRight, Zap } from 'lucide-react';
+import { Megaphone, Flame, Wallet, ListChecks, Sun, Cloud, CloudRain, CheckCircle2, Circle, ShieldCheck, Moon, Coffee, ArrowRight, Zap, BadgeCheck, Sparkles } from 'lucide-react';
 
 interface DashboardProps {
   user: UserProfile;
@@ -59,7 +59,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username
   return (
     <div className="space-y-6 animate-fade-in">
       
-      {/* V2.0 Dynamic Header */}
+      {/* V2.0 Dynamic Header with Professional Status */}
       <div className={`relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br ${getHeaderGradient()} shadow-xl shadow-indigo-200/50 dark:shadow-none p-8 text-white`}>
           {/* Background Decor */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl"></div>
@@ -71,10 +71,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username
                       <p className="text-white/80 font-medium text-sm tracking-wide uppercase mb-1">
                           {new Date().toLocaleDateString(undefined, {weekday: 'long', month: 'long', day: 'numeric'})}
                       </p>
-                      <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
+                      <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2 flex items-center">
                           {greeting}, <br/>
                           <span className="opacity-90">{user.name.split(' ')[0]}</span>
+                          {isVerified && (
+                              <BadgeCheck className="ml-2 text-blue-200 fill-white/20 animate-pulse-slow shrink-0" size={32} />
+                          )}
                       </h1>
+                      {isVerified && user.profession && (
+                          <div className="flex items-center space-x-2 text-indigo-100/80 font-bold uppercase tracking-widest text-[10px]">
+                              <Sparkles size={12}/>
+                              <span>Verified {user.profession}</span>
+                          </div>
+                      )}
                   </div>
                   <div className="bg-white/20 backdrop-blur-md p-3 rounded-2xl flex flex-col items-center min-w-[80px] border border-white/30">
                       {timeOfDay === 'MORNING' ? <Sun className="mb-1 text-yellow-300" /> : 
@@ -85,13 +94,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username
               </div>
 
               <div className="flex gap-3">
-                  <div className="flex items-center bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10">
+                  <div className="flex items-center bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 shadow-inner">
                       <Flame size={16} className="text-orange-300 mr-2" />
-                      <span className="font-bold text-sm">{user.streak || 0} Day Streak</span>
+                      <span className="font-bold text-[11px] uppercase tracking-wide">{user.streak || 0} Day Streak</span>
                   </div>
-                  <div className="flex items-center bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10">
-                      <ShieldCheck size={16} className="text-green-300 mr-2" />
-                      <span className="font-bold text-sm">{isVerified ? 'Verified Pro' : 'Private Mode'}</span>
+                  <div className="flex items-center bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 shadow-inner">
+                      <ShieldCheck size={16} className={`${isVerified ? 'text-green-300' : 'text-gray-300'} mr-2`} />
+                      <span className="font-bold text-[11px] uppercase tracking-wide">{isVerified ? 'Elite Profile' : 'Standard Account'}</span>
                   </div>
               </div>
           </div>
@@ -108,10 +117,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username
               
               <div>
                   <div className="flex justify-between items-center mb-4">
-                      <h2 className="font-bold text-gray-900 dark:text-white text-lg">Daily Habits</h2>
-                      <button className="bg-indigo-50 dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 p-2 rounded-xl">
-                          <Coffee size={18} />
-                      </button>
+                      <h2 className="font-bold text-gray-900 dark:text-white text-lg flex items-center">
+                          <Coffee size={18} className="mr-2 text-indigo-500" /> Daily Habits
+                      </h2>
                   </div>
                   <div className="space-y-3">
                       {habits.map(habit => (
@@ -137,7 +145,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username
               
               <div className="w-full bg-gray-100 dark:bg-gray-700 h-1.5 rounded-full mt-4 overflow-hidden">
                   <div 
-                    className="bg-green-500 h-full rounded-full transition-all duration-1000" 
+                    className="bg-green-500 h-full rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(34,197,94,0.3)]" 
                     style={{width: `${(habits.filter(h => h.done).length / habits.length) * 100}%`}}
                   ></div>
               </div>
@@ -148,13 +156,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username
               
               <div 
                 onClick={() => onNavigate('EXPENSES')}
-                className="bg-gray-900 dark:bg-black p-5 rounded-[2rem] shadow-lg text-white cursor-pointer hover:scale-[1.02] transition-transform flex flex-col justify-between"
+                className="bg-gray-900 dark:bg-black p-5 rounded-[2rem] shadow-lg text-white cursor-pointer hover:scale-[1.02] transition-transform flex flex-col justify-between border border-white/5"
               >
-                  <div className="bg-white/10 w-10 h-10 rounded-full flex items-center justify-center">
+                  <div className="bg-white/10 w-10 h-10 rounded-2xl flex items-center justify-center">
                       <Wallet size={20} />
                   </div>
                   <div>
-                      <p className="text-gray-400 text-xs font-bold uppercase mb-1">Balance</p>
+                      <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Financial Power</p>
                       <p className="font-bold text-xl truncate">NPR {balance.toLocaleString()}</p>
                   </div>
               </div>
@@ -163,21 +171,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username
                 onClick={() => onNavigate('PLANNER')}
                 className="bg-indigo-50 dark:bg-indigo-900/20 p-5 rounded-[2rem] border border-indigo-100 dark:border-indigo-800 cursor-pointer hover:scale-[1.02] transition-transform flex flex-col justify-between"
               >
-                  <div className="bg-indigo-100 dark:bg-indigo-800 w-10 h-10 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-300">
+                  <div className="bg-indigo-100 dark:bg-indigo-800 w-10 h-10 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-300">
                       <ListChecks size={20} />
                   </div>
                   <div>
-                      <p className="text-indigo-400 dark:text-indigo-300 text-xs font-bold uppercase mb-1">Tasks</p>
-                      <p className="font-bold text-gray-900 dark:text-white text-lg">View Planner</p>
+                      <p className="text-indigo-400 dark:text-indigo-300 text-[10px] font-bold uppercase tracking-widest mb-1">Task Force</p>
+                      <p className="font-bold text-gray-900 dark:text-white text-lg">My Planner</p>
                   </div>
               </div>
 
-              <div className="col-span-2 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-[2rem] p-5 text-white flex justify-between items-center cursor-pointer shadow-lg shadow-purple-200 dark:shadow-none hover:shadow-xl transition-shadow" onClick={() => onNavigate('AI_CHAT')}>
-                   <div>
-                       <p className="font-bold text-lg">AI Tutor</p>
-                       <p className="text-purple-100 text-xs">Ask anything</p>
+              <div className="col-span-2 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-[2rem] p-5 text-white flex justify-between items-center cursor-pointer shadow-lg shadow-purple-200 dark:shadow-none hover:shadow-xl transition-all active:scale-[0.98]" onClick={() => onNavigate('AI_CHAT')}>
+                   <div className="flex items-center space-x-3">
+                       <div className="bg-white/20 p-2.5 rounded-2xl backdrop-blur-md">
+                           <Sparkles size={20} />
+                       </div>
+                       <div>
+                           <p className="font-bold text-lg tracking-tight">Personal AI Expert</p>
+                           <p className="text-purple-100 text-[10px] font-bold uppercase tracking-widest opacity-80">Online & Ready</p>
+                       </div>
                    </div>
-                   <div className="bg-white/20 p-2 rounded-full">
+                   <div className="bg-white/20 p-2 rounded-full group-hover:bg-white/30 transition-colors">
                        <ArrowRight size={20} />
                    </div>
               </div>
@@ -185,7 +198,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username
       </div>
 
       <div className="text-center pt-8 pb-4">
-          <p className="text-[10px] text-gray-400 font-medium">StudentPocket v2.0 • Secure Local Workspace</p>
+          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] opacity-60">Master Edition • StudentPocket v2.0</p>
       </div>
     </div>
   );
