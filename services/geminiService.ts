@@ -2,17 +2,13 @@
 import { GoogleGenAI } from "@google/genai";
 import { UserProfile } from "../types";
 
-// Always use new GoogleGenAI({apiKey: process.env.API_KEY}) as per guidelines.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export const summarizeNote = async (text: string): Promise<string> => {
   try {
-    // Using 'gemini-3-flash-preview' for basic text tasks like summarization.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `You are a helpful study assistant for a student named Sushil. Summarize the following study notes into bullet points and suggest 2 review questions:\n\n${text}`,
     });
-    // Accessing .text property directly instead of calling a method.
     return response.text || "Could not generate summary.";
   } catch (error) {
     console.error("Gemini Error:", error);
@@ -22,7 +18,7 @@ export const summarizeNote = async (text: string): Promise<string> => {
 
 export const generateStudyPlan = async (subject: string, hours: string): Promise<string> => {
   try {
-    // Using 'gemini-3-flash-preview' for plan generation.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `Create a simple, structured ${hours}-hour study plan for the subject: ${subject}. Break it down into sessions with breaks. Format as a clean list.`,
@@ -36,12 +32,12 @@ export const generateStudyPlan = async (subject: string, hours: string): Promise
 
 export const generateUserBadge = async (profile: UserProfile, extraContext: string = ""): Promise<string> => {
     try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const prompt = `Based on this student profile and activity, generate a single creative, 2-3 word achievement badge name (e.g., "Physics Whiz", "Code Warrior", "Night Owl") with a matching emoji. 
         Profile: Profession: ${profile.profession}, Education: ${profile.education}, Skills: ${profile.skills.join(', ')}, Interests: ${profile.interests.join(', ')}.
         Activity Context: ${extraContext}
         Return ONLY the emoji and badge name.`;
         
-        // Using 'gemini-3-flash-preview' for creative tasks.
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
             contents: prompt,
@@ -55,7 +51,7 @@ export const generateUserBadge = async (profile: UserProfile, extraContext: stri
 
 export const chatWithAI = async (message: string): Promise<string> => {
   try {
-    // Using 'gemini-3-flash-preview' for conversational Q&A.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: message,

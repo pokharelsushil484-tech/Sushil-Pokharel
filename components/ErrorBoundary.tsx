@@ -11,7 +11,8 @@ interface State {
   error: Error | null;
 }
 
-export class ErrorBoundary extends React.Component<Props, State> {
+// Fix: Directly extending 'Component' ensures proper type inheritance for React class components in TypeScript
+export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
     error: null,
@@ -28,6 +29,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   private handleReset = () => {
+    // Fix: Accessing 'setState' which is inherited from 'Component'
     // Attempt to recover by resetting error state
     this.setState({ hasError: false, error: null });
   };
@@ -44,6 +46,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
       );
     }
 
+    // Fix: Accessing 'props' which is inherited from 'Component'
     return this.props.children;
   }
 }

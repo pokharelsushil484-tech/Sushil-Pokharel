@@ -41,7 +41,7 @@ const INITIAL_DATA: AppData = {
 };
 
 function App() {
-  const [view, setView] = useState<View>(View.ONBOARDING);
+  const [view, setView] = useState<View>(View.DASHBOARD);
   const [currentUsername, setCurrentUsername] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
@@ -58,12 +58,6 @@ function App() {
   useEffect(() => {
       const storedVersion = localStorage.getItem('studentpocket_version');
       if (storedVersion !== APP_VERSION) {
-          console.log("New version detected. Performing reset/migration...");
-          // Keep critical user verification if possible, but for a "Reset" request, we clear data
-          // However, we don't want to annoy returning users too much, so let's just clear cache-like items
-          // Or if strict reset is requested:
-          // localStorage.clear(); // Uncomment for hard reset
-          
           localStorage.setItem('studentpocket_version', APP_VERSION);
       }
   }, []);
@@ -85,14 +79,6 @@ function App() {
 
   // Handle URL Reset Links
   useEffect(() => {
-    if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
-        try {
-            window.history.replaceState(null, '', '/' + window.location.search);
-        } catch (e) {
-            // Ignore history errors
-        }
-    }
-
     const params = new URLSearchParams(window.location.search);
     const mode = params.get('mode');
     const user = params.get('user');
@@ -195,7 +181,7 @@ function App() {
     setIsLoading(true);
     setTimeout(() => {
         setCurrentUsername(null);
-        setView(View.ONBOARDING); 
+        setView(View.DASHBOARD); 
         setIsLoading(false);
     }, 800);
   };
@@ -213,11 +199,17 @@ function App() {
       return <SplashScreen onFinish={() => setShowSplash(false)} />;
   }
 
-  const MainContent = () => {
-      if (!currentUsername) {
-        return <Login user={null} onLogin={handleLogin} resetUser={resetUser} />;
-      }
+  // Auth Guard Logic
+  if (!currentUsername) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100 transition-colors duration-300">
+        <GlobalLoader isLoading={isLoading} />
+        <Login user={null} onLogin={handleLogin} resetUser={resetUser} />
+      </div>
+    );
+  }
 
+  const MainContent = () => {
       if (!data.user) {
         return <Onboarding onComplete={handleOnboardingComplete} />;
       }
