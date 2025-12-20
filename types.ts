@@ -33,6 +33,7 @@ export interface UserProfile {
   streak?: number;
   points?: number;
   isPro?: boolean;
+  acceptedTermsVersion?: string; // Tracks the monthly version accepted
 }
 
 export interface Assignment {

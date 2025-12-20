@@ -1,8 +1,12 @@
 
 import { UserProfile } from './types';
 
-export const APP_VERSION = "3.0.0"; 
+export const APP_VERSION = "3.1.0"; 
 export const ADMIN_USERNAME = "admin"; 
+
+// Generates a monthly version string like "2023-10"
+const now = new Date();
+export const CURRENT_TERMS_VERSION = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
 export const DEFAULT_USER: UserProfile = {
   name: "User",
@@ -14,7 +18,8 @@ export const DEFAULT_USER: UserProfile = {
   interests: ["Technology", "Health"],
   streak: 0,
   points: 0,
-  isPro: true
+  isPro: true,
+  acceptedTermsVersion: ""
 };
 
 export const APP_NAME = "StudentPocket – By Sushil";

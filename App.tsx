@@ -14,9 +14,10 @@ import { Vault } from './views/Vault';
 import { ExpenseTracker } from './views/ExpenseTracker';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
+import { TermsModal } from './components/TermsModal';
 
 import { View, UserProfile, Assignment, ChatMessage, Expense, Note, VaultDocument } from './types';
-import { ADMIN_USERNAME, APP_VERSION } from './constants';
+import { ADMIN_USERNAME, APP_VERSION, CURRENT_TERMS_VERSION } from './constants';
 
 const LockedView = () => (
   <div className="h-[70vh] flex flex-col items-center justify-center animate-fade-in perspective-3d">
@@ -40,6 +41,7 @@ function App() {
   const [currentUsername, setCurrentUsername] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
+  const [showTerms, setShowTerms] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('studentpocket_theme') === 'true');
   const [data, setData] = useState({
     user: null as UserProfile | null,
@@ -68,7 +70,15 @@ function App() {
       if (stored) {
         const parsed = JSON.parse(stored);
         setData(parsed);
-        setView(parsed.user ? (currentUsername === ADMIN_USERNAME ? View.ADMIN_DASHBOARD : View.DASHBOARD) : View.ONBOARDING);
+        // If logged in and has a profile, check if terms are accepted
+        if (parsed.user) {
+          if (parsed.user.acceptedTermsVersion !== CURRENT_TERMS_VERSION) {
+            setShowTerms(true);
+          }
+          setView(currentUsername === ADMIN_USERNAME ? View.ADMIN_DASHBOARD : View.DASHBOARD);
+        } else {
+          setView(View.ONBOARDING);
+        }
       } else {
         setView(View.ONBOARDING);
       }
@@ -85,6 +95,14 @@ function App() {
     darkMode ? document.documentElement.classList.add('dark') : document.documentElement.classList.remove('dark');
     localStorage.setItem('studentpocket_theme', String(darkMode));
   }, [darkMode]);
+
+  const handleAcceptTerms = () => {
+    if (data.user) {
+      const updatedUser = { ...data.user, acceptedTermsVersion: CURRENT_TERMS_VERSION };
+      setData(prev => ({ ...prev, user: updatedUser }));
+      setShowTerms(false);
+    }
+  };
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
 
@@ -132,6 +150,7 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans transition-all duration-300 overflow-x-hidden">
       <GlobalLoader isLoading={isLoading} />
+      {showTerms && <TermsModal onAccept={handleAcceptTerms} />}
       <div className="md:ml-20 lg:ml-64 min-h-screen transition-all">
         <main className="max-w-6xl mx-auto p-4 md:p-10 pt-6 pb-24 md:pb-10 perspective-3d">
             <MainContent />
