@@ -43,14 +43,17 @@ function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [showTerms, setShowTerms] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('studentpocket_theme') === 'true');
-  const [data, setData] = useState({
+  
+  const initialData = {
     user: null as UserProfile | null,
     assignments: [] as Assignment[],
     chatHistory: [] as ChatMessage[],
     expenses: [] as Expense[],
     notes: [] as Note[],
     vaultDocs: [] as VaultDocument[]
-  });
+  };
+
+  const [data, setData] = useState(initialData);
 
   const isVerified = (() => {
     if (!currentUsername) return false;
@@ -68,18 +71,35 @@ function App() {
       const storageKey = `studentpocket_data_${currentUsername}`;
       const stored = localStorage.getItem(storageKey);
       if (stored) {
-        const parsed = JSON.parse(stored);
-        setData(parsed);
-        // If logged in and has a profile, check if terms are accepted
-        if (parsed.user) {
-          if (parsed.user.acceptedTermsVersion !== CURRENT_TERMS_VERSION) {
-            setShowTerms(true);
+        try {
+          const parsed = JSON.parse(stored);
+          // Maximize bug fix level: Ensure all arrays and sub-objects are present
+          setData({
+            ...initialData,
+            ...parsed,
+            user: parsed.user || null,
+            assignments: parsed.assignments || [],
+            chatHistory: parsed.chatHistory || [],
+            expenses: parsed.expenses || [],
+            notes: parsed.notes || [],
+            vaultDocs: parsed.vaultDocs || []
+          });
+
+          if (parsed.user) {
+            if (parsed.user.acceptedTermsVersion !== CURRENT_TERMS_VERSION) {
+              setShowTerms(true);
+            }
+            setView(currentUsername === ADMIN_USERNAME ? View.ADMIN_DASHBOARD : View.DASHBOARD);
+          } else {
+            setView(View.ONBOARDING);
           }
-          setView(currentUsername === ADMIN_USERNAME ? View.ADMIN_DASHBOARD : View.DASHBOARD);
-        } else {
+        } catch (e) {
+          console.error("Failed to parse stored data", e);
+          setData(initialData);
           setView(View.ONBOARDING);
         }
       } else {
+        setData(initialData);
         setView(View.ONBOARDING);
       }
     }
@@ -115,35 +135,39 @@ function App() {
     );
   }
 
-  const MainContent = () => {
+  const renderContent = () => {
     if (!data.user) return <Onboarding onComplete={(p) => { setIsLoading(true); setTimeout(() => { setData(prev => ({...prev, user: p})); setView(View.DASHBOARD); setIsLoading(false); }, 1000); }} />;
     
     const isAdmin = currentUsername === ADMIN_USERNAME;
     
-    // DASHBOARD ACCESS CONTROL
     if (!isVerified && view !== View.DASHBOARD && view !== View.SETTINGS && view !== View.ONBOARDING) {
         return <LockedView />;
     }
 
     switch (view) {
       case View.DASHBOARD:
-        return <Dashboard user={data.user} isVerified={isVerified} username={currentUsername} expenses={data.expenses} onNavigate={(v: any) => setView(v)} />;
+        return <Dashboard user={data.user} isVerified={isVerified} username={currentUsername} expenses={data.expenses} onNavigate={setView} />;
       case View.EXPENSES:
-        return <ExpenseTracker expenses={data.expenses} setExpenses={(e) => setData({...data, expenses: e})} />;
+        // Fix: Removed unnecessary function check that caused type error because 'e' is strictly typed as an array in child props
+        return <ExpenseTracker expenses={data.expenses} setExpenses={(e) => setData(prev => ({...prev, expenses: e}))} />;
       case View.PLANNER:
-        return <StudyPlanner assignments={data.assignments} setAssignments={(a) => setData({...data, assignments: a})} isAdmin={isAdmin} />;
+        // Fix: Removed unnecessary function check that caused type error because 'a' is strictly typed as an array in child props
+        return <StudyPlanner assignments={data.assignments} setAssignments={(a) => setData(prev => ({...prev, assignments: a}))} isAdmin={isAdmin} />;
       case View.NOTES:
-        return <Notes notes={data.notes} setNotes={(n) => setData({...data, notes: n})} isAdmin={isAdmin} />;
+        // Fix: Removed unnecessary function check that caused type error because 'n' is strictly typed as an array in child props
+        return <Notes notes={data.notes} setNotes={(n) => setData(prev => ({...prev, notes: n}))} isAdmin={isAdmin} />;
       case View.VAULT:
-        return <Vault user={data.user} documents={data.vaultDocs} saveDocuments={(d) => setData({...data, vaultDocs: d})} isVerified={isVerified} />;
+        // Fix: Removed unnecessary function check that caused type error because 'd' is strictly typed as an array in child props
+        return <Vault user={data.user} documents={data.vaultDocs} saveDocuments={(d) => setData(prev => ({...prev, vaultDocs: d}))} isVerified={isVerified} />;
       case View.AI_CHAT:
-        return <AIChat chatHistory={data.chatHistory} setChatHistory={(msg) => setData({...data, chatHistory: msg})} isVerified={isVerified} />;
+        // Fix: Removed unnecessary function check that caused type error because 'msg' is strictly typed as an array in child props
+        return <AIChat chatHistory={data.chatHistory} setChatHistory={(msg) => setData(prev => ({...prev, chatHistory: msg}))} isVerified={isVerified} />;
       case View.SETTINGS:
-        return <Settings user={data.user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={() => setCurrentUsername(null)} username={currentUsername} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={(u) => setData({...data, user: u})} />;
+        return <Settings user={data.user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={() => setCurrentUsername(null)} username={currentUsername} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={(u) => setData(prev => ({...prev, user: u}))} />;
       case View.ADMIN_DASHBOARD:
         return isAdmin ? <AdminDashboard resetApp={() => { localStorage.clear(); window.location.reload(); }} /> : <ErrorPage type="404" title="Forbidden" message="Only Sushil's Admin account can enter." />;
       default:
-        return <Dashboard user={data.user} isVerified={isVerified} username={currentUsername} expenses={data.expenses} onNavigate={(v: any) => setView(v)} />;
+        return <Dashboard user={data.user} isVerified={isVerified} username={currentUsername} expenses={data.expenses} onNavigate={setView} />;
     }
   };
 
@@ -153,7 +177,7 @@ function App() {
       {showTerms && <TermsModal onAccept={handleAcceptTerms} />}
       <div className="md:ml-20 lg:ml-64 min-h-screen transition-all">
         <main className="max-w-6xl mx-auto p-4 md:p-10 pt-6 pb-24 md:pb-10 perspective-3d">
-            <MainContent />
+            {renderContent()}
         </main>
       </div>
       <Navigation currentView={view} setView={setView} isAdmin={currentUsername === ADMIN_USERNAME} isVerified={isVerified} />

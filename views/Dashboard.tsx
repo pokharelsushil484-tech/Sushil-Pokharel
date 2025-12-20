@@ -12,7 +12,7 @@ interface DashboardProps {
   onNavigate: (view: View) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username, expenses, onNavigate }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username, expenses = [], onNavigate }) => {
   const [greeting, setGreeting] = useState('');
   const [timeOfDay, setTimeOfDay] = useState<'MORNING' | 'AFTERNOON' | 'EVENING'>('MORNING');
   
@@ -23,7 +23,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username
     else { setGreeting('Good Evening'); setTimeOfDay('EVENING'); }
   }, []);
 
-  const balance = expenses.reduce((acc, curr) => curr.type === 'INCOME' ? acc + curr.amount : acc - curr.amount, 0);
+  const balance = (expenses || []).reduce((acc, curr) => curr.type === 'INCOME' ? acc + (curr.amount || 0) : acc - (curr.amount || 0), 0);
+  const firstName = (user?.name || "User").split(' ')[0];
 
   return (
     <div className="space-y-12 animate-fade-in perspective-3d">
@@ -53,7 +54,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username
                       </div>
                       <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4 depth-text leading-tight">
                           {greeting},<br/>
-                          <span className="opacity-90">{user.name.split(' ')[0]}</span>
+                          <span className="opacity-90">{firstName}</span>
                           {isVerified && <BadgeCheck className="inline-block ml-3 text-blue-300 fill-white/10" size={36} />}
                       </h1>
                   </div>
@@ -67,7 +68,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username
               <div className="flex flex-wrap gap-4">
                   <div className="bg-black/30 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 shadow-xl flex items-center">
                       <Flame size={18} className="text-orange-400 mr-2" />
-                      <span className="font-bold text-[10px] tracking-widest uppercase">{user.streak || 0} Day Streak</span>
+                      <span className="font-bold text-[10px] tracking-widest uppercase">{user?.streak || 0} Day Streak</span>
                   </div>
                   <div className="bg-white/20 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 shadow-xl flex items-center">
                       <Activity size={18} className="text-green-300 mr-2" />

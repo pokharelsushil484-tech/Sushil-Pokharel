@@ -32,7 +32,7 @@ export interface UserProfile {
   interests: string[];
   streak?: number;
   points?: number;
-  isPro?: boolean; // True if verified
+  isPro?: boolean; 
   verificationStatus?: 'NONE' | 'PENDING' | 'VERIFIED' | 'REJECTED';
   acceptedTermsVersion?: string;
 }
