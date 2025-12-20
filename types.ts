@@ -32,8 +32,9 @@ export interface UserProfile {
   interests: string[];
   streak?: number;
   points?: number;
-  isPro?: boolean;
-  acceptedTermsVersion?: string; // Tracks the monthly version accepted
+  isPro?: boolean; // True if verified
+  verificationStatus?: 'NONE' | 'PENDING' | 'VERIFIED' | 'REJECTED';
+  acceptedTermsVersion?: string;
 }
 
 export interface Assignment {
@@ -87,15 +88,6 @@ export interface ChatMessage {
   text: string;
   sender: 'user' | 'ai';
   timestamp: number;
-}
-
-export interface Post {
-  id: string;
-  title: string;
-  content: string;
-  date: string;
-  author: string;
-  likes: string[];
 }
 
 export interface Expense {
