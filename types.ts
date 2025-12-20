@@ -6,11 +6,9 @@ export enum View {
   SETTINGS = 'SETTINGS',
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
   EXPENSES = 'EXPENSES',
-  PLANNER = 'PLANNER', // Alias for StudyPlanner to be more generic
-  NOTES = 'NOTES',     // Alias for Notes view
-  VAULT = 'VAULT',
-  CV_BUILDER = 'CV_BUILDER',
-  SCHOLARSHIPS = 'SCHOLARSHIPS'
+  PLANNER = 'PLANNER',
+  NOTES = 'NOTES',
+  VAULT = 'VAULT'
 }
 
 export enum TaskPriority {
@@ -20,95 +18,33 @@ export enum TaskPriority {
   URGENT = 'Urgent',
 }
 
-export enum ScholarshipStatus {
-  PENDING = 'Pending',
-  APPLIED = 'Applied',
-  INTERVIEW = 'Interview',
-  ACCEPTED = 'Accepted',
-  REJECTED = 'Rejected',
-}
-
-export interface Experience {
-  id: string;
-  role: string;
-  company: string;
-  duration: string;
-  description: string;
-}
-
-export interface Project {
-  id: string;
-  title: string;
-  role?: string;
-  description: string;
-}
-
-export interface Certification {
-  id: string;
-  name: string;
-  issuer: string;
-  date: string;
-}
-
-export interface Award {
-  id: string;
-  title: string;
-  date: string;
-  description: string;
-}
-
-export interface Language {
-  id: string;
-  language: string;
-  proficiency: 'Native' | 'Fluent' | 'Intermediate' | 'Basic';
-}
-
 export interface UserProfile {
   name: string;
-  profession?: string; // New field for Professional Title
+  profession?: string;
+  education?: string;
   email: string;
   phone: string;
-  education: string;
-  institution: string;
-  country: string;
   avatar?: string;
   vaultPin?: string;
-  studyPreference?: string;
   personalStatement?: string;
   skills: string[];
-  badges?: string[]; // AI Generated Badges
-  experience: Experience[];
-  projects: Project[];
-  certifications: Certification[];
-  awards: Award[];
-  languages: Language[];
+  badges?: string[];
   interests: string[];
-  // Gamification & Viral Features
   streak?: number;
   points?: number;
-  rank?: number;
   isPro?: boolean;
 }
 
 export interface Assignment {
   id: string;
   title: string;
+  category: string;
   subject: string;
-  dueDate: string; // ISO date string
+  dueDate: string;
   priority: TaskPriority;
   completed: boolean;
   estimatedTime?: string;
   reminderMinutes?: number;
-  assignedBy?: string; // 'admin' or 'user'
-}
-
-export interface Scholarship {
-  id: string;
-  name: string;
-  deadline: string;
-  requirements: string;
-  status: ScholarshipStatus;
-  link?: string;
 }
 
 export interface Note {
@@ -116,9 +52,9 @@ export interface Note {
   title: string;
   content: string;
   date: string;
-  tags?: string[];
-  status?: 'PENDING' | 'COMPLETED';
+  tags: string[];
   author?: string;
+  status?: 'PENDING' | 'COMPLETED';
   deletedAt?: number;
 }
 
@@ -134,7 +70,7 @@ export interface VaultDocument {
   deletedAt?: number;
 }
 
-export type RequestType = 'PROFILE_UPDATE' | 'PASSWORD_RESET' | 'VERIFICATION_REQUEST' | 'DELETE_ACCOUNT' | 'SUPPORT_TICKET';
+export type RequestType = 'PROFILE_UPDATE' | 'VERIFICATION_REQUEST' | 'SUPPORT_TICKET' | 'PASSWORD_RESET';
 
 export interface ChangeRequest {
   id: string;
@@ -152,21 +88,6 @@ export interface ChatMessage {
   timestamp: number;
 }
 
-export interface Comment {
-  id: string;
-  username: string;
-  text: string;
-  timestamp: string;
-}
-
-export interface PostAttachment {
-  name: string;
-  type: 'image' | 'file';
-  data: string; // base64
-  mimeType: string;
-  size: number;
-}
-
 export interface Post {
   id: string;
   title: string;
@@ -174,11 +95,7 @@ export interface Post {
   date: string;
   author: string;
   likes: string[];
-  comments: Comment[];
-  attachments?: PostAttachment[];
 }
-
-// --- NEW PRODUCTIVITY TYPES ---
 
 export interface Expense {
   id: string;

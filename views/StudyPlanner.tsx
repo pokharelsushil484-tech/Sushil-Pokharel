@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import { Assignment, TaskPriority } from '../types';
 import { Plus, Trash2, Calendar as CalendarIcon, CheckSquare, X, Clock, LayoutList, ChevronLeft, ChevronRight, Bell } from 'lucide-react';
@@ -28,9 +27,11 @@ export const StudyPlanner: React.FC<PlannerProps> = ({ assignments, setAssignmen
   const handleAdd = () => {
     if (!newAssignment.title || !newAssignment.dueDate) return;
     
+    // Fix: Providing default 'category' to satisfy the Assignment interface requirements
     const assignment: Assignment = {
       id: Date.now().toString(),
       title: newAssignment.title!,
+      category: 'General',
       subject: newAssignment.subject || 'General',
       dueDate: newAssignment.dueDate!,
       priority: newAssignment.priority || TaskPriority.MEDIUM,
