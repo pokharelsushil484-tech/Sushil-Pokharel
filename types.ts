@@ -6,16 +6,39 @@ export enum View {
   SETTINGS = 'SETTINGS',
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
   EXPENSES = 'EXPENSES',
-  PLANNER = 'PLANNER',
+  DATABASE_MANAGER = 'DATABASE_MANAGER',
   NOTES = 'NOTES',
   VAULT = 'VAULT'
 }
 
+export enum FieldType {
+  STRING = 'String',
+  NUMBER = 'Number',
+  BOOLEAN = 'Boolean',
+  DATE = 'Date'
+}
+
+// Added TaskPriority enum
 export enum TaskPriority {
-  LOW = 'Low',
-  MEDIUM = 'Medium',
-  HIGH = 'High',
   URGENT = 'Urgent',
+  HIGH = 'High',
+  MEDIUM = 'Medium',
+  LOW = 'Low'
+}
+
+export interface DbField {
+  name: string;
+  type: FieldType;
+  required: boolean;
+}
+
+export interface Database {
+  id: string;
+  name: string;
+  description: string;
+  schema: DbField[];
+  records: any[];
+  createdAt: number;
 }
 
 export interface UserProfile {
@@ -37,6 +60,18 @@ export interface UserProfile {
   acceptedTermsVersion?: string;
 }
 
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+  tags: string[];
+  author?: string;
+  status?: 'PENDING' | 'COMPLETED';
+  deletedAt?: number;
+}
+
+// Added Assignment interface
 export interface Assignment {
   id: string;
   title: string;
@@ -47,17 +82,6 @@ export interface Assignment {
   completed: boolean;
   estimatedTime?: string;
   reminderMinutes?: number;
-}
-
-export interface Note {
-  id: string;
-  title: string;
-  content: string;
-  date: string;
-  tags: string[];
-  author?: string;
-  status?: 'PENDING' | 'COMPLETED';
-  deletedAt?: number;
 }
 
 export interface VaultDocument {

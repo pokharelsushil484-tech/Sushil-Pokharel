@@ -332,7 +332,8 @@ export const StudyPlanner: React.FC<PlannerProps> = ({ assignments, setAssignmen
                     value={newAssignment.priority}
                     onChange={e => setNewAssignment({...newAssignment, priority: e.target.value as TaskPriority})}
                   >
-                    {Object.values(TaskPriority).map(p => <option key={p} value={p}>{p}</option>)}
+                    {/* Fix: Cast Object.values to string[] to resolve unknown type error */}
+                    {(Object.values(TaskPriority) as string[]).map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
               </div>
