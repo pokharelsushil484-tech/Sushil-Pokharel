@@ -1,24 +1,25 @@
 
 import { UserProfile } from './types';
 
-export const APP_VERSION = "10.0.1 (Stable Core)"; 
+export const APP_VERSION = "11.0.1 (System Core)"; 
 export const ADMIN_USERNAME = "admin"; 
 export const CREATOR_NAME = "Sushil";
 
 const now = new Date();
 export const CURRENT_TERMS_VERSION = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+export const CURRENT_MONTH_KEY = `${now.getFullYear()}-${now.getMonth()}`;
 
-export const DEFAULT_STORAGE_LIMIT_GB = 10; // Generous 10GB default limit
+export const DEFAULT_STORAGE_LIMIT_GB = 15; 
 
 export const DEFAULT_USER: UserProfile = {
-  name: "New Student",
-  profession: "Learner",
-  education: "Primary Core",
+  name: "User Node",
+  profession: "System Architect",
+  education: "Master Core",
   email: "",
   phone: "",
-  personalStatement: "My personal digital workspace.",
-  skills: ["Organization"],
-  interests: ["Learning"],
+  personalStatement: "Personal Digital Workspace.",
+  skills: ["Digital Sovereignty"],
+  interests: ["Data Architecture"],
   streak: 0,
   points: 0,
   isPro: true,
@@ -31,15 +32,15 @@ export const DEFAULT_USER: UserProfile = {
   authorizedDevices: []
 };
 
-export const APP_NAME = "StudentPocket – By Sushil";
-export const WATERMARK = "© StudentPocket | Created by Sushil";
-export const ADMIN_EMAIL = "sushil@studentpocket.local";
+export const APP_NAME = "Sushil’s Workspace";
+export const WATERMARK = "© Workspace | Created by Sushil";
+export const ADMIN_EMAIL = "sushil@workspace.local";
 
-export const COPYRIGHT_NOTICE = "PROPRIETARY SYSTEM: Created by Sushil. All data nodes are encrypted locally.";
+export const COPYRIGHT_NOTICE = "PROPRIETARY SYSTEM: Created by Sushil. All nodes encrypted.";
 
 export const MOTIVATIONAL_QUOTES = [
-  "Knowledge is power.",
-  "Sushil: Simplifying student life.",
-  "Stay organized, stay ahead.",
-  "Your digital life, in your pocket."
+  "Privacy is a right.",
+  "Sushil: Architecting your digital life.",
+  "Data sovereignty starts here.",
+  "Encrypted. Secure. Yours."
 ];
