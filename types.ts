@@ -18,7 +18,6 @@ export enum FieldType {
   DATE = 'Date'
 }
 
-// Added TaskPriority enum
 export enum TaskPriority {
   URGENT = 'Urgent',
   HIGH = 'High',
@@ -58,6 +57,14 @@ export interface UserProfile {
   isPro?: boolean; 
   verificationStatus?: 'NONE' | 'PENDING' | 'VERIFIED' | 'REJECTED';
   acceptedTermsVersion?: string;
+  // Storage Management
+  storageLimitGB: number;
+  storageUsedBytes: number;
+  // Security & 2FA
+  twoFactorEnabled: boolean;
+  twoFactorSecret?: string; // Stored OTP for current session
+  backupCodes: string[];
+  authorizedDevices: string[];
 }
 
 export interface Note {
@@ -71,32 +78,19 @@ export interface Note {
   deletedAt?: number;
 }
 
-// Added Assignment interface
-export interface Assignment {
-  id: string;
-  title: string;
-  category: string;
-  subject: string;
-  dueDate: string;
-  priority: TaskPriority;
-  completed: boolean;
-  estimatedTime?: string;
-  reminderMinutes?: number;
-}
-
 export interface VaultDocument {
   id: string;
   title: string;
-  type: 'FOLDER' | 'OTHER';
+  type: 'FOLDER' | 'IMAGE' | 'VIDEO' | 'DATA' | 'OTHER';
   content?: string;
   parentId: string | null;
-  size?: number;
+  size: number;
   mimeType?: string;
   createdAt: number;
   deletedAt?: number;
 }
 
-export type RequestType = 'PROFILE_UPDATE' | 'VERIFICATION_REQUEST' | 'SUPPORT_TICKET' | 'PASSWORD_RESET';
+export type RequestType = 'PROFILE_UPDATE' | 'VERIFICATION_REQUEST' | 'SUPPORT_TICKET' | 'PASSWORD_RESET' | 'STORAGE_INCREASE';
 
 export interface ChangeRequest {
   id: string;
@@ -121,4 +115,19 @@ export interface Expense {
   category: string;
   date: string;
   type: 'INCOME' | 'EXPENSE';
+}
+
+/**
+ * Interface representing a study task or assignment.
+ */
+export interface Assignment {
+  id: string;
+  title: string;
+  category: string;
+  subject: string;
+  dueDate: string;
+  priority: TaskPriority;
+  completed: boolean;
+  estimatedTime?: string;
+  reminderMinutes?: number;
 }

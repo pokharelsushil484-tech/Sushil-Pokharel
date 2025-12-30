@@ -1,17 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, VaultDocument } from '../types';
-import { Shield, Lock, Unlock, FileText, Image as ImageIcon, Camera, AlertTriangle, FolderPlus, Folder, ChevronRight, Home, LayoutGrid, List as ListIcon, MoreVertical, Search, ArrowLeft, HardDrive, Trash2, Download, Archive, RefreshCcw } from 'lucide-react';
+import { Shield, Lock, FileText, Image as ImageIcon, Video, FolderPlus, Folder, ChevronRight, LayoutGrid, List as ListIcon, Search, HardDrive, Trash2, Download, Archive, RefreshCcw, Box, CloudUpload } from 'lucide-react';
 
 interface VaultProps {
   user: UserProfile;
   documents: VaultDocument[];
   saveDocuments: (docs: VaultDocument[]) => void;
+  updateUser: (user: UserProfile) => void;
   isVerified?: boolean;
 }
 
-export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, isVerified }) => {
-  // Security State
+export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, updateUser, isVerified }) => {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
@@ -20,25 +20,22 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, is
   const [lockoutTime, setLockoutTime] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
 
-  // File Manager State
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
   const [searchQuery, setSearchQuery] = useState('');
   const [showTrash, setShowTrash] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const CORRECT_PIN = user.vaultPin || "1234"; 
 
-  // Shuffle Keypad Helper
   const shuffleKeypad = () => {
     setKeypadNumbers(prev => [...prev].sort(() => Math.random() - 0.5));
   };
 
-  // Initialize Keypad
   useEffect(() => {
     shuffleKeypad();
   }, []);
 
-  // Lockout Timer Logic
   useEffect(() => {
     let interval: any;
     if (lockoutTime > Date.now()) {
@@ -57,27 +54,17 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, is
     return () => clearInterval(interval);
   }, [lockoutTime]);
 
-  // Locked View for Unverified Users
-  if (isVerified === false) {
-      return (
-          <div className="h-[80vh] flex flex-col items-center justify-center animate-fade-in px-6">
-              <div className="bg-white dark:bg-gray-800 p-10 rounded-[2.5rem] shadow-xl w-full max-w-sm text-center border-2 border-yellow-100">
-                  <div className="w-20 h-20 bg-yellow-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-                      <Lock className="w-10 h-10 text-yellow-500" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Locked</h2>
-                  <p className="text-gray-500 dark:text-gray-400 mb-8 font-medium">
-                      The Document Vault is for verified students only.
-                  </p>
-                  <button className="w-full bg-yellow-100 text-yellow-800 py-3 rounded-xl font-bold text-sm">Request Access</button>
-              </div>
-          </div>
-      );
-  }
+  // Storage Logic
+  useEffect(() => {
+    const activeDocs = documents.filter(d => !d.deletedAt);
+    const usedBytes = activeDocs.reduce((acc, doc) => acc + (doc.size || 0), 0);
+    if (user.storageUsedBytes !== usedBytes) {
+      updateUser({ ...user, storageUsedBytes: usedBytes });
+    }
+  }, [documents]);
 
   const handleUnlock = () => {
     if (lockoutTime > Date.now()) return;
-
     if (pin === CORRECT_PIN) {
       setIsUnlocked(true);
       setError('');
@@ -86,21 +73,17 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, is
       const attempts = failedAttempts + 1;
       setFailedAttempts(attempts);
       setPin('');
-      
       if (attempts >= 3) {
-          setLockoutTime(Date.now() + 30000); // 30 seconds
+          setLockoutTime(Date.now() + 30000);
           setError("Too many failed attempts.");
       } else {
-          setError(`Incorrect PIN. ${3 - attempts} attempts remaining.`);
-          shuffleKeypad(); // Reshuffle on error to prevent pattern guessing
+          setError(`Incorrect PIN. ${3 - attempts} attempts left.`);
+          shuffleKeypad();
       }
     }
   };
 
-  // --- FILE MANAGER LOGIC ---
-
-  const formatSize = (bytes?: number) => {
-    if (bytes === undefined) return '0 B';
+  const formatSize = (bytes: number) => {
     if (bytes === 0) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
@@ -109,7 +92,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, is
   };
 
   const createFolder = () => {
-      const name = prompt("Enter folder name:");
+      const name = prompt("Enter storage box name:");
       if (!name) return;
       const newFolder: VaultDocument = {
           id: Date.now().toString(),
@@ -124,29 +107,41 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, is
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const newDoc: VaultDocument = {
-          id: Date.now().toString(),
-          title: file.name,
-          type: 'OTHER',
-          content: reader.result as string,
-          parentId: currentFolderId,
-          size: file.size,
-          mimeType: file.type,
-          createdAt: Date.now()
-        };
-        saveDocuments([...documents, newDoc]);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    const limitBytes = user.storageLimitGB * 1024 ** 3;
+    if (user.storageUsedBytes + file.size > limitBytes) {
+        alert("Node capacity reached. Contact SUSHIL to upgrade your node storage.");
+        return;
     }
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      let type: VaultDocument['type'] = 'OTHER';
+      if (file.type.startsWith('image/')) type = 'IMAGE';
+      else if (file.type.startsWith('video/')) type = 'VIDEO';
+      else if (file.type.includes('json') || file.type.includes('sql') || file.type.includes('csv')) type = 'DATA';
+
+      const newDoc: VaultDocument = {
+        id: Date.now().toString(),
+        title: file.name,
+        type,
+        content: reader.result as string,
+        parentId: currentFolderId,
+        size: file.size,
+        mimeType: file.type,
+        createdAt: Date.now()
+      };
+      saveDocuments([...documents, newDoc]);
+      setIsUploading(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   const softDelete = (id: string, e: React.MouseEvent) => {
       e.stopPropagation();
-      if(window.confirm("Move to Trash?")) {
-           // Also soft delete children if folder
+      if(window.confirm("Move to system trash?")) {
            saveDocuments(documents.map(d => 
                (d.id === id || d.parentId === id) ? { ...d, deletedAt: Date.now() } : d
            ));
@@ -160,7 +155,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, is
 
   const permanentDelete = (id: string, e: React.MouseEvent) => {
       e.stopPropagation();
-      if(window.confirm("Permanently delete? Cannot undo.")) {
+      if(window.confirm("Permanently purge this node? This cannot be undone.")) {
           saveDocuments(documents.filter(d => d.id !== id && d.parentId !== id));
       }
   };
@@ -176,21 +171,15 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, is
       document.body.removeChild(link);
   };
 
-  // Filter items
   const activeItems = documents.filter(doc => !doc.deletedAt);
   const trashItems = documents.filter(doc => doc.deletedAt);
-
   const displayedItems = showTrash ? trashItems : activeItems.filter(doc => {
       if (searchQuery) return doc.title.toLowerCase().includes(searchQuery.toLowerCase());
-      return doc.parentId === (currentFolderId || undefined) || doc.parentId === currentFolderId;
+      return doc.parentId === currentFolderId;
   });
 
-  // Calculate Storage
-  const usedSpace = activeItems.reduce((acc, doc) => acc + (doc.size || 0), 0);
-  const totalSpace = 2 * 1024 * 1024 * 1024; // 2GB Limit
-  const usedPercentage = Math.min((usedSpace / totalSpace) * 100, 100);
+  const usedPercentage = Math.min((user.storageUsedBytes / (user.storageLimitGB * 1024 ** 3)) * 100, 100);
 
-  // Breadcrumbs
   const getBreadcrumbs = () => {
       const path = [];
       let curr = currentFolderId;
@@ -199,215 +188,197 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, is
           if (folder) {
               path.unshift(folder);
               curr = folder.parentId || null;
-          } else {
-              break;
-          }
+          } else { break; }
       }
       return path;
+  };
+
+  const getFileIcon = (type: VaultDocument['type']) => {
+      switch(type) {
+          case 'IMAGE': return <ImageIcon size={20} />;
+          case 'VIDEO': return <Video size={20} />;
+          case 'DATA': return <Box size={20} />;
+          case 'FOLDER': return <Folder size={20} fill="currentColor" className="opacity-80" />;
+          default: return <FileText size={20} />;
+      }
   };
 
   if (!isUnlocked) {
     return (
       <div className="h-[80vh] flex flex-col items-center justify-center animate-fade-in px-4">
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] shadow-2xl w-full max-w-sm text-center relative overflow-hidden">
-          
+        <div className="bg-white dark:bg-[#0f172a] p-10 rounded-[3rem] shadow-2xl w-full max-w-sm text-center relative overflow-hidden border border-slate-100 dark:border-slate-800">
           {lockoutTime > Date.now() && (
-              <div className="absolute inset-0 bg-red-500/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center text-white">
-                  <Lock size={48} className="mb-4 animate-bounce" />
-                  <h3 className="text-2xl font-bold mb-2">Vault Locked</h3>
-                  <p className="font-mono text-4xl font-bold">{timeLeft}s</p>
-                  <p className="text-sm mt-2 opacity-80">Security Timeout</p>
+              <div className="absolute inset-0 bg-red-600/95 backdrop-blur-sm z-20 flex flex-col items-center justify-center text-white p-8">
+                  <Lock size={48} className="mb-6 animate-bounce" />
+                  <h3 className="text-2xl font-black mb-2 uppercase tracking-tight">Lockout Active</h3>
+                  <p className="font-black text-5xl mb-4">{timeLeft}s</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Protection Enabled</p>
               </div>
           )}
-
-          <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Shield className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
+          <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
+            <Shield className="w-10 h-10 text-indigo-600" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Secure Vault</h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-6 text-xs">Enter your 4-digit PIN</p>
-          
-          <div className="flex justify-center space-x-4 mb-8">
+          <h2 className="text-xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">Encrypted Storage</h2>
+          <p className="text-slate-400 mb-8 text-[10px] font-bold uppercase tracking-widest">Enter Node Access Code</p>
+          <div className="flex justify-center space-x-5 mb-10">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className={`w-3 h-3 rounded-full transition-all duration-200 ${i < pin.length ? 'bg-indigo-600 scale-125' : 'bg-gray-200 dark:bg-gray-700'}`} />
+              <div key={i} className={`w-3 h-3 rounded-full transition-all duration-300 ${i < pin.length ? 'bg-indigo-600 scale-150 shadow-lg shadow-indigo-200' : 'bg-slate-200 dark:bg-slate-700'}`} />
             ))}
           </div>
-
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-3 gap-4 mb-6">
             {keypadNumbers.map(num => (
               <button 
                 key={num}
                 onClick={() => setPin(prev => (prev.length < 4 ? prev + num : prev))}
                 disabled={lockoutTime > Date.now()}
-                className="h-14 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold text-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 active:scale-95 transition-transform shadow-sm disabled:opacity-50"
+                className="h-16 bg-slate-50 dark:bg-slate-800 rounded-2xl font-black text-2xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all active:scale-90 shadow-sm disabled:opacity-50"
               >
                 {num}
               </button>
             ))}
-            
-            <button className="h-14 text-red-500 font-bold text-xs uppercase tracking-wide flex items-center justify-center" onClick={() => setPin('')}>Clear</button>
+            <button className="h-16 text-slate-400 font-black text-[10px] uppercase tracking-widest flex items-center justify-center" onClick={() => setPin('')}>Clear</button>
             <button 
                 onClick={handleUnlock} 
-                disabled={lockoutTime > Date.now()}
-                className="col-span-2 h-14 bg-indigo-600 text-white rounded-xl font-bold text-sm uppercase tracking-wide shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none"
+                disabled={lockoutTime > Date.now() || pin.length < 4}
+                className="col-span-2 h-16 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50"
             >
-                Unlock
+                Unlock Node
             </button>
           </div>
-          {error && <p className="text-red-500 text-xs font-bold mt-2 animate-shake">{error}</p>}
+          {error && <p className="text-red-600 text-[10px] font-black uppercase tracking-widest animate-pulse">{error}</p>}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="pb-24 animate-fade-in h-[calc(100vh-100px)] flex flex-col">
-      {/* Header / Storage Info */}
-      <div className="mb-4 bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-         <div className="flex justify-between items-center mb-3">
-             <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400">
-                 <HardDrive size={20} />
-                 <span className="font-bold text-sm">Cloud Storage</span>
+    <div className="pb-24 animate-fade-in flex flex-col w-full max-w-7xl mx-auto h-[calc(100vh-140px)]">
+      {/* Storage Hub */}
+      <div className="mb-8 bg-white dark:bg-[#0f172a] p-8 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800">
+         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+             <div className="flex items-center space-x-4">
+                 <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center text-indigo-600">
+                    <Box size={24} />
+                 </div>
+                 <div>
+                    <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Personal Cloud Hub</h2>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Storage Provider: SUSHIL</p>
+                 </div>
              </div>
-             <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
-                 {formatSize(usedSpace)} / 2 GB
-             </span>
+             <div className="text-right">
+                <span className="text-sm font-black text-slate-900 dark:text-white">
+                    {formatSize(user.storageUsedBytes)} / {user.storageLimitGB} GB
+                </span>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Managed Allocation</p>
+             </div>
          </div>
-         <div className="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-             <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-1000" style={{ width: `${usedPercentage}%` }} />
+         <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+             <div 
+                className={`h-full bg-indigo-500 transition-all duration-1000 ${usedPercentage > 90 ? 'bg-red-500' : ''}`} 
+                style={{ width: `${usedPercentage}%` }} 
+             />
          </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex items-center space-x-2 mb-4 overflow-x-auto no-scrollbar py-1">
-         {currentFolderId && !showTrash && (
-             <button onClick={() => setCurrentFolderId(null)} className="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300">
-                 <Home size={20} />
-             </button>
-         )}
-         
+      <div className="flex items-center space-x-3 mb-6 w-full">
          {!showTrash && (
-            <div className="flex-1 flex items-center bg-white dark:bg-gray-800 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700">
-                <Search size={18} className="text-gray-400 ml-2" />
+            <div className="flex-1 flex items-center bg-white dark:bg-[#0f172a] p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <Search size={20} className="text-slate-400 ml-4" />
                 <input 
-                className="flex-1 bg-transparent border-none outline-none px-2 text-sm text-gray-700 dark:text-gray-200" 
-                placeholder="Search files..." 
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                    className="flex-1 bg-transparent border-none outline-none px-4 text-sm font-bold text-slate-700 dark:text-slate-200" 
+                    placeholder="Search documents..." 
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
                 />
             </div>
          )}
-         
-         {showTrash && <div className="flex-1 font-bold text-red-500 text-lg ml-2">Trash Bin</div>}
-
-         <button onClick={() => setViewMode(viewMode === 'GRID' ? 'LIST' : 'GRID')} className="p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-600 dark:text-gray-300">
+         <button onClick={() => setViewMode(viewMode === 'GRID' ? 'LIST' : 'GRID')} className="p-4 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-500 hover:text-indigo-600 transition-all shadow-sm">
              {viewMode === 'GRID' ? <ListIcon size={20} /> : <LayoutGrid size={20} />}
          </button>
-
          <button 
             onClick={() => { setShowTrash(!showTrash); setCurrentFolderId(null); }}
-            className={`p-3 rounded-xl transition-colors ${showTrash ? 'bg-red-100 text-red-600' : 'bg-white dark:bg-gray-800 text-gray-400 border border-gray-200 dark:border-gray-700 hover:text-red-500'}`}
+            className={`p-4 rounded-2xl transition-all shadow-sm ${showTrash ? 'bg-red-600 text-white' : 'bg-white dark:bg-[#0f172a] text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-red-500'}`}
          >
              <Archive size={20} />
          </button>
       </div>
 
-      {/* Breadcrumbs (only if not in trash) */}
       {!showTrash && (
-        <div className="flex items-center space-x-1 mb-4 text-sm overflow-x-auto no-scrollbar whitespace-nowrap">
-            <button 
-                onClick={() => setCurrentFolderId(null)} 
-                className={`font-medium ${!currentFolderId ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'}`}
-            >
-                Home
-            </button>
+        <div className="flex items-center space-x-2 mb-6 text-[10px] font-black uppercase tracking-widest overflow-x-auto no-scrollbar py-1">
+            <button onClick={() => setCurrentFolderId(null)} className={`${!currentFolderId ? 'text-indigo-600' : 'text-slate-400'}`}>HOME_DIR</button>
             {getBreadcrumbs().map((folder) => (
                 <div key={folder.id} className="flex items-center">
-                    <ChevronRight size={14} className="text-gray-300 mx-1" />
-                    <button 
-                        onClick={() => setCurrentFolderId(folder.id)}
-                        className={`font-medium ${currentFolderId === folder.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'}`}
-                    >
-                        {folder.title}
-                    </button>
+                    <ChevronRight size={14} className="text-slate-300" />
+                    <button onClick={() => setCurrentFolderId(folder.id)} className={`${currentFolderId === folder.id ? 'text-indigo-600' : 'text-slate-400'}`}>{folder.title}</button>
                 </div>
             ))}
         </div>
       )}
 
-      {/* Content Area */}
-      <div className="flex-1 overflow-y-auto pr-1 pb-20">
-          
-          {/* Action Buttons inside content area for empty states */}
+      <div className="flex-1 overflow-y-auto pr-1 pb-10 no-scrollbar">
           {!showTrash && (
-            <div className="grid grid-cols-2 gap-3 mb-6">
-                <button 
-                    onClick={createFolder} 
-                    className="flex items-center justify-center space-x-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 p-4 rounded-2xl border border-dashed border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 transition-colors"
-                >
-                    <FolderPlus size={20} />
-                    <span className="font-bold text-sm">New Folder</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                <button onClick={createFolder} className="flex items-center justify-center space-x-3 bg-white dark:bg-[#0f172a] text-slate-500 p-6 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-indigo-600 hover:text-indigo-600 transition-all">
+                    <FolderPlus size={24} />
+                    <span className="font-black text-xs uppercase tracking-widest">New Folder</span>
                 </button>
                 
-                <label className="flex items-center justify-center space-x-2 bg-indigo-600 text-white p-4 rounded-2xl shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition-colors cursor-pointer active:scale-95">
-                    <div className="flex items-center space-x-2">
-                        <ImageIcon size={20} />
-                        <span className="font-bold text-sm">Upload</span>
-                    </div>
-                    <input type="file" className="hidden" onChange={handleFileUpload} />
+                <label className={`flex items-center justify-center space-x-3 p-6 rounded-[2.5rem] shadow-xl transition-all cursor-pointer active:scale-95 ${isUploading ? 'bg-slate-100' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200'}`}>
+                    <CloudUpload size={24} className={isUploading ? 'animate-bounce' : ''} />
+                    <span className="font-black text-xs uppercase tracking-widest">{isUploading ? 'Syncing...' : 'Upload File'}</span>
+                    <input type="file" className="hidden" onChange={handleFileUpload} disabled={isUploading} accept="image/*,video/*,.pdf,.sql,.json,.csv" />
                 </label>
             </div>
           )}
 
           {displayedItems.length === 0 ? (
-              <div className="text-center py-12 opacity-50">
-                  <Folder size={48} className="mx-auto text-gray-300 mb-2" />
-                  <p className="text-gray-400 text-sm font-medium">{showTrash ? "Trash is empty" : "This folder is empty"}</p>
+              <div className="text-center py-24 opacity-20">
+                  <Box size={80} className="mx-auto mb-6" />
+                  <p className="text-[10px] font-black uppercase tracking-[0.5em]">{showTrash ? "Trash is empty." : "Folder is empty."}</p>
               </div>
           ) : (
-             <div className={viewMode === 'GRID' ? "grid grid-cols-2 gap-3" : "flex flex-col space-y-2"}>
+             <div className={viewMode === 'GRID' ? "grid grid-cols-2 lg:grid-cols-4 gap-4" : "flex flex-col space-y-3"}>
                  {displayedItems.map(item => (
                      <div 
                         key={item.id}
-                        onClick={() => {
-                            if (item.type === 'FOLDER' && !showTrash) setCurrentFolderId(item.id);
-                        }}
-                        className={`group relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-3 hover:shadow-md transition-all active:scale-[0.98] cursor-pointer ${
-                            viewMode === 'GRID' ? 'flex flex-col items-center text-center h-32 justify-center' : 'flex items-center p-4'
-                        } ${showTrash ? 'opacity-80 border-red-50 bg-red-50/10' : ''}`}
+                        onClick={() => { if (item.type === 'FOLDER' && !showTrash) setCurrentFolderId(item.id); }}
+                        className={`group relative bg-white dark:bg-[#0f172a] rounded-[2rem] border border-slate-100 dark:border-slate-800 p-6 hover:shadow-xl transition-all active:scale-[0.98] cursor-pointer ${
+                            viewMode === 'GRID' ? 'flex flex-col items-center text-center h-48 justify-center' : 'flex items-center'
+                        }`}
                      >
-                         <div className={`rounded-full flex items-center justify-center mb-2 ${
-                             viewMode === 'GRID' ? 'w-12 h-12' : 'w-10 h-10 mr-4 mb-0'
+                         <div className={`rounded-2xl flex items-center justify-center mb-4 ${
+                             viewMode === 'GRID' ? 'w-16 h-16' : 'w-12 h-12 mr-6'
                          } ${
-                             item.type === 'FOLDER' 
-                             ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-500' 
-                             : 'bg-blue-50 dark:bg-blue-900/20 text-blue-500'
+                             item.type === 'FOLDER' ? 'bg-amber-50 text-amber-500' :
+                             item.type === 'IMAGE' ? 'bg-emerald-50 text-emerald-500' :
+                             item.type === 'VIDEO' ? 'bg-purple-50 text-purple-500' :
+                             'bg-blue-50 text-blue-500'
                          }`}>
-                             {item.type === 'FOLDER' ? <Folder size={viewMode === 'GRID' ? 24 : 20} fill="currentColor" className="fill-current opacity-80" /> : <FileText size={viewMode === 'GRID' ? 24 : 20} />}
+                             {getFileIcon(item.type)}
                          </div>
                          
                          <div className={`flex-1 min-w-0 ${viewMode === 'LIST' ? 'text-left' : ''}`}>
-                             <p className="text-sm font-bold text-gray-800 dark:text-gray-200 truncate w-full">{item.title}</p>
-                             <p className="text-[10px] text-gray-400 mt-0.5">
-                                 {showTrash ? 'Deleted' : (item.type === 'FOLDER' ? 'Folder' : `${formatSize(item.size)}`)}
+                             <p className="text-xs font-black text-slate-800 dark:text-slate-200 truncate uppercase tracking-tight">{item.title}</p>
+                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                                 {showTrash ? 'Purge Eligible' : (item.type === 'FOLDER' ? 'Folder' : formatSize(item.size))}
                              </p>
                          </div>
 
-                         {/* Quick Actions */}
-                         <div className={`absolute ${viewMode === 'GRID' ? 'top-2 right-2' : 'right-4'} ${showTrash ? 'flex' : 'hidden group-hover:flex'} items-center space-x-1`}>
+                         <div className={`absolute ${viewMode === 'GRID' ? 'top-4 right-4' : 'right-6'} opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2`}>
                              {showTrash ? (
                                 <>
-                                 <button onClick={(e) => restoreDoc(item.id, e)} className="p-1.5 bg-white text-green-600 rounded-lg shadow-sm hover:bg-green-50" title="Restore"><RefreshCcw size={14} /></button>
-                                 <button onClick={(e) => permanentDelete(item.id, e)} className="p-1.5 bg-white text-red-600 rounded-lg shadow-sm hover:bg-red-50" title="Delete Forever"><Trash2 size={14} /></button>
+                                 <button onClick={(e) => restoreDoc(item.id, e)} className="p-2 bg-white text-emerald-600 rounded-xl shadow-lg border border-emerald-100"><RefreshCcw size={16} /></button>
+                                 <button onClick={(e) => permanentDelete(item.id, e)} className="p-2 bg-white text-red-600 rounded-xl shadow-lg border border-red-100"><Trash2 size={16} /></button>
                                 </>
                              ) : (
                                 <>
                                  {item.type !== 'FOLDER' && (
-                                     <button onClick={(e) => handleDownload(item, e)} className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-indigo-100 hover:text-indigo-600">
-                                         <Download size={14} />
+                                     <button onClick={(e) => handleDownload(item, e)} className="p-2 bg-white dark:bg-slate-800 text-indigo-600 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700">
+                                         <Download size={16} />
                                      </button>
                                  )}
-                                 <button onClick={(e) => softDelete(item.id, e)} className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-red-100 hover:text-red-600">
-                                     <Trash2 size={14} />
+                                 <button onClick={(e) => softDelete(item.id, e)} className="p-2 bg-white dark:bg-slate-800 text-red-400 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 hover:text-red-600">
+                                     <Trash2 size={16} />
                                  </button>
                                 </>
                              )}
@@ -418,12 +389,12 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, is
           )}
       </div>
 
-      <button 
-         onClick={() => setIsUnlocked(false)} 
-         className="mt-auto w-full py-4 text-gray-400 dark:text-gray-500 font-bold flex items-center justify-center hover:text-red-500 transition-colors bg-gray-50 dark:bg-gray-900/50 rounded-t-3xl border-t border-gray-100 dark:border-gray-800"
-      >
-        <Lock size={16} className="mr-2" /> Lock Vault
-      </button>
+      <div className="mt-auto pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-[8px] font-black text-slate-300 uppercase tracking-[0.4em]">
+          <span>Security Level 0 Ready</span>
+          <button onClick={() => setIsUnlocked(false)} className="flex items-center text-red-400 hover:text-red-500 transition-colors">
+            <Lock size={12} className="mr-2" /> Session Lockout
+          </button>
+      </div>
     </div>
   );
 };

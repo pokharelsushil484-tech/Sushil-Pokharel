@@ -1,5 +1,6 @@
 
-import { GoogleGenAI } from "@google/genai";
+// Fix: Use correct initialization and import spacing
+import {GoogleGenAI} from "@google/genai";
 import { UserProfile } from "../types";
 
 export const summarizeNote = async (text: string): Promise<string> => {
@@ -9,6 +10,7 @@ export const summarizeNote = async (text: string): Promise<string> => {
       model: 'gemini-3-flash-preview',
       contents: `You are a helpful study assistant for a student named Sushil. Summarize the following study notes into bullet points and suggest 2 review questions:\n\n${text}`,
     });
+    // Fix: Access the .text property directly (not a method)
     return response.text || "Could not generate summary.";
   } catch (error) {
     console.error("Gemini Error:", error);
@@ -23,6 +25,7 @@ export const generateStudyPlan = async (subject: string, hours: string): Promise
       model: 'gemini-3-flash-preview',
       contents: `Create a simple, structured ${hours}-hour study plan for the subject: ${subject}. Break it down into sessions with breaks. Format as a clean list.`,
     });
+    // Fix: Access the .text property directly
     return response.text || "Could not generate plan.";
   } catch (error) {
     console.error("Gemini Error:", error);
@@ -42,6 +45,7 @@ export const generateUserBadge = async (profile: UserProfile, extraContext: stri
             model: 'gemini-3-flash-preview',
             contents: prompt,
         });
+        // Fix: Use .text property and ensure safe trimming
         return response.text?.trim() || "🎓 Dedicated Student";
     } catch (error) {
         console.error("Gemini Error:", error);
@@ -59,6 +63,7 @@ export const chatWithAI = async (message: string): Promise<string> => {
         systemInstruction: "You are a friendly, encouraging, and knowledgeable AI study companion inside the 'StudentPocket' app for Sushil Pokharel. Your goal is to help with homework, explain complex topics simply, provide career advice, and help organize study schedules. Keep answers concise, student-friendly, and motivating."
       }
     });
+    // Fix: Access the .text property directly
     return response.text || "I'm having trouble thinking right now. Try again?";
   } catch (error) {
     console.error("Gemini Chat Error:", error);

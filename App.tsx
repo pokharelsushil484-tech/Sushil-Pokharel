@@ -15,32 +15,14 @@ import { ExpenseTracker } from './views/ExpenseTracker';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { TermsModal } from './components/TermsModal';
-import { RefreshCw, Layout, User } from 'lucide-react';
+import { RefreshCw, Layout, User, Database as DbIcon, Cloud } from 'lucide-react';
 
 import { View, UserProfile, Database, ChatMessage, Expense, Note, VaultDocument } from './types';
 import { ADMIN_USERNAME, APP_VERSION, CURRENT_TERMS_VERSION, COPYRIGHT_NOTICE, CREATOR_NAME, APP_NAME } from './constants';
 
-const RestrictedOverlay = () => (
-  <div className="h-[70vh] flex flex-col items-center justify-center animate-fade-in px-6 w-full max-w-lg mx-auto">
-    <div className="bg-white dark:bg-[#0f172a] p-12 rounded-[2.5rem] shadow-xl border border-red-100 dark:border-red-900/20 text-center relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-1 bg-red-600"></div>
-      <div className="w-24 h-24 bg-red-50 dark:bg-red-900/10 rounded-full flex items-center justify-center mx-auto mb-8 animate-pulse">
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-      </div>
-      <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-4 tracking-tight">System Node Restricted</h2>
-      <p className="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed text-sm font-medium">
-        Access to this database management suite is managed by the system architect. You must synchronize your identity with <strong>{CREATOR_NAME}</strong>.
-      </p>
-      <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] border border-slate-100 dark:border-slate-700">
-        AUTHORIZATION LEVEL: CERTIFIED ARCHITECT REQUIRED
-      </div>
-    </div>
-  </div>
-);
-
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
-  const [currentUsername, setCurrentUsername] = useState<string | null>(null);
+  const [currentUsername, setCurrentUsername] = useState<string | null>(() => localStorage.getItem('active_session_user'));
   const [isLoading, setIsLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [showTerms, setShowTerms] = useState(false);
@@ -57,19 +39,10 @@ const App = () => {
 
   const [data, setData] = useState(initialData);
 
-  const isVerified = (() => {
-    if (!currentUsername) return false;
-    if (currentUsername === ADMIN_USERNAME) return true; 
-    try {
-      const usersStr = localStorage.getItem('studentpocket_users');
-      if (!usersStr) return false;
-      const users = JSON.parse(usersStr);
-      return users[currentUsername]?.verified === true;
-    } catch (e) { return false; }
-  })();
-
+  // PERSISTENCE: Load data from "Central Server" (LocalStorage simulation)
   useEffect(() => {
     if (currentUsername) {
+      localStorage.setItem('active_session_user', currentUsername);
       const storageKey = `architect_data_${currentUsername}`;
       const stored = localStorage.getItem(storageKey);
       if (stored) {
@@ -77,13 +50,7 @@ const App = () => {
           const parsed = JSON.parse(stored);
           setData({
             ...initialData,
-            ...parsed,
-            user: parsed.user || null,
-            databases: parsed.databases || [],
-            chatHistory: parsed.chatHistory || [],
-            expenses: parsed.expenses || [],
-            notes: parsed.notes || [],
-            vaultDocs: parsed.vaultDocs || []
+            ...parsed
           });
 
           if (parsed.user) {
@@ -95,6 +62,7 @@ const App = () => {
             setView(View.ONBOARDING);
           }
         } catch (e) {
+          console.error("Data corruption detected. Resetting node.");
           setData(initialData);
           setView(View.ONBOARDING);
         }
@@ -102,9 +70,12 @@ const App = () => {
         setData(initialData);
         setView(View.ONBOARDING);
       }
+    } else {
+      localStorage.removeItem('active_session_user');
     }
   }, [currentUsername]);
 
+  // AUTO-SAVE: Persistent data storage
   useEffect(() => {
     if (currentUsername && data.user) {
       localStorage.setItem(`architect_data_${currentUsername}`, JSON.stringify(data));
@@ -126,9 +97,16 @@ const App = () => {
 
   const systemReload = () => {
     setIsLoading(true);
+    // Simulate server synchronization
     setTimeout(() => {
         window.location.reload();
     }, 800);
+  };
+
+  const handleLogout = () => {
+    setCurrentUsername(null);
+    setData(initialData);
+    setView(View.DASHBOARD);
   };
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
@@ -137,7 +115,16 @@ const App = () => {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-[#020617] font-sans transition-colors duration-500">
         <GlobalLoader isLoading={isLoading} />
-        <Login user={null} onLogin={(u) => { setIsLoading(true); setTimeout(() => { setCurrentUsername(u); setIsLoading(false); }, 1000); }} />
+        <Login 
+          user={null} 
+          onLogin={(u) => { 
+            setIsLoading(true); 
+            setTimeout(() => { 
+              setCurrentUsername(u); 
+              setIsLoading(false); 
+            }, 800); 
+          }} 
+        />
       </div>
     );
   }
@@ -147,29 +134,25 @@ const App = () => {
     
     const isAdmin = currentUsername === ADMIN_USERNAME;
     
-    if (!isVerified && view !== View.DASHBOARD && view !== View.SETTINGS && view !== View.ONBOARDING) {
-        return <RestrictedOverlay />;
-    }
-
     switch (view) {
       case View.DASHBOARD:
-        return <Dashboard user={data.user} isVerified={isVerified} username={currentUsername} expenses={data.expenses} databases={data.databases} onNavigate={setView} />;
+        return <Dashboard user={data.user} isVerified={true} username={currentUsername} expenses={data.expenses} databases={data.databases} onNavigate={setView} />;
       case View.EXPENSES:
         return <ExpenseTracker expenses={data.expenses} setExpenses={(e) => setData(prev => ({...prev, expenses: e}))} />;
       case View.DATABASE_MANAGER:
-        return <DatabaseManager databases={data.databases} setDatabases={(d) => setData(prev => ({...prev, databases: d}))} isVerified={isVerified} />;
+        return <DatabaseManager databases={data.databases} setDatabases={(d) => setData(prev => ({...prev, databases: d}))} isVerified={true} />;
       case View.NOTES:
         return <Notes notes={data.notes} setNotes={(n) => setData(prev => ({...prev, notes: n}))} isAdmin={isAdmin} />;
       case View.VAULT:
-        return <Vault user={data.user} documents={data.vaultDocs} saveDocuments={(d) => setData(prev => ({...prev, vaultDocs: d}))} isVerified={isVerified} />;
+        return <Vault user={data.user} documents={data.vaultDocs} saveDocuments={(d) => setData(prev => ({...prev, vaultDocs: d}))} updateUser={(u) => setData(prev => ({...prev, user: u}))} isVerified={true} />;
       case View.AI_CHAT:
-        return <AIChat chatHistory={data.chatHistory} setChatHistory={(msg) => setData(prev => ({...prev, chatHistory: msg}))} isVerified={isVerified} />;
+        return <AIChat chatHistory={data.chatHistory} setChatHistory={(msg) => setData(prev => ({...prev, chatHistory: msg}))} isVerified={true} />;
       case View.SETTINGS:
-        return <Settings user={data.user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={() => setCurrentUsername(null)} username={currentUsername} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={(u) => setData(prev => ({...prev, user: u}))} />;
+        return <Settings user={data.user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={handleLogout} username={currentUsername} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={(u) => setData(prev => ({...prev, user: u}))} />;
       case View.ADMIN_DASHBOARD:
-        return isAdmin ? <AdminDashboard resetApp={() => { localStorage.clear(); window.location.reload(); }} /> : <ErrorPage type="404" title="Access Denied" message={`System Authority Level 0 Required.`} />;
+        return isAdmin ? <AdminDashboard resetApp={() => { localStorage.clear(); window.location.reload(); }} /> : <ErrorPage type="404" title="Access Denied" message={`Authority Required.`} />;
       default:
-        return <Dashboard user={data.user} isVerified={isVerified} username={currentUsername} expenses={data.expenses} onNavigate={setView} />;
+        return <Dashboard user={data.user} isVerified={true} username={currentUsername} expenses={data.expenses} onNavigate={setView} />;
     }
   };
 
@@ -178,24 +161,27 @@ const App = () => {
       <GlobalLoader isLoading={isLoading} />
       {showTerms && <TermsModal onAccept={handleAcceptTerms} />}
       
-      {/* Fixed Layout Alignment */}
       <div className="md:ml-20 lg:ml-64 transition-all">
-        {/* Synchronized Header - Universal for Web/Mobile */}
         <header className="bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 h-16 flex items-center justify-between px-6 lg:px-12 sticky top-0 z-[100]">
            <div className="flex items-center space-x-4">
-              <div className="w-8 h-8 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-600/20 flex items-center justify-center text-white">
-                <Layout size={18} />
+              <div className="w-8 h-8 bg-indigo-500 rounded-xl shadow-lg shadow-indigo-500/20 flex items-center justify-center text-white">
+                <DbIcon size={18} />
               </div>
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] hidden sm:block">
-                Node Node Management • {view.replace('_', ' ')}
+                {APP_NAME} • {view.replace('_', ' ')}
               </span>
            </div>
            
            <div className="flex items-center space-x-4">
+              <div className="hidden md:flex items-center space-x-2 mr-4 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-800">
+                <Cloud size={14} className="text-emerald-500" />
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Server Synced</span>
+              </div>
+
               <button 
                 onClick={systemReload}
-                className="p-3 text-slate-400 hover:text-indigo-600 transition-all rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
-                title="Synchronize System"
+                className="p-3 text-slate-400 hover:text-indigo-600 transition-all rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800"
+                title="Synchronize Now"
               >
                 <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
               </button>
@@ -214,9 +200,8 @@ const App = () => {
         </main>
       </div>
 
-      <Navigation currentView={view} setView={setView} isAdmin={currentUsername === ADMIN_USERNAME} isVerified={isVerified} />
+      <Navigation currentView={view} setView={setView} isAdmin={currentUsername === ADMIN_USERNAME} isVerified={true} />
       
-      {/* Synchronized Footer Branding */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/60 dark:bg-black/40 backdrop-blur-md p-1.5 z-[100] text-center hidden md:block border-t border-slate-200 dark:border-slate-800">
           <p className="text-[7px] text-slate-400 font-black tracking-[0.4em] uppercase max-w-5xl mx-auto opacity-60">
             {COPYRIGHT_NOTICE}

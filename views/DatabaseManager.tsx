@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { Database, FieldType, DbField } from '../types';
 import { Plus, Database as DbIcon, Trash2, Table, Wand2, X, Save, ChevronRight, Search, LayoutList, DatabaseBackup, Filter, Download, MoreHorizontal } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
+// Fix: Correct import and include Type for structured response configuration
+import {GoogleGenAI, Type} from "@google/genai";
 import { CREATOR_NAME } from '../constants';
 
 interface DatabaseManagerProps {
@@ -44,17 +45,39 @@ export const DatabaseManager: React.FC<DatabaseManagerProps> = ({ databases, set
     }
     setIsGenerating(true);
     try {
+        // Fix: Use correct initialization and responseSchema as recommended by GenAI guidelines
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
-            contents: `As a database architect, generate an optimal SQL database schema in JSON for: ${newDb.description}.
-            Return an array of objects: {"name": string, "type": "String"|"Number"|"Boolean"|"Date", "required": boolean}.
-            ONLY return the JSON array.`,
-            config: { responseMimeType: "application/json" }
+            contents: `As a database architect, generate an optimal database schema for: ${newDb.description}.`,
+            config: { 
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            name: { type: Type.STRING },
+                            type: { 
+                                type: Type.STRING,
+                                enum: ["String", "Number", "Boolean", "Date"] 
+                            },
+                            required: { type: Type.BOOLEAN }
+                        },
+                        required: ["name", "type", "required"]
+                    }
+                }
+            }
         });
-        const generatedSchema = JSON.parse(response.text);
-        setNewDb({ ...newDb, schema: generatedSchema });
+        
+        // Fix: Access response.text property directly and safely parse the result
+        const jsonStr = response.text?.trim();
+        if (jsonStr) {
+            const generatedSchema = JSON.parse(jsonStr);
+            setNewDb({ ...newDb, schema: generatedSchema });
+        }
     } catch (e) {
+        console.error("AI Schema Generation Error:", e);
         alert("AI Engine failed to generate schema. Please specify manual fields.");
     } finally {
         setIsGenerating(false);
