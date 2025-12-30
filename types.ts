@@ -8,7 +8,8 @@ export enum View {
   EXPENSES = 'EXPENSES',
   DATABASE_MANAGER = 'DATABASE_MANAGER',
   NOTES = 'NOTES',
-  VAULT = 'VAULT'
+  VAULT = 'VAULT',
+  PLANNER = 'PLANNER'
 }
 
 export enum FieldType {
@@ -57,12 +58,10 @@ export interface UserProfile {
   isPro?: boolean; 
   verificationStatus?: 'NONE' | 'PENDING' | 'VERIFIED' | 'REJECTED';
   acceptedTermsVersion?: string;
-  // Storage Management
   storageLimitGB: number;
   storageUsedBytes: number;
-  // Security & 2FA
   twoFactorEnabled: boolean;
-  twoFactorSecret?: string; // Stored OTP for current session
+  twoFactorSecret?: string;
   backupCodes: string[];
   authorizedDevices: string[];
 }
@@ -78,6 +77,18 @@ export interface Note {
   deletedAt?: number;
 }
 
+export interface Assignment {
+  id: string;
+  title: string;
+  category: string;
+  subject: string;
+  dueDate: string;
+  priority: TaskPriority;
+  completed: boolean;
+  estimatedTime?: string;
+  reminderMinutes?: number;
+}
+
 export interface VaultDocument {
   id: string;
   title: string;
@@ -88,17 +99,6 @@ export interface VaultDocument {
   mimeType?: string;
   createdAt: number;
   deletedAt?: number;
-}
-
-export type RequestType = 'PROFILE_UPDATE' | 'VERIFICATION_REQUEST' | 'SUPPORT_TICKET' | 'PASSWORD_RESET' | 'STORAGE_INCREASE';
-
-export interface ChangeRequest {
-  id: string;
-  username: string;
-  type: RequestType;
-  payload?: any; 
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'RESOLVED';
-  timestamp: string;
 }
 
 export interface ChatMessage {
@@ -118,16 +118,14 @@ export interface Expense {
 }
 
 /**
- * Interface representing a study task or assignment.
+ * Fix: Exporting missing ChangeRequest interface used for administrative audits and verification tasks.
  */
-export interface Assignment {
+export interface ChangeRequest {
   id: string;
-  title: string;
-  category: string;
-  subject: string;
-  dueDate: string;
-  priority: TaskPriority;
-  completed: boolean;
-  estimatedTime?: string;
-  reminderMinutes?: number;
+  userId: string;
+  username: string;
+  type: 'VERIFICATION' | 'STORAGE' | 'OTHER';
+  details: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: number;
 }

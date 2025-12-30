@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { UserProfile, ChangeRequest } from '../types';
+// Fix: Removed unused ChangeRequest import to clean up dependency tree
+import { UserProfile } from '../types';
 import { Moon, LogOut, Trash2, Sun, Shield, UserCheck, ShieldCheck, ArrowRight, Clock, ShieldX, Key, ShieldAlert, Copy, Check, RefreshCw } from 'lucide-react';
 import { WATERMARK } from '../constants';
 

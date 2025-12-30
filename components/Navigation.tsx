@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { Layout, Settings, LayoutDashboard, MessageCircle, Lock, BookOpen, Database, LayoutList, ShieldCheck, ChevronRight, Menu, AppWindow } from 'lucide-react';
+import { Settings, BookOpen, Database, MessageCircle, AppWindow, Calendar, Lock } from 'lucide-react';
 import { View } from '../types';
-import { APP_NAME, CREATOR_NAME } from '../constants';
+import { CREATOR_NAME } from '../constants';
 
 interface NavigationProps {
   currentView: View;
@@ -18,20 +18,14 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
     return [View.AI_CHAT, View.DATABASE_MANAGER, View.VAULT].includes(view);
   };
 
-  let navItems = [
+  const navItems = [
     { view: View.DASHBOARD, icon: AppWindow, label: 'Workbench' },
+    { view: View.PLANNER, icon: Calendar, label: 'Planner' },
     { view: View.DATABASE_MANAGER, icon: Database, label: 'Architect' },
     { view: View.NOTES, icon: BookOpen, label: 'Documentation' },
     { view: View.AI_CHAT, icon: MessageCircle, label: 'AI Engine' },
     { view: View.SETTINGS, icon: Settings, label: 'Settings' },
   ];
-
-  if (isAdmin) {
-    navItems = [
-      { view: View.ADMIN_DASHBOARD, icon: LayoutDashboard, label: 'Authority' },
-      ...navItems.slice(1)
-    ];
-  }
 
   return (
     <>
@@ -52,7 +46,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
                 onClick={() => setView(item.view)}
                 className={`group flex items-center w-full p-3 rounded-lg transition-all relative ${
                   isActive
-                    ? 'bg-slate-50 dark:bg-slate-800 text-indigo-600 nav-active'
+                    ? 'bg-slate-50 dark:bg-slate-800 text-indigo-600'
                     : 'text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600'
                 }`}
               >
@@ -81,23 +75,22 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
 
       {/* Mobile Bottom Navigation */}
       <div className="md:hidden fixed bottom-4 left-4 right-4 z-[110]">
-        <div className="bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-1.5">
-          <div className="flex justify-between items-center">
+        <div className="bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-1.5 overflow-x-auto no-scrollbar">
+          <div className="flex justify-between items-center min-w-max space-x-2 px-2">
             {navItems.map((item) => {
-              const locked = isLocked(item.view);
               const isActive = currentView === item.view;
               return (
                 <button
                   key={item.view}
                   onClick={() => setView(item.view)}
-                  className={`flex flex-col items-center justify-center flex-1 py-2 rounded-xl transition-all ${
+                  className={`flex flex-col items-center justify-center px-4 py-2 rounded-xl transition-all ${
                     isActive 
                     ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600' 
-                    : 'text-slate-400 hover:text-slate-600'
+                    : 'text-slate-400'
                   }`}
                 >
                   <item.icon className="w-5 h-5 mb-1" strokeWidth={isActive ? 2 : 1.5} />
-                  <span className="text-[9px] font-bold uppercase tracking-tighter">{item.label.split(' ')[0]}</span>
+                  <span className="text-[9px] font-bold uppercase tracking-tighter">{item.label}</span>
                 </button>
               );
             })}

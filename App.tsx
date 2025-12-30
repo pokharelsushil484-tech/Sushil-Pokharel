@@ -12,12 +12,13 @@ import { DatabaseManager } from './views/DatabaseManager';
 import { Notes } from './views/Notes';
 import { Vault } from './views/Vault';
 import { ExpenseTracker } from './views/ExpenseTracker';
+import { StudyPlanner } from './views/StudyPlanner';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { TermsModal } from './components/TermsModal';
 import { RefreshCw, Layout, User, Database as DbIcon, Cloud } from 'lucide-react';
 
-import { View, UserProfile, Database, ChatMessage, Expense, Note, VaultDocument } from './types';
+import { View, UserProfile, Database, ChatMessage, Expense, Note, VaultDocument, Assignment } from './types';
 import { ADMIN_USERNAME, APP_VERSION, CURRENT_TERMS_VERSION, COPYRIGHT_NOTICE, CREATOR_NAME, APP_NAME } from './constants';
 
 const App = () => {
@@ -34,12 +35,12 @@ const App = () => {
     chatHistory: [] as ChatMessage[],
     expenses: [] as Expense[],
     notes: [] as Note[],
-    vaultDocs: [] as VaultDocument[]
+    vaultDocs: [] as VaultDocument[],
+    assignments: [] as Assignment[]
   };
 
   const [data, setData] = useState(initialData);
 
-  // PERSISTENCE: Load data from "Central Server" (LocalStorage simulation)
   useEffect(() => {
     if (currentUsername) {
       localStorage.setItem('active_session_user', currentUsername);
@@ -62,7 +63,6 @@ const App = () => {
             setView(View.ONBOARDING);
           }
         } catch (e) {
-          console.error("Data corruption detected. Resetting node.");
           setData(initialData);
           setView(View.ONBOARDING);
         }
@@ -75,7 +75,6 @@ const App = () => {
     }
   }, [currentUsername]);
 
-  // AUTO-SAVE: Persistent data storage
   useEffect(() => {
     if (currentUsername && data.user) {
       localStorage.setItem(`architect_data_${currentUsername}`, JSON.stringify(data));
@@ -83,7 +82,8 @@ const App = () => {
   }, [data, currentUsername]);
 
   useEffect(() => {
-    darkMode ? document.documentElement.classList.add('dark') : document.documentElement.classList.remove('dark');
+    if (darkMode) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
     localStorage.setItem('architect_theme', String(darkMode));
   }, [darkMode]);
 
@@ -97,7 +97,6 @@ const App = () => {
 
   const systemReload = () => {
     setIsLoading(true);
-    // Simulate server synchronization
     setTimeout(() => {
         window.location.reload();
     }, 800);
@@ -115,16 +114,7 @@ const App = () => {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-[#020617] font-sans transition-colors duration-500">
         <GlobalLoader isLoading={isLoading} />
-        <Login 
-          user={null} 
-          onLogin={(u) => { 
-            setIsLoading(true); 
-            setTimeout(() => { 
-              setCurrentUsername(u); 
-              setIsLoading(false); 
-            }, 800); 
-          }} 
-        />
+        <Login user={null} onLogin={(u) => { setIsLoading(true); setTimeout(() => { setCurrentUsername(u); setIsLoading(false); }, 800); }} />
       </div>
     );
   }
@@ -145,14 +135,16 @@ const App = () => {
         return <Notes notes={data.notes} setNotes={(n) => setData(prev => ({...prev, notes: n}))} isAdmin={isAdmin} />;
       case View.VAULT:
         return <Vault user={data.user} documents={data.vaultDocs} saveDocuments={(d) => setData(prev => ({...prev, vaultDocs: d}))} updateUser={(u) => setData(prev => ({...prev, user: u}))} isVerified={true} />;
+      case View.PLANNER:
+        return <StudyPlanner assignments={data.assignments || []} setAssignments={(a) => setData(prev => ({...prev, assignments: a}))} isAdmin={true} />;
       case View.AI_CHAT:
         return <AIChat chatHistory={data.chatHistory} setChatHistory={(msg) => setData(prev => ({...prev, chatHistory: msg}))} isVerified={true} />;
       case View.SETTINGS:
         return <Settings user={data.user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={handleLogout} username={currentUsername} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={(u) => setData(prev => ({...prev, user: u}))} />;
       case View.ADMIN_DASHBOARD:
-        return isAdmin ? <AdminDashboard resetApp={() => { localStorage.clear(); window.location.reload(); }} /> : <ErrorPage type="404" title="Access Denied" message={`Authority Required.`} />;
+        return isAdmin ? <AdminDashboard resetApp={() => { localStorage.clear(); window.location.reload(); }} /> : <ErrorPage type="404" title="Access Denied" />;
       default:
-        return <Dashboard user={data.user} isVerified={true} username={currentUsername} expenses={data.expenses} onNavigate={setView} />;
+        return <Dashboard user={data.user} isVerified={true} username={currentUsername} expenses={data.expenses} databases={data.databases} onNavigate={setView} />;
     }
   };
 
@@ -178,11 +170,7 @@ const App = () => {
                 <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Server Synced</span>
               </div>
 
-              <button 
-                onClick={systemReload}
-                className="p-3 text-slate-400 hover:text-indigo-600 transition-all rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800"
-                title="Synchronize Now"
-              >
+              <button onClick={systemReload} className="p-3 text-slate-400 hover:text-indigo-600 transition-all rounded-2xl">
                 <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
               </button>
               
