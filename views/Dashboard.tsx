@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, Expense, View, Database } from '../types';
-import { DatabaseBackup, HardDrive, ArrowRight, ShieldCheck, Cpu, Layers, Globe, Server, RefreshCw, Cloud } from 'lucide-react';
-import { APP_NAME, CREATOR_NAME } from '../constants';
+import { DatabaseBackup, HardDrive, ArrowRight, ShieldCheck, Cpu, Layers, Server, Cloud, ShieldAlert } from 'lucide-react';
+import { APP_NAME, CREATOR_NAME, ADMIN_USERNAME } from '../constants';
 
 interface DashboardProps {
   user: UserProfile;
@@ -15,6 +15,7 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username, expenses = [], databases = [], onNavigate }) => {
   const [greeting, setGreeting] = useState('');
+  const isAdmin = username === ADMIN_USERNAME;
   
   useEffect(() => {
     const hour = new Date().getHours();
@@ -31,28 +32,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username
     <div className="space-y-6 lg:space-y-10 animate-fade-in pb-12 w-full max-w-7xl mx-auto">
       
       {/* Dynamic Header */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-indigo-600 text-white shadow-2xl p-8 lg:p-14">
-          <div className="absolute top-0 right-0 w-1/3 h-full bg-white/10 -skew-x-12 translate-x-1/2"></div>
+      <div className={`relative overflow-hidden rounded-[2.5rem] text-white shadow-2xl p-8 lg:p-14 transition-all duration-700 ${isAdmin ? 'bg-slate-900' : 'bg-indigo-600'}`}>
+          <div className="absolute top-0 right-0 w-1/3 h-full bg-white/5 -skew-x-12 translate-x-1/2"></div>
           
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
               <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-4">
-                    <Cloud className="w-5 h-5 text-indigo-200" />
-                    <span className="text-indigo-100 font-black text-[10px] tracking-[0.4em] uppercase">Private Node Synced</span>
+                    {isAdmin ? <ShieldAlert className="w-5 h-5 text-indigo-400" /> : <Cloud className="w-5 h-5 text-indigo-200" />}
+                    <span className="text-indigo-200 font-black text-[10px] tracking-[0.4em] uppercase">
+                        {isAdmin ? 'System Override Active' : 'Private Node Synced'}
+                    </span>
                   </div>
                   
                   <h1 className="text-4xl lg:text-6xl font-black mb-3 leading-none tracking-tight">
                     {greeting}, <br/>
-                    <span className="text-indigo-200">{user?.name || "Architect"}</span>
+                    <span className={`${isAdmin ? 'text-indigo-500' : 'text-indigo-200'}`}>{user?.name || "Architect"}</span>
                   </h1>
                   <p className="text-indigo-100/60 text-xs font-bold uppercase tracking-widest mt-6">Designed by {CREATOR_NAME}</p>
               </div>
 
               <div className="flex flex-col items-center">
-                  <div className="w-24 h-24 rounded-[2.5rem] bg-white/20 backdrop-blur-xl border border-white/30 flex items-center justify-center shadow-2xl mb-4 group hover:scale-110 transition-transform">
-                      <ShieldCheck size={48} className="text-white" />
+                  <div className={`w-24 h-24 rounded-[2.5rem] backdrop-blur-xl border flex items-center justify-center shadow-2xl mb-4 group hover:scale-110 transition-transform ${isAdmin ? 'bg-indigo-600/30 border-indigo-500/30' : 'bg-white/20 border-white/30'}`}>
+                      {isAdmin ? <Cpu size={48} className="text-indigo-500" /> : <ShieldCheck size={48} className="text-white" />}
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Authorized Access</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+                      {isAdmin ? 'Admin Clearance' : 'Authorized Access'}
+                  </span>
               </div>
           </div>
       </div>
@@ -62,7 +67,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username
           {[
             { label: 'Cloud Storage', val: `${usedGB} / ${user.storageLimitGB} GB`, icon: HardDrive, color: 'text-indigo-600', bg: 'bg-indigo-50', sub: `${usedPercent.toFixed(1)}% consumed` },
             { label: 'Databases', val: databases.length, icon: DatabaseBackup, color: 'text-purple-600', bg: 'bg-purple-50', sub: 'Managed nodes' },
-            { label: 'Records', val: totalRecords, icon: Layers, color: 'text-emerald-600', bg: 'bg-emerald-50', sub: 'Indexed data' },
+            { label: 'Records', val: totalRecords, icon: Layers, color: 'text-emerald-600', bg: 'bg-emerald-50', sub: 'Indexed segments' },
             { label: 'System Health', val: 'Optimized', icon: Cpu, color: 'text-slate-600', bg: 'bg-slate-50', sub: 'Low latency' }
           ].map((stat, i) => (
               <div key={i} className="bg-white dark:bg-[#0f172a] p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800 flex flex-col space-y-4 shadow-sm group hover:shadow-xl transition-all">
@@ -83,11 +88,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username
           <div className="lg:col-span-2 bg-white dark:bg-[#0f172a] rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
               <div className="flex justify-between items-center mb-10">
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center tracking-tight uppercase">
-                    <Server className="mr-4 text-indigo-600" size={32} /> Node Status Matrix
+                    <Server className="mr-4 text-indigo-600" size={32} /> System Node Matrix
                 </h2>
                 <div className="flex items-center text-[10px] font-black text-emerald-500 uppercase tracking-widest">
                   <span className="w-2 h-2 bg-emerald-500 rounded-full mr-2 animate-pulse"></span>
-                  Online
+                  Node Alpha Online
                 </div>
               </div>
               
@@ -100,16 +105,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username
                   ))}
               </div>
 
-              <div className="mt-12 p-8 bg-indigo-50 dark:bg-indigo-950/30 rounded-[2rem] border border-indigo-100 dark:border-indigo-900/50">
-                  <div className="flex items-center space-x-4 mb-4">
-                    <HardDrive size={24} className="text-indigo-600" />
-                    <h3 className="text-sm font-black text-indigo-900 dark:text-indigo-300 uppercase tracking-widest">Storage Efficiency</h3>
+              {isAdmin && (
+                  <div onClick={() => onNavigate(View.ADMIN_DASHBOARD)} className="mt-8 p-8 bg-slate-900 rounded-[2rem] border border-slate-800 flex items-center justify-between cursor-pointer group hover:bg-indigo-950 transition-all">
+                      <div className="flex items-center space-x-6">
+                          <div className="p-4 bg-indigo-600 text-white rounded-2xl shadow-xl group-hover:rotate-12 transition-transform">
+                              <ShieldAlert size={28} />
+                          </div>
+                          <div>
+                              <h3 className="text-lg font-black text-white uppercase tracking-tight">Authority Command</h3>
+                              <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mt-1">Manage global nodes and identity matrix</p>
+                          </div>
+                      </div>
+                      <ArrowRight size={24} className="text-indigo-600 group-hover:translate-x-2 transition-transform" />
                   </div>
-                  <div className="w-full h-2 bg-white dark:bg-slate-800 rounded-full overflow-hidden mb-2">
-                    <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${usedPercent}%` }}></div>
-                  </div>
-                  <p className="text-[9px] text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-widest">{usedGB} GB of {user.storageLimitGB} GB synchronized.</p>
-              </div>
+              )}
           </div>
 
           <div className="space-y-6">
@@ -126,7 +135,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, isVerified, username
                       <p className="text-xs text-slate-400 font-bold mt-2 leading-relaxed">Design and deploy local data nodes with AI-assisted schema generation.</p>
                   </div>
                   <div className="relative z-10 flex items-center text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400">
-                    Access Core <ArrowRight size={16} className="ml-3 group-hover:translate-x-2 transition-transform" />
+                    Initialize Core <ArrowRight size={16} className="ml-3 group-hover:translate-x-2 transition-transform" />
                   </div>
               </div>
 

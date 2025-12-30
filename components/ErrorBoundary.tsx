@@ -1,5 +1,5 @@
 
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { ErrorPage } from '../views/ErrorPage';
 
 interface Props {
@@ -11,7 +11,7 @@ interface State {
   error: Error | null;
 }
 
-// Fix: Using React.Component explicitly ensures proper type inheritance for React class components in TypeScript
+// Fix: Explicitly using React.Component to ensure proper type inheritance for class components in TypeScript
 export class ErrorBoundary extends React.Component<Props, State> {
   public state: State = {
     hasError: false,
@@ -29,8 +29,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   private handleReset = () => {
-    // Fix: Accessing 'setState' which is inherited from 'React.Component'
-    // Attempt to recover by resetting error state
+    // Fix: Inherited setState is now correctly typed as part of React.Component
     this.setState({ hasError: false, error: null });
   };
 
@@ -46,7 +45,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
       );
     }
 
-    // Fix: Accessing 'props' which is inherited from 'React.Component'
+    // Fix: Inherited props is now correctly typed as part of React.Component
     return this.props.children;
   }
 }

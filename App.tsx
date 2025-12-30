@@ -16,10 +16,14 @@ import { StudyPlanner } from './views/StudyPlanner';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { TermsModal } from './components/TermsModal';
-import { RefreshCw, Layout, User, Database as DbIcon, Cloud, Power, AlertTriangle, ArrowRight } from 'lucide-react';
+import { RefreshCw, Power, AlertTriangle, ArrowRight, ShieldCheck, Monitor } from 'lucide-react';
 
-import { View, UserProfile, Database, ChatMessage, Expense, Note, VaultDocument, Assignment } from './types';
-import { ADMIN_USERNAME, APP_VERSION, CURRENT_TERMS_VERSION, COPYRIGHT_NOTICE, CREATOR_NAME, APP_NAME, CURRENT_MONTH_KEY } from './constants';
+import { View, UserProfile, Database, ChatMessage, Expense, Note, VaultDocument, Assignment, ChangeRequest } from './types';
+// Fix: Removed CURRENT_MONTH_NAME from constants import as it is missing there
+import { ADMIN_USERNAME, APP_VERSION, SYSTEM_UPGRADE_TOKEN, COPYRIGHT_NOTICE, APP_NAME } from './constants';
+
+// Fix: Defined CURRENT_MONTH_NAME locally
+const CURRENT_MONTH_NAME = new Date().toLocaleString('default', { month: 'long' });
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -28,8 +32,9 @@ const App = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [showTerms, setShowTerms] = useState(false);
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
-  const [isSystemActive, setIsSystemActive] = useState(() => localStorage.getItem('system_active_state') === 'true');
+  const [isSystemActive, setIsSystemActive] = useState(() => localStorage.getItem('system_boot_state') === 'true');
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('architect_theme') === 'true');
+  const [deviceAuthorized, setDeviceAuthorized] = useState(true);
   
   const initialData = {
     user: null as UserProfile | null,
@@ -38,20 +43,21 @@ const App = () => {
     expenses: [] as Expense[],
     notes: [] as Note[],
     vaultDocs: [] as VaultDocument[],
-    assignments: [] as Assignment[]
+    assignments: [] as Assignment[],
+    requests: [] as ChangeRequest[]
   };
 
   const [data, setData] = useState(initialData);
 
-  // Check for monthly update
+  // System Upgrade Monitor (Monthly Reload Requirement)
   useEffect(() => {
-    const lastCheck = localStorage.getItem('last_system_update_check');
-    if (lastCheck && lastCheck !== CURRENT_MONTH_KEY) {
+    const lastVersion = localStorage.getItem('system_last_known_version');
+    if (lastVersion && lastVersion !== SYSTEM_UPGRADE_TOKEN) {
       setShowUpdatePrompt(true);
     }
-    localStorage.setItem('last_system_update_check', CURRENT_MONTH_KEY);
   }, []);
 
+  // Sync state to persistence
   useEffect(() => {
     if (currentUsername) {
       localStorage.setItem('active_session_user', currentUsername);
@@ -62,7 +68,7 @@ const App = () => {
           const parsed = JSON.parse(stored);
           setData({ ...initialData, ...parsed });
           if (parsed.user) {
-            if (parsed.user.acceptedTermsVersion !== CURRENT_TERMS_VERSION) {
+            if (parsed.user.acceptedTermsVersion !== SYSTEM_UPGRADE_TOKEN) {
               setShowTerms(true);
             }
           } else {
@@ -90,21 +96,21 @@ const App = () => {
     localStorage.setItem('architect_theme', String(darkMode));
   }, [darkMode]);
 
-  const handleEnableSystem = () => {
+  const handleSystemBoot = () => {
     setIsLoading(true);
     setTimeout(() => {
       setIsSystemActive(true);
-      localStorage.setItem('system_active_state', 'true');
+      localStorage.setItem('system_boot_state', 'true');
       setIsLoading(false);
-    }, 1500);
+    }, 2000);
   };
 
-  const handleReloadUpdate = () => {
+  const handleSystemUpdate = () => {
     setIsLoading(true);
-    localStorage.setItem('last_system_update_check', CURRENT_MONTH_KEY);
+    localStorage.setItem('system_last_known_version', SYSTEM_UPGRADE_TOKEN);
     setTimeout(() => {
       window.location.reload();
-    }, 1000);
+    }, 1200);
   };
 
   const handleLogout = () => {
@@ -116,21 +122,24 @@ const App = () => {
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
 
+  // Block screen if System not enabled
   if (!isSystemActive) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center">
-        <GlobalLoader isLoading={isLoading} message="Initializing Hub Core..." />
-        <div className="bg-slate-900 p-12 rounded-[4rem] border border-slate-800 shadow-2xl max-w-md animate-scale-up">
-          <Power size={64} className="mx-auto mb-8 text-indigo-500 animate-pulse" />
-          <h1 className="text-3xl font-black text-white mb-4 uppercase tracking-tighter">System Offline</h1>
-          <p className="text-slate-400 mb-10 text-sm font-medium leading-relaxed">
-            The workspace infrastructure is currently dormant. Access granted by Sushil is required to initialize the encrypted nodes.
+      <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-6 text-center">
+        <GlobalLoader isLoading={isLoading} message="Initializing Encrypted Core..." />
+        <div className="bg-slate-900/50 backdrop-blur-3xl p-14 rounded-[4rem] border border-slate-800 shadow-2xl max-w-md animate-scale-up">
+          <div className="w-24 h-24 bg-indigo-600/20 rounded-full flex items-center justify-center mx-auto mb-10 border border-indigo-500/30">
+            <Power size={48} className="text-indigo-500 animate-pulse" />
+          </div>
+          <h1 className="text-3xl font-black text-white mb-4 uppercase tracking-tighter">Workspace Dormant</h1>
+          <p className="text-slate-400 mb-10 text-sm font-medium leading-relaxed opacity-80">
+            Node infrastructure is currently in stasis. Manual authorization by Sushil Pokharel is required to boot the workspace logic.
           </p>
           <button 
-            onClick={handleEnableSystem}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-6 rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-900/20 transition-all active:scale-95 flex items-center justify-center"
+            onClick={handleSystemBoot}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-6 rounded-3xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-indigo-950 transition-all active:scale-95 flex items-center justify-center"
           >
-            Enable System Core <ArrowRight size={18} className="ml-3" />
+            Boot System Core <ArrowRight size={18} className="ml-3" />
           </button>
         </div>
         <p className="mt-12 text-[10px] text-slate-600 font-black uppercase tracking-[0.5em]">{COPYRIGHT_NOTICE}</p>
@@ -138,20 +147,24 @@ const App = () => {
     );
   }
 
+  // Monthly Update Prompt
   if (showUpdatePrompt) {
     return (
-      <div className="min-h-screen bg-indigo-600 flex flex-col items-center justify-center p-6 text-center text-white">
+      <div className="min-h-screen bg-indigo-700 flex flex-col items-center justify-center p-6 text-center text-white">
         <div className="max-w-md animate-scale-up">
-          <RefreshCw size={64} className="mx-auto mb-8 animate-spin-slow" />
-          <h1 className="text-4xl font-black mb-4 uppercase tracking-tighter">Update Ready</h1>
-          <p className="text-indigo-100 mb-10 text-lg font-bold">
-            A new monthly version of {APP_NAME} is available. Updates ensure your data nodes remain synchronized and secure.
+          <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-10">
+             <RefreshCw size={48} className="animate-spin-slow" />
+          </div>
+          <h1 className="text-4xl font-black mb-4 uppercase tracking-tighter">{CURRENT_MONTH_NAME} Update</h1>
+          <p className="text-indigo-100 mb-10 text-lg font-bold leading-relaxed">
+            A new security patch and monthly system optimization is available for {APP_NAME}. 
+            Please synchronize your node.
           </p>
           <button 
-            onClick={handleReloadUpdate}
-            className="bg-white text-indigo-600 px-12 py-5 rounded-full font-black text-xs uppercase tracking-widest shadow-2xl hover:bg-indigo-50 transition-all"
+            onClick={handleSystemUpdate}
+            className="bg-white text-indigo-700 px-12 py-5 rounded-full font-black text-xs uppercase tracking-widest shadow-2xl hover:bg-indigo-50 transition-all active:scale-95"
           >
-            Reload Workspace Now
+            Apply & Reload Workspace
           </button>
         </div>
       </div>
@@ -188,22 +201,22 @@ const App = () => {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#020617] font-sans transition-colors duration-500 overflow-x-hidden">
       <GlobalLoader isLoading={isLoading} />
-      {showTerms && <TermsModal onAccept={() => { if(data.user) setData(prev => ({...prev, user: { ...prev.user!, acceptedTermsVersion: CURRENT_TERMS_VERSION } })); setShowTerms(false); }} />}
+      {showTerms && <TermsModal onAccept={() => { if(data.user) setData(prev => ({...prev, user: { ...prev.user!, acceptedTermsVersion: SYSTEM_UPGRADE_TOKEN } })); setShowTerms(false); }} />}
+      
       <div className="md:ml-20 lg:ml-64 transition-all">
         <header className="bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 h-16 flex items-center justify-between px-6 lg:px-12 sticky top-0 z-[100]">
            <div className="flex items-center space-x-4">
-              <div className="w-8 h-8 bg-indigo-500 rounded-xl shadow-lg shadow-indigo-500/20 flex items-center justify-center text-white"><DbIcon size={18} /></div>
+              <div className="w-8 h-8 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-600/20 flex items-center justify-center text-white"><ShieldCheck size={18} /></div>
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] hidden sm:block">{APP_NAME} • {view.replace('_', ' ')}</span>
            </div>
            <div className="flex items-center space-x-4">
               <div className="hidden md:flex items-center space-x-2 mr-4 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-800">
-                <Cloud size={14} className="text-emerald-500" />
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Nodes Active</span>
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Logic Active</span>
               </div>
-              <button onClick={() => window.location.reload()} className="p-3 text-slate-400 hover:text-indigo-600 transition-all rounded-2xl"><RefreshCw size={20} /></button>
               <div className="h-8 w-[1px] bg-slate-100 dark:bg-slate-800 hidden sm:block"></div>
               <div className="flex items-center space-x-3 bg-slate-50 dark:bg-slate-800/50 px-4 py-2 rounded-2xl border border-slate-100 dark:border-slate-700">
-                <User size={16} className="text-slate-400" />
+                <Monitor size={14} className="text-slate-400" />
                 <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">{currentUsername}</span>
               </div>
            </div>

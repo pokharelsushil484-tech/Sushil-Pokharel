@@ -1,46 +1,45 @@
 
 import { UserProfile } from './types';
 
-export const APP_VERSION = "11.0.1 (System Core)"; 
+export const APP_VERSION = "14.0.1 (Quantum Core)"; 
 export const ADMIN_USERNAME = "admin"; 
-export const CREATOR_NAME = "Sushil";
+export const ADMIN_SECRET = "Sushil@2025"; // Primary Admin Credential
+export const CREATOR_NAME = "Sushil Pokharel";
 
 const now = new Date();
-export const CURRENT_TERMS_VERSION = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-export const CURRENT_MONTH_KEY = `${now.getFullYear()}-${now.getMonth()}`;
+export const SYSTEM_UPGRADE_TOKEN = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
 export const DEFAULT_STORAGE_LIMIT_GB = 15; 
 
+export const APP_NAME = "Sushil’s Workspace";
+export const WATERMARK = "© Workspace Hub | Authored by Sushil Pokharel";
+export const ADMIN_EMAIL = "sushil@workspace.local";
+export const COPYRIGHT_NOTICE = "SECURE PROTOCOL: Developed by Sushil Pokharel. All nodes encrypted.";
+
 export const DEFAULT_USER: UserProfile = {
-  name: "User Node",
-  profession: "System Architect",
-  education: "Master Core",
-  email: "",
-  phone: "",
-  personalStatement: "Personal Digital Workspace.",
-  skills: ["Digital Sovereignty"],
-  interests: ["Data Architecture"],
-  streak: 0,
-  points: 0,
+  name: "Sushil Pokharel",
+  profession: "Lead Architect",
+  education: "System Master",
+  email: "sushil@workspace.local",
+  phone: "+977-9800000000",
+  personalStatement: "Administrator of the Digital Sovereignty Hub.",
+  skills: ["Quantum Encryption", "Cloud Architecture", "Identity Management"],
+  interests: ["Cyber Security", "AI Integration"],
+  streak: 7,
+  points: 1250,
   isPro: true,
   verificationStatus: 'VERIFIED',
-  acceptedTermsVersion: CURRENT_TERMS_VERSION,
+  acceptedTermsVersion: SYSTEM_UPGRADE_TOKEN,
   storageLimitGB: DEFAULT_STORAGE_LIMIT_GB,
   storageUsedBytes: 0,
   twoFactorEnabled: false,
   backupCodes: [],
-  authorizedDevices: []
+  authorizedDevices: ['PRIMARY_WORKSTATION']
 };
 
-export const APP_NAME = "Sushil’s Workspace";
-export const WATERMARK = "© Workspace | Created by Sushil";
-export const ADMIN_EMAIL = "sushil@workspace.local";
-
-export const COPYRIGHT_NOTICE = "PROPRIETARY SYSTEM: Created by Sushil. All nodes encrypted.";
-
 export const MOTIVATIONAL_QUOTES = [
-  "Privacy is a right.",
-  "Sushil: Architecting your digital life.",
-  "Data sovereignty starts here.",
-  "Encrypted. Secure. Yours."
+  "Privacy is not a feature, it's a foundation.",
+  "Sushil: Architecting your digital future.",
+  "Secure Node Alpha: Status Online.",
+  "15GB Personal Cloud: Synchronized."
 ];

@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { ShieldCheck, ArrowRight, Info, AlertCircle } from 'lucide-react';
-import { APP_NAME, CURRENT_TERMS_VERSION } from '../constants';
+// Fix: Use SYSTEM_UPGRADE_TOKEN as CURRENT_TERMS_VERSION is not exported from constants
+import { APP_NAME, SYSTEM_UPGRADE_TOKEN } from '../constants';
 
 interface TermsModalProps {
   onAccept: () => void;
@@ -44,7 +45,7 @@ export const TermsModal: React.FC<TermsModalProps> = ({ onAccept }) => {
               <AlertCircle size={16} className="mr-2 text-indigo-500" /> New Monthly Updates
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              These terms are refreshed monthly to reflect new security standards and feature updates (Version: {CURRENT_TERMS_VERSION}).
+              These terms are refreshed monthly to reflect new security standards and feature updates (Version: {SYSTEM_UPGRADE_TOKEN}).
             </p>
           </section>
         </div>
