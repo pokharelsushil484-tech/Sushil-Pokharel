@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
-import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, ShieldCheck, Key, Monitor, Mail, ShieldAlert, CheckCircle } from 'lucide-react';
+import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, ShieldCheck, Key, Monitor, Mail, ShieldAlert, HelpCircle, X } from 'lucide-react';
 import { APP_NAME, ADMIN_USERNAME, WATERMARK, ADMIN_SECRET } from '../constants';
 
 interface LoginProps {
@@ -20,6 +20,7 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin }) => {
   const [twoFactorCode, setTwoFactorCode] = useState('');
   
   const [showPassword, setShowPassword] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [error, setError] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -55,14 +56,12 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin }) => {
 
     const storedPassword = typeof userData === 'string' ? userData : userData.password;
     if (storedPassword === password) {
-      // Simulate multi-device detection
       const knownDevice = localStorage.getItem(`authorized_device_${username}`);
       if (!knownDevice && username !== ADMIN_USERNAME) {
         setView('DEVICE_APPROVAL');
         return;
       }
 
-      // Check for 2FA
       const dataKey = `architect_data_${username}`;
       const dataStr = localStorage.getItem(dataKey);
       if (dataStr) {
@@ -95,7 +94,6 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin }) => {
     const dataStr = localStorage.getItem(dataKey);
     if (dataStr) {
       const data = JSON.parse(dataStr);
-      // Accept any backup code or a simulated Gmail OTP (123456)
       if (data.user?.backupCodes.includes(twoFactorCode) || twoFactorCode === "123456") {
         setIsSending(true);
         localStorage.setItem(`authorized_device_${username}`, 'TRUE');
@@ -109,7 +107,6 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin }) => {
   const handleDeviceApproval = () => {
     setIsSending(true);
     setTimeout(() => {
-        // Mock Admin Pop-up approval
         setView('GMAIL_AUTH');
         setIsSending(false);
     }, 2000);
@@ -136,7 +133,40 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#020617] flex flex-col items-center justify-center p-6 transition-colors duration-500">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#020617] flex flex-col items-center justify-center p-6 transition-colors duration-500 relative">
+      {/* Help Modal */}
+      {showHelp && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl animate-scale-up border border-slate-100 dark:border-slate-800">
+             <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Access Protocol</h3>
+                <button onClick={() => setShowHelp(false)} className="p-2 text-slate-400 hover:text-red-500 transition-colors"><X size={24}/></button>
+             </div>
+             <div className="space-y-6">
+                <div className="p-5 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-800">
+                   <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2">Administrator Access</p>
+                   <p className="text-xs font-bold dark:text-slate-200">Username: <span className="text-indigo-600">admin</span></p>
+                   <p className="text-xs font-bold dark:text-slate-200">Password: <span className="text-indigo-600">{ADMIN_SECRET}</span></p>
+                </div>
+                <div className="p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Personal Accounts</p>
+                   <p className="text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
+                     This app uses localized encryption. If your previous account is missing, click "New Identity Segment" to re-provision your workspace.
+                   </p>
+                </div>
+             </div>
+             <button onClick={() => setShowHelp(false)} className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] mt-8">Close Help Hub</button>
+          </div>
+        </div>
+      )}
+
+      <button 
+        onClick={() => setShowHelp(true)}
+        className="absolute top-6 right-6 p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-800 text-slate-400 hover:text-indigo-600 transition-all active:scale-95"
+      >
+        <HelpCircle size={24} />
+      </button>
+
       <div className="bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-3xl rounded-[3.5rem] shadow-2xl w-full max-w-sm p-10 text-center animate-scale-up border border-slate-100 dark:border-slate-800">
         
         <div className="w-24 h-24 bg-indigo-50 dark:bg-indigo-900 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 p-1 border-4 border-white dark:border-slate-800 shadow-xl overflow-hidden relative">
