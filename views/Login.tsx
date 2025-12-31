@@ -1,17 +1,18 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { UserProfile } from '../types';
-import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, ShieldCheck, Key, Monitor, Mail, ShieldAlert, HelpCircle, X, Smartphone } from 'lucide-react';
+import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, HelpCircle, X, Smartphone } from 'lucide-react';
 import { APP_NAME, ADMIN_USERNAME, WATERMARK, ADMIN_SECRET } from '../constants';
+import { storageService } from '../services/storageService';
 
 interface LoginProps {
   user: UserProfile | null;
   onLogin: (username: string) => void;
 }
 
-type AuthView = 'LOGIN' | 'REGISTER' | 'TOTP_AUTH' | 'DEVICE_APPROVAL';
+type AuthView = 'LOGIN' | 'REGISTER' | 'TOTP_AUTH';
 
-export const Login: React.FC<LoginProps> = ({ user, onLogin }) => {
+export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [view, setView] = useState<AuthView>('LOGIN');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -42,18 +43,24 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin }) => {
 
     const storedPassword = typeof userData === 'string' ? userData : userData.password;
     if (storedPassword === password) {
-      const dataKey = `architect_data_${username}`;
-      const dataStr = localStorage.getItem(dataKey);
-      if (dataStr) {
-        const data = JSON.parse(dataStr);
-        if (data.user?.totpEnabled) {
+      setIsSending(true);
+      try {
+        const dataKey = `architect_data_${username}`;
+        // Fix: Retrieve large data blobs from IndexedDB instead of localStorage
+        const stored = await storageService.getData(dataKey);
+        
+        if (stored?.user?.totpEnabled) {
           setView('TOTP_AUTH');
+          setIsSending(false);
           return;
         }
+        
+        setTimeout(() => { onLogin(username); setIsSending(false); }, 1200);
+      } catch (err) {
+        console.error("LOGIN_DATA_FETCH_ERROR", err);
+        setError("System logic sync failure. Reset may be required.");
+        setIsSending(false);
       }
-      
-      setIsSending(true);
-      setTimeout(() => { onLogin(username); setIsSending(false); }, 1200);
     } else {
       setError('Access Denied. Invalid Secret Key.');
     }
@@ -62,8 +69,6 @@ export const Login: React.FC<LoginProps> = ({ user, onLogin }) => {
   const handleTotpVerify = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
-    // Simulated TOTP validation
     if (totpCode.length === 6) {
       setIsSending(true);
       setTimeout(() => { onLogin(username); setIsSending(false); }, 1000);

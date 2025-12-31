@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { ChangeRequest, UserProfile } from '../types';
+import { ChangeRequest } from '../types';
 import { 
   Trash2, ShieldCheck, UserCheck, ShieldAlert, HardDrive, Plus, 
-  Minus, Activity, Key, Eye, EyeOff, BellRing, Infinity
+  Minus, Activity, Key, Eye, EyeOff, BellRing, Infinity, Check
 } from 'lucide-react';
 import { ADMIN_USERNAME, ADMIN_SECRET, CREATOR_NAME, APP_VERSION } from '../constants';
 import { storageService } from '../services/storageService';
@@ -12,7 +12,7 @@ interface AdminDashboardProps {
   resetApp: () => void;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = () => {
   const [usersList, setUsersList] = useState<any[]>([]);
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -48,7 +48,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
       setRequests(JSON.parse(reqStr));
     };
     fetchUsers();
-  }, [refreshTrigger]);
+  }, [refreshTrigger, viewMode]);
 
   const handleManualGrant = async (username: string, amount: number) => {
     const dataKey = `architect_data_${username}`;
@@ -66,13 +66,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
     
     const request = requests[reqIndex];
     if (action === 'APPROVE') {
-        const gbMatch = request.details.match(/(\d+)GB/);
-        const requestedGb = gbMatch ? parseInt(gbMatch[1]) : 20;
+        let requestedGb = request.amountRequested;
+        if (!requestedGb) {
+          const gbMatch = request.details.match(/(\d+)GB/);
+          requestedGb = gbMatch ? parseInt(gbMatch[1]) : 30;
+        }
         await handleManualGrant(request.username, requestedGb);
     }
     
     const updatedRequests = requests.map(r => 
-        r.id === reqId ? { ...r, status: action === 'APPROVE' ? 'APPROVED' as const : 'REJECTED' as const } : r
+        r.id === reqId ? { 
+            ...r, 
+            status: action === 'APPROVE' ? 'APPROVED' as const : 'REJECTED' as const,
+            processedAt: Date.now(),
+            acknowledged: false // Ensure user gets the notification
+        } : r
     );
     
     localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
@@ -81,13 +89,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
 
   const deleteUser = async (username: string) => {
     if (username === ADMIN_USERNAME) return;
-    if (window.confirm(`Permanently purge node: ${username}?`)) {
+    if (window.confirm(`Permanently purge node: ${username}? This will erase all their data.`)) {
         const usersStr = localStorage.getItem('studentpocket_users');
         if (usersStr) {
             const users = JSON.parse(usersStr);
             delete users[username];
             localStorage.setItem('studentpocket_users', JSON.stringify(users));
-            // No native delete in storageService yet, but we skip it here for brevity
+            await storageService.deleteData(`architect_data_${username}`);
             setRefreshTrigger(prev => prev + 1);
         }
     }
@@ -159,7 +167,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                       <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
                           <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-2">Architect Authority</p>
                           <p className="text-xs font-bold leading-relaxed dark:text-slate-200">
-                              Data is now persistent in high-capacity storage nodes. Admin remains bypass-authorized.
+                              System manages grants and signals. Administrator retains master override.
                           </p>
                       </div>
                   </div>
@@ -187,19 +195,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                                   <div>
                                       <p className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-lg">{req.username}</p>
                                       <p className="text-xs text-slate-500 font-bold">{req.details}</p>
+                                      <p className="text-[9px] text-slate-400 mt-1 uppercase font-black">{new Date(req.createdAt).toLocaleString()}</p>
                                   </div>
                               </div>
                               
                               <div className="flex items-center space-x-3 w-full md:w-auto">
                                   {req.status === 'PENDING' ? (
                                       <>
-                                          <button onClick={() => handleProcessRequest(req.id, 'APPROVE')} className="flex-1 md:flex-none px-8 py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl">Grant Access</button>
-                                          <button onClick={() => handleProcessRequest(req.id, 'REJECT')} className="flex-1 md:flex-none px-8 py-4 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl text-[10px] font-black uppercase tracking-widest">Deny</button>
+                                          <button onClick={() => handleProcessRequest(req.id, 'APPROVE')} className="flex-1 md:flex-none px-8 py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center justify-center hover:bg-emerald-700 transition-all"><Check size={14} className="mr-2"/> Approve Grant</button>
+                                          <button onClick={() => handleProcessRequest(req.id, 'REJECT')} className="flex-1 md:flex-none px-8 py-4 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 transition-all">Reject</button>
                                       </>
                                   ) : (
-                                      <span className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest ${req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-                                          {req.status}
-                                      </span>
+                                      <div className="text-right">
+                                        <span className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest ${req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                                            {req.status}
+                                        </span>
+                                        <p className="text-[8px] text-slate-400 mt-2 font-bold uppercase">Processed: {req.processedAt ? new Date(req.processedAt).toLocaleDateString() : 'N/A'}</p>
+                                      </div>
                                   )}
                               </div>
                           </div>

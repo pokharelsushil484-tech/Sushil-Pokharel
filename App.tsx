@@ -16,7 +16,7 @@ import { StudyPlanner } from './views/StudyPlanner';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { TermsModal } from './components/TermsModal';
-import { RefreshCw, Power, ArrowRight, ShieldCheck, Monitor } from 'lucide-react';
+import { RefreshCw, Power, ArrowRight, ShieldCheck, Monitor, PartyPopper, X } from 'lucide-react';
 
 import { View, UserProfile, Database, ChatMessage, Expense, Note, VaultDocument, Assignment, ChangeRequest } from './types';
 import { ADMIN_USERNAME, APP_VERSION, SYSTEM_UPGRADE_TOKEN, COPYRIGHT_NOTICE, APP_NAME } from './constants';
@@ -33,6 +33,7 @@ const App = () => {
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
   const [isSystemActive, setIsSystemActive] = useState(() => localStorage.getItem('system_boot_state') === 'true');
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('architect_theme') === 'true');
+  const [approvalNotice, setApprovalNotice] = useState<{ amount: number, id: string } | null>(null);
   
   const initialData = {
     user: null as UserProfile | null,
@@ -54,6 +55,47 @@ const App = () => {
       setShowUpdatePrompt(true);
     }
   }, []);
+
+  // Check for Approved Requests (Notifications)
+  useEffect(() => {
+    const checkApprovals = async () => {
+      if (currentUsername && data.user) {
+        const requests: ChangeRequest[] = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
+        const newlyApproved = requests.find(r => 
+          r.userId === currentUsername && 
+          r.status === 'APPROVED' && 
+          !r.acknowledged
+        );
+
+        if (newlyApproved) {
+          // If approved, refresh the user profile to show the new storage limit
+          const stored = await storageService.getData(`architect_data_${currentUsername}`);
+          if (stored?.user) {
+            setData(prev => ({ ...prev, user: stored.user }));
+          }
+          setApprovalNotice({ 
+            amount: newlyApproved.amountRequested || 0, 
+            id: newlyApproved.id 
+          });
+        }
+      }
+    };
+    
+    // Poll for status every 10 seconds (simulating background sync)
+    const interval = setInterval(checkApprovals, 10000);
+    checkApprovals();
+    
+    return () => clearInterval(interval);
+  }, [currentUsername, data.user]);
+
+  const acknowledgeApproval = () => {
+    if (approvalNotice) {
+      const requests: ChangeRequest[] = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
+      const updated = requests.map(r => r.id === approvalNotice.id ? { ...r, acknowledged: true } : r);
+      localStorage.setItem('studentpocket_requests', JSON.stringify(updated));
+      setApprovalNotice(null);
+    }
+  };
 
   // Async Data Loading from High-Capacity Node (IndexedDB)
   useEffect(() => {
@@ -208,6 +250,31 @@ const App = () => {
       <GlobalLoader isLoading={isLoading} />
       {showTerms && <TermsModal onAccept={() => { if(data.user) setData(prev => ({...prev, user: { ...prev.user!, acceptedTermsVersion: SYSTEM_UPGRADE_TOKEN } })); setShowTerms(false); }} />}
       
+      {/* CONGRATULATIONS NOTIFICATION */}
+      {approvalNotice && (
+        <div className="fixed top-20 right-6 left-6 md:left-auto md:w-96 z-[250] animate-fade-in shadow-2xl">
+          <div className="bg-emerald-600 text-white p-8 rounded-[2.5rem] relative overflow-hidden border border-emerald-400">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+            <button onClick={acknowledgeApproval} className="absolute top-4 right-4 p-2 text-white/50 hover:text-white"><X size={20}/></button>
+            <div className="flex items-center space-x-4 mb-4 relative z-10">
+              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                <PartyPopper size={28} className="text-white" />
+              </div>
+              <h4 className="text-lg font-black uppercase tracking-tight">Access Granted!</h4>
+            </div>
+            <p className="text-sm font-bold leading-relaxed relative z-10">
+              Congratulations, you have received <span className="underline decoration-white decoration-2 underline-offset-4 font-black">{approvalNotice.amount} GB</span> of additional storage nodes.
+            </p>
+            <button 
+              onClick={acknowledgeApproval} 
+              className="mt-6 w-full py-4 bg-white text-emerald-700 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+            >
+              Acknowledge Grant
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="md:ml-20 lg:ml-64 transition-all">
         <header className="bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 h-16 flex items-center justify-between px-6 lg:px-12 sticky top-0 z-[100]">
            <div className="flex items-center space-x-4">

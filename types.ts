@@ -61,8 +61,8 @@ export interface UserProfile {
   storageLimitGB: number;
   storageUsedBytes: number;
   twoFactorEnabled: boolean;
-  totpEnabled: boolean; // New: Google Authenticator support
-  totpSecret?: string;  // New: Secret key for TOTP
+  totpEnabled: boolean;
+  totpSecret?: string;
   backupCodes: string[];
   authorizedDevices: string[];
 }
@@ -124,6 +124,9 @@ export interface ChangeRequest {
   username: string;
   type: 'VERIFICATION' | 'STORAGE' | 'OTHER';
   details: string;
+  amountRequested?: number; 
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  acknowledged?: boolean; 
   createdAt: number;
+  processedAt?: number;
 }

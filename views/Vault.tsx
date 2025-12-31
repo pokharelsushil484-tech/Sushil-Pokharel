@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, VaultDocument, ChangeRequest } from '../types';
-import { Shield, Lock, FileText, Image as ImageIcon, Video, FolderPlus, Folder, Search, HardDrive, Archive, RefreshCcw, Box, CloudUpload, ArrowUpCircle, Send, X, AlertCircle, Infinity } from 'lucide-react';
-import { ADMIN_USERNAME } from '../constants';
+import { Shield, Lock, FileText, Image as ImageIcon, Search, HardDrive, Archive, Box, CloudUpload, ArrowUpCircle, X, AlertCircle, RefreshCw, CheckCircle2, ShieldX, History, Clock } from 'lucide-react';
 
 interface VaultProps {
   user: UserProfile;
@@ -12,7 +11,7 @@ interface VaultProps {
   isVerified?: boolean;
 }
 
-export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, updateUser, isVerified }) => {
+export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, updateUser }) => {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
@@ -27,12 +26,25 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
   const [isUploading, setIsUploading] = useState(false);
   
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [requestedGb, setRequestedGb] = useState('50');
+  const [showHistory, setShowHistory] = useState(false);
+  const [requestedGb, setRequestedGb] = useState('30');
   const [requestReason, setRequestReason] = useState('');
   const [isSendingRequest, setIsSendingRequest] = useState(false);
+  const [myRequests, setMyRequests] = useState<ChangeRequest[]>([]);
 
-  const isAdmin = user.email === "sushil@workspace.local"; // Consistent with Admin Identity
+  const isAdmin = localStorage.getItem('active_session_user') === 'admin'; 
   const CORRECT_PIN = user.vaultPin || "1234"; 
+
+  // Load user's storage requests (Signal History)
+  const refreshRequests = () => {
+    const userId = localStorage.getItem('active_session_user') || user.email;
+    const reqs = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
+    setMyRequests(reqs.filter((r: ChangeRequest) => r.userId === userId));
+  };
+
+  useEffect(() => {
+    if (isUnlocked) refreshRequests();
+  }, [showUpgradeModal, isUnlocked, showHistory]);
 
   useEffect(() => {
     setKeypadNumbers(prev => [...prev].sort(() => Math.random() - 0.5));
@@ -87,13 +99,12 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // STRICT UPLOAD GUARD
     if (!isAdmin) {
       const limitBytes = user.storageLimitGB * 1024 ** 3;
       const potentialUsage = user.storageUsedBytes + file.size;
       
       if (potentialUsage > limitBytes) {
-        alert(`NODE CAPACITY EXCEEDED\n\nThis file will not be uploaded. Please do not upload this file. Node capacity exceeded.\n\nRequired: ${formatSize(file.size)}\nAvailable: ${formatSize(limitBytes - user.storageUsedBytes)}`);
+        alert(`NODE CAPACITY EXCEEDED\n\nPlease submit a storage increase request.`);
         setShowUpgradeModal(true);
         return;
       }
@@ -122,13 +133,19 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
     if (!requestedGb || !requestReason) return;
     setIsSendingRequest(true);
     
+    const amountNum = parseInt(requestedGb);
+    const username = localStorage.getItem('active_session_user') || user.name;
+    const userId = localStorage.getItem('active_session_user') || user.email;
+
     const request: ChangeRequest = {
         id: Date.now().toString(),
-        userId: user.email,
-        username: user.name,
+        userId: userId,
+        username: username,
         type: 'STORAGE',
-        details: `Requesting node upgrade to ${requestedGb}GB. Justification: ${requestReason}`,
+        amountRequested: amountNum,
+        details: `Requested increase to ${amountNum}GB. Reason: ${requestReason}`,
         status: 'PENDING',
+        acknowledged: false,
         createdAt: Date.now()
     };
     
@@ -138,10 +155,12 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
     setTimeout(() => {
         setIsSendingRequest(false);
         setShowUpgradeModal(false);
-        alert("Signal Dispatched. The Architect will review your quota request.");
+        refreshRequests();
+        alert("Signal Dispatched. Approval by Administrator may take up to 3 days.");
     }, 1500);
   };
 
+  const pendingRequest = myRequests.find(r => r.status === 'PENDING');
   const usedPercentage = isAdmin ? 0 : Math.min((user.storageUsedBytes / (user.storageLimitGB * 1024 ** 3)) * 100, 100);
   const displayedItems = showTrash ? documents.filter(d => d.deletedAt) : documents.filter(d => !d.deletedAt && (searchQuery ? d.title.toLowerCase().includes(searchQuery.toLowerCase()) : d.parentId === currentFolderId));
 
@@ -190,22 +209,36 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
                  </div>
                  <div>
                     <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Cluster Consumption</h2>
-                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-1">Status: Stable Interface • Managed By: SUSHIL</p>
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-1">Status: Stable Interface • Capacity: {user.storageLimitGB} GB</p>
                  </div>
              </div>
-             <div className="flex items-center space-x-6">
+             <div className="flex items-center space-x-4">
                 <div className="text-right">
                     <span className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">
                         {isAdmin ? <div className="flex items-center">∞<span className="text-xs ml-2 text-indigo-500">Unlimited</span></div> : `${formatSize(user.storageUsedBytes)} / ${user.storageLimitGB} GB`}
                     </span>
                     <p className="text-[10px] text-indigo-600 font-black uppercase tracking-widest mt-1">
-                        {isAdmin ? 'Architectural Bypass Active' : `${usedPercentage.toFixed(1)}% Saturation`}
+                        {isAdmin ? 'Architectural Bypass' : `${usedPercentage.toFixed(1)}% Saturation`}
                     </p>
                 </div>
                 {!isAdmin && (
-                  <button onClick={() => setShowUpgradeModal(true)} className="p-4 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-2xl border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-600 hover:text-white transition-all">
-                      <ArrowUpCircle size={24} />
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <button 
+                        onClick={() => setShowHistory(true)} 
+                        className="p-4 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-2xl hover:text-indigo-600 border border-slate-100 dark:border-slate-700 transition-all"
+                        title="View History"
+                    >
+                        <History size={24} />
+                    </button>
+                    <button 
+                        onClick={() => setShowUpgradeModal(true)} 
+                        disabled={!!pendingRequest}
+                        className={`p-4 rounded-2xl border transition-all flex items-center justify-center ${pendingRequest ? 'bg-slate-50 text-slate-400 border-slate-200 opacity-50 cursor-not-allowed' : 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-600 hover:text-white'}`}
+                        title="Request Increase"
+                    >
+                        {pendingRequest ? <RefreshCw className="animate-spin" size={24} /> : <ArrowUpCircle size={24} />}
+                    </button>
+                  </div>
                 )}
              </div>
          </div>
@@ -254,26 +287,89 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
           )}
       </div>
 
+      {/* HISTORY MODAL */}
+      {showHistory && (
+          <div className="fixed inset-0 z-[200] bg-slate-950/70 backdrop-blur-xl flex items-center justify-center p-6">
+              <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[4rem] p-12 shadow-2xl border border-slate-100 dark:border-slate-800 animate-scale-up">
+                  <div className="flex justify-between items-center mb-10">
+                      <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center">
+                          <History className="mr-4 text-indigo-600" /> Signal History
+                      </h3>
+                      <button onClick={() => setShowHistory(false)} className="text-slate-400 hover:text-red-500"><X size={32} /></button>
+                  </div>
+                  
+                  <div className="space-y-6 max-h-[50vh] overflow-y-auto no-scrollbar pr-2">
+                      {myRequests.length === 0 ? (
+                          <div className="text-center py-10 opacity-30">
+                              <Clock size={40} className="mx-auto mb-4" />
+                              <p className="text-[10px] font-black uppercase tracking-widest">No signals logged.</p>
+                          </div>
+                      ) : (
+                          myRequests.slice().reverse().map(req => (
+                              <div key={req.id} className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 flex flex-col space-y-3">
+                                  <div className="flex justify-between items-center">
+                                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                                          req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-600' : 
+                                          req.status === 'REJECTED' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
+                                      }`}>
+                                          {req.status}
+                                      </span>
+                                      <span className="text-[10px] text-slate-400 font-bold">{new Date(req.createdAt).toLocaleDateString()}</span>
+                                  </div>
+                                  <p className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">{req.details}</p>
+                                  {req.status === 'APPROVED' && (
+                                      <p className="text-[10px] text-emerald-500 font-black uppercase tracking-widest flex items-center">
+                                          <CheckCircle2 size={12} className="mr-2" /> Node capacity expanded to {req.amountRequested}GB
+                                      </p>
+                                  )}
+                              </div>
+                          ))
+                      )}
+                  </div>
+                  
+                  <button onClick={() => setShowHistory(false)} className="w-full mt-10 py-5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all">Close History</button>
+              </div>
+          </div>
+      )}
+
       {/* UPGRADE MODAL */}
       {showUpgradeModal && (
           <div className="fixed inset-0 z-[200] bg-slate-950/70 backdrop-blur-xl flex items-center justify-center p-6">
-              <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[4rem] p-12 shadow-2xl border border-slate-100 dark:border-slate-800">
+              <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[4rem] p-12 shadow-2xl border border-slate-100 dark:border-slate-800 animate-scale-up">
                   <div className="flex justify-between items-center mb-10">
-                      <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Signal Architect</h3>
+                      <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Storage Request</h3>
                       <button onClick={() => setShowUpgradeModal(false)} className="text-slate-400 hover:text-red-500"><X size={32} /></button>
                   </div>
                   <div className="space-y-8">
-                      <div className="p-6 bg-red-50 dark:bg-red-900/20 rounded-3xl border border-red-100 dark:border-red-900/40 flex items-start space-x-4">
-                          <AlertCircle className="text-red-600 shrink-0" size={24} />
-                          <p className="text-[10px] text-red-600 font-bold uppercase leading-relaxed">This file will not be uploaded. Please do not upload this file. Node capacity exceeded.</p>
+                      <div className="p-6 bg-indigo-50 dark:bg-indigo-900/20 rounded-3xl border border-indigo-100 dark:border-indigo-900/40 flex items-start space-x-4">
+                          <Clock className="text-indigo-600 shrink-0" size={24} />
+                          <p className="text-[10px] text-indigo-600 font-bold uppercase leading-relaxed">
+                            Signal approval by the Administrator typically takes up to 3 days.
+                          </p>
                       </div>
                       <div>
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Requested Grant (GB)</label>
-                          <input type="number" value={requestedGb} onChange={e => setRequestedGb(e.target.value)} className="w-full p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl text-xl font-black dark:text-white outline-none border-none focus:ring-2 focus:ring-indigo-600" />
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Target Node Size (GB)</label>
+                          <input 
+                            type="number" 
+                            value={requestedGb} 
+                            onChange={e => setRequestedGb(e.target.value)} 
+                            className="w-full p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl text-xl font-black dark:text-white outline-none border-none focus:ring-2 focus:ring-indigo-600" 
+                            placeholder="e.g. 30"
+                          />
                       </div>
-                      <textarea value={requestReason} onChange={e => setRequestReason(e.target.value)} rows={3} className="w-full p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl text-sm font-bold dark:text-white resize-none outline-none border-none" placeholder="Explain your storage needs..." />
-                      <button onClick={handleSendRequest} disabled={isSendingRequest || !requestReason} className="w-full bg-indigo-600 text-white py-6 rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 disabled:opacity-50">
-                          {isSendingRequest ? "Transmitting..." : "Transmit Quota Signal"}
+                      <textarea 
+                        value={requestReason} 
+                        onChange={e => setRequestReason(e.target.value)} 
+                        rows={3} 
+                        className="w-full p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl text-sm font-bold dark:text-white resize-none outline-none border-none" 
+                        placeholder="Justify your node increase (e.g., 'Need space for final semester project')..." 
+                      />
+                      <button 
+                        onClick={handleSendRequest} 
+                        disabled={isSendingRequest || !requestReason || !requestedGb} 
+                        className="w-full bg-indigo-600 text-white py-6 rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 disabled:opacity-50"
+                      >
+                          {isSendingRequest ? "Transmitting..." : "Submit Increase Request"}
                       </button>
                   </div>
               </div>

@@ -61,5 +61,19 @@ export const storageService = {
       console.error('STORAGE_RETRIEVAL_FAILURE:', error);
       return null;
     }
+  },
+
+  /**
+   * Purges a data node.
+   */
+  async deleteData(key: string): Promise<void> {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.delete(key);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
   }
 };
