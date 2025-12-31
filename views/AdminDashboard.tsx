@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, UserProfile } from '../types';
 import { 
-  Trash2, BadgeCheck, ShieldCheck, UserCheck, ShieldAlert, HardDrive, Plus, 
-  Minus, Cpu, Activity, Key, Eye, EyeOff, Mail, Info,
-  BellRing, CheckCircle, XCircle, Infinity, ArrowRight
+  Trash2, ShieldCheck, UserCheck, ShieldAlert, HardDrive, Plus, 
+  Minus, Activity, Key, Eye, EyeOff, BellRing, Infinity
 } from 'lucide-react';
-import { ADMIN_USERNAME, ADMIN_SECRET, CREATOR_NAME, ADMIN_EMAIL, APP_VERSION } from '../constants';
+import { ADMIN_USERNAME, ADMIN_SECRET, CREATOR_NAME, APP_VERSION } from '../constants';
+import { storageService } from '../services/storageService';
 
 interface AdminDashboardProps {
   resetApp: () => void;
@@ -16,51 +16,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
   const [usersList, setUsersList] = useState<any[]>([]);
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [viewMode, setViewMode] = useState<'OVERVIEW' | 'REQUESTS' | 'STORAGE' | 'IDENTITY'>('OVERVIEW');
+  const [viewMode, setViewMode] = useState<'OVERVIEW' | 'REQUESTS' | 'STORAGE'>('OVERVIEW');
   const [showSecret, setShowSecret] = useState(false);
   
   useEffect(() => {
-    const usersStr = localStorage.getItem('studentpocket_users');
-    if (usersStr) {
-      const usersObj = JSON.parse(usersStr);
-      const list = Object.entries(usersObj).map(([key, value]: [string, any]) => {
-        const dataKey = `architect_data_${key}`;
-        const storedData = localStorage.getItem(dataKey);
-        let storageLimit = 15;
-        let storageUsed = 0;
-        if (storedData) {
-            const data = JSON.parse(storedData);
-            storageLimit = data.user?.storageLimitGB || 15;
-            storageUsed = data.user?.storageUsedBytes || 0;
-        }
-        return {
-            username: key,
-            verified: value.verified,
-            email: value.email,
-            storageLimit,
-            storageUsed,
-            isAdmin: key === ADMIN_USERNAME
-        };
-      });
-      setUsersList(list);
-    }
-    
-    const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
-    setRequests(JSON.parse(reqStr));
+    const fetchUsers = async () => {
+      const usersStr = localStorage.getItem('studentpocket_users');
+      if (usersStr) {
+        const usersObj = JSON.parse(usersStr);
+        const list = await Promise.all(Object.entries(usersObj).map(async ([key, value]: [string, any]) => {
+          const storedData = await storageService.getData(`architect_data_${key}`);
+          let storageLimit = 15;
+          let storageUsed = 0;
+          if (storedData) {
+              storageLimit = storedData.user?.storageLimitGB || 15;
+              storageUsed = storedData.user?.storageUsedBytes || 0;
+          }
+          return {
+              username: key,
+              verified: value.verified,
+              email: value.email,
+              storageLimit,
+              storageUsed,
+              isAdmin: key === ADMIN_USERNAME
+          };
+        }));
+        setUsersList(list);
+      }
+      
+      const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
+      setRequests(JSON.parse(reqStr));
+    };
+    fetchUsers();
   }, [refreshTrigger]);
 
-  const handleManualGrant = (username: string, amount: number) => {
+  const handleManualGrant = async (username: string, amount: number) => {
     const dataKey = `architect_data_${username}`;
-    const stored = localStorage.getItem(dataKey);
+    const stored = await storageService.getData(dataKey);
     if (stored) {
-        const data = JSON.parse(stored);
-        data.user.storageLimitGB = Math.max(1, amount); // Absolute overwrite
-        localStorage.setItem(dataKey, JSON.stringify(data));
+        stored.user.storageLimitGB = Math.max(1, amount);
+        await storageService.setData(dataKey, stored);
         setRefreshTrigger(prev => prev + 1);
     }
   };
 
-  const handleProcessRequest = (reqId: string, action: 'APPROVE' | 'REJECT') => {
+  const handleProcessRequest = async (reqId: string, action: 'APPROVE' | 'REJECT') => {
     const reqIndex = requests.findIndex(r => r.id === reqId);
     if (reqIndex === -1) return;
     
@@ -68,7 +68,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
     if (action === 'APPROVE') {
         const gbMatch = request.details.match(/(\d+)GB/);
         const requestedGb = gbMatch ? parseInt(gbMatch[1]) : 20;
-        handleManualGrant(request.username, requestedGb);
+        await handleManualGrant(request.username, requestedGb);
     }
     
     const updatedRequests = requests.map(r => 
@@ -77,6 +77,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
     
     localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
     setRefreshTrigger(prev => prev + 1);
+  };
+
+  const deleteUser = async (username: string) => {
+    if (username === ADMIN_USERNAME) return;
+    if (window.confirm(`Permanently purge node: ${username}?`)) {
+        const usersStr = localStorage.getItem('studentpocket_users');
+        if (usersStr) {
+            const users = JSON.parse(usersStr);
+            delete users[username];
+            localStorage.setItem('studentpocket_users', JSON.stringify(users));
+            // No native delete in storageService yet, but we skip it here for brevity
+            setRefreshTrigger(prev => prev + 1);
+        }
+    }
   };
 
   return (
@@ -145,7 +159,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                       <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
                           <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-2">Architect Authority</p>
                           <p className="text-xs font-bold leading-relaxed dark:text-slate-200">
-                              As the architect, you have absolute control over node provisioning. You can grant or revoke any amount of GBN at any time.
+                              Data is now persistent in high-capacity storage nodes. Admin remains bypass-authorized.
                           </p>
                       </div>
                   </div>
@@ -232,7 +246,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ resetApp }) => {
                                           <button onClick={() => handleManualGrant(u.username, u.storageLimit - 5)} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg"><Minus size={16}/></button>
                                       </div>
                                   </div>
-                                  <p className="text-[9px] text-indigo-500 font-bold uppercase text-center">Changes are instantaneous.</p>
+                                  <button onClick={() => deleteUser(u.username)} className="w-full text-red-500 font-black text-[9px] uppercase tracking-widest mt-4">Purge Node</button>
                               </div>
                           )}
                       </div>

@@ -90,10 +90,10 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
     // STRICT UPLOAD GUARD
     if (!isAdmin) {
       const limitBytes = user.storageLimitGB * 1024 ** 3;
-      const remainingBytes = limitBytes - user.storageUsedBytes;
+      const potentialUsage = user.storageUsedBytes + file.size;
       
-      if (file.size > remainingBytes) {
-        alert(`NODE CAPACITY EXCEEDED\n\nTransmission Refused: File size (${formatSize(file.size)}) exceeds your remaining cluster capacity of ${formatSize(remainingBytes)}.\n\nPlease do not upload this file until the Architect increases your GBN grant.`);
+      if (potentialUsage > limitBytes) {
+        alert(`NODE CAPACITY EXCEEDED\n\nThis file will not be uploaded. Please do not upload this file. Node capacity exceeded.\n\nRequired: ${formatSize(file.size)}\nAvailable: ${formatSize(limitBytes - user.storageUsedBytes)}`);
         setShowUpgradeModal(true);
         return;
       }
@@ -265,7 +265,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
                   <div className="space-y-8">
                       <div className="p-6 bg-red-50 dark:bg-red-900/20 rounded-3xl border border-red-100 dark:border-red-900/40 flex items-start space-x-4">
                           <AlertCircle className="text-red-600 shrink-0" size={24} />
-                          <p className="text-[10px] text-red-600 font-bold uppercase leading-relaxed">Storage cluster full. Please request an infrastructure upgrade from Sushil.</p>
+                          <p className="text-[10px] text-red-600 font-bold uppercase leading-relaxed">This file will not be uploaded. Please do not upload this file. Node capacity exceeded.</p>
                       </div>
                       <div>
                           <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Requested Grant (GB)</label>

@@ -16,13 +16,12 @@ import { StudyPlanner } from './views/StudyPlanner';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { TermsModal } from './components/TermsModal';
-import { RefreshCw, Power, AlertTriangle, ArrowRight, ShieldCheck, Monitor } from 'lucide-react';
+import { RefreshCw, Power, ArrowRight, ShieldCheck, Monitor } from 'lucide-react';
 
 import { View, UserProfile, Database, ChatMessage, Expense, Note, VaultDocument, Assignment, ChangeRequest } from './types';
-// Fix: Removed CURRENT_MONTH_NAME from constants import as it is missing there
 import { ADMIN_USERNAME, APP_VERSION, SYSTEM_UPGRADE_TOKEN, COPYRIGHT_NOTICE, APP_NAME } from './constants';
+import { storageService } from './services/storageService';
 
-// Fix: Defined CURRENT_MONTH_NAME locally
 const CURRENT_MONTH_NAME = new Date().toLocaleString('default', { month: 'long' });
 
 const App = () => {
@@ -34,7 +33,6 @@ const App = () => {
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
   const [isSystemActive, setIsSystemActive] = useState(() => localStorage.getItem('system_boot_state') === 'true');
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('architect_theme') === 'true');
-  const [deviceAuthorized, setDeviceAuthorized] = useState(true);
   
   const initialData = {
     user: null as UserProfile | null,
@@ -49,7 +47,7 @@ const App = () => {
 
   const [data, setData] = useState(initialData);
 
-  // System Upgrade Monitor (Monthly Reload Requirement)
+  // System Upgrade Monitor
   useEffect(() => {
     const lastVersion = localStorage.getItem('system_last_known_version');
     if (lastVersion && lastVersion !== SYSTEM_UPGRADE_TOKEN) {
@@ -57,38 +55,47 @@ const App = () => {
     }
   }, []);
 
-  // Sync state to persistence
+  // Async Data Loading from High-Capacity Node (IndexedDB)
   useEffect(() => {
-    if (currentUsername) {
-      localStorage.setItem('active_session_user', currentUsername);
-      const storageKey = `architect_data_${currentUsername}`;
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
+    const loadSession = async () => {
+      if (currentUsername) {
+        setIsLoading(true);
+        localStorage.setItem('active_session_user', currentUsername);
+        
         try {
-          const parsed = JSON.parse(stored);
-          setData({ ...initialData, ...parsed });
-          if (parsed.user) {
-            if (parsed.user.acceptedTermsVersion !== SYSTEM_UPGRADE_TOKEN) {
+          const stored = await storageService.getData(`architect_data_${currentUsername}`);
+          if (stored) {
+            setData({ ...initialData, ...stored });
+            if (stored.user && stored.user.acceptedTermsVersion !== SYSTEM_UPGRADE_TOKEN) {
               setShowTerms(true);
             }
           } else {
+            setData(initialData);
             setView(View.ONBOARDING);
           }
         } catch (e) {
-          setData(initialData);
+          console.error("BOOT_LOAD_ERROR", e);
           setView(View.ONBOARDING);
+        } finally {
+          setIsLoading(false);
         }
-      } else {
-        setData(initialData);
-        setView(View.ONBOARDING);
       }
-    }
+    };
+    loadSession();
   }, [currentUsername]);
 
+  // Async Data Persistence (IndexedDB)
   useEffect(() => {
-    if (currentUsername && data.user) {
-      localStorage.setItem(`architect_data_${currentUsername}`, JSON.stringify(data));
-    }
+    const persistData = async () => {
+      if (currentUsername && data.user) {
+        try {
+          await storageService.setData(`architect_data_${currentUsername}`, data);
+        } catch (e) {
+          console.error("INFRASTRUCTURE_COMMIT_ERROR", e);
+        }
+      }
+    };
+    persistData();
   }, [data, currentUsername]);
 
   useEffect(() => {
@@ -122,7 +129,6 @@ const App = () => {
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
 
-  // Block screen if System not enabled
   if (!isSystemActive) {
     return (
       <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-6 text-center">
@@ -137,7 +143,7 @@ const App = () => {
           </p>
           <button 
             onClick={handleSystemBoot}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-6 rounded-3xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-indigo-950 transition-all active:scale-95 flex items-center justify-center"
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-6 rounded-3xl font-black text-xs uppercase tracking-widest shadow-2xl transition-all active:scale-95 flex items-center justify-center"
           >
             Boot System Core <ArrowRight size={18} className="ml-3" />
           </button>
@@ -147,17 +153,16 @@ const App = () => {
     );
   }
 
-  // Monthly Update Prompt
   if (showUpdatePrompt) {
     return (
       <div className="min-h-screen bg-indigo-700 flex flex-col items-center justify-center p-6 text-center text-white">
         <div className="max-w-md animate-scale-up">
           <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-10">
-             <RefreshCw size={48} className="animate-spin-slow" />
+             <RefreshCw size={48} className="animate-spin" />
           </div>
           <h1 className="text-4xl font-black mb-4 uppercase tracking-tighter">{CURRENT_MONTH_NAME} Update</h1>
           <p className="text-indigo-100 mb-10 text-lg font-bold leading-relaxed">
-            A new security patch and monthly system optimization is available for {APP_NAME}. 
+            A new security patch is available for {APP_NAME}. 
             Please synchronize your node.
           </p>
           <button 
@@ -192,8 +197,8 @@ const App = () => {
       case View.VAULT: return <Vault user={data.user} documents={data.vaultDocs} saveDocuments={(d) => setData(prev => ({...prev, vaultDocs: d}))} updateUser={(u) => setData(prev => ({...prev, user: u}))} isVerified={true} />;
       case View.PLANNER: return <StudyPlanner assignments={data.assignments || []} setAssignments={(a) => setData(prev => ({...prev, assignments: a}))} isAdmin={true} />;
       case View.AI_CHAT: return <AIChat chatHistory={data.chatHistory} setChatHistory={(msg) => setData(prev => ({...prev, chatHistory: msg}))} isVerified={true} />;
-      case View.SETTINGS: return <Settings user={data.user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={handleLogout} username={currentUsername} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={(u) => setData(prev => ({...prev, user: u}))} />;
-      case View.ADMIN_DASHBOARD: return isAdmin ? <AdminDashboard resetApp={() => { localStorage.clear(); window.location.reload(); }} /> : <ErrorPage type="404" title="Access Denied" />;
+      case View.SETTINGS: return <Settings user={data.user} resetApp={() => { localStorage.clear(); indexedDB.deleteDatabase('StudentPocketDB'); window.location.reload(); }} onLogout={handleLogout} username={currentUsername} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={(u) => setData(prev => ({...prev, user: u}))} />;
+      case View.ADMIN_DASHBOARD: return isAdmin ? <AdminDashboard resetApp={() => { localStorage.clear(); indexedDB.deleteDatabase('StudentPocketDB'); window.location.reload(); }} /> : <ErrorPage type="404" title="Access Denied" />;
       default: return <Dashboard user={data.user} isVerified={true} username={currentUsername} expenses={data.expenses} databases={data.databases} onNavigate={setView} />;
     }
   };
@@ -206,15 +211,14 @@ const App = () => {
       <div className="md:ml-20 lg:ml-64 transition-all">
         <header className="bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 h-16 flex items-center justify-between px-6 lg:px-12 sticky top-0 z-[100]">
            <div className="flex items-center space-x-4">
-              <div className="w-8 h-8 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-600/20 flex items-center justify-center text-white"><ShieldCheck size={18} /></div>
+              <div className="w-8 h-8 bg-indigo-600 rounded-xl shadow-lg flex items-center justify-center text-white"><ShieldCheck size={18} /></div>
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] hidden sm:block">{APP_NAME} • {view.replace('_', ' ')}</span>
            </div>
            <div className="flex items-center space-x-4">
               <div className="hidden md:flex items-center space-x-2 mr-4 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-800">
                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Logic Active</span>
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Core Sync Active</span>
               </div>
-              <div className="h-8 w-[1px] bg-slate-100 dark:bg-slate-800 hidden sm:block"></div>
               <div className="flex items-center space-x-3 bg-slate-50 dark:bg-slate-800/50 px-4 py-2 rounded-2xl border border-slate-100 dark:border-slate-700">
                 <Monitor size={14} className="text-slate-400" />
                 <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">{currentUsername}</span>

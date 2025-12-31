@@ -61,7 +61,8 @@ export interface UserProfile {
   storageLimitGB: number;
   storageUsedBytes: number;
   twoFactorEnabled: boolean;
-  twoFactorSecret?: string;
+  totpEnabled: boolean; // New: Google Authenticator support
+  totpSecret?: string;  // New: Secret key for TOTP
   backupCodes: string[];
   authorizedDevices: string[];
 }
@@ -117,9 +118,6 @@ export interface Expense {
   type: 'INCOME' | 'EXPENSE';
 }
 
-/**
- * Fix: Exporting missing ChangeRequest interface used for administrative audits and verification tasks.
- */
 export interface ChangeRequest {
   id: string;
   userId: string;

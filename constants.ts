@@ -33,6 +33,8 @@ export const DEFAULT_USER: UserProfile = {
   storageLimitGB: DEFAULT_STORAGE_LIMIT_GB,
   storageUsedBytes: 0,
   twoFactorEnabled: false,
+  // Added missing totpEnabled property
+  totpEnabled: false,
   backupCodes: [],
   authorizedDevices: []
 };
