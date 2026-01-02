@@ -129,7 +129,14 @@ const App = () => {
   const renderContent = () => {
     if (isLoading && !data.user) return null;
 
-    if (!data.user) return <Onboarding onComplete={p => setData(prev => ({...prev, user: p}))} />;
+    if (!data.user) return (
+      <Onboarding 
+        onComplete={p => {
+          setData(prev => ({...prev, user: p}));
+          setView(View.DASHBOARD);
+        }} 
+      />
+    );
     
     switch (view) {
       case View.DASHBOARD: return <Dashboard user={data.user} username={currentUsername} onNavigate={setView} />;

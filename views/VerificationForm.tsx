@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, VerificationQuestion, ChangeRequest, View } from '../types';
 import { generateVerificationForm } from '../services/geminiService';
-import { ShieldCheck, Loader2, ArrowLeft, Zap, ShieldAlert } from 'lucide-react';
+import { ShieldCheck, Loader2, ArrowLeft, Zap, ShieldAlert, Camera, RefreshCw } from 'lucide-react';
 
 interface VerificationFormProps {
   user: UserProfile;
@@ -16,6 +16,12 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Camera State
+  const [proofImage, setProofImage] = useState<string | null>(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const fetchForm = async () => {
@@ -24,11 +30,68 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
       setLoading(false);
     };
     fetchForm();
+    
+    return () => {
+        stopCamera();
+    };
   }, [user]);
+
+  const startCamera = async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment' } 
+        });
+        if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+        }
+        setIsCameraActive(true);
+    } catch (err) {
+        console.error("Camera Init Error", err);
+        alert("Visual sensor access required for verification protocol.");
+    }
+  };
+
+  const stopCamera = () => {
+      const stream = videoRef.current?.srcObject as MediaStream;
+      stream?.getTracks().forEach(track => track.stop());
+      setIsCameraActive(false);
+  };
+
+  const captureProof = () => {
+      if (videoRef.current && canvasRef.current) {
+          const video = videoRef.current;
+          const canvas = canvasRef.current;
+          
+          // Set resolution for storage efficiency
+          canvas.width = 800;
+          canvas.height = (video.videoHeight / video.videoWidth) * 800;
+          
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.6); // Compress
+              setProofImage(dataUrl);
+              stopCamera();
+          }
+      }
+  };
+
+  const retakeProof = () => {
+      setProofImage(null);
+      startCamera();
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!proofImage) return;
+    
     setSubmitting(true);
+    
+    // Include image in details payload
+    const finalDetails = {
+        ...answers,
+        _verificationImage: proofImage
+    };
     
     // Create request with the LOGIN ID (username), not the display name
     const request: ChangeRequest = {
@@ -36,7 +99,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
       userId: username,
       username: username, // This MUST match the key used in storageService (architect_data_USERNAME)
       type: 'VERIFICATION',
-      details: JSON.stringify(answers),
+      details: JSON.stringify(finalDetails),
       status: 'PENDING',
       createdAt: Date.now()
     };
@@ -122,9 +185,56 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
             </div>
           ))}
 
+          {/* VISUAL PROOF SECTION */}
+          <div className="space-y-6 pt-6 border-t border-slate-100 dark:border-white/5">
+              <label className="block text-xl font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight leading-snug">
+                Required: Program Visual Proof
+              </label>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                  Capture a photo of your Student ID or Academic Program Schedule.
+              </p>
+
+              <div className="bg-slate-900 rounded-[2rem] overflow-hidden relative min-h-[300px] flex items-center justify-center border-2 border-slate-100 dark:border-white/10">
+                  {proofImage ? (
+                      <img src={proofImage} alt="Proof" className="w-full h-full object-cover" />
+                  ) : isCameraActive ? (
+                      <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                  ) : (
+                      <div className="text-center p-8">
+                          <Camera size={48} className="mx-auto text-slate-600 mb-4" />
+                          <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Sensor Offline</p>
+                      </div>
+                  )}
+                  
+                  {/* Overlay Canvas for Capture */}
+                  <canvas ref={canvasRef} className="hidden" />
+
+                  {/* Controls */}
+                  <div className="absolute bottom-6 left-0 right-0 flex justify-center space-x-4">
+                      {!proofImage && !isCameraActive && (
+                          <button type="button" onClick={startCamera} className="bg-indigo-600 text-white px-8 py-3 rounded-full font-black text-[10px] uppercase tracking-widest shadow-lg">
+                              Activate Sensor
+                          </button>
+                      )}
+                      
+                      {isCameraActive && (
+                          <button type="button" onClick={captureProof} className="w-16 h-16 bg-white rounded-full border-4 border-slate-200 flex items-center justify-center shadow-2xl hover:scale-105 transition-transform">
+                              <div className="w-12 h-12 bg-red-500 rounded-full border-2 border-white"></div>
+                          </button>
+                      )}
+
+                      {proofImage && (
+                          <button type="button" onClick={retakeProof} className="bg-white text-slate-900 px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center">
+                              <RefreshCw size={14} className="mr-2" /> Retake
+                          </button>
+                      )}
+                  </div>
+              </div>
+          </div>
+
           <button
             type="submit"
-            disabled={submitting || Object.keys(answers).length < questions.length}
+            disabled={submitting || Object.keys(answers).length < questions.length || !proofImage}
             className="w-full bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl transition-all hover:bg-indigo-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center group"
           >
             {submitting ? <Loader2 className="animate-spin mr-4" /> : <Zap size={20} className="mr-4 group-hover:scale-125 transition-transform" />}

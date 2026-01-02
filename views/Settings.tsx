@@ -71,7 +71,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       return;
     }
 
-    if (window.confirm("CRITICAL WARNING: This will permanently delete your identity node and all associated data segments. This action cannot be undone.\n\nAre you sure you want to proceed?")) {
+    if (window.confirm("CRITICAL WARNING: This will permanently delete your identity node and all associated data segments (Files, Notes, Tasks). This action cannot be undone.\n\nAre you sure you want to proceed?")) {
       
       try {
         await storageService.logActivity({
@@ -81,29 +81,32 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
             description: `IDENTITY DELETION: ${username}`,
             metadata: 'Permanent Account Removal'
         });
-      } catch (e) { console.error("Log failed", e); }
 
-      // 1. Remove from Users List (localStorage)
-      const usersStr = localStorage.getItem('studentpocket_users');
-      if (usersStr) {
-        const users = JSON.parse(usersStr);
-        delete users[username];
-        localStorage.setItem('studentpocket_users', JSON.stringify(users));
+        // 1. Remove from Users List (localStorage)
+        const usersStr = localStorage.getItem('studentpocket_users');
+        if (usersStr) {
+          const users = JSON.parse(usersStr);
+          delete users[username];
+          localStorage.setItem('studentpocket_users', JSON.stringify(users));
+        }
+
+        // 2. Remove Requests (localStorage)
+        const reqStr = localStorage.getItem('studentpocket_requests');
+        if (reqStr) {
+          const requests = JSON.parse(reqStr);
+          const filteredReqs = requests.filter((r: any) => r.username !== username);
+          localStorage.setItem('studentpocket_requests', JSON.stringify(filteredReqs));
+        }
+
+        // 3. Remove Data Node (IndexedDB)
+        await storageService.deleteData(`architect_data_${username}`);
+
+      } catch (e) { 
+        console.error("Deletion Process Error", e); 
+      } finally {
+        // 4. Logout regardless of minor errors
+        onLogout();
       }
-
-      // 2. Remove Requests (localStorage)
-      const reqStr = localStorage.getItem('studentpocket_requests');
-      if (reqStr) {
-        const requests = JSON.parse(reqStr);
-        const filteredReqs = requests.filter((r: any) => r.username !== username);
-        localStorage.setItem('studentpocket_requests', JSON.stringify(filteredReqs));
-      }
-
-      // 3. Remove Data Node (IndexedDB)
-      await storageService.deleteData(`architect_data_${username}`);
-
-      // 4. Logout
-      onLogout();
     }
   };
 

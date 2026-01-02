@@ -84,15 +84,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    const cleanUsername = username.trim();
     
-    if (username === ADMIN_USERNAME && password === ADMIN_SECRET) {
+    if (cleanUsername === ADMIN_USERNAME && password === ADMIN_SECRET) {
       setView('IDENTITY_SNAP');
       return;
     }
 
     const usersStr = localStorage.getItem('studentpocket_users');
     const users = usersStr ? JSON.parse(usersStr) : {};
-    const userData = users[username];
+    const userData = users[cleanUsername];
 
     if (!userData) { 
       setError('Access Denied: Node ID not provisioned.'); 
@@ -111,11 +112,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     e.preventDefault();
     setError('');
     
-    if (!username || !password || !confirmPassword || !email || !confirmEmail || !name) { 
+    // Trim inputs to avoid "impossible creation" bugs
+    const cleanUsername = username.trim();
+    const cleanEmail = email.trim();
+    const cleanConfirmEmail = confirmEmail.trim();
+
+    if (!cleanUsername || !password || !confirmPassword || !cleanEmail || !cleanConfirmEmail || !name) { 
       setError('All protocol fields are mandatory.'); 
       return; 
     }
-    if (email !== confirmEmail) {
+    if (cleanEmail !== cleanConfirmEmail) {
       setError('Master email mismatch.');
       return;
     }
@@ -131,15 +137,17 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     
     const usersStr = localStorage.getItem('studentpocket_users');
     const users = usersStr ? JSON.parse(usersStr) : {};
-    if (users[username]) { 
+    if (users[cleanUsername]) { 
       setError('Node ID already provisioned on this cluster.'); 
       return; 
     }
 
     setIsProcessing(true);
     setTimeout(() => {
-        users[username] = { password, email, name, verified: false };
+        users[cleanUsername] = { password, email: cleanEmail, name, verified: false };
         localStorage.setItem('studentpocket_users', JSON.stringify(users));
+        // Update state to matched sanitized username for snap step
+        setUsername(cleanUsername);
         setView('IDENTITY_SNAP');
         setIsProcessing(false);
     }, 1500);

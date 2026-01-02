@@ -105,6 +105,39 @@ export const AdminDashboard: React.FC = () => {
     (log.targetUser && log.targetUser.toLowerCase().includes(logFilter.toLowerCase()))
   );
 
+  const renderRequestDetails = (request: ChangeRequest) => {
+    let detailsObj = {};
+    try {
+        detailsObj = JSON.parse(request.details);
+    } catch(e) {
+        return <p>Error parsing details.</p>;
+    }
+    
+    const proofImage = (detailsObj as any)._verificationImage;
+    const textDetails = Object.entries(detailsObj).filter(([k]) => k !== '_verificationImage');
+
+    return (
+        <>
+            {proofImage && (
+                <div className="mb-8 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Visual Proof Node</p>
+                    </div>
+                    <img src={proofImage} alt="Verification Proof" className="w-full h-auto object-contain bg-slate-900" />
+                </div>
+            )}
+            <div className="space-y-6 mb-10">
+                 {textDetails.map(([q, a]: [any, any]) => (
+                   <div key={q} className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
+                      <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-3">Internal Query: {q}</p>
+                      <p className="font-bold text-sm text-slate-800 dark:text-slate-100 leading-relaxed">{a}</p>
+                   </div>
+                 ))}
+            </div>
+        </>
+    );
+  };
+
   return (
     <div className="pb-24 animate-fade-in w-full max-w-7xl mx-auto space-y-8 px-4 sm:px-0">
       <div className="flex flex-col md:flex-row justify-between items-end gap-6">
@@ -155,14 +188,9 @@ export const AdminDashboard: React.FC = () => {
                  <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Signal Review</h2>
                  <button onClick={() => setSelectedRequest(null)} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"><Trash2 size={20} className="text-slate-400"/></button>
               </div>
-              <div className="space-y-6 mb-10">
-                 {Object.entries(JSON.parse(selectedRequest.details)).map(([q, a]: [any, any]) => (
-                   <div key={q} className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
-                      <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-3">Internal Query: {q}</p>
-                      <p className="font-bold text-sm text-slate-800 dark:text-slate-100 leading-relaxed">{a}</p>
-                   </div>
-                 ))}
-              </div>
+              
+              {renderRequestDetails(selectedRequest)}
+
               <div className="grid grid-cols-2 gap-4">
                  <button onClick={() => handleProcessRequest(selectedRequest.id, 'APPROVE')} className="bg-emerald-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-emerald-600 transition-all flex items-center justify-center"><CheckCircle size={16} className="mr-2"/> Authorize</button>
                  <button onClick={() => handleProcessRequest(selectedRequest.id, 'REJECT')} className="bg-red-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-red-600 transition-all flex items-center justify-center"><XCircle size={16} className="mr-2"/> Deny</button>
