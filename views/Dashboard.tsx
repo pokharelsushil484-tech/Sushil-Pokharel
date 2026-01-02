@@ -35,9 +35,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
             const myRequestIndex = requests.findIndex(r => r.username === username && r.status === 'PENDING');
             
             if (myRequestIndex !== -1) {
-                // Generate NEW Link ID (invalidates old one)
+                // Generate NEW Link ID (invalidates old one by default, but we will archive it)
                 const newLinkId = Math.random().toString(36).substring(7);
+                const oldLinkId = requests[myRequestIndex].linkId;
                 
+                // Archive old Link ID
+                if (oldLinkId) {
+                    if (!requests[myRequestIndex].previousLinkIds) {
+                        requests[myRequestIndex].previousLinkIds = [];
+                    }
+                    requests[myRequestIndex].previousLinkIds!.push(oldLinkId);
+                }
+
                 // Update Request
                 requests[myRequestIndex].linkId = newLinkId;
                 requests[myRequestIndex].createdAt = Date.now(); // Refresh timestamp

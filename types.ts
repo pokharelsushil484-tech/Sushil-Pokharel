@@ -78,6 +78,7 @@ export interface ChangeRequest {
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: number;
   linkId?: string;
+  previousLinkIds?: string[]; // History of link IDs to allow redirects
 }
 
 export enum TaskPriority {

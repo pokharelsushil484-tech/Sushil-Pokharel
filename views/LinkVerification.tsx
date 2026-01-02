@@ -14,6 +14,7 @@ interface LinkVerificationProps {
 export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNavigate, currentUser }) => {
   const [request, setRequest] = useState<ChangeRequest | null>(null);
   const [loading, setLoading] = useState(true);
+  const [redirecting, setRedirecting] = useState(false);
   const [actionProcessing, setActionProcessing] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [otherRequests, setOtherRequests] = useState<ChangeRequest[]>([]);
@@ -40,6 +41,15 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
             });
             setNotFound(false);
         } else {
+            // Check if this is an expired/previous link for a valid request
+            const expiredMatch = requests.find(r => r.previousLinkIds && r.previousLinkIds.includes(linkId));
+            if (expiredMatch && expiredMatch.linkId) {
+                // Found newer version! Redirect to active link.
+                setRedirecting(true);
+                window.location.replace(`/v/${expiredMatch.linkId}`);
+                return;
+            }
+
             setNotFound(true);
             // If Admin, load other pending requests to show as options
             if (isAdmin) {
@@ -107,6 +117,17 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
       setNotFound(false);
       // We don't change the URL here to keep it simple, just render the correct data
   };
+
+  if (redirecting) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#020617]">
+          <div className="flex flex-col items-center space-y-4">
+             <RefreshCw className="w-10 h-10 text-indigo-600 animate-spin" />
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Link Updated. Redirecting to active version...</p>
+          </div>
+      </div>
+      );
+  }
 
   if (loading) {
     return (
