@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, View, ChangeRequest } from '../types';
-import { ShieldCheck, HardDrive, ArrowRight, Loader2, Sparkles, Lock, Database, Mail, XCircle, FileText, ChevronDown, ChevronUp } from 'lucide-react';
-import { CREATOR_NAME, ADMIN_USERNAME } from '../constants';
+import { ShieldCheck, HardDrive, ArrowRight, Loader2, Sparkles, Lock, Database, Mail, XCircle, FileText, ChevronDown, ChevronUp, RefreshCw, CheckCircle, Copy } from 'lucide-react';
+import { CREATOR_NAME, ADMIN_USERNAME, SYSTEM_DOMAIN } from '../constants';
 
 interface DashboardProps {
   user: UserProfile;
@@ -13,6 +13,8 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate }) => {
   const isAdmin = username === ADMIN_USERNAME;
   const [showFeedback, setShowFeedback] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [newLinkState, setNewLinkState] = useState<{ link: string; email: string } | null>(null);
 
   // Safety defaults
   const safeUsedBytes = user?.storageUsedBytes || 0;
@@ -20,6 +22,40 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
   
   const usedGB = (safeUsedBytes / (1024 ** 3)).toFixed(2);
   const usedPercent = isAdmin ? 0 : Math.min(100, (safeUsedBytes / (safeLimitGB * 1024 ** 3)) * 100);
+
+  const handleResendLink = () => {
+    setResending(true);
+    
+    // Simulate network delay for better UX
+    setTimeout(() => {
+        const reqStr = localStorage.getItem('studentpocket_requests');
+        if (reqStr) {
+            const requests: ChangeRequest[] = JSON.parse(reqStr);
+            // Find the pending request for this user
+            const myRequestIndex = requests.findIndex(r => r.username === username && r.status === 'PENDING');
+            
+            if (myRequestIndex !== -1) {
+                // Generate NEW Link ID (invalidates old one)
+                const newLinkId = Math.random().toString(36).substring(7);
+                
+                // Update Request
+                requests[myRequestIndex].linkId = newLinkId;
+                requests[myRequestIndex].createdAt = Date.now(); // Refresh timestamp
+                
+                localStorage.setItem('studentpocket_requests', JSON.stringify(requests));
+                
+                const details = JSON.parse(requests[myRequestIndex].details);
+                const link = `https://${SYSTEM_DOMAIN}/v/${newLinkId}`;
+                
+                setNewLinkState({ link, email: details.email });
+            } else {
+                // Should not happen based on UI state, but handle anyway
+                alert("No pending request found to resend.");
+            }
+        }
+        setResending(false);
+    }, 1500);
+  };
 
   const getVerificationUI = () => {
     if (user.isVerified || isAdmin) return null;
@@ -73,16 +109,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
 
     if (user.verificationStatus === 'PENDING_APPROVAL') {
       return (
-        <div className="bg-amber-50 dark:bg-amber-900/10 p-6 md:p-8 rounded-3xl border border-amber-100 dark:border-amber-900/30 mb-8 flex items-center justify-between">
+        <div className="bg-amber-50 dark:bg-amber-900/10 p-6 md:p-8 rounded-3xl border border-amber-100 dark:border-amber-900/30 mb-8 flex flex-col md:flex-row items-center justify-between gap-6">
            <div className="flex items-center space-x-4">
               <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-xl text-amber-600">
                 <Loader2 className="animate-spin" size={20} />
               </div>
               <div>
                  <p className="font-bold text-amber-700 dark:text-amber-400 text-sm uppercase tracking-wide">Pending Review</p>
-                 <p className="text-xs text-amber-600/70 mt-1">Admin is reviewing your link.</p>
+                 <p className="text-xs text-amber-600/70 mt-1">Admin is reviewing your identity.</p>
               </div>
            </div>
+           
+           <button 
+                onClick={handleResendLink}
+                disabled={resending}
+                className="flex items-center px-5 py-3 bg-white dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-amber-100 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors shadow-sm"
+            >
+                {resending ? <Loader2 size={14} className="animate-spin mr-2"/> : <RefreshCw size={14} className="mr-2"/>}
+                {resending ? 'Generating...' : 'Resend Link'}
+            </button>
         </div>
       );
     }
@@ -108,6 +153,47 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
       </div>
     );
   };
+
+  if (newLinkState) {
+      return (
+        <div className="min-h-screen flex items-center justify-center px-4 animate-fade-in">
+             <div className="bg-white dark:bg-[#0f172a] rounded-[3rem] p-10 shadow-2xl border border-indigo-100 dark:border-indigo-900/30 text-center relative overflow-hidden max-w-xl w-full">
+                 {/* Decorative Background */}
+                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+                 <div className="absolute top-0 left-0 w-full h-1.5 bg-indigo-600"></div>
+                 
+                 <div className="w-24 h-24 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-8 text-emerald-500 shadow-xl shadow-emerald-500/10 animate-scale-up">
+                     <CheckCircle size={48} strokeWidth={3} />
+                 </div>
+                 
+                 <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-3">Link Regenerated</h2>
+                 <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.3em] mb-10">Previous link has been invalidated</p>
+                 
+                 <div className="bg-slate-50 dark:bg-slate-900/50 p-8 rounded-[2rem] border border-slate-200 dark:border-slate-800 mb-10 relative">
+                     <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
+                        New Secure Link
+                     </div>
+                     <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400 font-mono break-all mb-6 select-all">{newLinkState.link}</p>
+                     
+                     <div className="flex flex-col items-center space-y-2">
+                        <div className="flex items-center justify-center space-x-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                            <Loader2 size={12} className="animate-spin text-indigo-500" />
+                            <span>Awaiting Admin Approval</span>
+                        </div>
+                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Email: {newLinkState.email}</p>
+                     </div>
+                 </div>
+    
+                 <button 
+                    onClick={() => setNewLinkState(null)}
+                    className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-5 rounded-3xl font-black text-xs uppercase tracking-[0.3em] shadow-xl hover:scale-[1.02] transition-transform active:scale-95"
+                 >
+                    Return to Dashboard
+                 </button>
+            </div>
+        </div>
+      );
+  }
 
   return (
     <div className="space-y-8 animate-fade-in w-full max-w-7xl mx-auto pb-24">
