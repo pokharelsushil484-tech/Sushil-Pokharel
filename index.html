@@ -30,26 +30,10 @@
             animation: {
               'fade-in': 'fadeIn 0.4s ease-out',
               'scale-up': 'scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-              'spiral': 'spiralRotation 1.5s linear infinite',
-              'float': 'float 6s ease-in-out infinite',
-              'shake': 'shake 0.4s ease-in-out',
             },
             keyframes: {
               fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
-              scaleUp: { '0%': { transform: 'scale(0.95)', opacity: '0' }, '100%': { transform: 'scale(1)', opacity: '1' } },
-              spiralRotation: {
-                '0%': { transform: 'rotate(0deg)' },
-                '100%': { transform: 'rotate(360deg)' }
-              },
-              float: {
-                '0%, 100%': { transform: 'translateY(0)' },
-                '50%': { transform: 'translateY(-15px)' },
-              },
-              shake: {
-                '0%, 100%': { transform: 'translateX(0)' },
-                '25%': { transform: 'translateX(-5px)' },
-                '75%': { transform: 'translateX(5px)' },
-              }
+              scaleUp: { '0%': { transform: 'scale(0.95)', opacity: '0' }, '100%': { transform: 'scale(1)', opacity: '1' } }
             }
           }
         }
@@ -58,7 +42,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
       html {
-        font-size: 90%; /* Slight reduction to address "zoom level too high" feedback */
+        font-size: 100%; /* Set to 100% as requested for standard professional readability */
       }
       html, body {
         height: 100%;
@@ -79,10 +63,6 @@
 
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      
-      /* Professional Perspective Effects */
-      .perspective-3d { perspective: 2000px; }
-      .card-3d { transform-style: preserve-3d; }
     </style>
   <script type="importmap">
 {
