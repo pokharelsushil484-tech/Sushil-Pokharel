@@ -2,10 +2,11 @@
 import {GoogleGenAI, Type} from "@google/genai";
 import { UserProfile, VerificationQuestion } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Moved client initialization inside functions to prevent "process is not defined" crash during app boot.
 
 export const generateVerificationForm = async (profile: UserProfile): Promise<VerificationQuestion[]> => {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `Generate a professional identity verification questionnaire for a student pocket app. 
@@ -42,6 +43,7 @@ export const generateVerificationForm = async (profile: UserProfile): Promise<Ve
 
 export const chatWithAI = async (message: string): Promise<string> => {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: message,
@@ -51,6 +53,7 @@ export const chatWithAI = async (message: string): Promise<string> => {
     });
     return response.text || "Interface error. Please retry signal.";
   } catch (error) {
+    console.error("AI Chat Error:", error);
     return "Network sync failed.";
   }
 };
@@ -60,6 +63,7 @@ export const chatWithAI = async (message: string): Promise<string> => {
  */
 export const generateStudyPlan = async (subject: string, hours: string): Promise<string> => {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `Generate a study plan for ${subject} with an available time budget of ${hours} hours. Provide a tactical breakdown.`,
@@ -79,6 +83,7 @@ export const generateStudyPlan = async (subject: string, hours: string): Promise
  */
 export const summarizeNote = async (content: string): Promise<string> => {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `Summarize the following technical/academic note concisely: ${content}`,
