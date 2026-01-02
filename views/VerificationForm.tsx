@@ -64,7 +64,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     
     setSubmitting(true);
     
-    // The 2-second link logic as requested
+    // Generate a secure unique ID
     const linkId = Math.random().toString(36).substring(7);
 
     const finalDetails = {

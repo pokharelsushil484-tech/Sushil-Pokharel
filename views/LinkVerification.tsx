@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, View } from '../types';
-import { ShieldCheck, User, MapPin, Globe, Mail, Phone, Video, CheckCircle, XCircle, Home, Lock, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, User, MapPin, Globe, Mail, Phone, Video, CheckCircle, XCircle, Home, Lock, AlertTriangle, RefreshCw, Search } from 'lucide-react';
 import { ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -15,8 +15,9 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
   const [request, setRequest] = useState<ChangeRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionProcessing, setActionProcessing] = useState(false);
-  const [isDemo, setIsDemo] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
+  // Initial Load
   useEffect(() => {
     const loadRequest = () => {
       const reqStr = localStorage.getItem('studentpocket_requests');
@@ -26,55 +27,34 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
         if (match) {
             setRequest(match);
         } else {
-            // Fallback for demonstration if specific link not found in local browser storage
-            setIsDemo(true);
-            setRequest({
-                id: 'DEMO-' + Date.now(),
-                userId: 'student_demo',
-                username: 'Demo Student',
-                type: 'VERIFICATION',
-                status: 'PENDING',
-                createdAt: Date.now(),
-                linkId: linkId,
-                details: JSON.stringify({
-                    fullName: "Aarav Sharma",
-                    email: "student@example.com",
-                    phone: "+977 9800000000",
-                    permAddress: "Kathmandu, Nepal",
-                    tempAddress: "Lalitpur, Nepal",
-                    country: "Nepal",
-                    _profileImage: null,
-                    _videoFile: null
-                })
-            });
+            setNotFound(true);
         }
       } else {
-          // Fallback if no requests at all
-          setIsDemo(true);
-          setRequest({
-              id: 'DEMO-' + Date.now(),
-              userId: 'student_demo',
-              username: 'Demo Student',
-              type: 'VERIFICATION',
-              status: 'PENDING',
-              createdAt: Date.now(),
-              linkId: linkId,
-              details: JSON.stringify({
-                  fullName: "Aarav Sharma",
-                  email: "student@example.com",
-                  phone: "+977 9800000000",
-                  permAddress: "Kathmandu, Nepal",
-                  tempAddress: "Lalitpur, Nepal",
-                  country: "Nepal",
-                  _profileImage: null,
-                  _videoFile: null
-              })
-          });
+          setNotFound(true);
       }
       setLoading(false);
     };
     loadRequest();
   }, [linkId]);
+
+  // Real-time Status Polling
+  useEffect(() => {
+    if (!request || notFound) return;
+
+    const interval = setInterval(() => {
+        const reqStr = localStorage.getItem('studentpocket_requests');
+        if (reqStr) {
+            const requests: ChangeRequest[] = JSON.parse(reqStr);
+            const match = requests.find(r => r.id === request.id);
+            // If status changed, update local state
+            if (match && match.status !== request.status) {
+                setRequest(match);
+            }
+        }
+    }, 2000); // Check every 2 seconds
+
+    return () => clearInterval(interval);
+  }, [request, notFound]);
 
   const isAdmin = currentUser === ADMIN_USERNAME;
 
@@ -85,39 +65,35 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
     
     // Simulate API/Storage delay
     setTimeout(async () => {
-        if (!isDemo) {
-            const dataKey = `architect_data_${request.username}`;
-            const stored = await storageService.getData(dataKey);
+        const dataKey = `architect_data_${request.username}`;
+        const stored = await storageService.getData(dataKey);
+        
+        if (stored && stored.user) {
+            stored.user.isVerified = action === 'APPROVE';
+            stored.user.verificationStatus = action === 'APPROVE' ? 'VERIFIED' : 'REJECTED';
+            await storageService.setData(dataKey, stored);
             
-            if (stored && stored.user) {
-                stored.user.isVerified = action === 'APPROVE';
-                stored.user.verificationStatus = action === 'APPROVE' ? 'VERIFIED' : 'REJECTED';
-                await storageService.setData(dataKey, stored);
-                
-                // Update request status
-                const reqStr = localStorage.getItem('studentpocket_requests');
-                if (reqStr) {
-                    const requests: ChangeRequest[] = JSON.parse(reqStr);
-                    const updatedRequests = requests.map(r => r.id === request.id ? { ...r, status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED' } : r);
-                    localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
-                }
-                
-                await storageService.logActivity({
-                    actor: ADMIN_USERNAME,
-                    targetUser: request.username,
-                    actionType: 'ADMIN',
-                    description: `Link Verification ${action}: ${request.username}`,
-                    metadata: JSON.stringify({ requestId: request.id, linkId })
-                });
+            // Update request status
+            const reqStr = localStorage.getItem('studentpocket_requests');
+            if (reqStr) {
+                const requests: ChangeRequest[] = JSON.parse(reqStr);
+                const updatedRequests = requests.map(r => r.id === request.id ? { ...r, status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED' } : r);
+                localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
             }
+            
+            await storageService.logActivity({
+                actor: ADMIN_USERNAME,
+                targetUser: request.username,
+                actionType: 'ADMIN',
+                description: `Link Verification ${action}: ${request.username}`,
+                metadata: JSON.stringify({ requestId: request.id, linkId })
+            });
         }
 
-        setRequest({ ...request, status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED' });
-        alert(`Verification ${action === 'APPROVE' ? 'Approved' : 'Rejected'} Successfully.${isDemo ? ' (Demo Mode)' : ''}`);
+        setRequest(prev => prev ? ({ ...prev, status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED' }) : null);
+        alert(`Verification ${action === 'APPROVE' ? 'Approved' : 'Rejected'} Successfully.`);
         
-        if (!isDemo) {
-            onNavigate(View.ADMIN_DASHBOARD);
-        }
+        onNavigate(View.ADMIN_DASHBOARD);
         setActionProcessing(false);
     }, 1500);
   };
@@ -127,21 +103,28 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#020617]">
           <div className="flex flex-col items-center">
              <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Decrypting Link...</p>
+             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Verifying Link...</p>
           </div>
       </div>
     );
   }
 
-  if (!request) {
+  if (notFound || !request) {
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#020617] p-6">
             <div className="text-center max-w-md w-full bg-white dark:bg-slate-900 p-12 rounded-[2rem] shadow-xl border border-slate-100 dark:border-slate-800">
-                <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
-                    <XCircle size={32} />
+                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-400">
+                    <Search size={32} />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Invalid Link</h2>
-                <p className="text-sm text-slate-500 mb-8">This verification link has expired or does not exist.</p>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Application Not Found</h2>
+                <p className="text-sm text-slate-500 mb-8">
+                    We couldn't find the data for Link ID: <span className="font-mono text-indigo-600">{linkId}</span> on this device.
+                </p>
+                <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl mb-8">
+                    <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+                        Note: Since this is a local simulation, please open this link in the same browser where the request was created.
+                    </p>
+                </div>
                 <button onClick={() => window.location.href = '/'} className="w-full py-4 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center">
                     <Home size={16} className="mr-2"/> Return Home
                 </button>
@@ -162,27 +145,25 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                         <ShieldCheck className="text-white" size={20} />
                     </div>
                     <div>
-                        <h1 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter">StudentPocket</h1>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Secure Identity Verification</p>
+                        {/* UPDATED TITLE AS REQUESTED */}
+                        <h1 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter">Student Pack by Sushil Pokharel</h1>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Verification for this application</p>
                     </div>
                 </div>
                 {currentUser ? (
                     <button onClick={() => onNavigate(View.DASHBOARD)} className="text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors">Dashboard</button>
                 ) : (
-                    <button onClick={() => window.location.href = '/'} className="text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors">Login to Approve</button>
+                    <button onClick={() => window.location.href = '/'} className="text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors">Login</button>
                 )}
             </div>
 
-            {isDemo && (
-                 <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/40 rounded-2xl flex items-center gap-3 text-amber-600 dark:text-amber-400">
-                    <AlertTriangle size={20} />
-                    <p className="text-xs font-bold">Demo Mode: Request data not found locally. Showing placeholder data.</p>
-                 </div>
-            )}
-
             {/* Main Card */}
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden relative">
-                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500"></div>
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden relative transition-all duration-500">
+                <div className={`absolute top-0 left-0 w-full h-2 ${
+                    request.status === 'APPROVED' ? 'bg-emerald-500' :
+                    request.status === 'REJECTED' ? 'bg-red-500' :
+                    'bg-amber-500'
+                }`}></div>
                 
                 <div className="p-8 md:p-12">
                     <div className="flex flex-col md:flex-row items-start gap-8 md:gap-12">
@@ -198,11 +179,12 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                                 </div>
                             </div>
                             <div className="mt-6 flex justify-center space-x-2">
-                                <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                                <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border flex items-center ${
                                     request.status === 'APPROVED' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' :
                                     request.status === 'REJECTED' ? 'bg-red-50 border-red-200 text-red-600' :
                                     'bg-amber-50 border-amber-200 text-amber-600'
                                 }`}>
+                                    {request.status === 'PENDING' && <RefreshCw size={10} className="mr-2 animate-spin"/>}
                                     {request.status}
                                 </div>
                             </div>
