@@ -117,6 +117,18 @@ export const AdminDashboard: React.FC = () => {
   const generateInviteLink = () => {
     const code = Math.random().toString(36).substring(7);
     const link = `https://${SYSTEM_DOMAIN}/register/${code}`;
+    
+    // Persist invite to storage so it can be validated
+    const invitesStr = localStorage.getItem('studentpocket_invites');
+    const invites = invitesStr ? JSON.parse(invitesStr) : [];
+    invites.push({
+        code,
+        status: 'ACTIVE',
+        createdAt: Date.now(),
+        createdBy: ADMIN_USERNAME
+    });
+    localStorage.setItem('studentpocket_invites', JSON.stringify(invites));
+
     setGeneratedInvite(link);
     setInviteCopied(false);
   };

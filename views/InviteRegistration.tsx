@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, UserProfile } from '../types';
-import { ShieldCheck, ArrowLeft, Send, Loader2, User, Lock, Mail, Phone, MapPin, Globe } from 'lucide-react';
+import { ShieldCheck, ArrowLeft, Send, Loader2, User, Lock, Mail, Phone, MapPin, Globe, ShieldAlert, Home, Search } from 'lucide-react';
 import { DEFAULT_USER, SYSTEM_UPGRADE_TOKEN } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -13,6 +13,7 @@ interface InviteRegistrationProps {
 
 export const InviteRegistration: React.FC<InviteRegistrationProps> = ({ inviteCode, onNavigate, onRegister }) => {
   const [submitting, setSubmitting] = useState(false);
+  const [isValid, setIsValid] = useState<boolean | null>(null);
   
   // Registration Form State
   const [formData, setFormData] = useState({
@@ -26,6 +27,26 @@ export const InviteRegistration: React.FC<InviteRegistrationProps> = ({ inviteCo
       country: '',
       education: ''
   });
+
+  useEffect(() => {
+    // Validate Invite Code on mount
+    const checkInvite = () => {
+        const invitesStr = localStorage.getItem('studentpocket_invites');
+        if (!invitesStr) {
+            setIsValid(false);
+            return;
+        }
+        const invites = JSON.parse(invitesStr);
+        // Find active invite
+        const match = invites.find((i: any) => i.code === inviteCode && i.status === 'ACTIVE');
+        
+        // Simulate network delay for verification check
+        setTimeout(() => {
+            setIsValid(!!match);
+        }, 1000);
+    };
+    checkInvite();
+  }, [inviteCode]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -81,7 +102,20 @@ export const InviteRegistration: React.FC<InviteRegistrationProps> = ({ inviteCo
            vaultDocs: []
        });
        
-       // 3. Log Activity
+       // 3. Mark Invite as USED
+       const invitesStr = localStorage.getItem('studentpocket_invites');
+       if (invitesStr) {
+           const invites = JSON.parse(invitesStr);
+           const idx = invites.findIndex((i: any) => i.code === inviteCode);
+           if (idx !== -1) {
+               invites[idx].status = 'USED';
+               invites[idx].usedBy = cleanUsername;
+               invites[idx].usedAt = Date.now();
+               localStorage.setItem('studentpocket_invites', JSON.stringify(invites));
+           }
+       }
+
+       // 4. Log Activity
        await storageService.logActivity({
            actor: cleanUsername,
            targetUser: cleanUsername,
@@ -95,6 +129,41 @@ export const InviteRegistration: React.FC<InviteRegistrationProps> = ({ inviteCo
 
     }, 2000);
   };
+
+  if (isValid === null) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#020617]">
+          <div className="flex flex-col items-center space-y-4">
+             <div className="w-10 h-10 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Verifying Invitation...</p>
+          </div>
+        </div>
+      );
+  }
+
+  if (isValid === false) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#020617] p-6">
+            <div className="text-center max-w-md w-full bg-white dark:bg-slate-900 p-12 rounded-[2rem] shadow-2xl shadow-slate-200 dark:shadow-none border border-slate-100 dark:border-slate-800">
+                <div className="w-16 h-16 bg-red-50 dark:bg-red-900/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-red-500 shadow-inner">
+                    <ShieldAlert size={28} />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Invitation Invalid</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+                    The registration link you are trying to use has expired or does not exist.
+                </p>
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl mb-8 text-left border border-slate-100 dark:border-slate-800">
+                    <p className="text-[11px] text-slate-600 dark:text-slate-300 font-semibold leading-relaxed">
+                        If you are an admin, please log in to your dashboard and generate a new verification link.
+                    </p>
+                </div>
+                <button onClick={() => window.location.href = '/'} className="w-full py-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-[10px] uppercase tracking-[0.2em] hover:opacity-90 transition-opacity flex items-center justify-center shadow-lg">
+                    <Home size={14} className="mr-2"/> Return Home
+                </button>
+            </div>
+        </div>
+      );
+  }
 
   return (
     <div className="max-w-3xl mx-auto animate-fade-in pb-24 pt-10 px-4">
