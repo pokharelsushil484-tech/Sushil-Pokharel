@@ -16,13 +16,11 @@ import { StudyPlanner } from './views/StudyPlanner';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { TermsModal } from './components/TermsModal';
-import { RefreshCw, Power, ArrowRight, ShieldCheck, Monitor, PartyPopper, X, ShieldX, AlertTriangle, CloudUpload } from 'lucide-react';
+import { RefreshCw, Power, ArrowRight, ShieldCheck, Monitor, PartyPopper, X, ShieldX, AlertTriangle, CloudUpload, Info } from 'lucide-react';
 
 import { View, UserProfile, Database, ChatMessage, Expense, Note, VaultDocument, Assignment, ChangeRequest } from './types';
 import { ADMIN_USERNAME, APP_VERSION, SYSTEM_UPGRADE_TOKEN, COPYRIGHT_NOTICE, APP_NAME, ADMIN_EMAIL } from './constants';
 import { storageService } from './services/storageService';
-
-const CURRENT_MONTH_NAME = new Date().toLocaleString('default', { month: 'long' });
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -48,7 +46,34 @@ const App = () => {
 
   const [data, setData] = useState(initialData);
 
-  // 1. Mandatory Core Update Monitor
+  // 1. Sentinel System - Detect Unauthorized Activity
+  useEffect(() => {
+    if (currentUsername && currentUsername !== ADMIN_USERNAME) {
+      if (view === View.ADMIN_DASHBOARD) {
+        // Automatically ban user for attempting to access admin nodes
+        const autoBan = async () => {
+          const updatedUser = { ...data.user!, isBanned: true, banReason: "PROTOCOL_VIOLATION: Attempted unauthorized core access." };
+          setData(prev => ({ ...prev, user: updatedUser }));
+          await storageService.setData(`architect_data_${currentUsername}`, { ...data, user: updatedUser });
+          // Log violation in global requests for admin review
+          const existing = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
+          const alert = {
+            id: 'Violation-' + Date.now(),
+            userId: currentUsername!,
+            username: currentUsername!,
+            type: 'OTHER',
+            details: "AUTOMATED ALERT: User attempted unauthorized access to Architect Console.",
+            status: 'REJECTED',
+            createdAt: Date.now()
+          };
+          localStorage.setItem('studentpocket_requests', JSON.stringify([...existing, alert]));
+        };
+        autoBan();
+      }
+    }
+  }, [view, currentUsername]);
+
+  // 2. Core Update Synchronization
   useEffect(() => {
     const lastVersion = localStorage.getItem('system_last_known_version');
     if (lastVersion && lastVersion !== SYSTEM_UPGRADE_TOKEN) {
@@ -56,31 +81,16 @@ const App = () => {
     }
   }, []);
 
-  // 2. Automatic Ban Detection (Sentinel)
+  // 3. Approval Polling & Notification
   useEffect(() => {
-    const runSentinel = () => {
-      if (currentUsername && currentUsername !== ADMIN_USERNAME) {
-        // If user is trying to view admin views without proper token (simulated)
-        if (view === View.ADMIN_DASHBOARD) {
-          setData(prev => {
-            if (!prev.user) return prev;
-            return { ...prev, user: { ...prev.user, isBanned: true, banReason: "PROTOCOL_VIOLATION: Unauthorized architectural access attempt." } };
-          });
-        }
-      }
-    };
-    runSentinel();
-  }, [view, currentUsername]);
-
-  // 3. Approval Tracker & Storage Sync
-  useEffect(() => {
-    const checkApprovals = async () => {
+    const checkStatus = async () => {
       if (currentUsername && data.user && !data.user.isBanned) {
         const requests: ChangeRequest[] = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
         const newlyApproved = requests.find(r => 
           r.userId === currentUsername && 
           r.status === 'APPROVED' && 
-          !r.acknowledged
+          !r.acknowledged &&
+          r.type === 'STORAGE'
         );
 
         if (newlyApproved) {
@@ -96,8 +106,8 @@ const App = () => {
       }
     };
     
-    const interval = setInterval(checkApprovals, 15000);
-    checkApprovals();
+    const interval = setInterval(checkStatus, 20000);
+    checkStatus();
     return () => clearInterval(interval);
   }, [currentUsername, data.user]);
 
@@ -110,7 +120,7 @@ const App = () => {
     }
   };
 
-  // Async Session Loading
+  // Session Management
   useEffect(() => {
     const loadSession = async () => {
       if (currentUsername) {
@@ -128,7 +138,7 @@ const App = () => {
             setView(View.ONBOARDING);
           }
         } catch (e) {
-          console.error("BOOT_LOAD_ERROR", e);
+          console.error("SESSION_LOAD_ERROR", e);
         } finally {
           setIsLoading(false);
         }
@@ -137,18 +147,13 @@ const App = () => {
     loadSession();
   }, [currentUsername]);
 
-  // Data Persistence
   useEffect(() => {
-    const persistData = async () => {
+    const persist = async () => {
       if (currentUsername && data.user) {
-        try {
-          await storageService.setData(`architect_data_${currentUsername}`, data);
-        } catch (e) {
-          console.error("INFRASTRUCTURE_COMMIT_ERROR", e);
-        }
+        await storageService.setData(`architect_data_${currentUsername}`, data);
       }
     };
-    persistData();
+    persist();
   }, [data, currentUsername]);
 
   useEffect(() => {
@@ -156,79 +161,78 @@ const App = () => {
     localStorage.setItem('architect_theme', String(darkMode));
   }, [darkMode]);
 
-  const handleSystemBoot = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsSystemActive(true);
-      localStorage.setItem('system_boot_state', 'true');
-      setIsLoading(false);
-    }, 1500);
-  };
-
   const handleSystemUpdate = () => {
     setIsLoading(true);
     localStorage.setItem('system_last_known_version', SYSTEM_UPGRADE_TOKEN);
-    setTimeout(() => {
-      window.location.reload();
-    }, 1500);
-  };
-
-  const handleLogout = () => {
-    setCurrentUsername(null);
-    setData(initialData);
-    localStorage.removeItem('active_session_user');
-    setView(View.DASHBOARD);
+    setTimeout(() => { window.location.reload(); }, 1500);
   };
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
 
-  // 4. Banned State Screen (Automated Enforcement)
-  if (data.user?.isBanned) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-        <div className="bg-red-950/20 p-16 rounded-[4rem] border border-red-500/30 shadow-2xl max-w-lg">
-          <ShieldX size={80} className="text-red-500 mx-auto mb-8 animate-pulse" />
-          <h1 className="text-4xl font-black text-white mb-6 uppercase tracking-tighter">Node Suspended</h1>
-          <div className="bg-red-500/10 p-6 rounded-3xl border border-red-500/20 mb-8">
-            <p className="text-red-400 text-xs font-black uppercase tracking-widest mb-2">Integrity Violation</p>
-            <p className="text-red-200 text-sm font-bold leading-relaxed">{data.user.banReason}</p>
-          </div>
-          <p className="text-slate-400 text-xs font-medium mb-10 leading-relaxed">
-            Your access has been automatically terminated by the system core due to bad activity or protocol breaches. 
-          </p>
-          <a href={`mailto:${ADMIN_EMAIL}?subject=Node Appeal: ${currentUsername}`} className="block w-full bg-red-600 text-white py-5 rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-xl">
-             Appeal to System Architect
-          </a>
-          <button onClick={handleLogout} className="mt-6 text-slate-500 text-[9px] font-black uppercase tracking-widest hover:text-white transition-all">Terminate Local Session</button>
-        </div>
-      </div>
-    );
-  }
-
-  // 5. System Stasis
-  if (!isSystemActive) {
-    return (
-      <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-6 text-center">
-        <GlobalLoader isLoading={isLoading} message="Initializing Encrypted Core..." />
-        <div className="bg-slate-900/50 backdrop-blur-3xl p-14 rounded-[4rem] border border-slate-800 shadow-2xl max-w-md animate-scale-up">
-          <Power size={48} className="text-indigo-500 animate-pulse mx-auto mb-10" />
-          <h1 className="text-3xl font-black text-white mb-4 uppercase tracking-tighter">Workspace Dormant</h1>
-          <p className="text-slate-400 mb-10 text-sm font-medium opacity-80">Manual authorization by Sushil Pokharel required.</p>
-          <button onClick={handleSystemBoot} className="w-full bg-indigo-600 text-white py-6 rounded-3xl font-black text-xs uppercase tracking-widest">Boot System Core</button>
-        </div>
-      </div>
-    );
-  }
-
-  // 6. Mandatory Update Prompt
+  // Update Screen Logic
   if (showUpdatePrompt) {
     return (
       <div className="min-h-screen bg-indigo-950 flex flex-col items-center justify-center p-6 text-center text-white">
         <div className="max-w-md animate-scale-up">
-          <CloudUpload size={64} className="animate-bounce mx-auto mb-10 text-indigo-400" />
-          <h1 className="text-4xl font-black mb-4 uppercase tracking-tighter">Update Required</h1>
-          <p className="text-indigo-200 mb-10 text-lg font-bold">Please update now to synchronize security protocols and core features.</p>
-          <button onClick={handleSystemUpdate} className="bg-white text-indigo-900 px-12 py-5 rounded-full font-black text-xs uppercase tracking-widest shadow-2xl">Apply & Reload Workspace</button>
+          <div className="w-24 h-24 bg-white/10 rounded-[2rem] flex items-center justify-center mx-auto mb-10 border border-white/20">
+            <RefreshCw size={48} className="animate-spin" />
+          </div>
+          <h1 className="text-4xl font-black mb-4 uppercase tracking-tighter">System Patch Ready</h1>
+          <p className="text-indigo-200 mb-10 text-lg font-bold leading-relaxed">
+            Please update now to synchronize security protocols and architectural core features. Access is restricted until sync is complete.
+          </p>
+          <button 
+            onClick={handleSystemUpdate}
+            className="w-full bg-white text-indigo-900 py-6 rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all"
+          >
+            Apply & Update Hub
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Ban Screen Logic
+  if (data.user?.isBanned) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center animate-fade-in font-sans">
+        <div className="bg-red-950/20 p-16 rounded-[4rem] border border-red-500/30 shadow-2xl max-w-lg w-full">
+          <div className="w-24 h-24 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-8 border border-red-500/40">
+            <ShieldX size={60} className="text-red-500 animate-pulse" />
+          </div>
+          <h1 className="text-4xl font-black text-white mb-6 uppercase tracking-tighter">Node Suspended</h1>
+          <div className="bg-red-500/10 p-6 rounded-3xl border border-red-500/20 mb-10">
+            <p className="text-red-400 text-xs font-black uppercase tracking-widest mb-2 flex items-center justify-center">
+              <AlertTriangle size={14} className="mr-2" /> Protocol Failure
+            </p>
+            <p className="text-red-100 text-sm font-bold leading-relaxed">{data.user.banReason || "Manual suspension active."}</p>
+          </div>
+          <a href={`mailto:${ADMIN_EMAIL}?subject=Appeal: ${currentUsername}`} className="block w-full bg-red-600 text-white py-5 rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-xl transition-all hover:bg-red-700">
+             Submit Professional Appeal
+          </a>
+          <button 
+            onClick={() => { setCurrentUsername(null); localStorage.removeItem('active_session_user'); window.location.reload(); }} 
+            className="mt-8 text-slate-500 text-[10px] font-black uppercase tracking-widest hover:text-white"
+          >
+            Terminate Session
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isSystemActive) {
+    return (
+      <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-6 text-center">
+        <div className="bg-slate-900/50 backdrop-blur-3xl p-14 rounded-[4rem] border border-slate-800 shadow-2xl max-w-md animate-scale-up">
+          <Power size={48} className="text-indigo-500 animate-pulse mx-auto mb-10" />
+          <h1 className="text-3xl font-black text-white mb-4 uppercase tracking-tighter">Workspace Dormant</h1>
+          <button 
+            onClick={() => { setIsSystemActive(true); localStorage.setItem('system_boot_state', 'true'); }} 
+            className="w-full bg-indigo-600 text-white py-6 rounded-3xl font-black text-xs uppercase tracking-widest"
+          >
+            Boot System Core
+          </button>
         </div>
       </div>
     );
@@ -250,7 +254,7 @@ const App = () => {
       case View.VAULT: return <Vault user={data.user} documents={data.vaultDocs} saveDocuments={(d) => setData(prev => ({...prev, vaultDocs: d}))} updateUser={(u) => setData(prev => ({...prev, user: u}))} isVerified={true} />;
       case View.PLANNER: return <StudyPlanner assignments={data.assignments || []} setAssignments={(a) => setData(prev => ({...prev, assignments: a}))} isAdmin={true} />;
       case View.AI_CHAT: return <AIChat chatHistory={data.chatHistory} setChatHistory={(msg) => setData(prev => ({...prev, chatHistory: msg}))} isVerified={true} />;
-      case View.SETTINGS: return <Settings user={data.user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={handleLogout} username={currentUsername} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={(u) => setData(prev => ({...prev, user: u}))} />;
+      case View.SETTINGS: return <Settings user={data.user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={() => { setCurrentUsername(null); localStorage.removeItem('active_session_user'); setView(View.DASHBOARD); }} username={currentUsername} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={(u) => setData(prev => ({...prev, user: u}))} />;
       case View.ADMIN_DASHBOARD: return isAdmin ? <AdminDashboard resetApp={() => { localStorage.clear(); window.location.reload(); }} /> : null;
       default: return <Dashboard user={data.user} isVerified={true} username={currentUsername} expenses={data.expenses} databases={data.databases} onNavigate={setView} />;
     }
@@ -263,17 +267,25 @@ const App = () => {
       
       {/* CONGRATULATIONS NOTIFICATION */}
       {approvalNotice && (
-        <div className="fixed top-20 right-6 left-6 md:left-auto md:w-96 z-[250] animate-fade-in shadow-2xl">
-          <div className="bg-emerald-600 text-white p-8 rounded-[2.5rem] relative border border-emerald-400">
+        <div className="fixed top-20 right-6 left-6 md:left-auto md:w-96 z-[250] animate-bounce-in shadow-2xl">
+          <div className="bg-emerald-600 text-white p-8 rounded-[2.5rem] relative border-4 border-emerald-400 overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
             <button onClick={acknowledgeApproval} className="absolute top-4 right-4 p-2 text-white/50 hover:text-white"><X size={20}/></button>
             <div className="flex items-center space-x-4 mb-4 relative z-10">
-              <PartyPopper size={28} className="text-white" />
-              <h4 className="text-lg font-black uppercase tracking-tight">Access Granted!</h4>
+              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                <PartyPopper size={28} className="text-white" />
+              </div>
+              <h4 className="text-lg font-black uppercase tracking-tight">Grant Approved!</h4>
             </div>
-            <p className="text-sm font-bold relative z-10 leading-relaxed">
-              Congratulations, you have received <span className="font-black underline">{approvalNotice.amount} GB</span> of additional storage nodes.
+            <p className="text-sm font-bold relative z-10 leading-relaxed mb-6">
+              Congratulations, you have received <span className="font-black underline decoration-white decoration-2">{approvalNotice.amount} GB</span> of additional storage nodes.
             </p>
-            <button onClick={acknowledgeApproval} className="mt-6 w-full py-4 bg-white text-emerald-700 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl transition-all">Acknowledge Grant</button>
+            <button 
+              onClick={acknowledgeApproval} 
+              className="w-full py-4 bg-white text-emerald-700 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+            >
+              Acknowledge Expansion
+            </button>
           </div>
         </div>
       )}
@@ -285,7 +297,13 @@ const App = () => {
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] hidden sm:block">{APP_NAME}</span>
            </div>
            <div className="flex items-center space-x-4">
-              <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-2xl">{currentUsername}</span>
+              <div className="hidden md:flex items-center space-x-2 mr-4 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-full border border-emerald-100 dark:border-emerald-800">
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Network Synced</span>
+              </div>
+              <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-2xl border border-slate-100 dark:border-slate-700">
+                {currentUsername}
+              </span>
            </div>
         </header>
         <main className="max-w-7xl mx-auto p-6 lg:p-12 pb-24 lg:pb-16 min-h-[calc(100vh-64px)] w-full">{renderContent()}</main>

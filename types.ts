@@ -56,7 +56,7 @@ export interface UserProfile {
   streak?: number;
   points?: number;
   isPro?: boolean; 
-  isBanned?: boolean; // New: Automatic suspension state
+  isBanned?: boolean; // Automatic suspension flag
   banReason?: string;
   verificationStatus?: 'NONE' | 'PENDING' | 'VERIFIED' | 'REJECTED';
   acceptedTermsVersion?: string;

@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, VaultDocument, ChangeRequest } from '../types';
-// Fix: Removed 'Timeline' as it is not an exported member of 'lucide-react'
-import { Shield, Lock, FileText, Image as ImageIcon, Search, HardDrive, Archive, Box, CloudUpload, ArrowUpCircle, X, AlertCircle, RefreshCw, CheckCircle2, ShieldX, History, Clock } from 'lucide-react';
+import { Shield, Lock, FileText, Image as ImageIcon, Search, HardDrive, Archive, Box, CloudUpload, ArrowUpCircle, X, AlertCircle, RefreshCw, CheckCircle2, ShieldX, History, Clock, FileWarning } from 'lucide-react';
 
 interface VaultProps {
   user: UserProfile;
@@ -21,7 +20,6 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
   const [lockoutTime, setLockoutTime] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
 
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showTrash, setShowTrash] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -62,14 +60,6 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
     return () => clearInterval(interval);
   }, [lockoutTime]);
 
-  useEffect(() => {
-    const activeDocs = documents.filter(d => !d.deletedAt);
-    const usedBytes = activeDocs.reduce((acc, doc) => acc + (doc.size || 0), 0);
-    if (user.storageUsedBytes !== usedBytes) {
-      updateUser({ ...user, storageUsedBytes: usedBytes });
-    }
-  }, [documents]);
-
   const handleUnlock = () => {
     if (pin === CORRECT_PIN) {
       setIsUnlocked(true);
@@ -101,10 +91,8 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
 
     if (!isAdmin) {
       const limitBytes = user.storageLimitGB * 1024 ** 3;
-      const potentialUsage = user.storageUsedBytes + file.size;
-      
-      if (potentialUsage > limitBytes) {
-        alert(`CAPACITY EXCEEDED\n\nPlease request a node expansion to upload more files.`);
+      if (user.storageUsedBytes + file.size > limitBytes) {
+        alert(`CAPACITY EXCEEDED: Node space exhausted. Please request more storage.`);
         setShowUpgradeModal(true);
         return;
       }
@@ -118,7 +106,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
         title: file.name,
         type: file.type.startsWith('image/') ? 'IMAGE' : file.type.startsWith('video/') ? 'VIDEO' : 'OTHER',
         content: reader.result as string,
-        parentId: currentFolderId,
+        parentId: null,
         size: file.size,
         mimeType: file.type,
         createdAt: Date.now()
@@ -138,12 +126,12 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
     const userId = localStorage.getItem('active_session_user') || user.email;
 
     const request: ChangeRequest = {
-        id: Date.now().toString(),
+        id: 'REQ-' + Date.now(),
         userId: userId,
         username: username,
         type: 'STORAGE',
         amountRequested: amountNum,
-        details: `Requesting system increase to ${amountNum}GB. Reason: ${requestReason}`,
+        details: `Target: ${amountNum}GB. Reason: ${requestReason}`,
         status: 'PENDING',
         acknowledged: false,
         createdAt: Date.now()
@@ -156,23 +144,23 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
         setIsSendingRequest(false);
         setShowUpgradeModal(false);
         refreshRequests();
-        alert("Signal Sent. The Administrator will review this within 3 days.");
-    }, 1500);
+        alert("Signal Sent. The Administrator review period is 3 days. Thank you for your patience.");
+    }, 1200);
   };
 
-  const pendingRequest = myRequests.find(r => r.status === 'PENDING');
+  const pendingRequest = myRequests.find(r => r.status === 'PENDING' && r.type === 'STORAGE');
   const usedPercentage = isAdmin ? 0 : Math.min((user.storageUsedBytes / (user.storageLimitGB * 1024 ** 3)) * 100, 100);
-  const displayedItems = showTrash ? documents.filter(d => d.deletedAt) : documents.filter(d => !d.deletedAt && (searchQuery ? d.title.toLowerCase().includes(searchQuery.toLowerCase()) : d.parentId === currentFolderId));
+  const displayedItems = showTrash ? documents.filter(d => d.deletedAt) : documents.filter(d => !d.deletedAt && (searchQuery ? d.title.toLowerCase().includes(searchQuery.toLowerCase()) : true));
 
   if (!isUnlocked) {
     return (
       <div className="h-[80vh] flex flex-col items-center justify-center animate-fade-in px-4">
-        <div className="bg-white dark:bg-slate-900 p-12 rounded-[4rem] shadow-2xl w-full max-w-sm text-center relative overflow-hidden border border-slate-100 dark:border-slate-800">
+        <div className="bg-white dark:bg-slate-900 p-12 rounded-[4rem] shadow-2xl w-full max-w-sm text-center relative overflow-hidden border border-slate-100 dark:border-slate-800 transition-all">
           <div className="w-24 h-24 bg-indigo-50 dark:bg-indigo-900/30 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
             <Shield className="w-12 h-12 text-indigo-600" />
           </div>
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">Node Vault</h2>
-          <p className="text-slate-400 mb-10 text-[10px] font-black uppercase tracking-[0.4em]">Input Encryption Key</p>
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">The Vault</h2>
+          <p className="text-slate-400 mb-10 text-[10px] font-black uppercase tracking-[0.4em]">Node Access Pin Required</p>
           <div className="flex justify-center space-x-6 mb-12">
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className={`w-3.5 h-3.5 rounded-full transition-all duration-500 ${i < pin.length ? 'bg-indigo-600 scale-125 shadow-xl shadow-indigo-400' : 'bg-slate-200 dark:bg-slate-800'}`} />
@@ -180,10 +168,10 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
           </div>
           <div className="grid grid-cols-3 gap-4">
             {keypadNumbers.map(num => (
-              <button key={num} onClick={() => setPin(prev => (prev.length < 4 ? prev + num : prev))} className="h-16 bg-slate-50 dark:bg-slate-800 rounded-2xl font-black text-2xl text-slate-700 dark:text-slate-200 transition-all active:scale-90">{num}</button>
+              <button key={num} onClick={() => setPin(prev => (prev.length < 4 ? prev + num : prev))} className="h-16 bg-slate-50 dark:bg-slate-800 rounded-2xl font-black text-2xl text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 active:scale-90 transition-all">{num}</button>
             ))}
             <button className="h-16 text-slate-400 font-black text-[9px] uppercase tracking-widest" onClick={() => setPin('')}>Clear</button>
-            <button onClick={handleUnlock} disabled={pin.length < 4} className="col-span-2 h-16 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:bg-indigo-700 active:scale-95 transition-all">Unlock</button>
+            <button onClick={handleUnlock} disabled={pin.length < 4} className="col-span-2 h-16 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:bg-indigo-700 active:scale-95 transition-all">Authenticate</button>
           </div>
         </div>
       </div>
@@ -192,7 +180,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
 
   return (
     <div className="pb-24 animate-fade-in flex flex-col w-full max-w-7xl mx-auto h-[calc(100vh-140px)]">
-      {/* TELEMETRY HEADER */}
+      {/* PROFESSIONAL TELEMETRY HEADER */}
       <div className="mb-10 bg-white dark:bg-slate-900 p-10 rounded-[3.5rem] shadow-sm border border-slate-100 dark:border-slate-800">
          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
              <div className="flex items-center space-x-6">
@@ -215,8 +203,19 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
                 </div>
                 {!isAdmin && (
                   <div className="flex items-center space-x-2">
-                    <button onClick={() => setShowHistory(true)} className="p-4 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-2xl hover:text-indigo-600 border border-slate-100 dark:border-slate-700 transition-all"><History size={24} /></button>
-                    <button onClick={() => setShowUpgradeModal(true)} disabled={!!pendingRequest} className={`p-4 rounded-2xl border transition-all flex items-center justify-center ${pendingRequest ? 'bg-slate-50 text-slate-400 border-slate-200 opacity-50' : 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-600'}`}>{pendingRequest ? <RefreshCw className="animate-spin" size={24} /> : <ArrowUpCircle size={24} />}</button>
+                    <button 
+                      onClick={() => setShowHistory(true)} 
+                      className="p-4 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-2xl hover:text-indigo-600 border border-slate-100 dark:border-slate-700 transition-all"
+                    >
+                      <History size={24} />
+                    </button>
+                    <button 
+                      onClick={() => setShowUpgradeModal(true)} 
+                      disabled={!!pendingRequest} 
+                      className={`p-4 rounded-2xl border transition-all flex items-center justify-center ${pendingRequest ? 'bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed' : 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-600 hover:text-white'}`}
+                    >
+                      {pendingRequest ? <RefreshCw className="animate-spin" size={24} /> : <ArrowUpCircle size={24} />}
+                    </button>
                   </div>
                 )}
              </div>
@@ -226,10 +225,11 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
          </div>
       </div>
 
+      {/* TOOLBAR */}
       <div className="flex flex-col md:flex-row items-center space-x-0 md:space-x-4 space-y-4 md:space-y-0 mb-10">
          <div className="flex-1 w-full flex items-center bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm px-8">
              <Search size={22} className="text-slate-400" />
-             <input className="flex-1 bg-transparent border-none outline-none px-6 text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide" placeholder="Search Segments..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+             <input className="flex-1 bg-transparent border-none outline-none px-6 text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide" placeholder="Search Node Segments..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
          </div>
          <div className="flex space-x-4 w-full md:w-auto">
              <button onClick={() => setShowTrash(!showTrash)} className={`flex-1 md:flex-none p-5 rounded-2xl transition-all ${showTrash ? 'bg-red-600 text-white shadow-lg' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400'}`}><Archive size={24} /></button>
@@ -241,10 +241,10 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
          </div>
       </div>
 
-      {/* DOCUMENT GRID */}
+      {/* GRID */}
       <div className="flex-1 overflow-y-auto no-scrollbar pb-10">
           {displayedItems.length === 0 ? (
-              <div className="text-center py-24 opacity-20"><Box size={80} className="mx-auto mb-6" /><p className="text-[10px] font-black uppercase tracking-[0.5em]">No Data Segments Committed.</p></div>
+              <div className="text-center py-24 opacity-20"><Box size={80} className="mx-auto mb-6" /><p className="text-[10px] font-black uppercase tracking-[0.5em]">No Data committed.</p></div>
           ) : (
              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
                  {displayedItems.map(item => (
@@ -262,56 +262,73 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
           )}
       </div>
 
-      {/* HISTORY MODAL with Signal Log */}
+      {/* HISTORY MODAL */}
       {showHistory && (
-          <div className="fixed inset-0 z-[200] bg-slate-950/70 backdrop-blur-xl flex items-center justify-center p-6">
+          <div className="fixed inset-0 z-[200] bg-slate-950/70 backdrop-blur-xl flex items-center justify-center p-6 animate-fade-in">
               <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[4rem] p-12 shadow-2xl border border-slate-100 dark:border-slate-800 animate-scale-up">
                   <div className="flex justify-between items-center mb-10">
-                      <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center"><History className="mr-4 text-indigo-600" /> Signal Log</h3>
+                      <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center"><History className="mr-4 text-indigo-600" /> Signal Logs</h3>
                       <button onClick={() => setShowHistory(false)} className="text-slate-400 hover:text-red-500"><X size={32} /></button>
                   </div>
-                  
                   <div className="space-y-6 max-h-[50vh] overflow-y-auto no-scrollbar pr-2">
                       {myRequests.length === 0 ? (
-                          <div className="text-center py-10 opacity-30"><Clock size={40} className="mx-auto mb-4" /><p className="text-[10px] font-black uppercase tracking-widest">No logs found.</p></div>
+                          <div className="text-center py-10 opacity-30"><Clock size={40} className="mx-auto mb-4" /><p className="text-[10px] font-black uppercase tracking-widest">No signals recorded.</p></div>
                       ) : (
                           myRequests.slice().reverse().map(req => (
                               <div key={req.id} className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 flex flex-col space-y-3 relative overflow-hidden">
-                                  {req.status === 'PENDING' && <div className="absolute top-0 right-0 p-2 bg-amber-500 text-[8px] font-black text-white uppercase tracking-widest rounded-bl-xl">3 Day Review Window</div>}
+                                  {req.status === 'PENDING' && (
+                                    <div className="absolute top-0 right-0 p-2 bg-amber-500 text-[8px] font-black text-white uppercase tracking-widest rounded-bl-xl flex items-center">
+                                      <Clock size={10} className="mr-1" /> 3 Day Window
+                                    </div>
+                                  )}
                                   <div className="flex justify-between items-center">
-                                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-600' : req.status === 'REJECTED' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'}`}>{req.status}</span>
+                                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                                        req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-600' : 
+                                        req.status === 'REJECTED' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
+                                      }`}>{req.status}</span>
                                       <span className="text-[10px] text-slate-400 font-bold">{new Date(req.createdAt).toLocaleDateString()}</span>
                                   </div>
                                   <p className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">{req.details}</p>
+                                  {req.status === 'APPROVED' && <p className="text-[9px] text-emerald-500 font-black uppercase tracking-widest flex items-center"><CheckCircle2 size={12} className="mr-1"/> Capacity granted.</p>}
                               </div>
                           ))
                       )}
                   </div>
-                  <button onClick={() => setShowHistory(false)} className="w-full mt-10 py-5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95">Close Logs</button>
+                  <button onClick={() => setShowHistory(false)} className="w-full mt-10 py-5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all">Close history</button>
               </div>
           </div>
       )}
 
       {/* UPGRADE MODAL */}
       {showUpgradeModal && (
-          <div className="fixed inset-0 z-[200] bg-slate-950/70 backdrop-blur-xl flex items-center justify-center p-6">
+          <div className="fixed inset-0 z-[200] bg-slate-950/70 backdrop-blur-xl flex items-center justify-center p-6 animate-fade-in">
               <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[4rem] p-12 shadow-2xl border border-slate-100 dark:border-slate-800 animate-scale-up">
                   <div className="flex justify-between items-center mb-10">
-                      <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Capacity Request</h3>
+                      <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Node Expansion</h3>
                       <button onClick={() => setShowUpgradeModal(false)} className="text-slate-400 hover:text-red-500"><X size={32} /></button>
                   </div>
                   <div className="space-y-8">
                       <div className="p-6 bg-indigo-50 dark:bg-indigo-900/20 rounded-3xl border border-indigo-100 dark:border-indigo-900/40 flex items-start space-x-4">
-                          <Clock className="text-indigo-600 shrink-0" size={24} />
-                          <p className="text-[10px] text-indigo-600 font-bold uppercase leading-relaxed">System Architect review window: 3 Business Days. Approval granted if justification is valid.</p>
+                          <Clock className="text-indigo-600 shrink-0 mt-1" size={24} />
+                          <p className="text-[10px] text-indigo-600 font-bold uppercase leading-relaxed">System Architect review window: 3 Business Days. Justification required for cluster extension.</p>
                       </div>
                       <div>
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Requested Total Size (GB)</label>
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Requested Total Limit (GB)</label>
                           <input type="number" value={requestedGb} onChange={e => setRequestedGb(e.target.value)} className="w-full p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl text-xl font-black dark:text-white outline-none border-none focus:ring-2 focus:ring-indigo-600" />
                       </div>
-                      <textarea value={requestReason} onChange={e => setRequestReason(e.target.value)} rows={3} className="w-full p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl text-sm font-bold dark:text-white resize-none outline-none border-none" placeholder="Provide justification for more nodes..." />
-                      <button onClick={handleSendRequest} disabled={isSendingRequest || !requestReason || !requestedGb} className="w-full bg-indigo-600 text-white py-6 rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 disabled:opacity-50">
-                          {isSendingRequest ? "Transmitting..." : "Submit Increase Request"}
+                      <textarea 
+                        value={requestReason} 
+                        onChange={e => setRequestReason(e.target.value)} 
+                        rows={3} 
+                        className="w-full p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl text-sm font-bold dark:text-white resize-none outline-none border-none" 
+                        placeholder="Why do you need more node space? (e.g. 'Expanding my study archives')" 
+                      />
+                      <button 
+                        onClick={handleSendRequest} 
+                        disabled={isSendingRequest || !requestReason || !requestedGb} 
+                        className="w-full bg-indigo-600 text-white py-6 rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 disabled:opacity-50"
+                      >
+                          {isSendingRequest ? "Transmitting..." : "Submit Extension Request"}
                       </button>
                   </div>
               </div>
