@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, ActivityLog } from '../types';
 import { 
-  Infinity as InfinityIcon, BellRing, Eye, Trash2, FileClock, Search, RefreshCw, CheckCircle, XCircle
+  Infinity as InfinityIcon, BellRing, Eye, Trash2, FileClock, Search, RefreshCw, CheckCircle, XCircle, Send, Paperclip, Mail, X
 } from 'lucide-react';
 import { ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
@@ -16,6 +16,12 @@ export const AdminDashboard: React.FC = () => {
   const [selectedRequest, setSelectedRequest] = useState<ChangeRequest | null>(null);
   const [logFilter, setLogFilter] = useState('');
   
+  // Email Composition State
+  const [emailMode, setEmailMode] = useState<'APPROVE' | 'REJECT' | null>(null);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [isSending, setIsSending] = useState(false);
+
   const refreshData = async () => {
     // Fetch Users
     const usersStr = localStorage.getItem('studentpocket_users');
@@ -47,17 +53,32 @@ export const AdminDashboard: React.FC = () => {
     refreshData();
   }, [refreshTrigger]);
 
-  const handleProcessRequest = async (reqId: string, action: 'APPROVE' | 'REJECT') => {
-    const req = requests.find(r => r.id === reqId);
-    if (!req) return;
+  const initiateProcess = (action: 'APPROVE' | 'REJECT') => {
+      setEmailMode(action);
+      if (action === 'APPROVE') {
+          setEmailSubject('Verification Successful: StudentPocket Identity Confirmed');
+          setEmailBody(`Dear Student,\n\nWe are pleased to inform you that your identity verification request has been approved. Your node now has full access to the repository and AI architecture.\n\nWelcome to the network.\n\nBest regards,\nSystem Architect`);
+      } else {
+          setEmailSubject('Action Required: Verification Request Update');
+          setEmailBody(`Dear Student,\n\nWe reviewed your verification request but were unable to confirm your identity based on the provided documents. \n\nPlease see the attachment for the document we received. The issue may be related to clarity or validity.\n\nPlease update your details and submit a new signal.\n\nRegards,\nSystem Admin`);
+      }
+  };
 
-    // Use req.username (the login ID) to find the correct storage key
+  const sendEmailAndFinalize = async () => {
+    if (!selectedRequest || !emailMode) return;
+    setIsSending(true);
+
+    const req = selectedRequest;
+    const action = emailMode;
     const dataKey = `architect_data_${req.username}`;
     const stored = await storageService.getData(dataKey);
     
     if (stored && stored.user) {
       stored.user.isVerified = action === 'APPROVE';
-      stored.user.verificationStatus = action === 'APPROVE' ? 'VERIFIED' : 'NONE';
+      stored.user.verificationStatus = action === 'APPROVE' ? 'VERIFIED' : 'REJECTED';
+      // Save the email content as feedback for the user to see
+      stored.user.adminFeedback = emailBody;
+      
       await storageService.setData(dataKey, stored);
 
       // Log the action
@@ -65,17 +86,24 @@ export const AdminDashboard: React.FC = () => {
           actor: ADMIN_USERNAME,
           targetUser: req.username,
           actionType: 'ADMIN',
-          description: `Authorization Signal ${action}: ${req.username}`,
-          metadata: JSON.stringify({ requestId: reqId, action })
+          description: `Email Sent & Signal ${action}: ${req.username}`,
+          metadata: JSON.stringify({ requestId: req.id, action, emailSubject })
       });
 
       // Remove from requests list
-      const updatedRequests = requests.filter(r => r.id !== reqId);
+      const updatedRequests = requests.filter(r => r.id !== req.id);
       localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
       
-      setRefreshTrigger(prev => prev + 1);
-      setSelectedRequest(null);
+      setTimeout(() => {
+        setIsSending(false);
+        setEmailMode(null);
+        setSelectedRequest(null);
+        setRefreshTrigger(prev => prev + 1);
+        alert(`Email sent to node ${req.username}. Request ${action === 'APPROVE' ? 'Authorized' : 'Rejected'}.`);
+      }, 1500);
+
     } else {
+        setIsSending(false);
         alert(`Error: Data node for user '${req.username}' not found. Cannot process request.`);
     }
   };
@@ -158,6 +186,13 @@ export const AdminDashboard: React.FC = () => {
           return d._profileImage || d._verificationImage;
       } catch { return null; }
   };
+  
+  const getVerificationImage = (req: ChangeRequest) => {
+      try {
+          const d = JSON.parse(req.details);
+          return d._verificationImage;
+      } catch { return null; }
+  };
 
   return (
     <div className="pb-24 animate-fade-in w-full max-w-7xl mx-auto space-y-8 px-4 sm:px-0">
@@ -196,16 +231,10 @@ export const AdminDashboard: React.FC = () => {
                   
                   <div className="flex items-center space-x-2 w-full md:w-auto">
                     <button 
-                        onClick={() => handleProcessRequest(req.id, 'APPROVE')}
-                        className="flex-1 md:flex-none px-6 py-3 bg-emerald-500 text-white rounded-2xl hover:bg-emerald-600 font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20"
-                    >
-                        Auto Verify
-                    </button>
-                    <button 
                         onClick={() => setSelectedRequest(req)} 
-                        className="px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 transition-all"
+                        className="flex-1 md:flex-none px-8 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl hover:bg-slate-800 dark:hover:bg-indigo-700 font-black text-[10px] uppercase tracking-widest transition-all shadow-lg"
                     >
-                        <Eye size={18} />
+                        Review Signal
                     </button>
                   </div>
                </div>
@@ -220,21 +249,89 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {selectedRequest && (
+      {/* Main Review Modal */}
+      {selectedRequest && !emailMode && (
         <div className="fixed inset-0 z-[500] bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4">
            <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[3rem] p-8 md:p-10 shadow-2xl border border-slate-100 dark:border-slate-800 max-h-[85vh] overflow-y-auto no-scrollbar animate-scale-up">
               <div className="flex justify-between items-center mb-8 sticky top-0 bg-white dark:bg-slate-900 z-10 py-2">
                  <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Signal Review</h2>
-                 <button onClick={() => setSelectedRequest(null)} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"><Trash2 size={20} className="text-slate-400"/></button>
+                 <button onClick={() => setSelectedRequest(null)} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"><X size={20} className="text-slate-400"/></button>
               </div>
               
               {renderRequestDetails(selectedRequest)}
 
               <div className="grid grid-cols-2 gap-4 mt-8">
-                 <button onClick={() => handleProcessRequest(selectedRequest.id, 'APPROVE')} className="bg-emerald-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-emerald-600 transition-all flex items-center justify-center"><CheckCircle size={16} className="mr-2"/> Authorize</button>
-                 <button onClick={() => handleProcessRequest(selectedRequest.id, 'REJECT')} className="bg-red-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-red-600 transition-all flex items-center justify-center"><XCircle size={16} className="mr-2"/> Deny</button>
+                 <button onClick={() => initiateProcess('APPROVE')} className="bg-emerald-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-emerald-600 transition-all flex items-center justify-center"><CheckCircle size={16} className="mr-2"/> Accept</button>
+                 <button onClick={() => initiateProcess('REJECT')} className="bg-red-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-red-600 transition-all flex items-center justify-center"><XCircle size={16} className="mr-2"/> Reject</button>
               </div>
            </div>
+        </div>
+      )}
+
+      {/* Email Composition Modal */}
+      {emailMode && selectedRequest && (
+        <div className="fixed inset-0 z-[600] bg-slate-950/60 backdrop-blur-2xl flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[3rem] p-8 md:p-10 shadow-2xl border border-slate-100 dark:border-slate-800 animate-scale-up flex flex-col max-h-[90vh]">
+                <div className="flex justify-between items-center mb-6 pb-6 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center space-x-4">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${emailMode === 'APPROVE' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                            <Mail size={24} />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">Compose {emailMode === 'APPROVE' ? 'Approval' : 'Rejection'}</h2>
+                            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">To: {selectedRequest.username}</p>
+                        </div>
+                    </div>
+                    <button onClick={() => setEmailMode(null)} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"><X size={20}/></button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto no-scrollbar space-y-6">
+                    <div>
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Subject Line</label>
+                        <input 
+                            type="text" 
+                            value={emailSubject}
+                            onChange={(e) => setEmailSubject(e.target.value)}
+                            className="w-full p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Message Body</label>
+                        <textarea 
+                            value={emailBody}
+                            onChange={(e) => setEmailBody(e.target.value)}
+                            className="w-full p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 font-medium text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 h-48 resize-none"
+                        />
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                         <div className="flex items-center space-x-4">
+                             <div className="w-10 h-10 bg-slate-200 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-500">
+                                <Paperclip size={18} />
+                             </div>
+                             <div>
+                                 <p className="text-xs font-black dark:text-white uppercase tracking-tight">Attachment Included</p>
+                                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">User_Proof.jpg</p>
+                             </div>
+                         </div>
+                         <div className="w-12 h-12 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                             <img src={getVerificationImage(selectedRequest)} className="w-full h-full object-cover" alt="attachment" />
+                         </div>
+                    </div>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end space-x-3">
+                    <button onClick={() => setEmailMode(null)} className="px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800">Cancel</button>
+                    <button 
+                        onClick={sendEmailAndFinalize}
+                        disabled={isSending}
+                        className="px-8 py-3 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition-all flex items-center"
+                    >
+                       {isSending ? <RefreshCw className="animate-spin mr-2" size={16} /> : <Send className="mr-2" size={16} />}
+                       Send & Finalize
+                    </button>
+                </div>
+            </div>
         </div>
       )}
 

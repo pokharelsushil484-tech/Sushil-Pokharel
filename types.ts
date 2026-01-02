@@ -19,7 +19,8 @@ export interface UserProfile {
   isBanned?: boolean;
   banReason?: string;
   isVerified: boolean;
-  verificationStatus: 'NONE' | 'FORM_PENDING' | 'PENDING_APPROVAL' | 'VERIFIED';
+  verificationStatus: 'NONE' | 'FORM_PENDING' | 'PENDING_APPROVAL' | 'VERIFIED' | 'REJECTED';
+  adminFeedback?: string; // Stores the email content/rejection reason
   acceptedTermsVersion?: string;
   storageLimitGB: number;
   storageUsedBytes: number;
