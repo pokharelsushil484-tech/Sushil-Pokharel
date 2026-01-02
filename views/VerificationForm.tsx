@@ -74,19 +74,41 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
         _submissionTime: new Date().toISOString()
     };
     
-    const request: ChangeRequest = {
-      id: 'REQ-' + Date.now(),
-      userId: username,
-      username: username,
-      type: 'VERIFICATION',
-      details: JSON.stringify(finalDetails),
-      status: 'PENDING',
-      createdAt: Date.now(),
-      linkId: linkId // Store the link ID for retrieval
-    };
-
+    // Update existing request if pending, or create new
     const existing = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
-    localStorage.setItem('studentpocket_requests', JSON.stringify([...existing, request]));
+    const pendingIndex = existing.findIndex((r: any) => r.username === username && r.status === 'PENDING');
+    
+    let request: ChangeRequest;
+
+    if (pendingIndex !== -1) {
+        // Update existing pending request
+        request = existing[pendingIndex];
+        request.details = JSON.stringify(finalDetails);
+        request.createdAt = Date.now();
+        
+        // Archive old link ID if replacing
+        if (request.linkId) {
+             if (!request.previousLinkIds) request.previousLinkIds = [];
+             request.previousLinkIds.push(request.linkId);
+        }
+        request.linkId = linkId;
+        existing[pendingIndex] = request;
+    } else {
+        // Create new request
+        request = {
+            id: 'REQ-' + Date.now(),
+            userId: username,
+            username: username,
+            type: 'VERIFICATION',
+            details: JSON.stringify(finalDetails),
+            status: 'PENDING',
+            createdAt: Date.now(),
+            linkId: linkId
+        };
+        existing.push(request);
+    }
+
+    localStorage.setItem('studentpocket_requests', JSON.stringify(existing));
 
     setTimeout(() => {
       updateUser({ ...user, verificationStatus: 'PENDING_APPROVAL' });
@@ -123,9 +145,9 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                  <div className="flex flex-col items-center space-y-2">
                     <div className="flex items-center justify-center space-x-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
                         <Loader2 size={12} className="animate-spin text-indigo-500" />
-                        <span>Admin is reviewing your link</span>
+                        <span>Awaiting Admin Approval</span>
                     </div>
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Sent to: {successState.email}</p>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Email: {successState.email}</p>
                  </div>
              </div>
 

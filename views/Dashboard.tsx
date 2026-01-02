@@ -129,14 +129,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
               </div>
            </div>
            
-           <button 
-                onClick={handleResendLink}
-                disabled={resending}
-                className="flex items-center px-5 py-3 bg-white dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-amber-100 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors shadow-sm"
-            >
-                {resending ? <Loader2 size={14} className="animate-spin mr-2"/> : <RefreshCw size={14} className="mr-2"/>}
-                {resending ? 'Generating...' : 'Resend Link'}
-            </button>
+           <div className="flex flex-col items-end gap-2">
+               <button 
+                    onClick={handleResendLink}
+                    disabled={resending}
+                    className="flex items-center px-5 py-3 bg-white dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-amber-100 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors shadow-sm"
+                >
+                    {resending ? <Loader2 size={14} className="animate-spin mr-2"/> : <RefreshCw size={14} className="mr-2"/>}
+                    {resending ? 'Generating...' : 'Regenerate Link'}
+                </button>
+                <span className="text-[9px] text-amber-500/60 font-bold uppercase tracking-wider">Invalidates previous links</span>
+           </div>
         </div>
       );
     }

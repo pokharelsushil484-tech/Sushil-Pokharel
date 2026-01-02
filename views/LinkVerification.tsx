@@ -161,7 +161,9 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                 ) : (
                     <div className="bg-amber-50 dark:bg-amber-900/10 p-5 rounded-2xl mb-8 text-left border border-amber-100 dark:border-amber-900/30">
                         <p className="text-[11px] text-amber-800 dark:text-amber-500 font-semibold leading-relaxed">
-                            If you are the student, please log in to your dashboard and generate a new verification link.
+                            {currentUser 
+                                ? "This link is invalid. Since you are logged in, please return to your Dashboard to check your status or generate a new link."
+                                : "This verification link is no longer active. If you are the student, please log in to generate a new one."}
                         </p>
                     </div>
                 )}
