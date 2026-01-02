@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest, View } from '../types';
-import { ShieldCheck, Loader2, ArrowLeft, Zap, ShieldAlert, Upload, User, Video, MapPin, Phone, Mail, Globe } from 'lucide-react';
+import { ShieldCheck, Loader2, ArrowLeft, Zap, Upload, User, Video, MapPin, Phone, Mail, Globe } from 'lucide-react';
 
 interface VerificationFormProps {
   user: UserProfile;
