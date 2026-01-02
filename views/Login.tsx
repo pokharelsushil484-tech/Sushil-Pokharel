@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, Info, X, ShieldCheck, Zap, Globe, Cpu, Camera, Mail, ShieldAlert } from 'lucide-react';
-import { ADMIN_USERNAME, ADMIN_SECRET, COPYRIGHT_NOTICE, MIN_PASSWORD_LENGTH } from '../constants';
+import { ADMIN_USERNAME, ADMIN_SECRET, COPYRIGHT_NOTICE, MIN_PASSWORD_LENGTH, SYSTEM_DOMAIN } from '../constants';
 import { storageService } from '../services/storageService';
 
 interface LoginProps {
@@ -46,7 +46,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       if (videoRef.current) videoRef.current.srcObject = s;
     } catch (err) {
       console.error("Camera access failed", err);
-      setError("Optical sensor offline. Identity snap suspended.");
+      setError("Optical sensor offline. Identity verification skipped.");
       setTimeout(() => setView('LOGIN'), 2000);
     }
   };
@@ -93,13 +93,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const users = usersStr ? JSON.parse(usersStr) : {};
     const userData = users[username];
 
-    if (!userData) { setError('Access Denied: Office Node not discovered.'); return; }
+    if (!userData) { setError('Access Denied: Office Node identifier not found.'); return; }
 
     const storedPassword = typeof userData === 'string' ? userData : userData.password;
     if (storedPassword === password) {
       setView('IDENTITY_SNAP');
     } else {
-      setError('Invalid Security Credentials.');
+      setError('Invalid master security key.');
     }
   };
 
@@ -108,27 +108,27 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
     
     if (!username || !password || !confirmPassword || !email || !confirmEmail || !name) { 
-      setError('All metadata fields are required for node provisioning.'); 
+      setError('All metadata fields are required for infrastructure provisioning.'); 
       return; 
     }
     if (email !== confirmEmail) {
-      setError('Email verification mismatch.');
+      setError('Office email verification mismatch.');
       return;
     }
     if (!validatePasswordStrength(password)) {
       setShowReqs(true);
-      setError('Security key does not meet infrastructure standards.');
+      setError('Security key does not meet enterprise complexity standards.');
       return;
     }
     if (password !== confirmPassword) { 
-      setError('Security key mismatch.'); 
+      setError('Security key verification mismatch.'); 
       return; 
     }
     
     const usersStr = localStorage.getItem('studentpocket_users');
     const users = usersStr ? JSON.parse(usersStr) : {};
     if (users[username]) { 
-      setError('Node identity already provisioned on this network.'); 
+      setError('Identity node identifier already provisioned on this network.'); 
       return; 
     }
 
@@ -157,19 +157,24 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <ShieldCheck className="text-indigo-500" size={18} />
-                <span className="text-indigo-400 text-[9px] font-black uppercase tracking-[0.7em]">Infrastructure Terminal V.25</span>
+                <span className="text-indigo-400 text-[9px] font-black uppercase tracking-[0.7em]">Terminal Calibration V.25</span>
               </div>
               <h1 className="text-5xl lg:text-6xl font-black text-white tracking-tighter leading-none uppercase">
                 {view === 'LOGIN' ? 'Session' : view === 'IDENTITY_SNAP' ? 'Visual' : 'Node'} <br/>
-                <span className="text-indigo-500">{view === 'REGISTER' ? 'Provisioning' : 'Calibration'}</span>
+                <span className="text-indigo-500">{view === 'REGISTER' ? 'Provisioning' : 'Handshake'}</span>
               </h1>
             </div>
             <button 
               onClick={() => setView(view === 'LOGIN' ? 'REGISTER' : 'LOGIN')}
               className="px-6 py-3 bg-white/5 hover:bg-indigo-600/20 rounded-2xl text-[10px] font-black text-slate-400 hover:text-indigo-400 uppercase tracking-widest transition-all border border-white/5"
             >
-              {view === 'LOGIN' ? 'Provision Node' : 'Credential Login'}
+              {view === 'LOGIN' ? 'Provision Instance' : 'Credential Login'}
             </button>
+          </div>
+
+          <div className="mb-10 flex items-center space-x-3 bg-white/5 px-6 py-3 rounded-2xl border border-white/5 w-fit">
+              <Globe size={14} className="text-indigo-500" />
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{SYSTEM_DOMAIN}</span>
           </div>
 
           {view === 'LOGIN' && (
@@ -210,7 +215,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 disabled={isProcessing} 
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-7 rounded-[2.5rem] font-black text-xs uppercase tracking-[0.5em] shadow-2xl flex items-center justify-center group transition-all"
               >
-                Sync Session Node <ArrowRight className="ml-4 group-hover:translate-x-3 transition-transform" />
+                Commence Session Sync <ArrowRight className="ml-4 group-hover:translate-x-3 transition-transform" />
               </button>
             </form>
           )}
@@ -221,7 +226,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full px-8 py-5 bg-white/5 border border-white/10 rounded-2xl outline-none text-white font-bold uppercase text-xs tracking-widest" placeholder="OFFICE IDENTITY NAME" />
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-8 py-5 bg-white/5 border border-white/10 rounded-2xl outline-none text-white font-bold text-xs uppercase" placeholder="EMAIL ADDRESS" />
+                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-8 py-5 bg-white/5 border border-white/10 rounded-2xl outline-none text-white font-bold text-xs uppercase" placeholder="MASTER EMAIL" />
                    <input type="email" value={confirmEmail} onChange={e => setConfirmEmail(e.target.value)} className="w-full px-8 py-5 bg-white/5 border border-white/10 rounded-2xl outline-none text-white font-bold text-xs uppercase" placeholder="VERIFY EMAIL" />
                 </div>
 
@@ -265,7 +270,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 disabled={isProcessing}
                 className="w-full bg-indigo-600 text-white py-7 rounded-[2.5rem] font-black text-xs uppercase tracking-[0.5em] shadow-2xl flex items-center justify-center space-x-6 hover:bg-indigo-700 transition-all"
               >
-                {isProcessing ? <Loader2 className="animate-spin" /> : <><Camera size={24} /> <span>COMMENCE CALIBRATION</span></>}
+                {isProcessing ? <Loader2 className="animate-spin" /> : <><Camera size={24} /> <span>INITIALIZE CALIBRATION</span></>}
               </button>
             </div>
           )}

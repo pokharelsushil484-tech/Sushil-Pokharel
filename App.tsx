@@ -12,10 +12,10 @@ import { VerificationForm } from './views/VerificationForm';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { TermsModal } from './components/TermsModal';
-import { ShieldCheck, ShieldX } from 'lucide-react';
+import { ShieldCheck, ShieldX, Globe } from 'lucide-react';
 
 import { View, UserProfile, VaultDocument, ChatMessage } from './types';
-import { ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN, APP_NAME, ADMIN_EMAIL } from './constants';
+import { ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN, APP_NAME, ADMIN_EMAIL, SYSTEM_DOMAIN } from './constants';
 import { storageService } from './services/storageService';
 
 const App = () => {
@@ -105,10 +105,16 @@ const App = () => {
         <header className="bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 h-16 flex items-center justify-between px-6 lg:px-12 sticky top-0 z-[100]">
            <div className="flex items-center space-x-4">
               <ShieldCheck className="text-indigo-600" size={18} />
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">{APP_NAME}</span>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-[0.4em]">{APP_NAME}</span>
+                <div className="flex items-center text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                  <Globe size={8} className="mr-1" />
+                  <span>{SYSTEM_DOMAIN}</span>
+                </div>
+              </div>
            </div>
            <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-2xl border border-slate-100 dark:border-slate-700">
-             Node Sync: {currentUsername}
+             Session Node: {currentUsername}
            </span>
         </header>
         <main className="max-w-7xl mx-auto p-6 lg:p-12 pb-24 lg:pb-16 min-h-[calc(100vh-64px)] w-full">{renderContent()}</main>

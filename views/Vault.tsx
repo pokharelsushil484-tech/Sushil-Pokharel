@@ -32,7 +32,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
         <div className="bg-white dark:bg-slate-900 p-16 rounded-[4rem] shadow-2xl max-w-lg border border-slate-100 dark:border-white/5 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
           <ShieldAlert size={80} className="text-amber-500 mx-auto mb-10 animate-pulse" />
-          <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-6 leading-tight">Terminal Access Restricted</h2>
+          <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-6 leading-tight">Access Restricted</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 font-bold leading-relaxed mb-12 uppercase tracking-[0.2em] px-4">
             Authorized repository access is restricted to verified office identities. Submit your authorization request via the System Dashboard.
           </p>
@@ -40,7 +40,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
             className="w-full bg-indigo-600 text-white py-6 rounded-3xl font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-indigo-700 active:scale-95 transition-all"
             onClick={() => onNavigate(View.VERIFICATION_FORM)}
           >
-            Authorize Terminal Access
+            Request Access Node
           </button>
         </div>
       </div>
@@ -111,7 +111,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
           <div className="w-24 h-24 bg-indigo-50 dark:bg-indigo-950/30 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 border border-indigo-100 dark:border-indigo-900/30">
             <Lock className="w-12 h-12 text-indigo-600" />
           </div>
-          <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tighter">Repository Access</h2>
+          <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tighter">Data Node Access</h2>
           <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] mb-10">Verification Key Required</p>
           <input 
             type="password" 
@@ -122,7 +122,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
             maxLength={4}
           />
           {error && <p className="text-red-500 text-[10px] font-black uppercase mb-8 tracking-widest">{error}</p>}
-          <button onClick={handleUnlock} className="w-full bg-indigo-600 text-white py-7 rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl">Access Repository</button>
+          <button onClick={handleUnlock} className="w-full bg-indigo-600 text-white py-7 rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl">Initialize Node</button>
         </div>
       </div>
     );
@@ -137,7 +137,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
           <div className="flex items-center space-x-8">
               <div className="w-20 h-20 bg-indigo-600 text-white rounded-[2rem] flex items-center justify-center shadow-2xl shadow-indigo-600/20"><Database size={40} /></div>
               <div>
-                <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Professional Repository</h2>
+                <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">Professional <br/>Data Node</h2>
                 <div className="flex items-center space-x-3 mt-2">
                     <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em]">Protocol: High Fidelity Encryption</p>
@@ -151,7 +151,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
               </div>
               <label className="p-6 bg-indigo-600 text-white rounded-[2rem] shadow-2xl hover:bg-indigo-700 transition-all cursor-pointer flex items-center space-x-4">
                  <CloudUpload size={24} className={isUploading ? 'animate-bounce' : ''} />
-                 <span className="text-[11px] font-black uppercase tracking-[0.3em]">{isUploading ? 'Syncing...' : 'Upload Data Segment'}</span>
+                 <span className="text-[11px] font-black uppercase tracking-[0.3em]">{isUploading ? 'Syncing...' : 'Provision Segment'}</span>
                  <input type="file" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
               </label>
           </div>
@@ -161,7 +161,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
           <Search className="text-slate-400" size={28} />
           <input 
             type="text" 
-            placeholder="Search data segments..." 
+            placeholder="Search local data segments..." 
             className="flex-1 bg-transparent px-8 text-lg font-black uppercase tracking-widest outline-none dark:text-white placeholder:text-slate-200"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
@@ -172,7 +172,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
           {filteredDocs.length === 0 ? (
               <div className="text-center py-32 opacity-10 flex flex-col items-center">
                   <Box size={100} className="mb-10" />
-                  <p className="text-xl font-black uppercase tracking-[0.6em]">No discoverable data segments.</p>
+                  <p className="text-xl font-black uppercase tracking-[0.6em]">No data segments discovered.</p>
               </div>
           ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-10">
@@ -190,8 +190,8 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
                       <div className="mt-6">
                         <h4 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight truncate mb-2">{doc.title}</h4>
                         <div className="flex justify-between items-center text-[10px] text-slate-400 font-black uppercase tracking-widest">
-                           <span>REPOSITORY_ASSET</span>
-                           <span>{(doc.size / 1024).toFixed(1)} KB</span>
+                           <span>NODE_ASSET</span>
+                           <span>{(doc.size / 1024).toFixed(1) === '0.0' ? (doc.size).toFixed(0) + ' B' : (doc.size / 1024).toFixed(1) + ' KB'}</span>
                         </div>
                       </div>
                   </div>
@@ -207,7 +207,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
                        </div>
                        <div>
                           <p className="font-black text-slate-800 dark:text-white uppercase tracking-tight">{doc.title}</p>
-                          <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Asset Metadata | {(doc.size / 1024).toFixed(1)} KB</p>
+                          <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Metadata Segment | {(doc.size / 1024).toFixed(1)} KB</p>
                        </div>
                     </div>
                     <div className="flex items-center space-x-4">
