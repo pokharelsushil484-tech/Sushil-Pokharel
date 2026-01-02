@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, View } from '../types';
-import { ShieldCheck, User, MapPin, Globe, Mail, Phone, Video, CheckCircle, XCircle, Home, Lock } from 'lucide-react';
+import { ShieldCheck, User, MapPin, Globe, Mail, Phone, Video, CheckCircle, XCircle, Home, Lock, AlertTriangle } from 'lucide-react';
 import { ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -15,6 +15,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
   const [request, setRequest] = useState<ChangeRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionProcessing, setActionProcessing] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
     const loadRequest = () => {
@@ -22,7 +23,53 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
       if (reqStr) {
         const requests: ChangeRequest[] = JSON.parse(reqStr);
         const match = requests.find(r => r.linkId === linkId);
-        setRequest(match || null);
+        if (match) {
+            setRequest(match);
+        } else {
+            // Fallback for demonstration if specific link not found in local browser storage
+            setIsDemo(true);
+            setRequest({
+                id: 'DEMO-' + Date.now(),
+                userId: 'student_demo',
+                username: 'Demo Student',
+                type: 'VERIFICATION',
+                status: 'PENDING',
+                createdAt: Date.now(),
+                linkId: linkId,
+                details: JSON.stringify({
+                    fullName: "Aarav Sharma",
+                    email: "student@example.com",
+                    phone: "+977 9800000000",
+                    permAddress: "Kathmandu, Nepal",
+                    tempAddress: "Lalitpur, Nepal",
+                    country: "Nepal",
+                    _profileImage: null,
+                    _videoFile: null
+                })
+            });
+        }
+      } else {
+          // Fallback if no requests at all
+          setIsDemo(true);
+          setRequest({
+              id: 'DEMO-' + Date.now(),
+              userId: 'student_demo',
+              username: 'Demo Student',
+              type: 'VERIFICATION',
+              status: 'PENDING',
+              createdAt: Date.now(),
+              linkId: linkId,
+              details: JSON.stringify({
+                  fullName: "Aarav Sharma",
+                  email: "student@example.com",
+                  phone: "+977 9800000000",
+                  permAddress: "Kathmandu, Nepal",
+                  tempAddress: "Lalitpur, Nepal",
+                  country: "Nepal",
+                  _profileImage: null,
+                  _videoFile: null
+              })
+          });
       }
       setLoading(false);
     };
@@ -38,32 +85,37 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
     
     // Simulate API/Storage delay
     setTimeout(async () => {
-        const dataKey = `architect_data_${request.username}`;
-        const stored = await storageService.getData(dataKey);
-        
-        if (stored && stored.user) {
-            stored.user.isVerified = action === 'APPROVE';
-            stored.user.verificationStatus = action === 'APPROVE' ? 'VERIFIED' : 'REJECTED';
-            await storageService.setData(dataKey, stored);
+        if (!isDemo) {
+            const dataKey = `architect_data_${request.username}`;
+            const stored = await storageService.getData(dataKey);
             
-            // Update request status
-            const reqStr = localStorage.getItem('studentpocket_requests');
-            if (reqStr) {
-                const requests: ChangeRequest[] = JSON.parse(reqStr);
-                const updatedRequests = requests.map(r => r.id === request.id ? { ...r, status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED' } : r);
-                localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
-                setRequest({ ...request, status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED' });
+            if (stored && stored.user) {
+                stored.user.isVerified = action === 'APPROVE';
+                stored.user.verificationStatus = action === 'APPROVE' ? 'VERIFIED' : 'REJECTED';
+                await storageService.setData(dataKey, stored);
+                
+                // Update request status
+                const reqStr = localStorage.getItem('studentpocket_requests');
+                if (reqStr) {
+                    const requests: ChangeRequest[] = JSON.parse(reqStr);
+                    const updatedRequests = requests.map(r => r.id === request.id ? { ...r, status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED' } : r);
+                    localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
+                }
+                
+                await storageService.logActivity({
+                    actor: ADMIN_USERNAME,
+                    targetUser: request.username,
+                    actionType: 'ADMIN',
+                    description: `Link Verification ${action}: ${request.username}`,
+                    metadata: JSON.stringify({ requestId: request.id, linkId })
+                });
             }
-            
-            await storageService.logActivity({
-                actor: ADMIN_USERNAME,
-                targetUser: request.username,
-                actionType: 'ADMIN',
-                description: `Link Verification ${action}: ${request.username}`,
-                metadata: JSON.stringify({ requestId: request.id, linkId })
-            });
+        }
 
-            alert(`Verification ${action === 'APPROVE' ? 'Approved' : 'Rejected'} Successfully.`);
+        setRequest({ ...request, status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED' });
+        alert(`Verification ${action === 'APPROVE' ? 'Approved' : 'Rejected'} Successfully.${isDemo ? ' (Demo Mode)' : ''}`);
+        
+        if (!isDemo) {
             onNavigate(View.ADMIN_DASHBOARD);
         }
         setActionProcessing(false);
@@ -117,9 +169,16 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                 {currentUser ? (
                     <button onClick={() => onNavigate(View.DASHBOARD)} className="text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors">Dashboard</button>
                 ) : (
-                    <button onClick={() => window.location.href = '/'} className="text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors">Login</button>
+                    <button onClick={() => window.location.href = '/'} className="text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors">Login to Approve</button>
                 )}
             </div>
+
+            {isDemo && (
+                 <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/40 rounded-2xl flex items-center gap-3 text-amber-600 dark:text-amber-400">
+                    <AlertTriangle size={20} />
+                    <p className="text-xs font-bold">Demo Mode: Request data not found locally. Showing placeholder data.</p>
+                 </div>
+            )}
 
             {/* Main Card */}
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden relative">

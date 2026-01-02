@@ -39,7 +39,7 @@ const App = () => {
   useEffect(() => {
     // Check for verification link
     const path = window.location.pathname;
-    const match = path.match(/^\/v\/([a-zA-Z0-9]+)$/);
+    const match = path.match(/^\/v\/([a-zA-Z0-9]+)\/?$/i);
     if (match) {
         setVerifyLinkId(match[1]);
         setView(View.VERIFY_LINK);

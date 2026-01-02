@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest, View } from '../types';
 import { ShieldCheck, Loader2, ArrowLeft, Send, Upload, User, Video, MapPin, Phone, Mail, Globe, FileText, CheckCircle } from 'lucide-react';
+import { SYSTEM_DOMAIN } from '../constants';
 
 interface VerificationFormProps {
   user: UserProfile;
@@ -91,7 +92,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
       updateUser({ ...user, verificationStatus: 'PENDING_APPROVAL' });
       setSubmitting(false);
       
-      const link = `https://sushilpokharel00.com.np/v/${linkId}`;
+      const link = `https://${SYSTEM_DOMAIN}/v/${linkId}`;
       
       // Instead of alert and redirect, show the Verification Box
       setSuccessState({ link, email: formData.email });
