@@ -194,9 +194,17 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                   Capture a photo of your Student ID or Academic Program Schedule.
               </p>
 
-              <div className="bg-slate-900 rounded-[2rem] overflow-hidden relative min-h-[300px] flex items-center justify-center border-2 border-slate-100 dark:border-white/10">
+              <div className="bg-slate-900 rounded-[2rem] overflow-hidden relative min-h-[300px] flex items-center justify-center border-2 border-slate-100 dark:border-white/10 group">
                   {proofImage ? (
-                      <img src={proofImage} alt="Proof" className="w-full h-full object-cover" />
+                      <div onClick={retakeProof} className="relative w-full h-full cursor-pointer">
+                          <img src={proofImage} alt="Proof" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
+                               <div className="bg-white/10 px-6 py-3 rounded-full border border-white/20 flex items-center">
+                                  <RefreshCw size={16} className="text-white mr-2 animate-spin-slow" />
+                                  <span className="text-white font-black uppercase tracking-widest text-[10px]">Tap to Retake</span>
+                               </div>
+                          </div>
+                      </div>
                   ) : isCameraActive ? (
                       <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
                   ) : (
@@ -210,22 +218,16 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                   <canvas ref={canvasRef} className="hidden" />
 
                   {/* Controls */}
-                  <div className="absolute bottom-6 left-0 right-0 flex justify-center space-x-4">
+                  <div className="absolute bottom-6 left-0 right-0 flex justify-center space-x-4 pointer-events-none">
                       {!proofImage && !isCameraActive && (
-                          <button type="button" onClick={startCamera} className="bg-indigo-600 text-white px-8 py-3 rounded-full font-black text-[10px] uppercase tracking-widest shadow-lg">
+                          <button type="button" onClick={startCamera} className="bg-indigo-600 text-white px-8 py-3 rounded-full font-black text-[10px] uppercase tracking-widest shadow-lg pointer-events-auto hover:bg-indigo-700 transition-colors">
                               Activate Sensor
                           </button>
                       )}
                       
                       {isCameraActive && (
-                          <button type="button" onClick={captureProof} className="w-16 h-16 bg-white rounded-full border-4 border-slate-200 flex items-center justify-center shadow-2xl hover:scale-105 transition-transform">
+                          <button type="button" onClick={captureProof} className="w-16 h-16 bg-white rounded-full border-4 border-slate-200 flex items-center justify-center shadow-2xl hover:scale-105 transition-transform pointer-events-auto">
                               <div className="w-12 h-12 bg-red-500 rounded-full border-2 border-white"></div>
-                          </button>
-                      )}
-
-                      {proofImage && (
-                          <button type="button" onClick={retakeProof} className="bg-white text-slate-900 px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center">
-                              <RefreshCw size={14} className="mr-2" /> Retake
                           </button>
                       )}
                   </div>

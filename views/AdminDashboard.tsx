@@ -138,6 +138,14 @@ export const AdminDashboard: React.FC = () => {
     );
   };
 
+  // Helper to safely get image from request
+  const getRequestThumbnail = (req: ChangeRequest) => {
+      try {
+          const d = JSON.parse(req.details);
+          return d._verificationImage;
+      } catch { return null; }
+  };
+
   return (
     <div className="pb-24 animate-fade-in w-full max-w-7xl mx-auto space-y-8 px-4 sm:px-0">
       <div className="flex flex-col md:flex-row justify-between items-end gap-6">
@@ -157,21 +165,39 @@ export const AdminDashboard: React.FC = () => {
 
       {viewMode === 'REQUESTS' && (
         <div className="space-y-4">
-           {requests.map(req => (
-             <div key={req.id} className="p-6 md:p-8 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between shadow-sm gap-6">
-                <div className="flex items-center space-x-6">
-                   <div className="w-14 h-14 bg-amber-100 dark:bg-amber-900/20 text-amber-600 rounded-2xl flex items-center justify-center animate-pulse flex-shrink-0"><BellRing size={24} /></div>
-                   <div>
-                      <p className="font-black text-lg uppercase tracking-tight dark:text-white">{req.username}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Verification Form Signal</p>
-                      <p className="text-[10px] text-slate-300 font-mono mt-1">{new Date(req.createdAt).toLocaleDateString()}</p>
-                   </div>
-                </div>
-                <button onClick={() => setSelectedRequest(req)} className="w-full md:w-auto px-6 py-4 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all font-bold text-xs uppercase tracking-widest flex items-center justify-center">
-                  Review Signal <Eye size={16} className="ml-2"/>
-                </button>
-             </div>
-           ))}
+           {requests.map(req => {
+             const thumbnail = getRequestThumbnail(req);
+             return (
+               <div key={req.id} className="p-6 md:p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between shadow-sm gap-6 hover:shadow-lg transition-all">
+                  <div className="flex items-center space-x-6 flex-1 min-w-0">
+                     <div className="w-14 h-14 bg-amber-100 dark:bg-amber-900/20 text-amber-600 rounded-2xl flex items-center justify-center flex-shrink-0 relative overflow-hidden group cursor-pointer" onClick={() => setSelectedRequest(req)}>
+                        {thumbnail ? (
+                          <img src={thumbnail} alt="Proof" className="w-full h-full object-cover" />
+                        ) : <BellRing size={24} />}
+                     </div>
+                     <div className="min-w-0">
+                        <p className="font-black text-lg uppercase tracking-tight dark:text-white truncate">{req.username}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Verification Signal</p>
+                     </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 w-full md:w-auto">
+                    <button 
+                        onClick={() => handleProcessRequest(req.id, 'APPROVE')}
+                        className="flex-1 md:flex-none px-6 py-3 bg-emerald-500 text-white rounded-2xl hover:bg-emerald-600 font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20"
+                    >
+                        Auto Verify
+                    </button>
+                    <button 
+                        onClick={() => setSelectedRequest(req)} 
+                        className="px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 transition-all"
+                    >
+                        <Eye size={18} />
+                    </button>
+                  </div>
+               </div>
+             );
+           })}
            {requests.length === 0 && (
                <div className="text-center py-32 bg-slate-50 dark:bg-slate-900/50 rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
                    <BellRing size={48} className="mx-auto text-slate-200 dark:text-slate-700 mb-4" />
