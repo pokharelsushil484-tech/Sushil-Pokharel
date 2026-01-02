@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
-import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Smartphone, Monitor, Database, Zap, Fingerprint, QrCode, Gavel, ExternalLink, ShieldAlert, Camera } from 'lucide-react';
+import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Smartphone, Monitor, Database, Zap, Fingerprint, QrCode, Gavel, ExternalLink, ShieldAlert, Camera, UserMinus } from 'lucide-react';
 import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, CREATOR_NAME } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -63,6 +63,48 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
           });
           resetApp();
       }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (username === ADMIN_USERNAME) {
+      alert("System Architect node cannot be deleted.");
+      return;
+    }
+
+    if (window.confirm("CRITICAL WARNING: This will permanently delete your identity node and all associated data segments. This action cannot be undone.\n\nAre you sure you want to proceed?")) {
+      
+      try {
+        await storageService.logActivity({
+            actor: user.name,
+            targetUser: user.name,
+            actionType: 'SYSTEM',
+            description: `IDENTITY DELETION: ${username}`,
+            metadata: 'Permanent Account Removal'
+        });
+      } catch (e) { console.error("Log failed", e); }
+
+      // 1. Remove from Users List (localStorage)
+      const usersStr = localStorage.getItem('studentpocket_users');
+      if (usersStr) {
+        const users = JSON.parse(usersStr);
+        delete users[username];
+        localStorage.setItem('studentpocket_users', JSON.stringify(users));
+      }
+
+      // 2. Remove Requests (localStorage)
+      const reqStr = localStorage.getItem('studentpocket_requests');
+      if (reqStr) {
+        const requests = JSON.parse(reqStr);
+        const filteredReqs = requests.filter((r: any) => r.username !== username);
+        localStorage.setItem('studentpocket_requests', JSON.stringify(filteredReqs));
+      }
+
+      // 3. Remove Data Node (IndexedDB)
+      await storageService.deleteData(`architect_data_${username}`);
+
+      // 4. Logout
+      onLogout();
+    }
   };
 
   return (
@@ -226,6 +268,18 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
               </div>
           </div>
       </div>
+
+      {!isAdmin && (
+        <div onClick={handleDeleteAccount} className="bg-white dark:bg-[#0f172a] p-12 rounded-[4rem] border border-slate-100 dark:border-white/5 shadow-sm flex items-center space-x-8 cursor-pointer group hover:bg-red-600 hover:border-red-600 transition-all mt-6">
+            <div className="p-6 bg-red-500/10 rounded-3xl text-red-600 shadow-2xl shadow-red-500/10 group-hover:bg-white/20 group-hover:text-white transition-all group-hover:scale-110">
+                <UserMinus size={36} />
+            </div>
+            <div>
+              <span className="text-xl font-black text-red-600 uppercase tracking-tight group-hover:text-white">Delete Identity</span>
+              <p className="text-[11px] text-red-400/50 font-black uppercase tracking-[0.3em] mt-1 group-hover:text-red-100">Permanent Node Removal</p>
+            </div>
+        </div>
+      )}
 
       {isAdmin && (
         <div className="bg-red-500/5 p-16 rounded-[4.5rem] border border-red-500/20 flex flex-col md:flex-row items-center justify-between gap-12 shadow-2xl">
