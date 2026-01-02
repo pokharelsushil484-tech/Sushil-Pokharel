@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, Info, X, ShieldCheck, Zap, Globe, Cpu, Camera, Mail, ShieldAlert } from 'lucide-react';
 import { ADMIN_USERNAME, ADMIN_SECRET, COPYRIGHT_NOTICE, MIN_PASSWORD_LENGTH, SYSTEM_DOMAIN } from '../constants';
-import { storageService } from '../services/storageService';
 
 interface LoginProps {
   user: UserProfile | null;
@@ -46,8 +45,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       if (videoRef.current) videoRef.current.srcObject = s;
     } catch (err) {
       console.error("Camera access failed", err);
-      setError("Optical sensor offline. Identity verification skipped.");
-      setTimeout(() => setView('LOGIN'), 2000);
+      setError("Visual sensor error. Proceeding without snap.");
+      setTimeout(() => finalizeAuth(), 2000);
     }
   };
 
@@ -64,12 +63,14 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       if (context) {
         context.drawImage(videoRef.current, 0, 0, 400, 300);
         setIsProcessing(true);
-        setTimeout(() => {
-          onLogin(username);
-          setIsProcessing(false);
-        }, 1200);
+        setTimeout(() => finalizeAuth(), 1200);
       }
     }
+  };
+
+  const finalizeAuth = () => {
+    setIsProcessing(false);
+    onLogin(username);
   };
 
   const validatePasswordStrength = (pw: string) => {
@@ -93,13 +94,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const users = usersStr ? JSON.parse(usersStr) : {};
     const userData = users[username];
 
-    if (!userData) { setError('Access Denied: Office Node identifier not found.'); return; }
+    if (!userData) { 
+      setError('Access Denied: Node ID not provisioned.'); 
+      return; 
+    }
 
     const storedPassword = typeof userData === 'string' ? userData : userData.password;
     if (storedPassword === password) {
       setView('IDENTITY_SNAP');
     } else {
-      setError('Invalid master security key.');
+      setError('Incorrect master security key.');
     }
   };
 
@@ -108,16 +112,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
     
     if (!username || !password || !confirmPassword || !email || !confirmEmail || !name) { 
-      setError('All metadata fields are required for infrastructure provisioning.'); 
+      setError('All protocol fields are mandatory.'); 
       return; 
     }
     if (email !== confirmEmail) {
-      setError('Office email verification mismatch.');
+      setError('Master email mismatch.');
       return;
     }
     if (!validatePasswordStrength(password)) {
       setShowReqs(true);
-      setError('Security key does not meet enterprise complexity standards.');
+      setError('Security key standards not met.');
       return;
     }
     if (password !== confirmPassword) { 
@@ -128,7 +132,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const usersStr = localStorage.getItem('studentpocket_users');
     const users = usersStr ? JSON.parse(usersStr) : {};
     if (users[username]) { 
-      setError('Identity node identifier already provisioned on this network.'); 
+      setError('Node ID already provisioned on this cluster.'); 
       return; 
     }
 
@@ -151,37 +155,37 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       </div>
 
       <div className="relative z-10 w-full max-w-xl">
-        <div className="bg-slate-900/40 backdrop-blur-3xl rounded-[4rem] p-12 lg:p-16 border border-white/5 shadow-[0_0_150px_rgba(0,0,0,0.9)]">
+        <div className="bg-slate-900/40 backdrop-blur-3xl rounded-[4rem] p-12 lg:p-16 border border-white/10 shadow-[0_0_150px_rgba(0,0,0,0.9)]">
           
-          <div className="flex justify-between items-start mb-16">
+          <div className="flex justify-between items-start mb-14">
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <ShieldCheck className="text-indigo-500" size={18} />
-                <span className="text-indigo-400 text-[9px] font-black uppercase tracking-[0.7em]">Terminal Calibration V.25</span>
+                <span className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.6em]">Session Gateway Stable</span>
               </div>
               <h1 className="text-5xl lg:text-6xl font-black text-white tracking-tighter leading-none uppercase">
                 {view === 'LOGIN' ? 'Session' : view === 'IDENTITY_SNAP' ? 'Visual' : 'Node'} <br/>
-                <span className="text-indigo-500">{view === 'REGISTER' ? 'Provisioning' : 'Handshake'}</span>
+                <span className="text-indigo-500">{view === 'REGISTER' ? 'Provisioning' : 'Access'}</span>
               </h1>
             </div>
             <button 
               onClick={() => setView(view === 'LOGIN' ? 'REGISTER' : 'LOGIN')}
-              className="px-6 py-3 bg-white/5 hover:bg-indigo-600/20 rounded-2xl text-[10px] font-black text-slate-400 hover:text-indigo-400 uppercase tracking-widest transition-all border border-white/5"
+              className="px-6 py-3 bg-white/5 hover:bg-indigo-600/20 rounded-2xl text-[10px] font-black text-slate-300 hover:text-indigo-400 uppercase tracking-widest transition-all border border-white/10"
             >
-              {view === 'LOGIN' ? 'Provision Instance' : 'Credential Login'}
+              {view === 'LOGIN' ? 'Provision Node' : 'Credential Login'}
             </button>
           </div>
 
-          <div className="mb-10 flex items-center space-x-3 bg-white/5 px-6 py-3 rounded-2xl border border-white/5 w-fit">
-              <Globe size={14} className="text-indigo-500" />
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{SYSTEM_DOMAIN}</span>
+          <div className="mb-10 flex items-center space-x-3 bg-indigo-600/20 px-6 py-3.5 rounded-2xl border border-indigo-500/30 w-fit">
+              <Globe size={14} className="text-indigo-400" />
+              <span className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.4em]">{SYSTEM_DOMAIN}</span>
           </div>
 
           {view === 'LOGIN' && (
             <form onSubmit={handleLogin} className="space-y-8">
               <div className="space-y-3">
-                <div className="relative">
-                  <User className="absolute left-7 top-1/2 -translate-y-1/2 text-slate-600" size={20} />
+                <div className="relative group">
+                  <User className="absolute left-7 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-500 transition-colors" size={20} />
                   <input 
                     type="text" 
                     value={username} 
@@ -193,8 +197,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
 
               <div className="space-y-3">
-                <div className="relative">
-                  <Lock className="absolute left-7 top-1/2 -translate-y-1/2 text-slate-600" size={20} />
+                <div className="relative group">
+                  <Lock className="absolute left-7 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-500 transition-colors" size={20} />
                   <input 
                     type={showPassword ? "text" : "password"} 
                     value={password} 
@@ -202,13 +206,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     className="w-full pl-16 pr-16 py-6 bg-white/5 border border-white/10 rounded-[2.5rem] outline-none text-white font-bold placeholder:text-slate-700 focus:border-indigo-500/50 transition-all tracking-widest" 
                     placeholder="ENTER MASTER SECURITY KEY" 
                   />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-7 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-7 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors">
                     {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
                   </button>
                 </div>
               </div>
 
-              {error && <p className="text-red-400 text-[10px] font-black uppercase tracking-[0.5em] text-center animate-shake py-4 bg-red-500/5 rounded-2xl border border-red-500/10">{error}</p>}
+              {error && <p className="text-red-400 text-[10px] font-black uppercase tracking-[0.5em] text-center animate-shake py-4 bg-red-500/10 rounded-2xl border border-red-500/20">{error}</p>}
 
               <button 
                 type="submit" 
@@ -226,7 +230,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full px-8 py-5 bg-white/5 border border-white/10 rounded-2xl outline-none text-white font-bold uppercase text-xs tracking-widest" placeholder="OFFICE IDENTITY NAME" />
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-8 py-5 bg-white/5 border border-white/10 rounded-2xl outline-none text-white font-bold text-xs uppercase" placeholder="MASTER EMAIL" />
+                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-8 py-5 bg-white/5 border border-white/10 rounded-2xl outline-none text-white font-bold text-xs uppercase" placeholder="PRIMARY EMAIL" />
                    <input type="email" value={confirmEmail} onChange={e => setConfirmEmail(e.target.value)} className="w-full px-8 py-5 bg-white/5 border border-white/10 rounded-2xl outline-none text-white font-bold text-xs uppercase" placeholder="VERIFY EMAIL" />
                 </div>
 
@@ -243,13 +247,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               
               {error && <p className="text-red-400 text-[10px] font-black uppercase tracking-widest text-center py-2">{error}</p>}
               
-              <button type="submit" disabled={isProcessing} className="w-full bg-indigo-600 text-white py-6 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.4em] shadow-xl">Commit Infrastructure Provision</button>
+              <button type="submit" disabled={isProcessing} className="w-full bg-indigo-600 text-white py-6 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.4em] shadow-xl">Commit Node Provision</button>
             </form>
           )}
 
           {view === 'IDENTITY_SNAP' && (
             <div className="space-y-12 animate-scale-up text-center">
-              <div className="relative mx-auto w-72 h-72 rounded-full overflow-hidden border-4 border-indigo-500/20 shadow-[0_0_80px_rgba(79,70,229,0.3)] group">
+              <div className="relative mx-auto w-72 h-72 rounded-full overflow-hidden border-4 border-indigo-500/30 shadow-[0_0_80px_rgba(79,70,229,0.3)] group">
                 <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover grayscale brightness-125 transition-all duration-1000 group-hover:grayscale-0" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle,_transparent_50%,_rgba(2,6,23,0.8)_100%)]"></div>
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -261,7 +265,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <div className="space-y-4">
                 <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Identity Calibration</h3>
                 <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.6em] leading-relaxed px-16">
-                  Maintain eye contact with the visual sensor for biometric session anchoring.
+                  Maintain visual contact with sensor for biometric node anchoring.
                 </p>
               </div>
 
@@ -270,18 +274,17 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 disabled={isProcessing}
                 className="w-full bg-indigo-600 text-white py-7 rounded-[2.5rem] font-black text-xs uppercase tracking-[0.5em] shadow-2xl flex items-center justify-center space-x-6 hover:bg-indigo-700 transition-all"
               >
-                {isProcessing ? <Loader2 className="animate-spin" /> : <><Camera size={24} /> <span>INITIALIZE CALIBRATION</span></>}
+                {isProcessing ? <Loader2 className="animate-spin" /> : <><Camera size={24} /> <span>COMMENCE CALIBRATION</span></>}
               </button>
             </div>
           )}
 
           <div className="mt-12 text-center border-t border-white/5 pt-8">
-             <p className="text-[9px] text-slate-700 font-bold uppercase tracking-[0.6em]">{COPYRIGHT_NOTICE}</p>
+             <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.4em]">{COPYRIGHT_NOTICE}</p>
           </div>
         </div>
       </div>
 
-      {/* Security Requirements Modal */}
       {showReqs && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md animate-fade-in">
           <div className="bg-slate-900 w-full max-w-sm rounded-[3.5rem] p-12 border border-white/10 shadow-3xl relative overflow-hidden">

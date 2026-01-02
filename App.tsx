@@ -12,7 +12,7 @@ import { VerificationForm } from './views/VerificationForm';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { TermsModal } from './components/TermsModal';
-import { ShieldCheck, ShieldX, Globe } from 'lucide-react';
+import { ShieldCheck, ShieldX, Globe, Terminal } from 'lucide-react';
 
 import { View, UserProfile, VaultDocument, ChatMessage } from './types';
 import { ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN, APP_NAME, ADMIN_EMAIL, SYSTEM_DOMAIN } from './constants';
@@ -38,14 +38,22 @@ const App = () => {
     const sync = async () => {
       if (currentUsername) {
         setIsLoading(true);
-        const stored = await storageService.getData(`architect_data_${currentUsername}`);
-        if (stored) {
-          setData(stored);
-          if (stored.user?.acceptedTermsVersion !== SYSTEM_UPGRADE_TOKEN) setShowTerms(true);
-        } else {
-          setView(View.ONBOARDING);
+        try {
+          const stored = await storageService.getData(`architect_data_${currentUsername}`);
+          if (stored) {
+            setData(stored);
+            if (stored.user?.acceptedTermsVersion !== SYSTEM_UPGRADE_TOKEN) {
+              setShowTerms(true);
+            }
+          } else {
+            // Data node missing, force onboarding configuration
+            setView(View.ONBOARDING);
+          }
+        } catch (err) {
+          console.error("Critical Sync Failure", err);
+        } finally {
+          setIsLoading(false);
         }
-        setIsLoading(false);
       }
     };
     sync();
@@ -55,12 +63,28 @@ const App = () => {
     if (currentUsername && data.user) {
       storageService.setData(`architect_data_${currentUsername}`, data);
     }
-  }, [data]);
+  }, [data, currentUsername]);
 
   useEffect(() => {
-    darkMode ? document.documentElement.classList.add('dark') : document.documentElement.classList.remove('dark');
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
     localStorage.setItem('architect_theme', String(darkMode));
   }, [darkMode]);
+
+  const handleLoginSuccess = (username: string) => {
+    localStorage.setItem('active_session_user', username);
+    setCurrentUsername(username);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('active_session_user');
+    setCurrentUsername(null);
+    setData(initialData);
+    setView(View.DASHBOARD);
+  };
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
 
@@ -71,15 +95,15 @@ const App = () => {
           <ShieldX size={80} className="text-red-500 mx-auto mb-8 animate-pulse" />
           <h1 className="text-4xl font-black text-white mb-6 uppercase tracking-tighter">Node Suspended</h1>
           <p className="text-red-100 text-sm font-bold leading-relaxed mb-10">{data.user.banReason}</p>
-          <a href={`mailto:${ADMIN_EMAIL}`} className="block w-full bg-red-600 text-white py-5 rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-xl">Professional Appeal</a>
-          <button onClick={() => { setCurrentUsername(null); localStorage.removeItem('active_session_user'); window.location.reload(); }} className="mt-8 text-slate-500 text-[10px] font-black uppercase">Terminate Node</button>
+          <a href={`mailto:${ADMIN_EMAIL}`} className="block w-full bg-red-600 text-white py-5 rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-xl">Contact Architect</a>
+          <button onClick={handleLogout} className="mt-8 text-slate-500 text-[10px] font-black uppercase underline">Terminate Session</button>
         </div>
       </div>
     );
   }
 
   if (!currentUsername) {
-    return <Login user={null} onLogin={setCurrentUsername} />;
+    return <Login user={null} onLogin={handleLoginSuccess} />;
   }
 
   const renderContent = () => {
@@ -90,7 +114,7 @@ const App = () => {
       case View.FILE_HUB: return <Vault user={data.user} documents={data.vaultDocs} saveDocuments={docs => setData(prev => ({...prev, vaultDocs: docs}))} updateUser={u => setData(prev => ({...prev, user: u}))} onNavigate={setView} />;
       case View.AI_CHAT: return <AIChat chatHistory={data.chatHistory} setChatHistory={msgs => setData(prev => ({...prev, chatHistory: msgs}))} isVerified={data.user.isVerified} />;
       case View.VERIFICATION_FORM: return <VerificationForm user={data.user} updateUser={u => setData(prev => ({...prev, user: u}))} onNavigate={setView} />;
-      case View.SETTINGS: return <Settings user={data.user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={() => { setCurrentUsername(null); localStorage.removeItem('active_session_user'); window.location.reload(); }} username={currentUsername} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={u => setData(prev => ({...prev, user: u}))} />;
+      case View.SETTINGS: return <Settings user={data.user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={handleLogout} username={currentUsername} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={u => setData(prev => ({...prev, user: u}))} />;
       case View.ADMIN_DASHBOARD: return currentUsername === ADMIN_USERNAME ? <AdminDashboard /> : null;
       default: return <Dashboard user={data.user} username={currentUsername} onNavigate={setView} />;
     }
@@ -102,22 +126,27 @@ const App = () => {
       {showTerms && <TermsModal onAccept={() => { if(data.user) setData(prev => ({...prev, user: { ...prev.user!, acceptedTermsVersion: SYSTEM_UPGRADE_TOKEN } })); setShowTerms(false); }} />}
       
       <div className="md:ml-20 lg:ml-64 transition-all">
-        <header className="bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 h-16 flex items-center justify-between px-6 lg:px-12 sticky top-0 z-[100]">
-           <div className="flex items-center space-x-4">
-              <ShieldCheck className="text-indigo-600" size={18} />
+        <header className="bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 h-20 flex items-center justify-between px-6 lg:px-12 sticky top-0 z-[100] shadow-sm">
+           <div className="flex items-center space-x-5">
+              <div className="p-2.5 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-600/20">
+                <Terminal size={22} />
+              </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-[0.4em]">{APP_NAME}</span>
-                <div className="flex items-center text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                  <Globe size={8} className="mr-1" />
+                <span className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-[0.4em] leading-none mb-1">{APP_NAME}</span>
+                <div className="flex items-center text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
+                  <Globe size={10} className="mr-1.5" />
                   <span>{SYSTEM_DOMAIN}</span>
                 </div>
               </div>
            </div>
-           <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-2xl border border-slate-100 dark:border-slate-700">
-             Session Node: {currentUsername}
-           </span>
+           <div className="flex items-center space-x-4">
+              <span className="hidden sm:inline-block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Session: {currentUsername}</span>
+              <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-black text-slate-500 uppercase">
+                {currentUsername.charAt(0)}
+              </div>
+           </div>
         </header>
-        <main className="max-w-7xl mx-auto p-6 lg:p-12 pb-24 lg:pb-16 min-h-[calc(100vh-64px)] w-full">{renderContent()}</main>
+        <main className="max-w-7xl mx-auto p-6 lg:p-12 pb-24 lg:pb-16 min-h-[calc(100vh-80px)] w-full">{renderContent()}</main>
       </div>
       <Navigation currentView={view} setView={setView} isAdmin={currentUsername === ADMIN_USERNAME} isVerified={data.user?.isVerified || false} />
     </div>
