@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
-import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, ShieldAlert, Copy, Check, ShieldX, Key, Monitor, Smartphone, Plus, Mail, Database, Zap, CheckCircle, Fingerprint, QrCode } from 'lucide-react';
-import { WATERMARK, DEFAULT_STORAGE_LIMIT_GB, ADMIN_USERNAME } from '../constants';
+import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Smartphone, Monitor, Database, Zap, Fingerprint, QrCode, Gavel, ExternalLink, ShieldAlert, Camera } from 'lucide-react';
+import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, CREATOR_NAME } from '../constants';
 
 interface SettingsProps {
   user: UserProfile;
@@ -43,30 +43,46 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
   };
 
   return (
-    <div className="pb-24 animate-fade-in w-full max-w-5xl mx-auto space-y-10">
-      <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Infrastructure Panel</h1>
+    <div className="pb-24 animate-fade-in w-full max-w-5xl mx-auto space-y-12">
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-6xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Architect Hub</h1>
+          <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.6em] mt-4">Identity Control & Node Management</p>
+        </div>
+        <div className="p-4 bg-indigo-600 rounded-[2rem] text-white shadow-2xl shadow-indigo-600/20">
+          <ShieldCheck size={40} />
+        </div>
+      </div>
       
-      <div className={`rounded-[3.5rem] p-10 text-white shadow-2xl relative overflow-hidden ${isAdmin ? 'bg-slate-900 border border-indigo-500/20' : 'bg-indigo-600'}`}>
-        <div className="absolute -top-10 -right-10 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="flex flex-col sm:flex-row items-center space-x-0 sm:space-x-8 gap-6 relative z-10">
-            <div className="w-28 h-28 rounded-[2rem] bg-white/20 backdrop-blur-xl flex items-center justify-center overflow-hidden border border-white/30 shadow-2xl">
-                {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" alt="Avatar" /> : <span className="text-4xl font-black uppercase">{user.name.charAt(0)}</span>}
+      {/* IDENTITY NODE HEADER */}
+      <div className={`rounded-[4rem] p-16 text-white shadow-2xl relative overflow-hidden ${isAdmin ? 'bg-slate-900 border border-indigo-500/20' : 'bg-slate-950'}`}>
+        <div className="absolute -top-10 -right-10 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="flex flex-col md:flex-row items-center space-x-0 md:space-x-16 gap-12 relative z-10">
+            <div className="w-48 h-48 rounded-[4rem] bg-white/5 backdrop-blur-3xl flex items-center justify-center overflow-hidden border border-white/10 shadow-inner group">
+                {user.avatar ? (
+                  <img src={user.avatar} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Avatar" />
+                ) : (
+                  <span className="text-7xl font-black uppercase text-indigo-500">{user.name.charAt(0)}</span>
+                )}
             </div>
-            <div className="flex-1 text-center sm:text-left">
-                <div className="flex items-center justify-center sm:justify-start">
-                    <h2 className="text-3xl font-black uppercase tracking-tight">{user.name}</h2>
-                    <ShieldCheck size={24} className="ml-3 text-indigo-200" />
+            <div className="flex-1 text-center md:text-left">
+                <div className="flex items-center justify-center md:justify-start mb-4">
+                    <h2 className="text-5xl font-black uppercase tracking-tight">{user.name}</h2>
                 </div>
-                <p className="text-indigo-200 text-[10px] font-black uppercase tracking-[0.4em] mt-2">{isAdmin ? 'Lead System Architect' : 'Consumer Node Occupant'}</p>
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+                   <p className="text-indigo-400 text-xs font-black uppercase tracking-[0.5em]">{isAdmin ? 'Lead System Architect' : 'Standard Identity Node'}</p>
+                   <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                   <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">ID: {username}</p>
+                </div>
                 
-                <div className="mt-6 flex flex-wrap gap-3 justify-center sm:justify-start">
-                    <div className="px-4 py-1.5 bg-white/10 rounded-full border border-white/20 flex items-center">
-                        <Database size={12} className="mr-2" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">{isAdmin ? 'Unlimited' : user.storageLimitGB + 'GB'} GBN</span>
+                <div className="mt-12 flex flex-wrap gap-6 justify-center md:justify-start">
+                    <div className="px-8 py-3 bg-white/5 rounded-2xl border border-white/10 flex items-center group hover:bg-white/10 transition-all">
+                        <Database size={16} className="mr-4 text-indigo-400 group-hover:scale-110 transition-transform" />
+                        <span className="text-[11px] font-black uppercase tracking-widest">{isAdmin ? 'Infrastructure Tier' : user.storageLimitGB + 'GB Segment Allocation'}</span>
                     </div>
-                    <div className="px-4 py-1.5 bg-white/10 rounded-full border border-white/20 flex items-center">
-                        <Zap size={12} className="mr-2" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">{user.totpEnabled ? 'TOTP ACTIVE' : 'QUANTUM SECURED'}</span>
+                    <div className="px-8 py-3 bg-white/5 rounded-2xl border border-white/10 flex items-center group hover:bg-white/10 transition-all">
+                        <Zap size={16} className="mr-4 text-indigo-400 group-hover:scale-110 transition-transform" />
+                        <span className="text-[11px] font-black uppercase tracking-widest">{user.totpEnabled ? 'MFA_ENFORCED' : 'LEGACY_HANDSHAKE'}</span>
                     </div>
                 </div>
             </div>
@@ -74,96 +90,136 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          {/* SECURITY PROTOCOLS */}
-          <div className="bg-white dark:bg-[#0f172a] p-10 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-8">
-              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center">
-                  <Fingerprint className="mr-4 text-indigo-600" size={28} /> Authentication Hub
+          {/* SECURITY HUB */}
+          <div className="bg-white dark:bg-[#0f172a] p-12 rounded-[4.5rem] border border-slate-100 dark:border-white/5 shadow-sm space-y-12">
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center">
+                  <Fingerprint className="mr-6 text-indigo-600" size={36} /> Security Layers
               </h3>
               
-              <div className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between p-8 bg-slate-50 dark:bg-white/5 rounded-[3rem] border border-slate-100 dark:border-white/5">
                   <div className="flex items-center">
-                      <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-2xl mr-4"><Smartphone size={20} /></div>
+                      <div className="p-5 bg-indigo-600 rounded-3xl text-white mr-8 shadow-2xl shadow-indigo-600/20"><Smartphone size={28} /></div>
                       <div>
-                          <p className="text-sm font-black text-slate-700 dark:text-slate-200 uppercase tracking-wide">Google Authenticator</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{user.totpEnabled ? 'Protocol Linked' : 'Available for Linking'}</p>
+                          <p className="text-lg font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Authenticator Hub</p>
+                          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1">{user.totpEnabled ? 'PROTOCOL ACTIVE' : 'VULNERABLE STATE'}</p>
                       </div>
                   </div>
                   {user.totpEnabled ? (
-                      <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-full flex items-center justify-center border border-emerald-100 dark:border-emerald-800">
-                          <Check size={20} />
+                      <div className="w-14 h-14 bg-emerald-500/10 text-emerald-500 rounded-[1.5rem] flex items-center justify-center border border-emerald-500/20">
+                          <Check size={28} />
                       </div>
                   ) : (
-                      <button 
-                        onClick={initiateTotpSetup} 
-                        disabled={isSyncing}
-                        className="px-6 py-2 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg"
-                      >
-                          {isSyncing ? <RefreshCw className="animate-spin" size={14}/> : 'Link App'}
+                      <button onClick={initiateTotpSetup} disabled={isSyncing} className="px-10 py-4 bg-indigo-600 text-white text-[11px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20">
+                          {isSyncing ? <RefreshCw className="animate-spin" size={18}/> : 'ENFORCE MFA'}
                       </button>
                   )}
               </div>
 
+              <div className="flex items-center justify-between p-8 bg-slate-50 dark:bg-white/5 rounded-[3rem] border border-slate-100 dark:border-white/5 group">
+                  <div className="flex items-center">
+                      <div className="p-5 bg-slate-900 rounded-3xl text-indigo-500 mr-8 group-hover:scale-110 transition-transform"><Camera size={28} /></div>
+                      <div>
+                          <p className="text-lg font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Identity Snap</p>
+                          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1">BIOMETRIC HANDSHAKE</p>
+                      </div>
+                  </div>
+                  <button className="px-8 py-3 bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-600 hover:text-white transition-all">RE-CALIBRATE</button>
+              </div>
+
               {showTotpSetup && (
-                  <div className="p-8 bg-slate-900 rounded-[2.5rem] border border-indigo-500/30 animate-scale-up space-y-6">
-                      <div className="flex justify-center py-6">
-                          <div className="w-48 h-48 bg-white p-4 rounded-3xl flex flex-col items-center justify-center">
-                              <QrCode size={140} className="text-slate-900" />
+                  <div className="p-12 bg-slate-950 rounded-[4rem] border border-indigo-500/30 animate-scale-up space-y-10">
+                      <div className="flex justify-center py-8">
+                          <div className="w-64 h-64 bg-white p-8 rounded-[3rem] flex flex-col items-center justify-center shadow-inner group">
+                              <QrCode size={200} className="text-slate-900 group-hover:scale-105 transition-transform" />
                           </div>
                       </div>
-                      <div className="text-center">
-                          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mb-4">Scan Matrix or Input Key</p>
-                          <div className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/10 mb-6">
-                              <code className="text-indigo-400 font-mono text-sm tracking-widest">{user.totpSecret}</code>
-                              <button onClick={copySecret} className="text-white hover:text-indigo-400"><Copy size={16}/></button>
+                      <div className="text-center space-y-8">
+                          <p className="text-[11px] text-slate-500 font-black uppercase tracking-[0.6em]">Shared Encryption Segment</p>
+                          <div className="flex items-center justify-between bg-white/5 p-8 rounded-[2rem] border border-white/10">
+                              <code className="text-indigo-400 font-mono text-xl tracking-[0.4em]">{user.totpSecret}</code>
+                              <button onClick={copySecret} className="p-3 text-white hover:text-indigo-400 transition-colors bg-white/5 rounded-xl"><Copy size={24}/></button>
                           </div>
-                          <button onClick={finalizeTotp} className="w-full bg-indigo-600 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest">Confirm Synchronization</button>
+                          <button onClick={finalizeTotp} className="w-full bg-indigo-600 text-white py-8 rounded-[3rem] font-black text-sm uppercase tracking-[0.6em] shadow-2xl">VERIFY MFA SYNC</button>
                       </div>
                   </div>
               )}
           </div>
 
-          <div className="bg-white dark:bg-[#0f172a] p-10 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center">
-                  <Monitor className="mr-4 text-indigo-600" size={28} /> Authorized Nodes
+          {/* LEGAL & COMPLIANCE */}
+          <div className="bg-white dark:bg-[#0f172a] p-12 rounded-[4.5rem] border border-slate-100 dark:border-white/5 shadow-sm space-y-12">
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center">
+                  <Gavel className="mr-6 text-indigo-600" size={36} /> Compliance Hub
               </h3>
-              <div className="space-y-4">
-                  {user.authorizedDevices.map((device, i) => (
-                      <div key={i} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-                          <div className="flex items-center space-x-3">
-                              <Monitor size={16} className="text-slate-400" />
-                              <span className="text-xs font-bold dark:text-slate-200">{device}</span>
-                          </div>
-                          <span className="text-[8px] font-black bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full">ACTIVE</span>
-                      </div>
-                  ))}
-                  <button className="w-full py-4 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl text-[9px] font-black text-slate-400 uppercase tracking-widest hover:border-indigo-600 hover:text-indigo-600 transition-all">Register New Terminal</button>
-              </div>
-          </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          <div onClick={toggleDarkMode} className="bg-white dark:bg-[#0f172a] p-10 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between cursor-pointer group hover:border-indigo-300 transition-all">
-              <div className="flex items-center space-x-5">
-                  <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl group-hover:bg-indigo-50 transition-colors">
-                      {darkMode ? <Sun size={24} className="text-amber-500" /> : <Moon size={24} className="text-indigo-600" />}
+              
+              <div className="space-y-8">
+                  <div className="p-10 bg-slate-50 dark:bg-white/5 rounded-[3.5rem] border border-slate-100 dark:border-white/5">
+                      <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.5em] mb-6">Official Legal Partner</p>
+                      <h4 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{CREATOR_NAME} Architecture</h4>
+                      <div className="w-12 h-1 bg-indigo-600 my-6"></div>
+                      <p className="text-[11px] text-indigo-500 font-black uppercase tracking-[0.4em] leading-relaxed">Jurisdiction: Local Infrastructure Cloud</p>
                   </div>
-                  <span className="text-sm font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">{darkMode ? 'Luminous Phase' : 'Dark Space Phase'}</span>
-              </div>
-              <div className={`w-14 h-8 rounded-full p-1 transition-all flex items-center ${darkMode ? 'bg-indigo-600 justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'}`}>
-                  <div className="w-6 h-6 bg-white rounded-full shadow-sm"></div>
-              </div>
-          </div>
 
-          <div onClick={onLogout} className="bg-white dark:bg-[#0f172a] p-10 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center space-x-5 cursor-pointer group hover:bg-red-50 dark:hover:bg-red-950/20 transition-all">
-              <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-2xl text-red-600">
-                  <LogOut size={24} />
+                  <div className="p-10 bg-slate-50 dark:bg-white/5 rounded-[3.5rem] border border-slate-100 dark:border-white/5">
+                      <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.5em] mb-8">Governance Protocol</p>
+                      <ul className="space-y-6">
+                          <li className="flex items-center text-sm font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight">
+                             <div className="w-3 h-3 bg-indigo-500 rounded-full mr-5 shadow-[0_0_10px_indigo]"></div> Data Residency: Node-Level
+                          </li>
+                          <li className="flex items-center text-sm font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight">
+                             <div className="w-3 h-3 bg-indigo-500 rounded-full mr-5 shadow-[0_0_10px_indigo]"></div> Identity Privacy: Zero-Share Logic
+                          </li>
+                      </ul>
+                      <button className="mt-12 flex items-center text-[11px] font-black text-indigo-600 uppercase tracking-[0.4em] hover:text-indigo-400 transition-colors group">
+                          AUDIT FULL COMPLIANCE <ExternalLink size={18} className="ml-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                      </button>
+                  </div>
               </div>
-              <span className="text-sm font-black text-red-600 uppercase tracking-widest">Terminate Node Interface</span>
           </div>
       </div>
 
-      <div className="text-center pb-12 opacity-30">
-        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.8em]">{WATERMARK}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div onClick={toggleDarkMode} className="bg-white dark:bg-[#0f172a] p-12 rounded-[4rem] border border-slate-100 dark:border-white/5 shadow-sm flex items-center justify-between cursor-pointer group hover:border-indigo-500/40 transition-all">
+              <div className="flex items-center space-x-8">
+                  <div className="p-6 bg-slate-50 dark:bg-white/5 rounded-3xl group-hover:bg-indigo-600/10 transition-colors shadow-inner">
+                      {darkMode ? <Sun size={36} className="text-amber-500" /> : <Moon size={36} className="text-indigo-600" />}
+                  </div>
+                  <div>
+                    <span className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{darkMode ? 'Luminous' : 'Obsidian'} Mode</span>
+                    <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1">Interface State</p>
+                  </div>
+              </div>
+              <div className={`w-20 h-12 rounded-full p-2 transition-all flex items-center shadow-inner ${darkMode ? 'bg-indigo-600 justify-end' : 'bg-slate-200 dark:bg-slate-800 justify-start'}`}>
+                  <div className="w-8 h-8 bg-white rounded-full shadow-2xl"></div>
+              </div>
+          </div>
+
+          <div onClick={onLogout} className="bg-white dark:bg-[#0f172a] p-12 rounded-[4rem] border border-slate-100 dark:border-white/5 shadow-sm flex items-center space-x-8 cursor-pointer group hover:bg-red-500/5 transition-all">
+              <div className="p-6 bg-red-500/10 rounded-3xl text-red-600 shadow-2xl shadow-red-500/10 group-hover:scale-110 transition-transform">
+                  <LogOut size={36} />
+              </div>
+              <div>
+                <span className="text-xl font-black text-red-600 uppercase tracking-tight">Terminal Shutdown</span>
+                <p className="text-[11px] text-red-400/50 font-black uppercase tracking-[0.3em] mt-1">Disconnect Interface Node</p>
+              </div>
+          </div>
+      </div>
+
+      {isAdmin && (
+        <div className="bg-red-500/5 p-16 rounded-[4.5rem] border border-red-500/20 flex flex-col md:flex-row items-center justify-between gap-12 shadow-2xl">
+            <div className="flex items-center space-x-10 text-center md:text-left flex-col md:flex-row">
+                <ShieldAlert className="text-red-600 animate-pulse mb-6 md:mb-0" size={64} />
+                <div>
+                    <h3 className="text-3xl font-black text-red-600 uppercase tracking-tighter">Emergency Purge</h3>
+                    <p className="text-[11px] text-red-400 font-black uppercase tracking-[0.4em] mt-3">Perform destructive factory reset on this cluster node.</p>
+                </div>
+            </div>
+            <button onClick={() => window.confirm("CRITICAL: Wipe all local data nodes permanently?") && resetApp()} className="px-14 py-7 bg-red-600 text-white rounded-[2.5rem] font-black text-sm uppercase tracking-[0.5em] shadow-2xl hover:bg-red-700 active:scale-95 transition-all">WIPE INFRASTRUCTURE</button>
+        </div>
+      )}
+
+      <div className="text-center pb-12 opacity-30 mt-12">
+        <p className="text-[11px] text-slate-500 font-black uppercase tracking-[1.2em]">{WATERMARK}</p>
+        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.6em] mt-6">{COPYRIGHT_NOTICE}</p>
       </div>
     </div>
   );

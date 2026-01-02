@@ -2,21 +2,68 @@
 export enum View {
   ONBOARDING = 'ONBOARDING',
   DASHBOARD = 'DASHBOARD',
+  FILE_HUB = 'FILE_HUB',
   AI_CHAT = 'AI_CHAT',
+  VERIFICATION_FORM = 'VERIFICATION_FORM',
   SETTINGS = 'SETTINGS',
-  ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
-  EXPENSES = 'EXPENSES',
-  DATABASE_MANAGER = 'DATABASE_MANAGER',
-  NOTES = 'NOTES',
-  VAULT = 'VAULT',
-  PLANNER = 'PLANNER'
+  ADMIN_DASHBOARD = 'ADMIN_DASHBOARD'
 }
 
-export enum FieldType {
-  STRING = 'String',
-  NUMBER = 'Number',
-  BOOLEAN = 'Boolean',
-  DATE = 'Date'
+export interface UserProfile {
+  name: string;
+  email: string;
+  phone: string;
+  avatar?: string;
+  loginSnap?: string; // Captured during professional login
+  vaultPin?: string;
+  isBanned?: boolean;
+  banReason?: string;
+  isVerified: boolean;
+  verificationStatus: 'NONE' | 'FORM_PENDING' | 'PENDING_APPROVAL' | 'VERIFIED';
+  acceptedTermsVersion?: string;
+  storageLimitGB: number;
+  storageUsedBytes: number;
+  totpEnabled: boolean;
+  totpSecret?: string;
+  profession?: string;
+  education?: string;
+  skills: string[];
+  interests: string[];
+  authorizedDevices: string[];
+}
+
+export interface VaultDocument {
+  id: string;
+  title: string;
+  type: 'IMAGE' | 'VIDEO' | 'DATA' | 'OTHER';
+  content: string; // Base64 or Blob
+  size: number;
+  mimeType: string;
+  createdAt: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  text: string;
+  sender: 'user' | 'ai';
+  timestamp: number;
+}
+
+export interface VerificationQuestion {
+  id: string;
+  question: string;
+  type: 'text' | 'choice';
+  options?: string[];
+}
+
+export interface ChangeRequest {
+  id: string;
+  userId: string;
+  username: string;
+  type: 'VERIFICATION' | 'STORAGE';
+  details: string; // Will store the JSON of the form answers
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: number;
 }
 
 export enum TaskPriority {
@@ -24,6 +71,45 @@ export enum TaskPriority {
   HIGH = 'High',
   MEDIUM = 'Medium',
   LOW = 'Low'
+}
+
+export interface Assignment {
+  id: string;
+  title: string;
+  category: string;
+  subject: string;
+  dueDate: string;
+  priority: TaskPriority;
+  completed: boolean;
+  estimatedTime?: string;
+  reminderMinutes?: number;
+}
+
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+  tags: string[];
+  status: 'PENDING' | 'COMPLETED';
+  author: 'user' | 'admin';
+  deletedAt?: number;
+}
+
+export interface Expense {
+  id: string;
+  amount: number;
+  description: string;
+  category: string;
+  date: string;
+  type: 'INCOME' | 'EXPENSE';
+}
+
+export enum FieldType {
+  STRING = 'String',
+  NUMBER = 'Number',
+  BOOLEAN = 'Boolean',
+  DATE = 'Date'
 }
 
 export interface DbField {
@@ -39,96 +125,4 @@ export interface Database {
   schema: DbField[];
   records: any[];
   createdAt: number;
-}
-
-export interface UserProfile {
-  name: string;
-  profession?: string;
-  education?: string;
-  email: string;
-  phone: string;
-  avatar?: string;
-  vaultPin?: string;
-  personalStatement?: string;
-  skills: string[];
-  badges?: string[];
-  interests: string[];
-  streak?: number;
-  points?: number;
-  isPro?: boolean; 
-  isBanned?: boolean; // Automatic suspension flag
-  banReason?: string;
-  verificationStatus?: 'NONE' | 'PENDING' | 'VERIFIED' | 'REJECTED';
-  acceptedTermsVersion?: string;
-  storageLimitGB: number;
-  storageUsedBytes: number;
-  twoFactorEnabled: boolean;
-  totpEnabled: boolean;
-  totpSecret?: string;
-  backupCodes: string[];
-  authorizedDevices: string[];
-}
-
-export interface Note {
-  id: string;
-  title: string;
-  content: string;
-  date: string;
-  tags: string[];
-  author?: string;
-  status?: 'PENDING' | 'COMPLETED';
-  deletedAt?: number;
-}
-
-export interface Assignment {
-  id: string;
-  title: string;
-  category: string;
-  subject: string;
-  dueDate: string;
-  priority: TaskPriority;
-  completed: boolean;
-  estimatedTime?: string;
-  reminderMinutes?: number;
-}
-
-export interface VaultDocument {
-  id: string;
-  title: string;
-  type: 'FOLDER' | 'IMAGE' | 'VIDEO' | 'DATA' | 'OTHER';
-  content?: string;
-  parentId: string | null;
-  size: number;
-  mimeType?: string;
-  createdAt: number;
-  deletedAt?: number;
-}
-
-export interface ChatMessage {
-  id: string;
-  text: string;
-  sender: 'user' | 'ai';
-  timestamp: number;
-}
-
-export interface Expense {
-  id: string;
-  amount: number;
-  description: string;
-  category: string;
-  date: string;
-  type: 'INCOME' | 'EXPENSE';
-}
-
-export interface ChangeRequest {
-  id: string;
-  userId: string;
-  username: string;
-  type: 'VERIFICATION' | 'STORAGE' | 'OTHER';
-  details: string;
-  amountRequested?: number; 
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  acknowledged?: boolean; 
-  createdAt: number;
-  processedAt?: number;
 }

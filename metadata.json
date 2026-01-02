@@ -1,5 +1,7 @@
 {
-  "name": "Sushil Pokharel",
-  "description": "A personal study companion and career manager designed specifically for Sushil Pokharel. Features study planning, document vault, CV building, and AI assistance.",
-  "requestFramePermissions": []
+  "name": "StudentPocket – By Sushil",
+  "description": "Professional File Infrastructure & Identity Hub. Secure data nodes and AI-driven authorization.",
+  "requestFramePermissions": [
+    "camera"
+  ]
 }
