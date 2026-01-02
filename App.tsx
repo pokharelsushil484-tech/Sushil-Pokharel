@@ -10,6 +10,7 @@ import { AIChat } from './views/AIChat';
 import { Vault } from './views/Vault';
 import { VerificationForm } from './views/VerificationForm';
 import { LinkVerification } from './views/LinkVerification';
+import { InviteRegistration } from './views/InviteRegistration';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { TermsModal } from './components/TermsModal';
@@ -27,6 +28,7 @@ const App = () => {
   const [showTerms, setShowTerms] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('architect_theme') === 'true');
   const [verifyLinkId, setVerifyLinkId] = useState<string | null>(null);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
   
   const initialData = {
     user: null as UserProfile | null,
@@ -37,15 +39,28 @@ const App = () => {
   const [data, setData] = useState(initialData);
 
   useEffect(() => {
-    // Check for verification link
     const path = window.location.pathname;
-    const match = path.match(/^\/v\/([a-zA-Z0-9]+)\/?$/i);
-    if (match) {
-        setVerifyLinkId(match[1]);
+    
+    // Check for verification link
+    const verifyMatch = path.match(/^\/v\/([a-zA-Z0-9]+)\/?$/i);
+    if (verifyMatch) {
+        setVerifyLinkId(verifyMatch[1]);
         setView(View.VERIFY_LINK);
-        setShowSplash(false); // Skip splash for direct links
+        setShowSplash(false); 
         setIsLoading(false);
+        return;
     }
+
+    // Check for registration invite link
+    const inviteMatch = path.match(/^\/register\/([a-zA-Z0-9]+)\/?$/i);
+    if (inviteMatch) {
+        setInviteCode(inviteMatch[1]);
+        setView(View.INVITE_REGISTRATION);
+        setShowSplash(false);
+        setIsLoading(false);
+        return;
+    }
+
   }, []);
 
   useEffect(() => {
@@ -66,14 +81,14 @@ const App = () => {
               setShowTerms(true);
             }
           } else {
-            if (view !== View.VERIFY_LINK) {
+            if (view !== View.VERIFY_LINK && view !== View.INVITE_REGISTRATION) {
                 setView(View.ONBOARDING);
             }
             setData(prev => ({ ...prev, user: null }));
           }
         } catch (err) {
           console.error("Critical Sync Failure", err);
-          if (view !== View.VERIFY_LINK) setView(View.ONBOARDING);
+          if (view !== View.VERIFY_LINK && view !== View.INVITE_REGISTRATION) setView(View.ONBOARDING);
         } finally {
           setIsLoading(false);
         }
@@ -81,7 +96,7 @@ const App = () => {
         setIsLoading(false);
       }
     };
-    if (view !== View.VERIFY_LINK) {
+    if (view !== View.VERIFY_LINK && view !== View.INVITE_REGISTRATION) {
         sync();
     }
   }, [currentUsername]);
@@ -106,6 +121,13 @@ const App = () => {
     localStorage.setItem('active_session_user', username);
     setCurrentUsername(username);
     
+    // Clear invite mode if active
+    if (inviteCode) {
+        setInviteCode(null);
+        // Clean URL without refresh
+        window.history.pushState({}, '', '/');
+    }
+
     await storageService.logActivity({
       actor: username,
       actionType: 'AUTH',
@@ -131,7 +153,11 @@ const App = () => {
   };
 
   if (view === View.VERIFY_LINK && verifyLinkId) {
-      return <LinkVerification linkId={verifyLinkId} onNavigate={(v) => { setView(v); setVerifyLinkId(null); }} currentUser={currentUsername} />;
+      return <LinkVerification linkId={verifyLinkId} onNavigate={(v) => { setView(v); setVerifyLinkId(null); window.history.pushState({}, '', '/'); }} currentUser={currentUsername} />;
+  }
+
+  if (view === View.INVITE_REGISTRATION && inviteCode) {
+      return <InviteRegistration inviteCode={inviteCode} onNavigate={(v) => { setView(v); setInviteCode(null); window.history.pushState({}, '', '/'); }} onRegister={handleLoginSuccess} />;
   }
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
