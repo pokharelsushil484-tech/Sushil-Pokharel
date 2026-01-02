@@ -112,7 +112,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const userData = users[cleanUsername];
 
     if (!userData) { 
-      setError('Access Denied: Node ID not provisioned.'); 
+      setError('Access Denied: Student ID not found.'); 
       return; 
     }
 
@@ -120,7 +120,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     if (storedPassword === password) {
       setView('IDENTITY_SNAP');
     } else {
-      setError('Incorrect master security key.');
+      setError('Incorrect security key.');
     }
   };
 
@@ -154,13 +154,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const usersStr = localStorage.getItem('studentpocket_users');
     const users = usersStr ? JSON.parse(usersStr) : {};
     if (users[cleanUsername]) { 
-      setError('Node ID already provisioned on this cluster.'); 
+      setError('Student ID already registered.'); 
       return; 
     }
 
     setIsProcessing(true);
     setTimeout(() => {
-        // Auto-verify if username is admin (though uncommon to register admin here, it's a fallback)
+        // Auto-verify if username is admin
         const isAutoVerified = cleanUsername === ADMIN_USERNAME;
         
         users[cleanUsername] = { 
@@ -193,11 +193,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <img src="/logo.svg" className="w-4 h-4 object-contain" alt="Logo" />
-                <span className="text-indigo-400 text-[9px] font-black uppercase tracking-[0.6em]">Gateway Stable</span>
+                <span className="text-indigo-400 text-[9px] font-black uppercase tracking-[0.6em]">Student Pocket</span>
               </div>
               <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-none uppercase">
-                {view === 'LOGIN' ? 'Session' : view === 'IDENTITY_SNAP' ? 'Visual' : 'Node'} <br/>
-                <span className="text-indigo-500">{view === 'REGISTER' ? 'Provisioning' : 'Access'}</span>
+                {view === 'LOGIN' ? 'Access' : view === 'IDENTITY_SNAP' ? 'Visual' : 'Student'} <br/>
+                <span className="text-indigo-500">{view === 'REGISTER' ? 'Registration' : 'Portal'}</span>
               </h1>
             </div>
           </div>
@@ -217,7 +217,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     value={username} 
                     onChange={(e) => setUsername(e.target.value)} 
                     className="w-full pl-14 pr-8 py-5 bg-white/5 border border-white/10 rounded-[2rem] outline-none text-white font-bold placeholder:text-slate-700 focus:border-indigo-500/50 transition-all uppercase tracking-widest text-xs" 
-                    placeholder="ENTER NODE ID" 
+                    placeholder="STUDENT ID" 
                   />
                 </div>
               </div>
@@ -230,7 +230,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     value={password} 
                     onChange={(e) => setPassword(e.target.value)} 
                     className="w-full pl-14 pr-14 py-5 bg-white/5 border border-white/10 rounded-[2rem] outline-none text-white font-bold placeholder:text-slate-700 focus:border-indigo-500/50 transition-all tracking-widest text-xs" 
-                    placeholder="ENTER SECURITY KEY" 
+                    placeholder="PASSWORD" 
                   />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors">
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -246,20 +246,19 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   disabled={isProcessing} 
                   className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-6 rounded-[2.5rem] font-black text-[10px] uppercase tracking-[0.4em] shadow-2xl flex items-center justify-center group transition-all"
                 >
-                  Commence Session <ArrowRight className="ml-3 group-hover:translate-x-2 transition-transform" />
+                  Enter Portal <ArrowRight className="ml-3 group-hover:translate-x-2 transition-transform" />
                 </button>
                 <button 
                   type="button"
                   onClick={() => setView('REGISTER')}
                   className="w-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white py-4 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] transition-all border border-white/5"
                 >
-                  Provision New Node
+                  Create Student Account
                 </button>
               </div>
             </form>
           )}
           
-          {/* Register and Identity Snap views remain mostly the same but ensure Admin creation sets verified */}
           {view === 'REGISTER' && (
             <form onSubmit={handleRegister} className="space-y-5 animate-scale-up">
               <div className="space-y-4">
@@ -270,7 +269,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                    <input type="email" value={confirmEmail} onChange={e => setConfirmEmail(e.target.value)} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl outline-none text-white font-bold text-[10px] uppercase tracking-widest" placeholder="VERIFY EMAIL" />
                 </div>
 
-                <input type="text" value={username} onChange={e => setUsername(e.target.value)} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl outline-none text-white font-bold uppercase text-[10px] tracking-widest" placeholder="UNIQUE NODE IDENTIFIER" />
+                <input type="text" value={username} onChange={e => setUsername(e.target.value)} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl outline-none text-white font-bold uppercase text-[10px] tracking-widest" placeholder="DESIRED USERNAME" />
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                    <div className="relative">
@@ -284,7 +283,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               {error && <p className="text-red-400 text-[9px] font-black uppercase tracking-widest text-center py-2">{error}</p>}
               
               <div className="pt-2 space-y-3">
-                <button type="submit" disabled={isProcessing} className="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-xl">Commit Provision</button>
+                <button type="submit" disabled={isProcessing} className="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-xl">Register</button>
                 <button type="button" onClick={() => setView('LOGIN')} className="w-full text-slate-500 py-3 font-black text-[9px] uppercase tracking-[0.2em] hover:text-white transition-colors">Return to Login</button>
               </div>
             </form>
@@ -302,9 +301,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-2xl font-black text-white uppercase tracking-tighter">Identity Calibration</h3>
+                <h3 className="text-2xl font-black text-white uppercase tracking-tighter">Identity Check</h3>
                 <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.4em] leading-relaxed px-4">
-                  Maintain visual contact with sensor.
+                  Quick security snapshot required.
                 </p>
               </div>
 
@@ -313,7 +312,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 disabled={isProcessing}
                 className="w-full bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-[10px] uppercase tracking-[0.4em] shadow-2xl flex items-center justify-center space-x-4 hover:bg-indigo-700 transition-all"
               >
-                {isProcessing ? <Loader2 className="animate-spin" /> : <><Camera size={20} /> <span>CALIBRATE</span></>}
+                {isProcessing ? <Loader2 className="animate-spin" /> : <><Camera size={20} /> <span>CAPTURE</span></>}
               </button>
             </div>
           )}

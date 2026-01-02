@@ -1,88 +1,34 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { UserProfile, VerificationQuestion, ChangeRequest, View } from '../types';
-import { generateVerificationForm } from '../services/geminiService';
-import { ShieldCheck, Loader2, ArrowLeft, Zap, ShieldAlert, Camera, RefreshCw, Upload, User, Image as ImageIcon } from 'lucide-react';
+import React, { useState } from 'react';
+import { UserProfile, ChangeRequest, View } from '../types';
+import { ShieldCheck, Loader2, ArrowLeft, Zap, ShieldAlert, Upload, User, Video, MapPin, Phone, Mail, Globe } from 'lucide-react';
 
 interface VerificationFormProps {
   user: UserProfile;
-  username: string; // Critical for linking request to correct storage key
+  username: string;
   updateUser: (u: UserProfile) => void;
   onNavigate: (v: View) => void;
 }
 
 export const VerificationForm: React.FC<VerificationFormProps> = ({ user, username, updateUser, onNavigate }) => {
-  const [questions, setQuestions] = useState<VerificationQuestion[]>([]);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   
-  // Camera State (Program Proof)
-  const [proofImage, setProofImage] = useState<string | null>(null);
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  
-  // Profile Upload State (White Background)
+  // Form State
+  const [formData, setFormData] = useState({
+      fullName: user.name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      permAddress: '',
+      tempAddress: '',
+      country: ''
+  });
+
+  // Media State
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<string | null>(null);
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const fetchForm = async () => {
-      const q = await generateVerificationForm(user);
-      setQuestions(q);
-      setLoading(false);
-    };
-    fetchForm();
-    
-    return () => {
-        stopCamera();
-    };
-  }, [user]);
-
-  const startCamera = async () => {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'environment' } 
-        });
-        if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-        }
-        setIsCameraActive(true);
-    } catch (err) {
-        console.error("Camera Init Error", err);
-        alert("Visual sensor access required for verification protocol.");
-    }
-  };
-
-  const stopCamera = () => {
-      const stream = videoRef.current?.srcObject as MediaStream;
-      stream?.getTracks().forEach(track => track.stop());
-      setIsCameraActive(false);
-  };
-
-  const captureProof = () => {
-      if (videoRef.current && canvasRef.current) {
-          const video = videoRef.current;
-          const canvas = canvasRef.current;
-          
-          // Set resolution for storage efficiency
-          canvas.width = 800;
-          canvas.height = (video.videoHeight / video.videoWidth) * 800;
-          
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              const dataUrl = canvas.toDataURL('image/jpeg', 0.6); // Compress
-              setProofImage(dataUrl);
-              stopCamera();
-          }
-      }
-  };
-
-  const retakeProof = () => {
-      setProofImage(null);
-      startCamera();
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleProfileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,24 +42,39 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     }
   };
 
+  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setVideoFile(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!proofImage || !profileImage) return;
+    // Validate Required Fields (Video is optional)
+    if (!formData.fullName || !formData.email || !formData.phone || !formData.permAddress || !formData.tempAddress || !formData.country || !profileImage) {
+        alert("Please complete all required fields and upload a profile picture.");
+        return;
+    }
     
     setSubmitting(true);
     
-    // Include images in details payload
+    // Construct Details Payload
     const finalDetails = {
-        ...answers,
-        _verificationImage: proofImage, // Program Proof
-        _profileImage: profileImage     // White Background Photo
+        ...formData,
+        _profileImage: profileImage,     
+        _videoFile: videoFile || null,  // Optional
+        _submissionTime: new Date().toISOString()
     };
     
-    // Create request with the LOGIN ID (username), not the display name
     const request: ChangeRequest = {
-      id: 'AUTH-' + Date.now(),
+      id: 'REQ-' + Date.now(),
       userId: username,
-      username: username, // This MUST match the key used in storageService (architect_data_USERNAME)
+      username: username,
       type: 'VERIFICATION',
       details: JSON.stringify(finalDetails),
       status: 'PENDING',
@@ -127,185 +88,182 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
       updateUser({ ...user, verificationStatus: 'PENDING_APPROVAL' });
       setSubmitting(false);
       
-      // Simulate Email Notification
-      alert(`Signal Transmitted.\n\nA verification confirmation has been sent to: ${user.email || 'linked email address'}\nReference: SBT-${Math.floor(Math.random() * 10000)}`);
+      // Post-submission Logic
+      const linkId = Math.random().toString(36).substring(7);
+      const message = `
+      Professional Submission Complete.
       
+      A secure verification link has been generated:
+      https://studentpocket.app/verify/${linkId}
+      
+      This link has been sent to: ${formData.email}
+      
+      WARNING: For security, this link is valid for only 2 seconds.
+      `;
+      
+      alert(message);
       onNavigate(View.DASHBOARD);
     }, 2000);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center animate-pulse px-6 text-center">
-        <div className="w-20 h-20 bg-indigo-600/10 rounded-[2rem] flex items-center justify-center mb-8 border border-indigo-500/20 shadow-[0_0_40px_rgba(79,70,229,0.1)]">
-          <Loader2 className="animate-spin text-indigo-600" size={32} />
-        </div>
-        <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-4">Analyzing Data Nodes</h2>
-        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Synthesizing Authorization Architecture...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-3xl mx-auto animate-fade-in pb-24">
       <button onClick={() => onNavigate(View.DASHBOARD)} className="flex items-center text-slate-400 hover:text-indigo-600 mb-8 font-black text-[10px] uppercase tracking-[0.3em] transition-all group bg-white/5 px-4 py-2 rounded-xl border border-white/5 hover:border-indigo-600/30">
-        <ArrowLeft size={14} className="mr-3 group-hover:-translate-x-1 transition-transform" /> CANCEL SIGNAL
+        <ArrowLeft size={14} className="mr-3 group-hover:-translate-x-1 transition-transform" /> CANCEL
       </button>
 
       <div className="bg-white dark:bg-[#0f172a] rounded-[3rem] p-8 md:p-12 shadow-2xl border border-slate-100 dark:border-white/5 relative overflow-hidden">
-        {/* Updated Background Image: Logo Watermark */}
-        <img src="/logo.svg" className="absolute -top-10 -right-10 w-64 h-64 opacity-5 rotate-12 pointer-events-none" alt="Background" />
         
         <div className="flex flex-col md:flex-row items-center gap-8 mb-12 border-b border-slate-100 dark:border-white/5 pb-10 relative z-10">
-          <div className="w-20 h-20 bg-indigo-600 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-indigo-600/20 flex-shrink-0 p-4 overflow-hidden">
-            <img src="/logo.svg" className="w-full h-full object-contain" alt="Identity" />
+          <div className="w-20 h-20 bg-indigo-600 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-indigo-600/20 flex-shrink-0 p-4">
+             <User size={32} />
           </div>
           <div className="text-center md:text-left">
-            <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none">Identity Verification</h2>
-            <p className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.4em] mt-4">Node: {username}</p>
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none">Student Application</h2>
+            <p className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.4em] mt-4">Official Submission</p>
           </div>
         </div>
 
-        <div className="mb-12 p-6 bg-amber-500/5 border border-amber-500/10 rounded-3xl flex items-start gap-4 relative z-10">
-            <ShieldAlert className="text-amber-500 flex-shrink-0 mt-1" size={24} />
-            <p className="text-[11px] font-bold text-amber-700 dark:text-amber-500 leading-relaxed uppercase tracking-wide">
-                Warning: Ensure all visual proofs are high-resolution. False data will cause node suspension.
+        <div className="mb-12 p-6 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-3xl flex items-start gap-4 relative z-10">
+            <ShieldCheck className="text-blue-500 flex-shrink-0 mt-1" size={24} />
+            <p className="text-[11px] font-bold text-blue-700 dark:text-blue-400 leading-relaxed uppercase tracking-wide">
+                Please ensure all permanent information is accurate. An admin will review your submission via a secure timed link.
             </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-12 relative z-10">
-          {/* 1. Questionnaire */}
-          <div className="space-y-8">
+          
+          {/* Section 1: Personal Details */}
+          <div className="space-y-6">
              <div className="flex items-center space-x-3 mb-6">
                 <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-indigo-600 font-black text-xs">1</div>
-                <h3 className="text-sm font-black uppercase tracking-widest text-slate-500">Security Questions</h3>
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-500">Personal Information</h3>
              </div>
-             
-             {questions.map((q) => (
-                <div key={q.id} className="space-y-4">
-                <label className="block text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight leading-snug">
-                    {q.question}
-                </label>
-                {q.type === 'text' ? (
-                    <textarea
-                    required
-                    className="w-full p-6 bg-slate-50 dark:bg-slate-900/50 rounded-3xl border-2 border-transparent focus:border-indigo-600 outline-none transition-all dark:text-white font-bold text-sm placeholder:text-slate-300"
-                    placeholder="INPUT ENCRYPTED RESPONSE..."
-                    rows={2}
-                    onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
-                    />
-                ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {q.options?.map((opt) => (
-                        <button
-                        key={opt}
-                        type="button"
-                        onClick={() => setAnswers({ ...answers, [q.id]: opt })}
-                        className={`p-6 rounded-2xl border-2 text-left font-black text-[10px] transition-all uppercase tracking-[0.2em] ${
-                            answers[q.id] === opt ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl' : 'bg-slate-50 dark:bg-white/5 border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'
-                        }`}
-                        >
-                        {opt}
-                        </button>
-                    ))}
+
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pl-4">Full Name</label>
+                    <div className="relative">
+                        <User className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input name="fullName" value={formData.fullName} onChange={handleInputChange} className="w-full pl-14 pr-6 py-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-transparent focus:border-indigo-600 outline-none font-bold text-xs uppercase tracking-widest dark:text-white" placeholder="ENTER NAME" required />
                     </div>
-                )}
-                </div>
-            ))}
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pl-4">Email Address</label>
+                    <div className="relative">
+                        <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input name="email" type="email" value={formData.email} onChange={handleInputChange} className="w-full pl-14 pr-6 py-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-transparent focus:border-indigo-600 outline-none font-bold text-xs uppercase tracking-widest dark:text-white" placeholder="ENTER EMAIL" required />
+                    </div>
+                 </div>
+                 <div className="space-y-2 md:col-span-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pl-4">Phone Number</label>
+                    <div className="relative">
+                        <Phone className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input name="phone" type="tel" value={formData.phone} onChange={handleInputChange} className="w-full pl-14 pr-6 py-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-transparent focus:border-indigo-600 outline-none font-bold text-xs uppercase tracking-widest dark:text-white" placeholder="ENTER PHONE" required />
+                    </div>
+                 </div>
+             </div>
           </div>
 
           <div className="w-full h-px bg-slate-100 dark:bg-white/5"></div>
 
-          {/* 2. Profile Photo Upload */}
+          {/* Section 2: Location */}
           <div className="space-y-6">
              <div className="flex items-center space-x-3 mb-6">
                 <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-indigo-600 font-black text-xs">2</div>
-                <h3 className="text-sm font-black uppercase tracking-widest text-slate-500">Identity Photo</h3>
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-500">Location Data</h3>
              </div>
-             
-             <div className="bg-slate-50 dark:bg-slate-900/50 rounded-[2.5rem] p-8 border border-slate-100 dark:border-white/5 text-center">
-                 <div className="mb-6">
-                     <p className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Upload Profile Picture</p>
-                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Requirement: White Background Only</p>
-                 </div>
 
-                 {profileImage ? (
-                     <div className="relative w-40 h-40 mx-auto rounded-full overflow-hidden border-4 border-white dark:border-slate-700 shadow-xl group">
-                         <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
-                         <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                            <RefreshCw className="text-white" size={24} />
-                            <input type="file" accept="image/*" onChange={handleProfileUpload} className="hidden" />
-                         </label>
-                     </div>
-                 ) : (
-                     <label className="cursor-pointer block">
-                         <div className="w-full h-48 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-3xl flex flex-col items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                             <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center mb-4 shadow-sm text-indigo-600">
-                                 <User size={28} />
-                             </div>
-                             <span className="text-xs font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 dark:bg-indigo-900/30 px-4 py-2 rounded-lg">Tap to Upload</span>
-                         </div>
-                         <input type="file" accept="image/*" onChange={handleProfileUpload} className="hidden" />
-                     </label>
-                 )}
+             <div className="space-y-4">
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pl-4">Permanent Address</label>
+                    <div className="relative">
+                        <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input name="permAddress" value={formData.permAddress} onChange={handleInputChange} className="w-full pl-14 pr-6 py-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-transparent focus:border-indigo-600 outline-none font-bold text-xs uppercase tracking-widest dark:text-white" placeholder="PERMANENT RESIDENCE" required />
+                    </div>
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pl-4">Temporary Address</label>
+                    <div className="relative">
+                        <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input name="tempAddress" value={formData.tempAddress} onChange={handleInputChange} className="w-full pl-14 pr-6 py-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-transparent focus:border-indigo-600 outline-none font-bold text-xs uppercase tracking-widest dark:text-white" placeholder="CURRENT LOCATION" required />
+                    </div>
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pl-4">Country</label>
+                    <div className="relative">
+                        <Globe className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input name="country" value={formData.country} onChange={handleInputChange} className="w-full pl-14 pr-6 py-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-transparent focus:border-indigo-600 outline-none font-bold text-xs uppercase tracking-widest dark:text-white" placeholder="COUNTRY OF RESIDENCE" required />
+                    </div>
+                 </div>
              </div>
           </div>
 
           <div className="w-full h-px bg-slate-100 dark:bg-white/5"></div>
 
-          {/* 3. Visual Proof Capture */}
+          {/* Section 3: Media */}
           <div className="space-y-6">
-              <div className="flex items-center space-x-3 mb-6">
+             <div className="flex items-center space-x-3 mb-6">
                 <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-indigo-600 font-black text-xs">3</div>
-                <h3 className="text-sm font-black uppercase tracking-widest text-slate-500">Program Visual Proof</h3>
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-500">Media Uploads</h3>
              </div>
+             
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 {/* Profile Picture (Required) */}
+                 <div className="bg-slate-50 dark:bg-slate-900/50 rounded-[2.5rem] p-8 border border-slate-100 dark:border-white/5 text-center">
+                     <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">Profile Picture <span className="text-red-500">*</span></p>
+                     
+                     {profileImage ? (
+                         <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-white dark:border-slate-700 shadow-xl group mt-4">
+                             <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                             <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                <Upload className="text-white" size={24} />
+                                <input type="file" accept="image/*" onChange={handleProfileUpload} className="hidden" />
+                             </label>
+                         </div>
+                     ) : (
+                         <label className="cursor-pointer block mt-4">
+                             <div className="w-full h-32 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl flex flex-col items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                 <User size={24} className="text-slate-400 mb-2"/>
+                                 <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Upload Photo</span>
+                             </div>
+                             <input type="file" accept="image/*" onChange={handleProfileUpload} className="hidden" />
+                         </label>
+                     )}
+                 </div>
 
-              <div className="bg-slate-900 rounded-[2.5rem] overflow-hidden relative min-h-[300px] flex items-center justify-center border-2 border-slate-100 dark:border-white/10 group shadow-2xl">
-                  {proofImage ? (
-                      <div onClick={retakeProof} className="relative w-full h-full cursor-pointer min-h-[300px]">
-                          <img src={proofImage} alt="Proof" className="w-full h-full object-cover absolute inset-0" />
-                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm z-10">
-                               <div className="bg-white/10 px-6 py-3 rounded-full border border-white/20 flex items-center">
-                                  <RefreshCw size={16} className="text-white mr-2" />
-                                  <span className="text-white font-black uppercase tracking-widest text-[10px]">Retake Photo</span>
-                               </div>
-                          </div>
-                      </div>
-                  ) : isCameraActive ? (
-                      <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover absolute inset-0" />
-                  ) : (
-                      <div className="text-center p-8">
-                          <ImageIcon size={48} className="mx-auto text-slate-700 mb-4" />
-                          <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Student ID or Schedule</p>
-                          <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Camera Access Needed</p>
-                      </div>
-                  )}
-                  
-                  <canvas ref={canvasRef} className="hidden" />
-
-                  <div className="absolute bottom-6 left-0 right-0 flex justify-center space-x-4 pointer-events-none z-20">
-                      {!proofImage && !isCameraActive && (
-                          <button type="button" onClick={startCamera} className="bg-indigo-600 text-white px-8 py-3 rounded-full font-black text-[10px] uppercase tracking-widest shadow-lg pointer-events-auto hover:bg-indigo-700 transition-colors flex items-center">
-                              <Camera size={16} className="mr-2" /> Activate Camera
-                          </button>
-                      )}
-                      
-                      {isCameraActive && (
-                          <button type="button" onClick={captureProof} className="w-16 h-16 bg-white rounded-full border-4 border-slate-200 flex items-center justify-center shadow-2xl hover:scale-105 transition-transform pointer-events-auto">
-                              <div className="w-12 h-12 bg-red-500 rounded-full border-2 border-white"></div>
-                          </button>
-                      )}
-                  </div>
-              </div>
+                 {/* Video (Optional) */}
+                 <div className="bg-slate-50 dark:bg-slate-900/50 rounded-[2.5rem] p-8 border border-slate-100 dark:border-white/5 text-center">
+                     <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">Introduction Video <span className="text-slate-400 font-bold text-[9px]">(OPTIONAL)</span></p>
+                     
+                     {videoFile ? (
+                         <div className="relative w-full h-32 mx-auto rounded-2xl overflow-hidden border-4 border-white dark:border-slate-700 shadow-xl group mt-4 flex items-center justify-center bg-black">
+                             <p className="text-white text-[9px] font-black uppercase tracking-widest">Video Loaded</p>
+                             <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                <Upload className="text-white" size={24} />
+                                <input type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
+                             </label>
+                         </div>
+                     ) : (
+                         <label className="cursor-pointer block mt-4">
+                             <div className="w-full h-32 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl flex flex-col items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                 <Video size={24} className="text-slate-400 mb-2"/>
+                                 <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Upload Video</span>
+                             </div>
+                             <input type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
+                         </label>
+                     )}
+                 </div>
+             </div>
           </div>
 
           <button
             type="submit"
-            disabled={submitting || Object.keys(answers).length < questions.length || !proofImage || !profileImage}
+            disabled={submitting}
             className="w-full bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl transition-all hover:bg-indigo-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center group mt-8"
           >
             {submitting ? <Loader2 className="animate-spin mr-4" /> : <Zap size={20} className="mr-4 group-hover:scale-125 transition-transform" />}
-            {submitting ? 'SYNCING...' : 'COMMIT SIGNAL'}
+            {submitting ? 'GENERATING LINK...' : 'SUBMIT APPLICATION'}
           </button>
         </form>
       </div>

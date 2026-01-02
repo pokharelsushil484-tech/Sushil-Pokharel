@@ -175,7 +175,7 @@ const App = () => {
                   <img src="/logo.svg" className="w-5 h-5 object-contain" alt="Logo" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-[0.3em] leading-none mb-1">{APP_NAME}</span>
+                  <span className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-[0.3em] leading-none mb-1">Student Pocket</span>
                   <div className="flex items-center text-[8px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
                     <Globe size={8} className="mr-1" />
                     <span>{SYSTEM_DOMAIN}</span>
@@ -183,7 +183,7 @@ const App = () => {
                 </div>
              </div>
              <div className="flex items-center space-x-3">
-                <span className="hidden sm:inline-block text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Session: {currentUsername}</span>
+                <span className="hidden sm:inline-block text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">User: {currentUsername}</span>
                 <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-black text-slate-500 uppercase text-xs">
                   {currentUsername.charAt(0)}
                 </div>

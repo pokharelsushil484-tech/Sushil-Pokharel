@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, ActivityLog } from '../types';
 import { 
-  Infinity as InfinityIcon, BellRing, Eye, Trash2, FileClock, Search, RefreshCw, CheckCircle, XCircle, Send, Paperclip, Mail, X
+  Infinity as InfinityIcon, BellRing, Eye, Trash2, FileClock, Search, RefreshCw, CheckCircle, XCircle, Send, Paperclip, Mail, X, Video, MapPin, Globe, Phone
 } from 'lucide-react';
 import { ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
@@ -134,46 +134,77 @@ export const AdminDashboard: React.FC = () => {
   );
 
   const renderRequestDetails = (request: ChangeRequest) => {
-    let detailsObj = {};
+    let detailsObj: any = {};
     try {
         detailsObj = JSON.parse(request.details);
     } catch(e) {
         return <p>Error parsing details.</p>;
     }
     
-    const proofImage = (detailsObj as any)._verificationImage;
-    const profileImage = (detailsObj as any)._profileImage;
-    const textDetails = Object.entries(detailsObj).filter(([k]) => k !== '_verificationImage' && k !== '_profileImage');
+    const profileImage = detailsObj._profileImage;
+    const videoFile = detailsObj._videoFile;
 
     return (
         <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {profileImage && (
-                    <div className="bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-                            <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Identity Profile Photo</p>
-                        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Profile Photo</p>
+                    </div>
+                    {profileImage ? (
                         <img src={profileImage} alt="Profile Photo" className="w-full h-64 object-cover bg-white" />
+                    ) : (
+                        <div className="w-full h-64 flex items-center justify-center text-slate-400 text-xs">No Image</div>
+                    )}
+                </div>
+                
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
+                    <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Intro Video</p>
                     </div>
-                )}
-                {proofImage && (
-                    <div className="bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-                            <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Program Proof</p>
+                    {videoFile ? (
+                        <div className="w-full h-64 bg-black flex flex-col items-center justify-center">
+                            <Video className="text-white mb-2" size={32} />
+                            <span className="text-white text-[10px] font-bold uppercase tracking-widest">Video Attached</span>
                         </div>
-                        <img src={proofImage} alt="Verification Proof" className="w-full h-64 object-contain bg-slate-900" />
-                    </div>
-                )}
+                    ) : (
+                         <div className="w-full h-64 flex items-center justify-center text-slate-400 text-xs font-bold uppercase tracking-widest">No Video Submission</div>
+                    )}
+                </div>
             </div>
 
-            <div className="space-y-4">
-                 <h3 className="text-sm font-black uppercase tracking-widest text-slate-500">Security Responses</h3>
-                 {textDetails.map(([q, a]: [any, any]) => (
-                   <div key={q} className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
-                      <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-3">Query: {q}</p>
-                      <p className="font-bold text-sm text-slate-800 dark:text-slate-100 leading-relaxed">{a}</p>
-                   </div>
-                 ))}
+            <div className="bg-slate-50 dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 space-y-4">
+                 <h3 className="text-sm font-black uppercase tracking-widest text-slate-500 border-b border-slate-200 dark:border-slate-700 pb-2">Student Data</h3>
+                 
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <div>
+                         <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">Full Name</p>
+                         <p className="text-sm font-bold dark:text-white">{detailsObj.fullName}</p>
+                     </div>
+                     <div>
+                         <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1 flex items-center"><Mail size={10} className="mr-1"/> Email</p>
+                         <p className="text-sm font-bold dark:text-white">{detailsObj.email}</p>
+                     </div>
+                     <div>
+                         <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1 flex items-center"><Phone size={10} className="mr-1"/> Phone</p>
+                         <p className="text-sm font-bold dark:text-white">{detailsObj.phone}</p>
+                     </div>
+                     <div>
+                         <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1 flex items-center"><Globe size={10} className="mr-1"/> Country</p>
+                         <p className="text-sm font-bold dark:text-white">{detailsObj.country}</p>
+                     </div>
+                 </div>
+
+                 <div className="space-y-4 mt-4">
+                     <div className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+                         <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1 flex items-center"><MapPin size={10} className="mr-1"/> Permanent Address</p>
+                         <p className="text-sm font-medium dark:text-gray-300">{detailsObj.permAddress}</p>
+                     </div>
+                     <div className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+                         <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1 flex items-center"><MapPin size={10} className="mr-1"/> Temporary Address</p>
+                         <p className="text-sm font-medium dark:text-gray-300">{detailsObj.tempAddress}</p>
+                     </div>
+                 </div>
             </div>
         </div>
     );
@@ -183,14 +214,14 @@ export const AdminDashboard: React.FC = () => {
   const getRequestThumbnail = (req: ChangeRequest) => {
       try {
           const d = JSON.parse(req.details);
-          return d._profileImage || d._verificationImage;
+          return d._profileImage;
       } catch { return null; }
   };
   
   const getVerificationImage = (req: ChangeRequest) => {
       try {
           const d = JSON.parse(req.details);
-          return d._verificationImage;
+          return d._profileImage;
       } catch { return null; }
   };
 
@@ -198,14 +229,14 @@ export const AdminDashboard: React.FC = () => {
     <div className="pb-24 animate-fade-in w-full max-w-7xl mx-auto space-y-8 px-4 sm:px-0">
       <div className="flex flex-col md:flex-row justify-between items-end gap-6">
         <div>
-            <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Authority Console</h1>
-            <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] mt-2">Node Control Nucleus</p>
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Admin Control</h1>
+            <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] mt-2">StudentPocket Admin</p>
         </div>
         <div className="flex items-center gap-4 w-full md:w-auto">
             <button onClick={() => setRefreshTrigger(prev => prev + 1)} className="p-3 bg-white dark:bg-slate-800 rounded-2xl text-indigo-600 shadow-sm hover:scale-105 transition-transform"><RefreshCw size={20}/></button>
             <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-3xl w-full md:w-auto overflow-x-auto no-scrollbar">
-                <button onClick={() => setViewMode('REQUESTS')} className={`flex-1 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${viewMode === 'REQUESTS' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:text-slate-700'}`}>Signals ({requests.length})</button>
-                <button onClick={() => setViewMode('NODES')} className={`flex-1 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${viewMode === 'NODES' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:text-slate-700'}`}>Nodes</button>
+                <button onClick={() => setViewMode('REQUESTS')} className={`flex-1 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${viewMode === 'REQUESTS' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:text-slate-700'}`}>Requests ({requests.length})</button>
+                <button onClick={() => setViewMode('NODES')} className={`flex-1 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${viewMode === 'NODES' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:text-slate-700'}`}>Users</button>
                 <button onClick={() => setViewMode('LOGS')} className={`flex-1 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${viewMode === 'LOGS' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:text-slate-700'}`}>Logs</button>
             </div>
         </div>
@@ -225,7 +256,7 @@ export const AdminDashboard: React.FC = () => {
                      </div>
                      <div className="min-w-0">
                         <p className="font-black text-lg uppercase tracking-tight dark:text-white truncate">{req.username}</p>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Verification Signal</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Application Pending</p>
                      </div>
                   </div>
                   
@@ -234,7 +265,7 @@ export const AdminDashboard: React.FC = () => {
                         onClick={() => setSelectedRequest(req)} 
                         className="flex-1 md:flex-none px-8 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl hover:bg-slate-800 dark:hover:bg-indigo-700 font-black text-[10px] uppercase tracking-widest transition-all shadow-lg"
                     >
-                        Review Signal
+                        Review
                     </button>
                   </div>
                </div>
@@ -243,7 +274,7 @@ export const AdminDashboard: React.FC = () => {
            {requests.length === 0 && (
                <div className="text-center py-32 bg-slate-50 dark:bg-slate-900/50 rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
                    <BellRing size={48} className="mx-auto text-slate-200 dark:text-slate-700 mb-4" />
-                   <p className="font-black uppercase tracking-widest text-xs text-slate-400">No pending authorization signals.</p>
+                   <p className="font-black uppercase tracking-widest text-xs text-slate-400">No pending applications.</p>
                </div>
            )}
         </div>
@@ -254,14 +285,14 @@ export const AdminDashboard: React.FC = () => {
         <div className="fixed inset-0 z-[500] bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4">
            <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[3rem] p-8 md:p-10 shadow-2xl border border-slate-100 dark:border-slate-800 max-h-[85vh] overflow-y-auto no-scrollbar animate-scale-up">
               <div className="flex justify-between items-center mb-8 sticky top-0 bg-white dark:bg-slate-900 z-10 py-2">
-                 <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Signal Review</h2>
+                 <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Application Review</h2>
                  <button onClick={() => setSelectedRequest(null)} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"><X size={20} className="text-slate-400"/></button>
               </div>
               
               {renderRequestDetails(selectedRequest)}
 
               <div className="grid grid-cols-2 gap-4 mt-8">
-                 <button onClick={() => initiateProcess('APPROVE')} className="bg-emerald-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-emerald-600 transition-all flex items-center justify-center"><CheckCircle size={16} className="mr-2"/> Accept</button>
+                 <button onClick={() => initiateProcess('APPROVE')} className="bg-emerald-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-emerald-600 transition-all flex items-center justify-center"><CheckCircle size={16} className="mr-2"/> Approve</button>
                  <button onClick={() => initiateProcess('REJECT')} className="bg-red-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-red-600 transition-all flex items-center justify-center"><XCircle size={16} className="mr-2"/> Reject</button>
               </div>
            </div>
@@ -310,8 +341,8 @@ export const AdminDashboard: React.FC = () => {
                                 <Paperclip size={18} />
                              </div>
                              <div>
-                                 <p className="text-xs font-black dark:text-white uppercase tracking-tight">Attachment Included</p>
-                                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">User_Proof.jpg</p>
+                                 <p className="text-xs font-black dark:text-white uppercase tracking-tight">Profile Attached</p>
+                                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">User_Profile.jpg</p>
                              </div>
                          </div>
                          <div className="w-12 h-12 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
