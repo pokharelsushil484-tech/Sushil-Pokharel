@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ChangeRequest, View, ActivityLog } from '../types';
 import { 
   ShieldCheck, UserCheck, HardDrive, Plus, Minus, Activity, 
-  Infinity as InfinityIcon, Check, ShieldX, UserMinus, UserPlus, BellRing, Eye, Trash2, FileClock, Search
+  Check, ShieldX, UserMinus, UserPlus, BellRing, Eye, Trash2, FileClock, Search
 } from 'lucide-react';
 import { ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
@@ -183,7 +183,7 @@ export const AdminDashboard: React.FC = () => {
                       </div>
                    </div>
                  )}
-                 {u.isAdmin && <div className="p-8 bg-indigo-600/10 rounded-3xl border border-indigo-500/20 text-center"><InfinityIcon className="text-indigo-500 mx-auto" size={40} /></div>}
+                 {u.isAdmin && <div className="p-8 bg-indigo-600/10 rounded-3xl border border-indigo-500/20 text-center"><Activity className="text-indigo-500 mx-auto" size={40} /></div>}
               </div>
            ))}
         </div>

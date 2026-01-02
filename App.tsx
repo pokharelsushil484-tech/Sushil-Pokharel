@@ -21,7 +21,8 @@ import { storageService } from './services/storageService';
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
   const [currentUsername, setCurrentUsername] = useState<string | null>(() => localStorage.getItem('active_session_user'));
-  const [isLoading, setIsLoading] = useState(false);
+  // Fix: Initialize isLoading based on whether a user is expected, to prevent render flash
+  const [isLoading, setIsLoading] = useState(() => !!localStorage.getItem('active_session_user'));
   const [showSplash, setShowSplash] = useState(true);
   const [showTerms, setShowTerms] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('architect_theme') === 'true');
@@ -37,6 +38,7 @@ const App = () => {
   useEffect(() => {
     const sync = async () => {
       if (currentUsername) {
+        // Ensure loading is true when we start syncing
         setIsLoading(true);
         try {
           const stored = await storageService.getData(`architect_data_${currentUsername}`);
@@ -58,6 +60,9 @@ const App = () => {
         } finally {
           setIsLoading(false);
         }
+      } else {
+        // If no username, we are definitely not loading user data
+        setIsLoading(false);
       }
     };
     sync();
@@ -79,6 +84,8 @@ const App = () => {
   }, [darkMode]);
 
   const handleLoginSuccess = async (username: string) => {
+    // Set loading immediately to true to ease transition
+    setIsLoading(true);
     localStorage.setItem('active_session_user', username);
     setCurrentUsername(username);
     
