@@ -32,6 +32,16 @@ export interface UserProfile {
   authorizedDevices: string[];
 }
 
+export interface ActivityLog {
+  id: string;
+  timestamp: number;
+  actor: string;        // Who performed the action (User or Admin)
+  targetUser?: string;  // Who was affected (if different from actor)
+  actionType: 'AUTH' | 'DATA' | 'ADMIN' | 'SECURITY' | 'SYSTEM';
+  description: string;
+  metadata?: string;    // JSON string for extra details (e.g., file size, old values)
+}
+
 export interface VaultDocument {
   id: string;
   title: string;

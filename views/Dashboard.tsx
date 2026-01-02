@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { UserProfile, View } from '../types';
-import { ShieldCheck, HardDrive, ShieldAlert, Infinity, ArrowRight, FolderLock, FileCheck, Loader2, Sparkles, Lock, Database } from 'lucide-react';
+import { ShieldCheck, HardDrive, Infinity as InfinityIcon, ArrowRight, Loader2, Sparkles, Lock, Database } from 'lucide-react';
 import { CREATOR_NAME, ADMIN_USERNAME } from '../constants';
 
 interface DashboardProps {
@@ -12,8 +12,13 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate }) => {
   const isAdmin = username === ADMIN_USERNAME;
-  const usedGB = (user.storageUsedBytes / (1024 ** 3)).toFixed(2);
-  const usedPercent = isAdmin ? 0 : Math.min(100, (user.storageUsedBytes / (user.storageLimitGB * 1024 ** 3)) * 100);
+  
+  // Safety defaults to prevent calculation errors
+  const safeUsedBytes = user?.storageUsedBytes || 0;
+  const safeLimitGB = user?.storageLimitGB || 10;
+  
+  const usedGB = (safeUsedBytes / (1024 ** 3)).toFixed(2);
+  const usedPercent = isAdmin ? 0 : Math.min(100, (safeUsedBytes / (safeLimitGB * 1024 ** 3)) * 100);
 
   const getVerificationUI = () => {
     if (user.isVerified || isAdmin) return null;
@@ -69,12 +74,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                   </div>
                   <h1 className="text-6xl lg:text-8xl font-black mb-6 leading-[0.9] tracking-tighter uppercase">
                     Node <br/>
-                    <span className="text-indigo-500">{user.name}</span>
+                    <span className="text-indigo-500">{user.name || 'Unknown Node'}</span>
                   </h1>
                   <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.5em] mt-12">Engineering Authority: {CREATOR_NAME}</p>
               </div>
               <div className="w-40 h-40 rounded-[3rem] bg-indigo-600 flex items-center justify-center shadow-[0_0_50px_rgba(79,70,229,0.4)] border border-white/20">
-                  {isAdmin ? <Infinity size={72} className="text-white" /> : user.isVerified ? <ShieldCheck size={72} className="text-white" /> : <Lock size={72} className="text-white/50" />}
+                  {isAdmin ? <InfinityIcon size={72} className="text-white" /> : user.isVerified ? <ShieldCheck size={72} className="text-white" /> : <Lock size={72} className="text-white/50" />}
               </div>
           </div>
       </div>

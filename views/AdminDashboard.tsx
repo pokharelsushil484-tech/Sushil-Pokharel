@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { ChangeRequest, View } from '../types';
+import { ChangeRequest, View, ActivityLog } from '../types';
 import { 
   ShieldCheck, UserCheck, HardDrive, Plus, Minus, Activity, 
-  Infinity, Check, ShieldX, UserMinus, UserPlus, BellRing, Eye, Trash2
+  Infinity as InfinityIcon, Check, ShieldX, UserMinus, UserPlus, BellRing, Eye, Trash2, FileClock, Search
 } from 'lucide-react';
 import { ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
@@ -11,12 +11,15 @@ import { storageService } from '../services/storageService';
 export const AdminDashboard: React.FC = () => {
   const [usersList, setUsersList] = useState<any[]>([]);
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [viewMode, setViewMode] = useState<'REQUESTS' | 'NODES'>('REQUESTS');
+  const [viewMode, setViewMode] = useState<'REQUESTS' | 'NODES' | 'LOGS'>('REQUESTS');
   const [selectedRequest, setSelectedRequest] = useState<ChangeRequest | null>(null);
+  const [logFilter, setLogFilter] = useState('');
   
   useEffect(() => {
     const fetch = async () => {
+      // Fetch Users
       const usersStr = localStorage.getItem('studentpocket_users');
       if (usersStr) {
         const usersObj = JSON.parse(usersStr);
@@ -33,8 +36,13 @@ export const AdminDashboard: React.FC = () => {
         }));
         setUsersList(list);
       }
+      // Fetch Requests
       const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
       setRequests(JSON.parse(reqStr));
+
+      // Fetch Logs
+      const activityLogs = await storageService.getLogs();
+      setLogs(activityLogs);
     };
     fetch();
   }, [refreshTrigger]);
@@ -52,6 +60,15 @@ export const AdminDashboard: React.FC = () => {
       await storageService.setData(dataKey, stored);
     }
 
+    // Log the action
+    await storageService.logActivity({
+        actor: ADMIN_USERNAME,
+        targetUser: req.username,
+        actionType: 'ADMIN',
+        description: `Authorization Signal ${action}: ${req.username}`,
+        metadata: JSON.stringify({ requestId: reqId, action })
+    });
+
     const updatedRequests = requests.filter(r => r.id !== reqId);
     localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
     setRefreshTrigger(prev => prev + 1);
@@ -64,9 +81,25 @@ export const AdminDashboard: React.FC = () => {
     if (stored) {
         stored.user = { ...stored.user, ...updates };
         await storageService.setData(dataKey, stored);
+        
+        // Log the action
+        await storageService.logActivity({
+            actor: ADMIN_USERNAME,
+            targetUser: username,
+            actionType: 'ADMIN',
+            description: `Node Update: ${username}`,
+            metadata: JSON.stringify(updates)
+        });
+
         setRefreshTrigger(prev => prev + 1);
     }
   };
+
+  const filteredLogs = logs.filter(log => 
+    log.description.toLowerCase().includes(logFilter.toLowerCase()) || 
+    log.actor.toLowerCase().includes(logFilter.toLowerCase()) ||
+    (log.targetUser && log.targetUser.toLowerCase().includes(logFilter.toLowerCase()))
+  );
 
   return (
     <div className="pb-24 animate-fade-in w-full max-w-7xl mx-auto space-y-12">
@@ -75,9 +108,10 @@ export const AdminDashboard: React.FC = () => {
             <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Authority Console</h1>
             <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] mt-2">Node Control Nucleus</p>
         </div>
-        <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-3xl w-full md:w-auto">
-            <button onClick={() => setViewMode('REQUESTS')} className={`flex-1 px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest ${viewMode === 'REQUESTS' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500'}`}>Signals ({requests.length})</button>
-            <button onClick={() => setViewMode('NODES')} className={`flex-1 px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest ${viewMode === 'NODES' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500'}`}>Active Nodes</button>
+        <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-3xl w-full md:w-auto overflow-x-auto">
+            <button onClick={() => setViewMode('REQUESTS')} className={`flex-1 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${viewMode === 'REQUESTS' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500'}`}>Signals ({requests.length})</button>
+            <button onClick={() => setViewMode('NODES')} className={`flex-1 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${viewMode === 'NODES' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500'}`}>Active Nodes</button>
+            <button onClick={() => setViewMode('LOGS')} className={`flex-1 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${viewMode === 'LOGS' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500'}`}>Audit Logs</button>
         </div>
       </div>
 
@@ -149,9 +183,67 @@ export const AdminDashboard: React.FC = () => {
                       </div>
                    </div>
                  )}
-                 {u.isAdmin && <div className="p-8 bg-indigo-600/10 rounded-3xl border border-indigo-500/20 text-center"><Infinity className="text-indigo-500 mx-auto" size={40} /></div>}
+                 {u.isAdmin && <div className="p-8 bg-indigo-600/10 rounded-3xl border border-indigo-500/20 text-center"><InfinityIcon className="text-indigo-500 mx-auto" size={40} /></div>}
               </div>
            ))}
+        </div>
+      )}
+
+      {viewMode === 'LOGS' && (
+        <div className="bg-white dark:bg-slate-900 rounded-[3.5rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xl">
+           <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6">
+              <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl flex items-center justify-center text-indigo-600"><FileClock size={24} /></div>
+                  <h2 className="text-2xl font-black uppercase tracking-tight dark:text-white">System Activity</h2>
+              </div>
+              <div className="relative w-full md:w-64">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input 
+                    type="text" 
+                    placeholder="Search logs..." 
+                    className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-2xl text-xs font-bold uppercase tracking-widest outline-none dark:text-white"
+                    value={logFilter}
+                    onChange={(e) => setLogFilter(e.target.value)}
+                  />
+              </div>
+           </div>
+           
+           <div className="max-h-[600px] overflow-y-auto no-scrollbar">
+              <table className="w-full text-left">
+                  <thead className="bg-slate-50 dark:bg-slate-800/50 sticky top-0 backdrop-blur-md z-10">
+                      <tr>
+                          <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Timestamp</th>
+                          <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Actor</th>
+                          <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Type</th>
+                          <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Description</th>
+                          <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Target</th>
+                      </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {filteredLogs.map(log => (
+                          <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                              <td className="p-6 text-xs font-bold text-slate-500 font-mono">{new Date(log.timestamp).toLocaleString()}</td>
+                              <td className="p-6 text-xs font-black uppercase dark:text-white">{log.actor}</td>
+                              <td className="p-6">
+                                  <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
+                                      log.actionType === 'ADMIN' ? 'bg-red-50 text-red-600 border-red-100' :
+                                      log.actionType === 'AUTH' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                                      log.actionType === 'DATA' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                      'bg-slate-50 text-slate-600 border-slate-100'
+                                  }`}>
+                                      {log.actionType}
+                                  </span>
+                              </td>
+                              <td className="p-6 text-xs font-medium dark:text-slate-300">{log.description}</td>
+                              <td className="p-6 text-xs font-bold text-slate-400 uppercase">{log.targetUser || '-'}</td>
+                          </tr>
+                      ))}
+                      {filteredLogs.length === 0 && (
+                          <tr><td colSpan={5} className="p-12 text-center text-xs font-black text-slate-300 uppercase tracking-widest">No activity logs found.</td></tr>
+                      )}
+                  </tbody>
+              </table>
+           </div>
         </div>
       )}
     </div>

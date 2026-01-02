@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { UserProfile } from '../types';
 import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Smartphone, Monitor, Database, Zap, Fingerprint, QrCode, Gavel, ExternalLink, ShieldAlert, Camera } from 'lucide-react';
 import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, CREATOR_NAME } from '../constants';
+import { storageService } from '../services/storageService';
 
 interface SettingsProps {
   user: UserProfile;
@@ -29,9 +30,18 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
     }, 1000);
   };
 
-  const finalizeTotp = () => {
+  const finalizeTotp = async () => {
     updateUser({ ...user, totpEnabled: true });
     setShowTotpSetup(false);
+    
+    // Log MFA Activation
+    await storageService.logActivity({
+        actor: user.name,
+        targetUser: user.name,
+        actionType: 'SECURITY',
+        description: `MFA Protocol Enforced: ${user.name}`
+    });
+
     alert("Authenticator Synced. Your node is now protected by Google Authenticator protocols.");
   };
 
@@ -40,6 +50,19 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       navigator.clipboard.writeText(user.totpSecret);
       alert("Secret Key Copied to Clipboard.");
     }
+  };
+
+  const handleSystemWipe = async () => {
+      if (window.confirm("CRITICAL: Wipe all local data nodes permanently?")) {
+          // Log Critical Action
+          await storageService.logActivity({
+            actor: username,
+            actionType: 'SYSTEM',
+            description: `SYSTEM PURGE INITIATED`,
+            metadata: 'Factory Reset Triggered'
+          });
+          resetApp();
+      }
   };
 
   return (
@@ -213,7 +236,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                     <p className="text-[11px] text-red-400 font-black uppercase tracking-[0.4em] mt-3">Perform destructive factory reset on this cluster node.</p>
                 </div>
             </div>
-            <button onClick={() => window.confirm("CRITICAL: Wipe all local data nodes permanently?") && resetApp()} className="px-14 py-7 bg-red-600 text-white rounded-[2.5rem] font-black text-sm uppercase tracking-[0.5em] shadow-2xl hover:bg-red-700 active:scale-95 transition-all">WIPE INFRASTRUCTURE</button>
+            <button onClick={handleSystemWipe} className="px-14 py-7 bg-red-600 text-white rounded-[2.5rem] font-black text-sm uppercase tracking-[0.5em] shadow-2xl hover:bg-red-700 active:scale-95 transition-all">WIPE INFRASTRUCTURE</button>
         </div>
       )}
 

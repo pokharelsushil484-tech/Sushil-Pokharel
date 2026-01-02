@@ -6,6 +6,7 @@ import {
   Box, CloudUpload, X, Download, Trash2, 
   ShieldAlert, MoreVertical, LayoutGrid, List, Database
 } from 'lucide-react';
+import { storageService } from '../services/storageService';
 
 interface VaultProps {
   user: UserProfile;
@@ -68,7 +69,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
 
     setIsUploading(true);
     const reader = new FileReader();
-    reader.onloadend = () => {
+    reader.onloadend = async () => {
       const newDoc: VaultDocument = {
         id: 'SEG-' + Date.now(),
         title: file.name,
@@ -80,6 +81,16 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
       };
       saveDocuments([...documents, newDoc]);
       updateUser({...user, storageUsedBytes: user.storageUsedBytes + file.size});
+      
+      // Log Upload Activity
+      await storageService.logActivity({
+        actor: user.name,
+        targetUser: user.name,
+        actionType: 'DATA',
+        description: `Uploaded Segment: ${file.name}`,
+        metadata: JSON.stringify({ size: file.size, type: file.type })
+      });
+
       setIsUploading(false);
     };
     reader.readAsDataURL(file);
@@ -94,12 +105,21 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
     document.body.removeChild(link);
   };
 
-  const deleteFile = (id: string) => {
+  const deleteFile = async (id: string) => {
     if (window.confirm("Purge segment permanently from repository?")) {
       const doc = documents.find(d => d.id === id);
       if (doc) {
         saveDocuments(documents.filter(d => d.id !== id));
         updateUser({...user, storageUsedBytes: Math.max(0, user.storageUsedBytes - doc.size)});
+        
+        // Log Delete Activity
+        await storageService.logActivity({
+            actor: user.name,
+            targetUser: user.name,
+            actionType: 'DATA',
+            description: `Purged Segment: ${doc.title}`,
+            metadata: JSON.stringify({ size: doc.size })
+        });
       }
     }
   };

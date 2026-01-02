@@ -40,17 +40,21 @@ const App = () => {
         setIsLoading(true);
         try {
           const stored = await storageService.getData(`architect_data_${currentUsername}`);
-          if (stored) {
+          if (stored && stored.user) {
             setData(stored);
             if (stored.user?.acceptedTermsVersion !== SYSTEM_UPGRADE_TOKEN) {
               setShowTerms(true);
             }
           } else {
-            // Data node missing, force onboarding configuration
+            // Data node missing or corrupted, force onboarding configuration
             setView(View.ONBOARDING);
+            // Ensure data.user is null to trigger Onboarding render
+            setData(prev => ({ ...prev, user: null }));
           }
         } catch (err) {
           console.error("Critical Sync Failure", err);
+          // Fallback to onboarding if sync fails catastrophically
+          setView(View.ONBOARDING);
         } finally {
           setIsLoading(false);
         }
@@ -74,12 +78,30 @@ const App = () => {
     localStorage.setItem('architect_theme', String(darkMode));
   }, [darkMode]);
 
-  const handleLoginSuccess = (username: string) => {
+  const handleLoginSuccess = async (username: string) => {
     localStorage.setItem('active_session_user', username);
     setCurrentUsername(username);
+    
+    // Log the login event
+    await storageService.logActivity({
+      actor: username,
+      actionType: 'AUTH',
+      description: `Session Initiated: ${username}`,
+      targetUser: username
+    });
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Log the logout event before clearing state
+    if (currentUsername) {
+      await storageService.logActivity({
+        actor: currentUsername,
+        actionType: 'AUTH',
+        description: `Session Terminated: ${currentUsername}`,
+        targetUser: currentUsername
+      });
+    }
+
     localStorage.removeItem('active_session_user');
     setCurrentUsername(null);
     setData(initialData);
@@ -88,6 +110,12 @@ const App = () => {
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
 
+  // Render logic handling
+  if (!currentUsername) {
+    return <Login user={null} onLogin={handleLoginSuccess} />;
+  }
+
+  // Suspended Check
   if (data.user?.isBanned) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
@@ -102,11 +130,11 @@ const App = () => {
     );
   }
 
-  if (!currentUsername) {
-    return <Login user={null} onLogin={handleLoginSuccess} />;
-  }
-
   const renderContent = () => {
+    // If we are loading, we don't render content to avoid flickering or race conditions
+    // The GlobalLoader will cover the screen.
+    if (isLoading && !data.user) return null;
+
     if (!data.user) return <Onboarding onComplete={p => setData(prev => ({...prev, user: p}))} />;
     
     switch (view) {
@@ -125,30 +153,37 @@ const App = () => {
       <GlobalLoader isLoading={isLoading} />
       {showTerms && <TermsModal onAccept={() => { if(data.user) setData(prev => ({...prev, user: { ...prev.user!, acceptedTermsVersion: SYSTEM_UPGRADE_TOKEN } })); setShowTerms(false); }} />}
       
-      <div className="md:ml-20 lg:ml-64 transition-all">
-        <header className="bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 h-20 flex items-center justify-between px-6 lg:px-12 sticky top-0 z-[100] shadow-sm">
-           <div className="flex items-center space-x-5">
-              <div className="p-2.5 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-600/20">
-                <Terminal size={22} />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-[0.4em] leading-none mb-1">{APP_NAME}</span>
-                <div className="flex items-center text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
-                  <Globe size={10} className="mr-1.5" />
-                  <span>{SYSTEM_DOMAIN}</span>
+      {/* Only render layout if we have data or if we are not loading (e.g. Onboarding) */}
+      {(!isLoading || data.user) && (
+        <div className="md:ml-20 lg:ml-64 transition-all animate-fade-in">
+          <header className="bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 h-20 flex items-center justify-between px-6 lg:px-12 sticky top-0 z-[100] shadow-sm">
+             <div className="flex items-center space-x-5">
+                <div className="p-2.5 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-600/20">
+                  <Terminal size={22} />
                 </div>
-              </div>
-           </div>
-           <div className="flex items-center space-x-4">
-              <span className="hidden sm:inline-block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Session: {currentUsername}</span>
-              <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-black text-slate-500 uppercase">
-                {currentUsername.charAt(0)}
-              </div>
-           </div>
-        </header>
-        <main className="max-w-7xl mx-auto p-6 lg:p-12 pb-24 lg:pb-16 min-h-[calc(100vh-80px)] w-full">{renderContent()}</main>
-      </div>
-      <Navigation currentView={view} setView={setView} isAdmin={currentUsername === ADMIN_USERNAME} isVerified={data.user?.isVerified || false} />
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-[0.4em] leading-none mb-1">{APP_NAME}</span>
+                  <div className="flex items-center text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
+                    <Globe size={10} className="mr-1.5" />
+                    <span>{SYSTEM_DOMAIN}</span>
+                  </div>
+                </div>
+             </div>
+             <div className="flex items-center space-x-4">
+                <span className="hidden sm:inline-block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Session: {currentUsername}</span>
+                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-black text-slate-500 uppercase">
+                  {currentUsername.charAt(0)}
+                </div>
+             </div>
+          </header>
+          <main className="max-w-7xl mx-auto p-6 lg:p-12 pb-24 lg:pb-16 min-h-[calc(100vh-80px)] w-full">{renderContent()}</main>
+        </div>
+      )}
+      
+      {/* Navigation should only appear if user data is loaded and valid */}
+      {data.user && !isLoading && (
+        <Navigation currentView={view} setView={setView} isAdmin={currentUsername === ADMIN_USERNAME} isVerified={data.user?.isVerified || false} />
+      )}
     </div>
   );
 }
