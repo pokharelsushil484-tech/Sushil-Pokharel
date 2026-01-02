@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest, View } from '../types';
-import { ShieldCheck, Loader2, ArrowLeft, Send, Upload, User, Video, MapPin, Phone, Mail, Globe, FileText } from 'lucide-react';
+import { ShieldCheck, Loader2, ArrowLeft, Send, Upload, User, Video, MapPin, Phone, Mail, Globe, FileText, CheckCircle } from 'lucide-react';
 
 interface VerificationFormProps {
   user: UserProfile;
@@ -12,6 +12,7 @@ interface VerificationFormProps {
 
 export const VerificationForm: React.FC<VerificationFormProps> = ({ user, username, updateUser, onNavigate }) => {
   const [submitting, setSubmitting] = useState(false);
+  const [successState, setSuccessState] = useState<{ link: string; email: string } | null>(null);
   
   // Permanent Fields State
   const [formData, setFormData] = useState({
@@ -88,13 +89,53 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
       
       // The 2-second link logic as requested
       const linkId = Math.random().toString(36).substring(7);
-      const link = `https://studentpocket.app/v/${linkId}`;
+      const link = `https://sushilpokharel00.com.np/v/${linkId}`;
       
-      alert(`SUBMISSION SUCCESSFUL.\n\nVerification Link Generated: ${link}\nSent to: ${formData.email}\n\nATTENTION: Link expires in exactly 2 seconds.`);
-      
-      onNavigate(View.DASHBOARD);
+      // Instead of alert and redirect, show the Verification Box
+      setSuccessState({ link, email: formData.email });
     }, 1500);
   };
+
+  if (successState) {
+    return (
+      <div className="max-w-xl mx-auto animate-fade-in pt-12 pb-24 px-4">
+        <div className="bg-white dark:bg-[#0f172a] rounded-[3rem] p-10 shadow-2xl border border-indigo-100 dark:border-indigo-900/30 text-center relative overflow-hidden">
+             {/* Decorative Background */}
+             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+             <div className="absolute top-0 left-0 w-full h-1.5 bg-indigo-600"></div>
+             
+             <div className="w-24 h-24 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-8 text-emerald-500 shadow-xl shadow-emerald-500/10 animate-scale-up">
+                 <CheckCircle size={48} strokeWidth={3} />
+             </div>
+             
+             <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-3">Submission Success</h2>
+             <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.3em] mb-10">System has received your data</p>
+             
+             <div className="bg-slate-50 dark:bg-slate-900/50 p-8 rounded-[2rem] border border-slate-200 dark:border-slate-800 mb-10 relative">
+                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
+                    Generated Secure Link
+                 </div>
+                 <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400 font-mono break-all mb-6">{successState.link}</p>
+                 
+                 <div className="flex flex-col items-center space-y-2">
+                    <div className="flex items-center justify-center space-x-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                        <Loader2 size={12} className="animate-spin text-indigo-500" />
+                        <span>Admin is reviewing your link</span>
+                    </div>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Sent to: {successState.email}</p>
+                 </div>
+             </div>
+
+             <button 
+                onClick={() => onNavigate(View.DASHBOARD)}
+                className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-5 rounded-3xl font-black text-xs uppercase tracking-[0.3em] shadow-xl hover:scale-[1.02] transition-transform active:scale-95"
+             >
+                Return to Dashboard
+             </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto animate-fade-in pb-24">
