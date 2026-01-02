@@ -95,6 +95,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       if (!users[ADMIN_USERNAME]) {
          users[ADMIN_USERNAME] = { password: ADMIN_SECRET, email: 'admin@system.local', name: 'System Architect', verified: true };
          localStorage.setItem('studentpocket_users', JSON.stringify(users));
+      } else {
+         // Ensure existing admin is verified
+         if (!users[ADMIN_USERNAME].verified) {
+             users[ADMIN_USERNAME].verified = true;
+             localStorage.setItem('studentpocket_users', JSON.stringify(users));
+         }
       }
 
       setView('IDENTITY_SNAP');
