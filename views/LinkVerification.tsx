@@ -41,7 +41,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
             setNotFound(false);
         } else {
             setNotFound(true);
-            // If Admin, load other pending requests
+            // If Admin, load other pending requests to show as options
             if (isAdmin) {
                 const pending = requests.filter(r => r.status === 'PENDING');
                 setOtherRequests(pending);
@@ -105,7 +105,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
   const switchToRequest = (req: ChangeRequest) => {
       setRequest(req);
       setNotFound(false);
-      // Ideally change URL too, but for internal state this works
+      // We don't change the URL here to keep it simple, just render the correct data
   };
 
   if (loading) {
