@@ -9,6 +9,7 @@ import { AdminDashboard } from './views/AdminDashboard';
 import { AIChat } from './views/AIChat';
 import { Vault } from './views/Vault';
 import { VerificationForm } from './views/VerificationForm';
+import { LinkVerification } from './views/LinkVerification';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { TermsModal } from './components/TermsModal';
@@ -25,6 +26,7 @@ const App = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [showTerms, setShowTerms] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('architect_theme') === 'true');
+  const [verifyLinkId, setVerifyLinkId] = useState<string | null>(null);
   
   const initialData = {
     user: null as UserProfile | null,
@@ -33,6 +35,18 @@ const App = () => {
   };
 
   const [data, setData] = useState(initialData);
+
+  useEffect(() => {
+    // Check for verification link
+    const path = window.location.pathname;
+    const match = path.match(/^\/v\/([a-zA-Z0-9]+)$/);
+    if (match) {
+        setVerifyLinkId(match[1]);
+        setView(View.VERIFY_LINK);
+        setShowSplash(false); // Skip splash for direct links
+        setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const sync = async () => {
@@ -52,12 +66,14 @@ const App = () => {
               setShowTerms(true);
             }
           } else {
-            setView(View.ONBOARDING);
+            if (view !== View.VERIFY_LINK) {
+                setView(View.ONBOARDING);
+            }
             setData(prev => ({ ...prev, user: null }));
           }
         } catch (err) {
           console.error("Critical Sync Failure", err);
-          setView(View.ONBOARDING);
+          if (view !== View.VERIFY_LINK) setView(View.ONBOARDING);
         } finally {
           setIsLoading(false);
         }
@@ -65,7 +81,9 @@ const App = () => {
         setIsLoading(false);
       }
     };
-    sync();
+    if (view !== View.VERIFY_LINK) {
+        sync();
+    }
   }, [currentUsername]);
 
   useEffect(() => {
@@ -111,6 +129,10 @@ const App = () => {
     setData(initialData);
     setView(View.DASHBOARD);
   };
+
+  if (view === View.VERIFY_LINK && verifyLinkId) {
+      return <LinkVerification linkId={verifyLinkId} onNavigate={(v) => { setView(v); setVerifyLinkId(null); }} currentUser={currentUsername} />;
+  }
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
 

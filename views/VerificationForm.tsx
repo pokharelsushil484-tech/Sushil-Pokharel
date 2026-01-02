@@ -63,6 +63,9 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     
     setSubmitting(true);
     
+    // The 2-second link logic as requested
+    const linkId = Math.random().toString(36).substring(7);
+
     const finalDetails = {
         ...formData,
         _profileImage: profileImage,     
@@ -77,7 +80,8 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
       type: 'VERIFICATION',
       details: JSON.stringify(finalDetails),
       status: 'PENDING',
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      linkId: linkId // Store the link ID for retrieval
     };
 
     const existing = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
@@ -87,8 +91,6 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
       updateUser({ ...user, verificationStatus: 'PENDING_APPROVAL' });
       setSubmitting(false);
       
-      // The 2-second link logic as requested
-      const linkId = Math.random().toString(36).substring(7);
       const link = `https://sushilpokharel00.com.np/v/${linkId}`;
       
       // Instead of alert and redirect, show the Verification Box
@@ -115,7 +117,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
                     Generated Secure Link
                  </div>
-                 <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400 font-mono break-all mb-6">{successState.link}</p>
+                 <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400 font-mono break-all mb-6 select-all">{successState.link}</p>
                  
                  <div className="flex flex-col items-center space-y-2">
                     <div className="flex items-center justify-center space-x-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">

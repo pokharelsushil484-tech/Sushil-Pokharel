@@ -6,7 +6,8 @@ export enum View {
   AI_CHAT = 'AI_CHAT',
   VERIFICATION_FORM = 'VERIFICATION_FORM',
   SETTINGS = 'SETTINGS',
-  ADMIN_DASHBOARD = 'ADMIN_DASHBOARD'
+  ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
+  VERIFY_LINK = 'VERIFY_LINK'
 }
 
 export interface UserProfile {
@@ -75,6 +76,7 @@ export interface ChangeRequest {
   details: string; // Will store the JSON of the form answers
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: number;
+  linkId?: string;
 }
 
 export enum TaskPriority {
