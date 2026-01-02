@@ -158,8 +158,8 @@ const App = () => {
         <div className="md:ml-20 lg:ml-64 transition-all animate-fade-in min-h-screen flex flex-col">
           <header className="bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 h-20 flex items-center justify-between px-4 lg:px-12 sticky top-0 z-[100] shadow-sm flex-shrink-0">
              <div className="flex items-center space-x-4">
-                <div className="p-2.5 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-600/20">
-                  <Terminal size={20} />
+                <div className="p-2.5 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-600/20 overflow-hidden">
+                  <img src="/logo.svg" className="w-5 h-5 object-contain" alt="Logo" />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-[0.3em] leading-none mb-1">{APP_NAME}</span>
@@ -176,7 +176,8 @@ const App = () => {
                 </div>
              </div>
           </header>
-          <main className="flex-1 max-w-7xl mx-auto w-full pt-6 md:pt-10 pb-28 md:pb-12 px-2 md:px-10">{renderContent()}</main>
+          {/* Adjusted padding for precise mobile alignment */}
+          <main className="flex-1 max-w-7xl mx-auto w-full pt-6 md:pt-10 pb-28 md:pb-12 px-4 sm:px-6 md:px-10">{renderContent()}</main>
         </div>
       )}
       

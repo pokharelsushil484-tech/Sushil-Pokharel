@@ -86,7 +86,17 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
     const cleanUsername = username.trim();
     
+    // ADMIN AUTO-VERIFY LOGIC
     if (cleanUsername === ADMIN_USERNAME && password === ADMIN_SECRET) {
+      // Create admin user entry if it doesn't exist
+      const usersStr = localStorage.getItem('studentpocket_users');
+      const users = usersStr ? JSON.parse(usersStr) : {};
+      
+      if (!users[ADMIN_USERNAME]) {
+         users[ADMIN_USERNAME] = { password: ADMIN_SECRET, email: 'admin@system.local', name: 'System Architect', verified: true };
+         localStorage.setItem('studentpocket_users', JSON.stringify(users));
+      }
+
       setView('IDENTITY_SNAP');
       return;
     }
@@ -112,7 +122,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     e.preventDefault();
     setError('');
     
-    // Trim inputs to avoid "impossible creation" bugs
+    // Trim inputs
     const cleanUsername = username.trim();
     const cleanEmail = email.trim();
     const cleanConfirmEmail = confirmEmail.trim();
@@ -144,9 +154,17 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     setIsProcessing(true);
     setTimeout(() => {
-        users[cleanUsername] = { password, email: cleanEmail, name, verified: false };
+        // Auto-verify if username is admin (though uncommon to register admin here, it's a fallback)
+        const isAutoVerified = cleanUsername === ADMIN_USERNAME;
+        
+        users[cleanUsername] = { 
+            password, 
+            email: cleanEmail, 
+            name, 
+            verified: isAutoVerified 
+        };
         localStorage.setItem('studentpocket_users', JSON.stringify(users));
-        // Update state to matched sanitized username for snap step
+        
         setUsername(cleanUsername);
         setView('IDENTITY_SNAP');
         setIsProcessing(false);
@@ -168,7 +186,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <div className="flex justify-between items-start mb-10 md:mb-14">
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
-                <ShieldCheck className="text-indigo-500" size={16} />
+                <img src="/logo.svg" className="w-4 h-4 object-contain" alt="Logo" />
                 <span className="text-indigo-400 text-[9px] font-black uppercase tracking-[0.6em]">Gateway Stable</span>
               </div>
               <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-none uppercase">
@@ -234,7 +252,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
             </form>
           )}
-
+          
+          {/* Register and Identity Snap views remain mostly the same but ensure Admin creation sets verified */}
           {view === 'REGISTER' && (
             <form onSubmit={handleRegister} className="space-y-5 animate-scale-up">
               <div className="space-y-4">
@@ -298,7 +317,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
         </div>
       </div>
-
+      
       {showReqs && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md animate-fade-in">
           <div className="bg-slate-900 w-full max-w-sm rounded-[3rem] p-8 border border-white/10 shadow-3xl relative overflow-hidden">

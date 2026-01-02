@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
-import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Smartphone, Monitor, Database, Zap, Fingerprint, QrCode, Gavel, ExternalLink, ShieldAlert, Camera, UserMinus } from 'lucide-react';
+import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Smartphone, Monitor, Database, Zap, Fingerprint, QrCode, Gavel, ExternalLink, ShieldAlert, Camera, UserMinus, Key } from 'lucide-react';
 import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, CREATOR_NAME } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -117,8 +117,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
           <h1 className="text-6xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Architect Hub</h1>
           <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.6em] mt-4">Identity Control & Node Management</p>
         </div>
-        <div className="p-4 bg-indigo-600 rounded-[2rem] text-white shadow-2xl shadow-indigo-600/20">
-          <ShieldCheck size={40} />
+        <div className="p-4 bg-indigo-600 rounded-[2rem] text-white shadow-2xl shadow-indigo-600/20 overflow-hidden">
+          <img src="/logo.svg" className="w-10 h-10 object-contain" alt="Logo" />
         </div>
       </div>
       
@@ -166,9 +166,9 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
               
               <div className="flex items-center justify-between p-8 bg-slate-50 dark:bg-white/5 rounded-[3rem] border border-slate-100 dark:border-white/5">
                   <div className="flex items-center">
-                      <div className="p-5 bg-indigo-600 rounded-3xl text-white mr-8 shadow-2xl shadow-indigo-600/20"><Smartphone size={28} /></div>
+                      <div className="p-5 bg-indigo-600 rounded-3xl text-white mr-8 shadow-2xl shadow-indigo-600/20"><Key size={28} /></div>
                       <div>
-                          <p className="text-lg font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Authenticator Hub</p>
+                          <p className="text-lg font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Access Control</p>
                           <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1">{user.totpEnabled ? 'PROTOCOL ACTIVE' : 'VULNERABLE STATE'}</p>
                       </div>
                   </div>
@@ -177,8 +177,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                           <Check size={28} />
                       </div>
                   ) : (
-                      <button onClick={initiateTotpSetup} disabled={isSyncing} className="px-10 py-4 bg-indigo-600 text-white text-[11px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20">
-                          {isSyncing ? <RefreshCw className="animate-spin" size={18}/> : 'ENFORCE MFA'}
+                      <button onClick={initiateTotpSetup} disabled={isSyncing} className="px-10 py-4 bg-indigo-600 text-white text-[11px] font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20 flex items-center">
+                          {isSyncing ? <RefreshCw className="animate-spin" size={18}/> : 'ENABLE AUTH'}
                       </button>
                   )}
               </div>

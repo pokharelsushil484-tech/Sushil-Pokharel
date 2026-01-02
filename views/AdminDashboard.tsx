@@ -114,27 +114,40 @@ export const AdminDashboard: React.FC = () => {
     }
     
     const proofImage = (detailsObj as any)._verificationImage;
-    const textDetails = Object.entries(detailsObj).filter(([k]) => k !== '_verificationImage');
+    const profileImage = (detailsObj as any)._profileImage;
+    const textDetails = Object.entries(detailsObj).filter(([k]) => k !== '_verificationImage' && k !== '_profileImage');
 
     return (
-        <>
-            {proofImage && (
-                <div className="mb-8 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                    <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Visual Proof Node</p>
+        <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {profileImage && (
+                    <div className="bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+                            <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Identity Profile Photo</p>
+                        </div>
+                        <img src={profileImage} alt="Profile Photo" className="w-full h-64 object-cover bg-white" />
                     </div>
-                    <img src={proofImage} alt="Verification Proof" className="w-full h-auto object-contain bg-slate-900" />
-                </div>
-            )}
-            <div className="space-y-6 mb-10">
+                )}
+                {proofImage && (
+                    <div className="bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+                            <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Program Proof</p>
+                        </div>
+                        <img src={proofImage} alt="Verification Proof" className="w-full h-64 object-contain bg-slate-900" />
+                    </div>
+                )}
+            </div>
+
+            <div className="space-y-4">
+                 <h3 className="text-sm font-black uppercase tracking-widest text-slate-500">Security Responses</h3>
                  {textDetails.map(([q, a]: [any, any]) => (
                    <div key={q} className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
-                      <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-3">Internal Query: {q}</p>
+                      <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-3">Query: {q}</p>
                       <p className="font-bold text-sm text-slate-800 dark:text-slate-100 leading-relaxed">{a}</p>
                    </div>
                  ))}
             </div>
-        </>
+        </div>
     );
   };
 
@@ -142,7 +155,7 @@ export const AdminDashboard: React.FC = () => {
   const getRequestThumbnail = (req: ChangeRequest) => {
       try {
           const d = JSON.parse(req.details);
-          return d._verificationImage;
+          return d._profileImage || d._verificationImage;
       } catch { return null; }
   };
 
@@ -172,7 +185,7 @@ export const AdminDashboard: React.FC = () => {
                   <div className="flex items-center space-x-6 flex-1 min-w-0">
                      <div className="w-14 h-14 bg-amber-100 dark:bg-amber-900/20 text-amber-600 rounded-2xl flex items-center justify-center flex-shrink-0 relative overflow-hidden group cursor-pointer" onClick={() => setSelectedRequest(req)}>
                         {thumbnail ? (
-                          <img src={thumbnail} alt="Proof" className="w-full h-full object-cover" />
+                          <img src={thumbnail} alt="Profile" className="w-full h-full object-cover" />
                         ) : <BellRing size={24} />}
                      </div>
                      <div className="min-w-0">
@@ -217,7 +230,7 @@ export const AdminDashboard: React.FC = () => {
               
               {renderRequestDetails(selectedRequest)}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 mt-8">
                  <button onClick={() => handleProcessRequest(selectedRequest.id, 'APPROVE')} className="bg-emerald-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-emerald-600 transition-all flex items-center justify-center"><CheckCircle size={16} className="mr-2"/> Authorize</button>
                  <button onClick={() => handleProcessRequest(selectedRequest.id, 'REJECT')} className="bg-red-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-red-600 transition-all flex items-center justify-center"><XCircle size={16} className="mr-2"/> Deny</button>
               </div>

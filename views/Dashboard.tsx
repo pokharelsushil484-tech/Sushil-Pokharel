@@ -69,7 +69,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
               <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-6">
-                    <ShieldCheck size={16} className="text-indigo-400" />
+                    <img src="/logo.svg" className="w-4 h-4 object-contain" alt="Logo" />
                     <span className="text-indigo-400 font-black text-[9px] tracking-[0.4em] uppercase">
                         {user.isVerified || isAdmin ? 'Status: Secure' : 'Status: Restricted'}
                     </span>
@@ -80,8 +80,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                   </h1>
                   <p className="text-slate-500 text-[9px] font-black uppercase tracking-[0.4em] mt-8">Authored by {CREATOR_NAME}</p>
               </div>
-              <div className="hidden md:flex w-32 h-32 rounded-[2.5rem] bg-indigo-600 items-center justify-center shadow-2xl border border-white/10">
-                  {isAdmin ? <Activity size={56} className="text-white" /> : user.isVerified ? <ShieldCheck size={56} className="text-white" /> : <Lock size={56} className="text-white/50" />}
+              <div className="hidden md:flex w-32 h-32 rounded-[2.5rem] bg-indigo-600 items-center justify-center shadow-2xl border border-white/10 overflow-hidden p-6">
+                  <img src="/logo.svg" className="w-full h-full object-contain" alt="Node" />
               </div>
           </div>
       </div>

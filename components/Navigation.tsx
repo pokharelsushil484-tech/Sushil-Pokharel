@@ -22,7 +22,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
     <>
       <div className="hidden md:flex flex-col w-20 lg:w-64 bg-white dark:bg-[#0f172a] border-r border-slate-100 dark:border-slate-800 h-full fixed left-0 top-0 z-[110]">
         <div className="p-6 flex items-center space-x-3 h-20 border-b border-slate-100 dark:border-slate-800">
-           <ShieldCheck className="text-indigo-600" size={20} />
+           <img src="/logo.svg" className="w-5 h-5 object-contain" alt="Logo" />
            <span className="hidden lg:block text-[10px] font-black text-slate-500 uppercase tracking-[0.6em]">System Core</span>
         </div>
         <nav className="flex-1 px-3 py-8 space-y-3">
