@@ -41,6 +41,12 @@ const App = () => {
         try {
           const stored = await storageService.getData(`architect_data_${currentUsername}`);
           if (stored && stored.user) {
+            // FORCE ADMIN VERIFICATION
+            if (currentUsername === ADMIN_USERNAME && !stored.user.isVerified) {
+               stored.user.isVerified = true;
+               stored.user.verificationStatus = 'VERIFIED';
+               await storageService.setData(`architect_data_${currentUsername}`, stored);
+            }
             setData(stored);
             if (stored.user?.acceptedTermsVersion !== SYSTEM_UPGRADE_TOKEN) {
               setShowTerms(true);
@@ -132,7 +138,14 @@ const App = () => {
     if (!data.user) return (
       <Onboarding 
         onComplete={p => {
-          setData(prev => ({...prev, user: p}));
+          // Force admin verification on creation
+          const isPowerUser = currentUsername === ADMIN_USERNAME;
+          const profile = {
+             ...p,
+             isVerified: isPowerUser ? true : p.isVerified,
+             verificationStatus: isPowerUser ? 'VERIFIED' : p.verificationStatus
+          };
+          setData(prev => ({...prev, user: profile}));
           setView(View.DASHBOARD);
         }} 
       />

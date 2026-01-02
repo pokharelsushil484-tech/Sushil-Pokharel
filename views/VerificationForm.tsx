@@ -126,6 +126,10 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     setTimeout(() => {
       updateUser({ ...user, verificationStatus: 'PENDING_APPROVAL' });
       setSubmitting(false);
+      
+      // Simulate Email Notification
+      alert(`Signal Transmitted.\n\nA verification confirmation has been sent to: ${user.email || 'linked email address'}\nReference: SBT-${Math.floor(Math.random() * 10000)}`);
+      
       onNavigate(View.DASHBOARD);
     }, 2000);
   };
@@ -301,10 +305,4 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
             className="w-full bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl transition-all hover:bg-indigo-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center group mt-8"
           >
             {submitting ? <Loader2 className="animate-spin mr-4" /> : <Zap size={20} className="mr-4 group-hover:scale-125 transition-transform" />}
-            {submitting ? 'SYNCING...' : 'COMMIT SIGNAL'}
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-};
+            {submitting ? 'SYNC
