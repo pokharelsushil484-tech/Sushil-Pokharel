@@ -11,6 +11,7 @@ import { Vault } from './views/Vault';
 import { VerificationForm } from './views/VerificationForm';
 import { LinkVerification } from './views/LinkVerification';
 import { InviteRegistration } from './views/InviteRegistration';
+import { Support } from './views/Support';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { TermsModal } from './components/TermsModal';
@@ -203,6 +204,7 @@ const App = () => {
       case View.AI_CHAT: return <AIChat chatHistory={data.chatHistory} setChatHistory={msgs => setData(prev => ({...prev, chatHistory: msgs}))} isVerified={data.user.isVerified} />;
       case View.VERIFICATION_FORM: return <VerificationForm user={data.user} username={currentUsername!} updateUser={u => setData(prev => ({...prev, user: u}))} onNavigate={setView} />;
       case View.SETTINGS: return <Settings user={data.user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={handleLogout} username={currentUsername} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={u => setData(prev => ({...prev, user: u}))} />;
+      case View.SUPPORT: return <Support username={currentUsername} />;
       case View.ADMIN_DASHBOARD: return currentUsername === ADMIN_USERNAME ? <AdminDashboard /> : null;
       default: return <Dashboard user={data.user} username={currentUsername} onNavigate={setView} />;
     }

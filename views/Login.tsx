@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { UserProfile } from '../types';
-import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, Info, X, ShieldCheck, Globe, Camera, ArrowLeft } from 'lucide-react';
+import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, Info, X, ShieldCheck, Globe, Camera, ArrowLeft, Check } from 'lucide-react';
 import { ADMIN_USERNAME, ADMIN_SECRET, COPYRIGHT_NOTICE, MIN_PASSWORD_LENGTH, SYSTEM_DOMAIN } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -22,7 +22,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [name, setName] = useState('');
   
   const [showPassword, setShowPassword] = useState(false);
-  const [showReqs, setShowReqs] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -75,13 +74,19 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     onLogin(username);
   };
 
-  const validatePasswordStrength = (pw: string) => {
-    const hasUpper = /[A-Z]/.test(pw);
-    const hasLower = /[a-z]/.test(pw);
-    const hasNumber = /\d/.test(pw);
-    const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(pw);
-    return pw.length >= MIN_PASSWORD_LENGTH && hasUpper && hasLower && hasNumber && hasSymbol;
+  // Professional Password Strength Validation
+  const checkPasswordStrength = (pw: string) => {
+    return {
+      length: pw.length >= MIN_PASSWORD_LENGTH,
+      upper: /[A-Z]/.test(pw),
+      lower: /[a-z]/.test(pw),
+      number: /\d/.test(pw),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(pw)
+    };
   };
+
+  const pwStrength = checkPasswordStrength(password);
+  const isPasswordValid = Object.values(pwStrength).every(Boolean);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,11 +138,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       setError('Emails do not match.');
       return;
     }
-    if (!validatePasswordStrength(password)) {
-      setShowReqs(true);
-      setError('Password requirements not met.');
+    
+    if (!isPasswordValid) {
+      setError('Password does not meet security requirements.');
       return;
     }
+
     if (password !== confirmPassword) { 
       setError('Passwords do not match.'); 
       return; 
@@ -179,23 +185,28 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     setIsProcessing(true);
     
-    // Simulate reset process
     setTimeout(() => {
         const usersStr = localStorage.getItem('studentpocket_users');
         const users = usersStr ? JSON.parse(usersStr) : {};
         const userData = users[cleanUsername];
 
         if (userData) {
-            // In a real app, this would send an email
-            // For now, we simulate success
             setSuccess(`Password reset link sent to ${userData.email || 'your email'}.`);
         } else {
-             // For security, usually you don't reveal if a user exists, but for UX here:
             setError("Username not found.");
         }
         setIsProcessing(false);
     }, 1500);
   };
+
+  const PasswordRequirement = ({ met, label }: { met: boolean, label: string }) => (
+    <div className={`flex items-center space-x-2 text-[10px] uppercase tracking-wider font-bold transition-colors ${met ? 'text-emerald-400' : 'text-slate-500'}`}>
+        <div className={`w-3 h-3 rounded-full flex items-center justify-center border ${met ? 'bg-emerald-500/20 border-emerald-500' : 'border-slate-600'}`}>
+            {met && <Check size={8} />}
+        </div>
+        <span>{label}</span>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden font-sans">
@@ -279,18 +290,24 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl outline-none text-white text-sm" placeholder="Email Address" />
               <input type="email" value={confirmEmail} onChange={e => setConfirmEmail(e.target.value)} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl outline-none text-white text-sm" placeholder="Confirm Email" />
               
-              <div className="grid grid-cols-2 gap-3">
-                 <div className="relative">
-                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl outline-none text-white text-sm" placeholder="Password" />
-                    <button type="button" onClick={() => setShowReqs(true)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"><Info size={14}/></button>
+              <div className="space-y-2">
+                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} className={`w-full px-4 py-3 bg-white/5 border rounded-xl outline-none text-white text-sm transition-colors ${isPasswordValid && password ? 'border-emerald-500/50 focus:border-emerald-500' : 'border-white/10 focus:border-red-500/50'}`} placeholder="Strong Password" />
+                 
+                 <div className="bg-black/20 rounded-lg p-3 grid grid-cols-2 gap-2">
+                    <PasswordRequirement met={pwStrength.length} label={`Min ${MIN_PASSWORD_LENGTH} Chars`} />
+                    <PasswordRequirement met={pwStrength.upper} label="Uppercase" />
+                    <PasswordRequirement met={pwStrength.lower} label="Lowercase" />
+                    <PasswordRequirement met={pwStrength.number} label="Number" />
+                    <PasswordRequirement met={pwStrength.special} label="Symbol" />
                  </div>
-                 <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl outline-none text-white text-sm" placeholder="Confirm" />
               </div>
+
+              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl outline-none text-white text-sm" placeholder="Confirm Password" />
               
               {error && <p className="text-red-400 text-xs font-bold text-center mt-2">{error}</p>}
               
               <div className="pt-4 space-y-3">
-                <button type="submit" disabled={isProcessing} className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg">Register</button>
+                <button type="submit" disabled={isProcessing || !isPasswordValid} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg">Register</button>
                 <button type="button" onClick={() => setView('LOGIN')} className="w-full text-slate-500 py-2 text-xs font-bold uppercase tracking-wide hover:text-white transition-colors">Cancel</button>
               </div>
             </form>
@@ -368,23 +385,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </div>
       </div>
       
-      {showReqs && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 w-full max-w-sm rounded-2xl p-6 border border-white/10 shadow-2xl">
-             <div className="flex justify-between items-center mb-6">
-                <h3 className="text-sm font-bold text-white uppercase tracking-wide">Password Rules</h3>
-                <button onClick={() => setShowReqs(false)} className="text-slate-400 hover:text-white"><X size={18}/></button>
-             </div>
-             <ul className="space-y-3 mb-6">
-                <li className="flex items-center text-xs text-slate-300"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-3"></div> Min {MIN_PASSWORD_LENGTH} Characters</li>
-                <li className="flex items-center text-xs text-slate-300"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-3"></div> Uppercase & Lowercase</li>
-                <li className="flex items-center text-xs text-slate-300"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-3"></div> Numbers & Special Chars</li>
-             </ul>
-             <button onClick={() => setShowReqs(false)} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest">Understood</button>
-          </div>
-        </div>
-      )}
-
       <style>{`
         .mirror { transform: scaleX(-1); }
         @keyframes scan {

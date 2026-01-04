@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
-import { ChangeRequest, ActivityLog, View } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChangeRequest, ActivityLog, View, SupportTicket, TicketMessage } from '../types';
 import { 
-  BellRing, Eye, Trash2, FileClock, Search, RefreshCw, CheckCircle, XCircle, Send, Paperclip, Mail, X, Video, MapPin, Globe, Phone, User, Link, Copy
+  BellRing, Eye, Trash2, FileClock, Search, RefreshCw, CheckCircle, XCircle, Send, Paperclip, Mail, X, Video, MapPin, Globe, Phone, User, Link, Copy, LifeBuoy, Clock
 } from 'lucide-react';
 import { ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
@@ -11,15 +11,20 @@ export const AdminDashboard: React.FC = () => {
   const [usersList, setUsersList] = useState<any[]>([]);
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [viewMode, setViewMode] = useState<'REQUESTS' | 'NODES' | 'LOGS' | 'INVITES'>('REQUESTS');
+  const [viewMode, setViewMode] = useState<'REQUESTS' | 'NODES' | 'LOGS' | 'INVITES' | 'SUPPORT'>('REQUESTS');
   const [selectedRequest, setSelectedRequest] = useState<ChangeRequest | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [logFilter, setLogFilter] = useState('');
   
   const [emailMode, setEmailMode] = useState<'APPROVE' | 'REJECT' | null>(null);
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [isSending, setIsSending] = useState(false);
+
+  const [ticketReply, setTicketReply] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Invite Generator State
   const [generatedInvite, setGeneratedInvite] = useState('');
@@ -44,13 +49,29 @@ export const AdminDashboard: React.FC = () => {
     }
     const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
     setRequests(JSON.parse(reqStr));
-    const activityLogs = await storageService.getLogs();
-    setLogs(activityLogs);
+    
+    const logs = await storageService.getLogs();
+    setLogs(logs);
+
+    const ticketStr = localStorage.getItem('studentpocket_tickets');
+    if (ticketStr) {
+        const allTickets = JSON.parse(ticketStr);
+        setTickets(allTickets.sort((a: SupportTicket, b: SupportTicket) => b.updatedAt - a.updatedAt));
+    }
   };
 
   useEffect(() => {
     refreshData();
   }, [refreshTrigger]);
+
+  useEffect(() => {
+      if (selectedTicket) {
+          // Re-fetch selected ticket to get updates
+          const found = tickets.find(t => t.id === selectedTicket.id);
+          if (found) setSelectedTicket(found);
+          setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      }
+  }, [tickets]);
 
   const initiateProcess = (action: 'APPROVE' | 'REJECT') => {
       setEmailMode(action);
@@ -144,6 +165,51 @@ export const AdminDashboard: React.FC = () => {
     setInviteCopied(true);
     setTimeout(() => setInviteCopied(false), 2000);
   };
+
+  // Support Ticket Logic
+  const replyToTicket = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!selectedTicket || !ticketReply.trim()) return;
+
+      const message: TicketMessage = {
+          id: Date.now().toString(),
+          sender: 'Admin Support',
+          text: ticketReply,
+          timestamp: Date.now(),
+          isAdmin: true
+      };
+
+      const stored = localStorage.getItem('studentpocket_tickets');
+      if (stored) {
+          const allTickets: SupportTicket[] = JSON.parse(stored);
+          const idx = allTickets.findIndex(t => t.id === selectedTicket.id);
+          if (idx !== -1) {
+              allTickets[idx].messages.push(message);
+              allTickets[idx].updatedAt = Date.now();
+              localStorage.setItem('studentpocket_tickets', JSON.stringify(allTickets));
+              setRefreshTrigger(prev => prev + 1);
+              setTicketReply('');
+          }
+      }
+  };
+
+  const closeTicket = () => {
+      if (!selectedTicket) return;
+      if (!window.confirm("Close this ticket?")) return;
+
+      const stored = localStorage.getItem('studentpocket_tickets');
+      if (stored) {
+          const allTickets: SupportTicket[] = JSON.parse(stored);
+          const idx = allTickets.findIndex(t => t.id === selectedTicket.id);
+          if (idx !== -1) {
+              allTickets[idx].status = 'CLOSED';
+              allTickets[idx].updatedAt = Date.now();
+              localStorage.setItem('studentpocket_tickets', JSON.stringify(allTickets));
+              setRefreshTrigger(prev => prev + 1);
+          }
+      }
+  };
+
 
   const filteredLogs = logs.filter(log => 
     log.description.toLowerCase().includes(logFilter.toLowerCase()) || 
@@ -247,6 +313,7 @@ export const AdminDashboard: React.FC = () => {
             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                 <button onClick={() => setViewMode('REQUESTS')} className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${viewMode === 'REQUESTS' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Requests</button>
                 <button onClick={() => setViewMode('NODES')} className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${viewMode === 'NODES' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Users</button>
+                <button onClick={() => setViewMode('SUPPORT')} className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${viewMode === 'SUPPORT' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Help Desk</button>
                 <button onClick={() => setViewMode('INVITES')} className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${viewMode === 'INVITES' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Invites</button>
                 <button onClick={() => setViewMode('LOGS')} className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${viewMode === 'LOGS' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Logs</button>
             </div>
@@ -286,6 +353,102 @@ export const AdminDashboard: React.FC = () => {
                  </div>
              </div>
         </div>
+      )}
+
+      {viewMode === 'SUPPORT' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Ticket List */}
+              <div className="lg:col-span-1 space-y-4 max-h-[80vh] overflow-y-auto no-scrollbar">
+                  {tickets.map(ticket => (
+                      <div 
+                          key={ticket.id}
+                          onClick={() => setSelectedTicket(ticket)}
+                          className={`p-6 rounded-2xl border cursor-pointer transition-all ${
+                              selectedTicket?.id === ticket.id
+                              ? 'bg-indigo-600 border-indigo-600 text-white'
+                              : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-indigo-300'
+                          }`}
+                      >
+                         <div className="flex justify-between items-center mb-2">
+                             <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg ${
+                                 ticket.status === 'OPEN' ? 'bg-emerald-500/20 text-emerald-100' : 'bg-black/20 text-slate-300'
+                             }`}>{ticket.status}</span>
+                             <span className="text-[10px] font-mono opacity-60">#{ticket.id}</span>
+                         </div>
+                         <h3 className="font-bold text-sm mb-1">{ticket.subject}</h3>
+                         <p className="text-xs opacity-70 mb-3 truncate">{ticket.messages[ticket.messages.length-1].text}</p>
+                         <div className="flex items-center text-[10px] font-bold uppercase tracking-wider opacity-60">
+                             <User size={12} className="mr-1"/> {ticket.userId}
+                         </div>
+                      </div>
+                  ))}
+                  {tickets.length === 0 && (
+                      <div className="text-center py-12 text-slate-400">
+                          <LifeBuoy className="mx-auto mb-2 opacity-50" />
+                          <p className="text-xs font-bold uppercase">No tickets</p>
+                      </div>
+                  )}
+              </div>
+
+              {/* Chat View */}
+              <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-[700px] overflow-hidden">
+                  {selectedTicket ? (
+                      <>
+                          <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950">
+                              <div>
+                                  <h2 className="font-bold text-slate-900 dark:text-white">{selectedTicket.subject}</h2>
+                                  <p className="text-xs text-slate-500 mt-1">User: {selectedTicket.userId}</p>
+                              </div>
+                              {selectedTicket.status === 'OPEN' && (
+                                  <button onClick={closeTicket} className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-red-500 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-colors">Close Ticket</button>
+                              )}
+                          </div>
+                          
+                          <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50 dark:bg-slate-950/20">
+                              {selectedTicket.messages.map(msg => (
+                                  <div key={msg.id} className={`flex ${msg.isAdmin ? 'justify-end' : 'justify-start'}`}>
+                                      <div className={`max-w-[75%] p-4 rounded-2xl text-sm font-medium leading-relaxed ${
+                                          msg.isAdmin 
+                                          ? 'bg-indigo-600 text-white rounded-br-none' 
+                                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-100 dark:border-slate-700 rounded-bl-none'
+                                      }`}>
+                                          <p>{msg.text}</p>
+                                          <p className="text-[9px] font-bold uppercase tracking-widest opacity-60 mt-2 text-right">
+                                              {msg.sender} • {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                          </p>
+                                      </div>
+                                  </div>
+                              ))}
+                              <div ref={messagesEndRef} />
+                          </div>
+
+                          {selectedTicket.status === 'OPEN' && (
+                              <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+                                  <form onSubmit={replyToTicket} className="flex gap-4">
+                                      <input 
+                                          type="text" 
+                                          value={ticketReply}
+                                          onChange={(e) => setTicketReply(e.target.value)}
+                                          className="flex-1 p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl outline-none font-medium text-sm focus:border-indigo-500 transition-all"
+                                          placeholder="Type a reply..."
+                                      />
+                                      <button type="submit" className="p-4 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20">
+                                          <Send size={20} />
+                                      </button>
+                                  </form>
+                              </div>
+                          )}
+                      </>
+                  ) : (
+                      <div className="flex items-center justify-center h-full text-slate-300">
+                          <div className="text-center">
+                              <LifeBuoy size={48} className="mx-auto mb-4" />
+                              <p className="text-sm font-bold uppercase tracking-widest">Select a ticket to view</p>
+                          </div>
+                      </div>
+                  )}
+              </div>
+          </div>
       )}
 
       {viewMode === 'REQUESTS' && (

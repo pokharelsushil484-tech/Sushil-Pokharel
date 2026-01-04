@@ -8,7 +8,8 @@ export enum View {
   SETTINGS = 'SETTINGS',
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
   VERIFY_LINK = 'VERIFY_LINK',
-  INVITE_REGISTRATION = 'INVITE_REGISTRATION'
+  INVITE_REGISTRATION = 'INVITE_REGISTRATION',
+  SUPPORT = 'SUPPORT'
 }
 
 export interface UserProfile {
@@ -140,4 +141,22 @@ export interface Database {
   schema: DbField[];
   records: any[];
   createdAt: number;
+}
+
+export interface TicketMessage {
+  id: string;
+  sender: string; // Username or 'Admin'
+  text: string;
+  timestamp: number;
+  isAdmin: boolean;
+}
+
+export interface SupportTicket {
+  id: string;
+  userId: string;
+  subject: string;
+  status: 'OPEN' | 'CLOSED';
+  createdAt: number;
+  updatedAt: number;
+  messages: TicketMessage[];
 }

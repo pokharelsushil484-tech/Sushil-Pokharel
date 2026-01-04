@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Settings, MessageCircle, LayoutGrid, ShieldCheck, Lock, Database } from 'lucide-react';
+import { Settings, MessageCircle, LayoutGrid, ShieldCheck, Lock, Database, LifeBuoy } from 'lucide-react';
 import { View } from '../types';
 
 interface NavigationProps {
@@ -15,6 +15,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
     { view: View.DASHBOARD, icon: LayoutGrid, label: 'Workbench' },
     { view: View.FILE_HUB, icon: Database, label: 'Repository' },
     { view: View.AI_CHAT, icon: MessageCircle, label: 'Assistant' },
+    { view: View.SUPPORT, icon: LifeBuoy, label: 'Help Desk' },
     { view: View.SETTINGS, icon: Settings, label: 'Identity' },
   ];
 
@@ -28,7 +29,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
         <nav className="flex-1 px-3 py-8 space-y-3">
           {navItems.map((item) => {
             const isActive = currentView === item.view;
-            const disabled = !isVerified && !isAdmin && item.view !== View.DASHBOARD && item.view !== View.SETTINGS;
+            const disabled = !isVerified && !isAdmin && item.view !== View.DASHBOARD && item.view !== View.SETTINGS && item.view !== View.SUPPORT;
             
             return (
               <button
@@ -53,7 +54,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
           <div className="flex justify-between items-center px-2">
             {navItems.map((item) => {
               const isActive = currentView === item.view;
-              const disabled = !isVerified && !isAdmin && item.view !== View.DASHBOARD && item.view !== View.SETTINGS;
+              const disabled = !isVerified && !isAdmin && item.view !== View.DASHBOARD && item.view !== View.SETTINGS && item.view !== View.SUPPORT;
               return (
                 <button
                   key={item.view}
