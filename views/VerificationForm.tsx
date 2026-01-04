@@ -270,8 +270,8 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                                  <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
                              </div>
                          ) : (
-                             <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                                 <User size={24} />
+                             <div className="w-32 h-32 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 overflow-hidden p-6">
+                                 <img src="/logo.svg" alt="Default" className="w-full h-full object-contain opacity-50" />
                              </div>
                          )}
                          <p className="text-xs font-medium text-slate-600 dark:text-slate-300 mt-2">{profileImage ? 'Click to Change' : 'Upload Photo'}</p>

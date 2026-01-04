@@ -235,7 +235,7 @@ export const AdminDashboard: React.FC = () => {
                     {profileImage ? (
                         <img src={profileImage} alt="User" className="w-full h-full object-cover" />
                     ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-400"><User size={24}/></div>
+                        <div className="w-full h-full flex items-center justify-center p-6"><img src="/logo.svg" className="w-full h-full object-contain opacity-20"/></div>
                     )}
                  </div>
                  
@@ -461,7 +461,7 @@ export const AdminDashboard: React.FC = () => {
                <div key={req.id} className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
                   <div className="flex items-center space-x-6">
                      <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden shadow-inner">
-                        {thumbnail ? <img src={thumbnail} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-slate-400"><User size={20}/></div>}
+                        {thumbnail ? <img src={thumbnail} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center bg-slate-50 dark:bg-slate-800 p-2"><img src="/logo.svg" className="w-full h-full object-contain opacity-50"/></div>}
                      </div>
                      <div>
                         <p className="font-bold text-slate-900 dark:text-white">{details.fullName || req.username}</p>
@@ -566,7 +566,9 @@ export const AdminDashboard: React.FC = () => {
            {usersList.map(u => (
               <div key={u.username} className={`p-6 rounded-2xl border flex flex-col justify-between ${u.isAdmin ? 'bg-slate-900 border-slate-800 shadow-xl' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'}`}>
                  <div className="flex items-center space-x-4 mb-6">
-                    <div className="w-10 h-10 bg-indigo-50 dark:bg-slate-800 rounded-xl flex items-center justify-center text-indigo-600 font-bold text-sm uppercase">{u.username.charAt(0)}</div>
+                    <div className="w-10 h-10 bg-indigo-50 dark:bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden p-2">
+                        <img src="/logo.svg" className="w-full h-full object-contain opacity-70"/>
+                    </div>
                     <div className="overflow-hidden">
                         <p className={`font-bold text-sm truncate ${u.isAdmin ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{u.username}</p>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">{u.email}</p>

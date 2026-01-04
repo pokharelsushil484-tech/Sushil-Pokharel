@@ -285,8 +285,8 @@ const App = () => {
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Session Active</p>
                     <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{currentUsername}</p>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-slate-500 text-xs uppercase">
-                  {currentUsername.charAt(0)}
+                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden p-1.5">
+                  <img src="/logo.svg" className="w-full h-full object-contain" alt="User" />
                 </div>
              </div>
           </header>

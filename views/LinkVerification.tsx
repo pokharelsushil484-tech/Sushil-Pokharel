@@ -284,7 +284,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                                     {details._profileImage ? (
                                         <img src={details._profileImage} alt="Profile" className="w-full h-full object-cover" />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-slate-300"><User size={48}/></div>
+                                        <div className="w-full h-full flex items-center justify-center text-slate-300"><img src="/logo.svg" alt="Profile" className="w-full h-full object-contain p-4 opacity-20" /></div>
                                     )}
                                 </div>
                             </div>

@@ -206,7 +206,9 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                 {user.avatar ? (
                   <img src={user.avatar} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Avatar" />
                 ) : (
-                  <span className="text-7xl font-black uppercase text-indigo-500">{user.name.charAt(0)}</span>
+                  <div className="w-full h-full flex items-center justify-center p-8">
+                    <img src="/logo.svg" className="w-full h-full object-contain opacity-50" alt="Avatar Placeholder" />
+                  </div>
                 )}
             </div>
             <div className="flex-1 text-center md:text-left">

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
 import { DEFAULT_USER } from '../constants';
@@ -48,8 +49,8 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                   {profile.avatar ? (
                     <img src={profile.avatar} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="flex flex-col items-center text-indigo-300 dark:text-gray-500">
-                      <Camera className="w-10 h-10 mb-1" />
+                    <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 p-6">
+                        <img src="/logo.svg" alt="Profile Placeholder" className="w-full h-full object-contain opacity-50 grayscale" />
                     </div>
                   )}
                   {/* Hover Overlay */}

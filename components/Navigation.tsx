@@ -68,8 +68,8 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
                     : 'bg-white dark:bg-transparent border-transparent hover:border-slate-100 dark:hover:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30'
                 }`}
             >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs shadow-md">
-                    {isAdmin ? <ShieldCheck size={14}/> : (username ? username.charAt(0).toUpperCase() : <User size={14}/>)}
+                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-700 p-1.5">
+                    <img src="/logo.svg" className="w-full h-full object-contain" alt="Profile" />
                 </div>
                 <div className="hidden lg:block ml-3 text-left overflow-hidden">
                     <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-wider truncate">{username || 'User'}</p>
