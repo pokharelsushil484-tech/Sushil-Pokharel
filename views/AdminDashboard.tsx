@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChangeRequest, ActivityLog, View, SupportTicket, TicketMessage, UserProfile } from '../types';
 import { 
-  BellRing, Eye, Trash2, FileClock, Search, RefreshCw, CheckCircle, XCircle, Send, Paperclip, Mail, X, Video, MapPin, Globe, Phone, User, Link, Copy, LifeBuoy, Clock, HardDrive, ArrowRight
+  BellRing, Eye, Trash2, FileClock, Search, RefreshCw, CheckCircle, XCircle, Send, Paperclip, Mail, X, Video, MapPin, Globe, Phone, User, Link, Copy, LifeBuoy, Clock, HardDrive, ArrowRight, AlertTriangle
 } from 'lucide-react';
 import { ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
@@ -172,6 +172,86 @@ export const AdminDashboard: React.FC = () => {
         await storageService.setData(dataKey, stored);
         setRefreshTrigger(prev => prev + 1);
     }
+  };
+  
+  const deleteUserNode = async (username: string) => {
+      if (!window.confirm(`CRITICAL: Are you sure you want to permanently delete user "${username}"? This will remove all their data, files, and logs. This action cannot be undone.`)) return;
+
+      try {
+          // 1. Remove from Users List (localStorage)
+          const usersStr = localStorage.getItem('studentpocket_users');
+          if (usersStr) {
+            const users = JSON.parse(usersStr);
+            delete users[username];
+            localStorage.setItem('studentpocket_users', JSON.stringify(users));
+          }
+
+          // 2. Remove Requests (localStorage)
+          const reqStr = localStorage.getItem('studentpocket_requests');
+          if (reqStr) {
+            const allRequests: ChangeRequest[] = JSON.parse(reqStr);
+            const filteredReqs = allRequests.filter(r => r.username !== username);
+            localStorage.setItem('studentpocket_requests', JSON.stringify(filteredReqs));
+          }
+
+          // 3. Remove Tickets (localStorage)
+          const ticketStr = localStorage.getItem('studentpocket_tickets');
+          if (ticketStr) {
+              const allTickets: SupportTicket[] = JSON.parse(ticketStr);
+              const filteredTickets = allTickets.filter(t => t.userId !== username);
+              localStorage.setItem('studentpocket_tickets', JSON.stringify(filteredTickets));
+          }
+
+          // 4. Remove Data Node (IndexedDB)
+          await storageService.deleteData(`architect_data_${username}`);
+          
+          await storageService.logActivity({
+              actor: ADMIN_USERNAME,
+              targetUser: username,
+              actionType: 'ADMIN',
+              description: `USER DELETED: ${username}`
+          });
+          
+          setRefreshTrigger(prev => prev + 1);
+          alert(`User ${username} has been deleted.`);
+
+      } catch (e) {
+          console.error("Deletion failed", e);
+          alert("Error deleting user data.");
+      }
+  };
+
+  const resetUserData = async (username: string) => {
+      if (!window.confirm(`WARNING: Reset all data for "${username}"? This will clear files, chat history, and settings, but keep the account active.`)) return;
+      
+      const dataKey = `architect_data_${username}`;
+      const stored = await storageService.getData(dataKey);
+      
+      if (stored && stored.user) {
+          // Keep critical profile info
+          const baseProfile = {
+              ...stored.user,
+              storageUsedBytes: 0,
+              isVerified: false, // Force re-verification maybe? or keep true if just clearing data. Let's keep status.
+              verificationStatus: stored.user.verificationStatus // Preserve status
+          };
+          
+          await storageService.setData(dataKey, {
+              user: baseProfile,
+              chatHistory: [],
+              vaultDocs: []
+          });
+
+          await storageService.logActivity({
+            actor: ADMIN_USERNAME,
+            targetUser: username,
+            actionType: 'ADMIN',
+            description: `DATA RESET: ${username}`
+        });
+
+        setRefreshTrigger(prev => prev + 1);
+        alert(`Data for ${username} has been reset.`);
+      }
   };
 
   const generateInviteLink = () => {
@@ -518,16 +598,33 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                      </div>
                   </div>
-                  {isPending ? (
-                      <button 
-                        onClick={() => setSelectedRequest(req)} 
-                        className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition-colors"
-                      >
-                        Review
-                      </button>
-                  ) : (
-                      <span className="text-xs text-slate-400 font-medium">Processed {new Date(req.createdAt).toLocaleDateString()}</span>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {/* Delete Request Button */}
+                    <button 
+                        onClick={() => {
+                            if(window.confirm("Are you sure you want to delete this request log?")) {
+                                const newReqs = requests.filter(r => r.id !== req.id);
+                                localStorage.setItem('studentpocket_requests', JSON.stringify(newReqs));
+                                setRefreshTrigger(p => p + 1);
+                            }
+                        }}
+                        className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
+                        title="Delete Request Record"
+                    >
+                        <Trash2 size={16}/>
+                    </button>
+                    
+                    {isPending ? (
+                        <button 
+                            onClick={() => setSelectedRequest(req)} 
+                            className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition-colors"
+                        >
+                            Review
+                        </button>
+                    ) : (
+                        <span className="text-xs text-slate-400 font-medium">Processed {new Date(req.createdAt).toLocaleDateString()}</span>
+                    )}
+                  </div>
                </div>
              );
            })}
@@ -624,7 +721,7 @@ export const AdminDashboard: React.FC = () => {
       {viewMode === 'NODES' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
            {usersList.map(u => (
-              <div key={u.username} className={`p-6 rounded-2xl border flex flex-col justify-between ${u.isAdmin ? 'bg-slate-900 border-slate-800 shadow-xl' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'}`}>
+              <div key={u.username} className={`p-6 rounded-2xl border flex flex-col justify-between group ${u.isAdmin ? 'bg-slate-900 border-slate-800 shadow-xl' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'}`}>
                  <div className="flex items-center space-x-4 mb-6">
                     <div className="w-10 h-10 bg-indigo-50 dark:bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden p-2">
                         <img src="/logo.svg" className="w-full h-full object-contain opacity-70"/>
@@ -647,6 +744,24 @@ export const AdminDashboard: React.FC = () => {
                       <button onClick={() => updateUserNode(u.username, { isBanned: !u.isBanned })} className={`w-full py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors ${u.isBanned ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
                         {u.isBanned ? 'Restore Access' : 'Suspend User'}
                       </button>
+
+                      {/* Advanced Admin Actions (Hidden by default, shown on hover/focus) */}
+                      <div className="pt-2 flex space-x-2 opacity-10 group-hover:opacity-100 transition-opacity">
+                          <button 
+                            onClick={() => resetUserData(u.username)}
+                            className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center"
+                            title="Reset User Data (Keeps Account)"
+                          >
+                             <RefreshCw size={12} className="mr-1"/> Reset
+                          </button>
+                          <button 
+                            onClick={() => deleteUserNode(u.username)}
+                            className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center"
+                            title="Permanently Delete User"
+                          >
+                             <Trash2 size={12} className="mr-1"/> Delete
+                          </button>
+                      </div>
                    </div>
                  )}
               </div>
