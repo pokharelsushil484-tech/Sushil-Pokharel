@@ -1,15 +1,16 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { UserProfile } from '../types';
-import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, Info, X, ShieldCheck, Globe, Camera } from 'lucide-react';
+import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, Info, X, ShieldCheck, Globe, Camera, ArrowLeft } from 'lucide-react';
 import { ADMIN_USERNAME, ADMIN_SECRET, COPYRIGHT_NOTICE, MIN_PASSWORD_LENGTH, SYSTEM_DOMAIN } from '../constants';
+import { storageService } from '../services/storageService';
 
 interface LoginProps {
   user: UserProfile | null;
   onLogin: (username: string) => void;
 }
 
-type AuthView = 'LOGIN' | 'REGISTER' | 'IDENTITY_SNAP';
+type AuthView = 'LOGIN' | 'REGISTER' | 'IDENTITY_SNAP' | 'FORGOT_PASSWORD';
 
 export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [view, setView] = useState<AuthView>('LOGIN');
@@ -23,6 +24,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showReqs, setShowReqs] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -164,6 +166,37 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }, 1500);
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    const cleanUsername = username.trim();
+    if (!cleanUsername) {
+        setError("Please enter your username.");
+        return;
+    }
+
+    setIsProcessing(true);
+    
+    // Simulate reset process
+    setTimeout(() => {
+        const usersStr = localStorage.getItem('studentpocket_users');
+        const users = usersStr ? JSON.parse(usersStr) : {};
+        const userData = users[cleanUsername];
+
+        if (userData) {
+            // In a real app, this would send an email
+            // For now, we simulate success
+            setSuccess(`Password reset link sent to ${userData.email || 'your email'}.`);
+        } else {
+             // For security, usually you don't reveal if a user exists, but for UX here:
+            setError("Username not found.");
+        }
+        setIsProcessing(false);
+    }, 1500);
+  };
+
   return (
     <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden font-sans">
       <div className="absolute inset-0 opacity-10 pointer-events-none">
@@ -211,6 +244,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   </button>
                 </div>
               </div>
+              
+              <div className="flex justify-end">
+                  <button type="button" onClick={() => setView('FORGOT_PASSWORD')} className="text-xs text-slate-400 hover:text-indigo-400 transition-colors font-medium">
+                      Forgot Password?
+                  </button>
+              </div>
 
               {error && <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs font-bold text-center uppercase tracking-wide">{error}</div>}
 
@@ -255,6 +294,46 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <button type="button" onClick={() => setView('LOGIN')} className="w-full text-slate-500 py-2 text-xs font-bold uppercase tracking-wide hover:text-white transition-colors">Cancel</button>
               </div>
             </form>
+          )}
+
+          {view === 'FORGOT_PASSWORD' && (
+             <form onSubmit={handleForgotPassword} className="space-y-6 animate-scale-up">
+                <div className="text-center">
+                    <h3 className="text-white font-bold text-lg mb-2">Reset Password</h3>
+                    <p className="text-xs text-slate-400">Enter your username to receive reset instructions.</p>
+                </div>
+
+                <div className="relative group">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                  <input 
+                    type="text" 
+                    value={username} 
+                    onChange={(e) => setUsername(e.target.value)} 
+                    className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl outline-none text-white font-medium placeholder:text-slate-600 focus:border-indigo-500/50 transition-all text-sm" 
+                    placeholder="Student ID / Username" 
+                  />
+                </div>
+
+                {error && <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs font-bold text-center uppercase tracking-wide">{error}</div>}
+                {success && <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400 text-xs font-bold text-center uppercase tracking-wide">{success}</div>}
+
+                <div className="pt-2 space-y-3">
+                    <button 
+                        type="submit" 
+                        disabled={isProcessing || !!success} 
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-600/50 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg transition-all flex items-center justify-center"
+                    >
+                        {isProcessing ? <Loader2 className="animate-spin" size={16}/> : 'Send Reset Link'}
+                    </button>
+                    <button 
+                        type="button" 
+                        onClick={() => setView('LOGIN')} 
+                        className="w-full text-slate-500 py-2 text-xs font-bold uppercase tracking-wide hover:text-white transition-colors flex items-center justify-center"
+                    >
+                        <ArrowLeft size={14} className="mr-2"/> Back to Login
+                    </button>
+                </div>
+             </form>
           )}
 
           {view === 'IDENTITY_SNAP' && (

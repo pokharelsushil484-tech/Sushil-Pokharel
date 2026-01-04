@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
-import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Smartphone, Monitor, Database, Zap, Fingerprint, QrCode, Gavel, ExternalLink, ShieldAlert, Camera, UserMinus, Key } from 'lucide-react';
-import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, CREATOR_NAME } from '../constants';
+import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Smartphone, Monitor, Database, Zap, Fingerprint, QrCode, Gavel, ExternalLink, ShieldAlert, Camera, UserMinus, Key, Lock, Eye, EyeOff } from 'lucide-react';
+import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, CREATOR_NAME, MIN_PASSWORD_LENGTH, DEFAULT_USER } from '../constants';
 import { storageService } from '../services/storageService';
 
 interface SettingsProps {
@@ -18,6 +17,15 @@ interface SettingsProps {
 export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, username, darkMode, toggleDarkMode, updateUser }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [showTotpSetup, setShowTotpSetup] = useState(false);
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+
   const isAdmin = username === ADMIN_USERNAME;
 
   const initiateTotpSetup = () => {
@@ -50,6 +58,73 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       navigator.clipboard.writeText(user.totpSecret);
       alert("Secret Key Copied to Clipboard.");
     }
+  };
+
+  const validatePasswordStrength = (pw: string) => {
+    const hasUpper = /[A-Z]/.test(pw);
+    const hasLower = /[a-z]/.test(pw);
+    const hasNumber = /\d/.test(pw);
+    const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(pw);
+    return pw.length >= MIN_PASSWORD_LENGTH && hasUpper && hasLower && hasNumber && hasSymbol;
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setPasswordError('');
+      setPasswordSuccess('');
+
+      if (!currentPassword || !newPassword || !confirmNewPassword) {
+          setPasswordError("All fields are required.");
+          return;
+      }
+      if (newPassword !== confirmNewPassword) {
+          setPasswordError("New passwords do not match.");
+          return;
+      }
+      if (!validatePasswordStrength(newPassword)) {
+          setPasswordError(`Password must be at least ${MIN_PASSWORD_LENGTH} chars, include upper/lowercase, number & symbol.`);
+          return;
+      }
+
+      // Verify Current Password (simulated fetch from localStorage since we don't have user obj with password here)
+      const usersStr = localStorage.getItem('studentpocket_users');
+      if (usersStr) {
+          const users = JSON.parse(usersStr);
+          const userData = users[username];
+          const storedPassword = typeof userData === 'string' ? userData : userData.password;
+
+          if (storedPassword !== currentPassword) {
+              setPasswordError("Incorrect current password.");
+              return;
+          }
+
+          // Update Password
+          if (typeof userData === 'string') {
+              // Legacy format handling if needed, though login updates it
+              users[username] = { ...DEFAULT_USER, password: newPassword, name: user.name, email: user.email, verified: true };
+          } else {
+              users[username].password = newPassword;
+          }
+          localStorage.setItem('studentpocket_users', JSON.stringify(users));
+
+          await storageService.logActivity({
+            actor: username,
+            targetUser: username,
+            actionType: 'SECURITY',
+            description: `Password Rotation: ${username}`
+          });
+
+          setPasswordSuccess("Password updated successfully.");
+          setCurrentPassword('');
+          setNewPassword('');
+          setConfirmNewPassword('');
+          setTimeout(() => {
+              setShowPasswordChange(false);
+              setPasswordSuccess('');
+          }, 1500);
+      } else {
+          setPasswordError("User record not found.");
+      }
   };
 
   const handleSystemWipe = async () => {
@@ -185,14 +260,66 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
 
               <div className="flex items-center justify-between p-8 bg-slate-50 dark:bg-white/5 rounded-[3rem] border border-slate-100 dark:border-white/5 group">
                   <div className="flex items-center">
-                      <div className="p-5 bg-slate-900 rounded-3xl text-indigo-500 mr-8 group-hover:scale-110 transition-transform"><Camera size={28} /></div>
+                      <div className="p-5 bg-slate-900 rounded-3xl text-indigo-500 mr-8 group-hover:scale-110 transition-transform"><Lock size={28} /></div>
                       <div>
-                          <p className="text-lg font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Identity Snap</p>
-                          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1">BIOMETRIC HANDSHAKE</p>
+                          <p className="text-lg font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Credentials</p>
+                          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1">PASSWORD ROTATION</p>
                       </div>
                   </div>
-                  <button className="px-8 py-3 bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-600 hover:text-white transition-all">RE-CALIBRATE</button>
+                  <button onClick={() => setShowPasswordChange(!showPasswordChange)} className="px-8 py-3 bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-600 hover:text-white transition-all">
+                      {showPasswordChange ? 'CANCEL' : 'UPDATE'}
+                  </button>
               </div>
+
+               {showPasswordChange && (
+                  <div className="p-12 bg-slate-50 dark:bg-slate-900/50 rounded-[4rem] border border-slate-200 dark:border-slate-800 animate-scale-up space-y-6">
+                      <h4 className="text-lg font-bold text-slate-900 dark:text-white">Change Password</h4>
+                      <form onSubmit={handleChangePassword} className="space-y-4">
+                          <div>
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Current Password</label>
+                              <div className="relative">
+                                  <input 
+                                    type={showCurrentPassword ? "text" : "password"} 
+                                    value={currentPassword}
+                                    onChange={(e) => setCurrentPassword(e.target.value)}
+                                    className="w-full px-5 py-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 outline-none focus:border-indigo-500 transition-all font-medium text-slate-800 dark:text-white"
+                                  />
+                                  <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600">
+                                      {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                  </button>
+                              </div>
+                          </div>
+                          <div>
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">New Password</label>
+                              <div className="relative">
+                                  <input 
+                                    type={showNewPassword ? "text" : "password"} 
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    className="w-full px-5 py-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 outline-none focus:border-indigo-500 transition-all font-medium text-slate-800 dark:text-white"
+                                  />
+                                  <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600">
+                                      {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                  </button>
+                              </div>
+                          </div>
+                          <div>
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Confirm New Password</label>
+                              <input 
+                                type={showNewPassword ? "text" : "password"} 
+                                value={confirmNewPassword}
+                                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                                className="w-full px-5 py-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 outline-none focus:border-indigo-500 transition-all font-medium text-slate-800 dark:text-white"
+                              />
+                          </div>
+
+                          {passwordError && <p className="text-xs font-bold text-red-500 text-center uppercase tracking-wide bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-200 dark:border-red-900">{passwordError}</p>}
+                          {passwordSuccess && <p className="text-xs font-bold text-emerald-500 text-center uppercase tracking-wide bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-xl border border-emerald-200 dark:border-emerald-900">{passwordSuccess}</p>}
+
+                          <button type="submit" className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.3em] hover:opacity-90 transition-opacity shadow-lg">Save New Password</button>
+                      </form>
+                  </div>
+               )}
 
               {showTotpSetup && (
                   <div className="p-12 bg-slate-950 rounded-[4rem] border border-indigo-500/30 animate-scale-up space-y-10">
