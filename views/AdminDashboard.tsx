@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChangeRequest, ActivityLog, View, SupportTicket, TicketMessage } from '../types';
+import { ChangeRequest, ActivityLog, View, SupportTicket, TicketMessage, UserProfile } from '../types';
 import { 
-  BellRing, Eye, Trash2, FileClock, Search, RefreshCw, CheckCircle, XCircle, Send, Paperclip, Mail, X, Video, MapPin, Globe, Phone, User, Link, Copy, LifeBuoy, Clock
+  BellRing, Eye, Trash2, FileClock, Search, RefreshCw, CheckCircle, XCircle, Send, Paperclip, Mail, X, Video, MapPin, Globe, Phone, User, Link, Copy, LifeBuoy, Clock, HardDrive, ArrowRight
 } from 'lucide-react';
 import { ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
@@ -42,13 +42,21 @@ export const AdminDashboard: React.FC = () => {
             isVerified: stored?.user?.isVerified || false,
             isBanned: stored?.user?.isBanned || false,
             storageLimit: stored?.user?.storageLimitGB || 15,
-            isAdmin: key === ADMIN_USERNAME
+            isAdmin: key === ADMIN_USERNAME,
+            profile: stored?.user
         };
       }));
       setUsersList(list);
     }
     const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
-    setRequests(JSON.parse(reqStr));
+    // Sort requests: Pending first, then by date
+    const parsedRequests: ChangeRequest[] = JSON.parse(reqStr);
+    const sortedRequests = parsedRequests.sort((a, b) => {
+        if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
+        if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
+        return b.createdAt - a.createdAt;
+    });
+    setRequests(sortedRequests);
     
     const logs = await storageService.getLogs();
     setLogs(logs);
@@ -77,10 +85,10 @@ export const AdminDashboard: React.FC = () => {
       setEmailMode(action);
       if (action === 'APPROVE') {
           setEmailSubject('Verification Successful: StudentPocket Identity Confirmed');
-          setEmailBody(`Dear Student,\n\nWe are pleased to inform you that your identity verification request has been approved.\n\nWelcome to StudentPocket.\n\nBest regards,\nSystem Admin`);
+          setEmailBody(`Dear Student,\n\nWe are pleased to inform you that your identity verification request has been approved. Your profile data has been updated with the information provided.\n\nYou now have full access to all StudentPocket features.\n\nBest regards,\nSystem Admin`);
       } else {
           setEmailSubject('Action Required: Verification Request Update');
-          setEmailBody(`Dear Student,\n\nWe reviewed your verification request but were unable to confirm your identity based on the provided documents.\n\nPlease review your details and resubmit.\n\nRegards,\nSystem Admin`);
+          setEmailBody(`Dear Student,\n\nWe reviewed your verification request but were unable to confirm your identity based on the provided documents.\n\nReason: Information mismatch.\n\nPlease review your details and resubmit.\n\nRegards,\nSystem Admin`);
       }
   };
 
@@ -93,13 +101,40 @@ export const AdminDashboard: React.FC = () => {
     const dataKey = `architect_data_${req.username}`;
     const stored = await storageService.getData(dataKey);
     
+    // Parse submitted details from the request
+    let submittedDetails: any = {};
+    try { submittedDetails = JSON.parse(req.details); } catch(e) {}
+
     if (stored && stored.user) {
-      stored.user.isVerified = action === 'APPROVE';
-      stored.user.verificationStatus = action === 'APPROVE' ? 'VERIFIED' : 'REJECTED';
-      stored.user.adminFeedback = emailBody;
+      const currentUser: UserProfile = stored.user;
+
+      if (action === 'APPROVE') {
+          // --- DATA MERGE LOGIC ---
+          // Update the actual user profile with the submitted data
+          const updatedUser: UserProfile = {
+              ...currentUser,
+              isVerified: true,
+              verificationStatus: 'VERIFIED',
+              adminFeedback: emailBody,
+              // Map form fields to profile fields
+              name: submittedDetails.fullName || currentUser.name,
+              email: submittedDetails.email || currentUser.email,
+              phone: submittedDetails.phone || currentUser.phone,
+              avatar: submittedDetails._profileImage || currentUser.avatar,
+              // Save extra metadata if needed, possibly extending UserProfile in future
+          };
+          stored.user = updatedUser;
+      } else {
+          // REJECT LOGIC
+          stored.user.isVerified = false;
+          stored.user.verificationStatus = 'REJECTED';
+          stored.user.adminFeedback = emailBody;
+      }
       
+      // Save updated user data to storage
       await storageService.setData(dataKey, stored);
 
+      // Log the administrative action
       await storageService.logActivity({
           actor: ADMIN_USERNAME,
           targetUser: req.username,
@@ -121,12 +156,11 @@ export const AdminDashboard: React.FC = () => {
         setEmailMode(null);
         setSelectedRequest(null);
         setRefreshTrigger(prev => prev + 1);
-        alert(`Request ${action === 'APPROVE' ? 'Authorized' : 'Rejected'}. Email simulated.`);
       }, 1000);
 
     } else {
         setIsSending(false);
-        alert(`Error: User data not found.`);
+        alert(`Error: User data node not found.`);
     }
   };
 
@@ -258,7 +292,7 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
             <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800">
-                 <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 border-b border-slate-200 dark:border-slate-700 pb-3 mb-4">Student Data</h3>
+                 <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 border-b border-slate-200 dark:border-slate-700 pb-3 mb-4">Submitted Data</h3>
                  
                  <div className="grid grid-cols-1 gap-4">
                      <div className="grid grid-cols-2 gap-4">
@@ -295,6 +329,11 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                      )}
                  </div>
+            </div>
+            
+            <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 text-xs text-indigo-800 dark:text-indigo-300 font-medium leading-relaxed">
+                <p className="font-bold mb-1">Processing Action:</p>
+                Approving this request will automatically update the student's profile with the provided details and grant verification status.
             </div>
         </div>
     );
@@ -453,36 +492,51 @@ export const AdminDashboard: React.FC = () => {
 
       {viewMode === 'REQUESTS' && (
         <div className="grid grid-cols-1 gap-4">
-           {requests.filter(r => r.status === 'PENDING').map(req => {
+           {requests.map(req => {
              let details: any = {};
              try { details = JSON.parse(req.details); } catch(e) {}
              const thumbnail = details._profileImage;
+             const isPending = req.status === 'PENDING';
+             
              return (
-               <div key={req.id} className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
+               <div key={req.id} className={`p-6 rounded-2xl border flex items-center justify-between shadow-sm transition-all ${
+                   isPending ? 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:shadow-md' : 'bg-slate-50 dark:bg-slate-950 border-slate-100 dark:border-slate-800 opacity-80'
+               }`}>
                   <div className="flex items-center space-x-6">
                      <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden shadow-inner">
                         {thumbnail ? <img src={thumbnail} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center bg-slate-50 dark:bg-slate-800 p-2"><img src="/logo.svg" className="w-full h-full object-contain opacity-50"/></div>}
                      </div>
                      <div>
                         <p className="font-bold text-slate-900 dark:text-white">{details.fullName || req.username}</p>
-                        <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-0.5">Verification Application • {req.username}</p>
+                        <div className="flex items-center space-x-2 mt-0.5">
+                            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">{req.username}</span>
+                            {!isPending && (
+                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                                    {req.status}
+                                </span>
+                            )}
+                        </div>
                      </div>
                   </div>
-                  <button 
-                    onClick={() => setSelectedRequest(req)} 
-                    className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition-colors"
-                  >
-                    Review
-                  </button>
+                  {isPending ? (
+                      <button 
+                        onClick={() => setSelectedRequest(req)} 
+                        className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition-colors"
+                      >
+                        Review
+                      </button>
+                  ) : (
+                      <span className="text-xs text-slate-400 font-medium">Processed {new Date(req.createdAt).toLocaleDateString()}</span>
+                  )}
                </div>
              );
            })}
-           {requests.filter(r => r.status === 'PENDING').length === 0 && (
+           {requests.length === 0 && (
                <div className="text-center py-24 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
                    <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
                        <BellRing size={24} />
                    </div>
-                   <p className="font-bold text-slate-400 text-sm uppercase tracking-widest">No pending requests</p>
+                   <p className="font-bold text-slate-400 text-sm uppercase tracking-widest">No verification requests</p>
                </div>
            )}
         </div>
@@ -544,6 +598,12 @@ export const AdminDashboard: React.FC = () => {
                             className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 font-medium text-sm outline-none focus:border-indigo-500 transition-colors h-40 resize-none"
                         />
                     </div>
+                    {emailMode === 'APPROVE' && (
+                        <div className="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-800/30 flex items-center gap-3">
+                            <HardDrive size={16} className="text-emerald-500"/>
+                            <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">User profile data will be updated and verification status granted upon sending.</p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex justify-end space-x-3">
@@ -554,7 +614,7 @@ export const AdminDashboard: React.FC = () => {
                         className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition-colors flex items-center"
                     >
                        {isSending ? <RefreshCw className="animate-spin mr-2" size={16} /> : <Send className="mr-2" size={16} />}
-                       Send & Close
+                       Process & Send
                     </button>
                 </div>
             </div>
@@ -572,6 +632,7 @@ export const AdminDashboard: React.FC = () => {
                     <div className="overflow-hidden">
                         <p className={`font-bold text-sm truncate ${u.isAdmin ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{u.username}</p>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">{u.email}</p>
+                        {u.profile && u.profile.isVerified && <p className="text-[9px] text-emerald-500 font-bold uppercase tracking-widest mt-1 flex items-center"><CheckCircle size={10} className="mr-1"/> Verified</p>}
                     </div>
                  </div>
                  {!u.isAdmin && (
