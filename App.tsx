@@ -242,7 +242,7 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#020617] font-sans transition-colors duration-300 overflow-x-hidden pb-20 md:pb-0">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#020617] font-sans transition-colors duration-300 overflow-x-hidden pb-24 md:pb-0">
       <GlobalLoader isLoading={isLoading} />
       {showTerms && <TermsModal onAccept={() => { if(data.user) setData(prev => ({...prev, user: { ...prev.user!, acceptedTermsVersion: SYSTEM_UPGRADE_TOKEN } })); setShowTerms(false); }} />}
       
@@ -296,7 +296,13 @@ const App = () => {
       )}
       
       {data.user && !isLoading && (
-        <Navigation currentView={view} setView={setView} isAdmin={currentUsername === ADMIN_USERNAME} isVerified={data.user?.isVerified || false} />
+        <Navigation 
+            currentView={view} 
+            setView={setView} 
+            isAdmin={currentUsername === ADMIN_USERNAME} 
+            isVerified={data.user?.isVerified || false}
+            username={currentUsername || undefined} 
+        />
       )}
     </div>
   );

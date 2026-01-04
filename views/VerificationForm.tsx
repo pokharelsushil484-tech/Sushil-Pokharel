@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest, View } from '../types';
-import { ShieldCheck, Loader2, ArrowLeft, Send, Upload, User, Video, MapPin, Phone, Mail, Globe, FileText, CheckCircle, Copy, Check } from 'lucide-react';
+import { ShieldCheck, Loader2, ArrowLeft, Send, Upload, User, Video, MapPin, Phone, Mail, Globe, FileText, CheckCircle, Copy, Check, Info } from 'lucide-react';
 
 interface VerificationFormProps {
   user: UserProfile;
@@ -12,7 +12,7 @@ interface VerificationFormProps {
 
 export const VerificationForm: React.FC<VerificationFormProps> = ({ user, username, updateUser, onNavigate }) => {
   const [submitting, setSubmitting] = useState(false);
-  const [successState, setSuccessState] = useState<{ link: string; email: string } | null>(null);
+  const [successState, setSuccessState] = useState<{ link: string; email: string; id: string } | null>(null);
   const [copied, setCopied] = useState(false);
   
   // Permanent Fields State
@@ -47,8 +47,6 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
   const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Mock video storage (real video blob too large for localStorage typically)
-      // in a real app, upload to cloud and store URL.
       setVideoFile("Video_Uploaded_Mock_Path"); 
     }
   };
@@ -64,7 +62,6 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Strict Validation
     if (!formData.fullName || !formData.email || !formData.phone || !formData.permAddress || !formData.tempAddress || !formData.country || !profileImage) {
         alert("Compliance Error: All permanent fields and profile picture are required.");
         return;
@@ -72,7 +69,6 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     
     setSubmitting(true);
     
-    // Generate a secure unique ID
     const linkId = Math.random().toString(36).substring(7);
 
     const finalDetails = {
@@ -82,19 +78,15 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
         _submissionTime: new Date().toISOString()
     };
     
-    // Update existing request if pending, or create new
     const existing = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
     const pendingIndex = existing.findIndex((r: any) => r.username === username && r.status === 'PENDING');
     
     let request: ChangeRequest;
 
     if (pendingIndex !== -1) {
-        // Update existing pending request
         request = existing[pendingIndex];
         request.details = JSON.stringify(finalDetails);
         request.createdAt = Date.now();
-        
-        // Archive old link ID if replacing
         if (request.linkId) {
              if (!request.previousLinkIds) request.previousLinkIds = [];
              request.previousLinkIds.push(request.linkId);
@@ -102,7 +94,6 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
         request.linkId = linkId;
         existing[pendingIndex] = request;
     } else {
-        // Create new request
         request = {
             id: 'REQ-' + Date.now(),
             userId: username,
@@ -122,12 +113,10 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
       updateUser({ ...user, verificationStatus: 'PENDING_APPROVAL' });
       setSubmitting(false);
       
-      // Use window.location.origin to ensure links work in local dev and production
       const origin = window.location.origin;
       const link = `${origin}/v/${linkId}`;
       
-      // Instead of alert and redirect, show the Verification Box
-      setSuccessState({ link, email: formData.email });
+      setSuccessState({ link, email: formData.email, id: linkId });
     }, 1500);
   };
 
@@ -135,7 +124,6 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     return (
       <div className="max-w-xl mx-auto animate-fade-in pt-12 pb-24 px-4">
         <div className="bg-white dark:bg-[#0f172a] rounded-[3rem] p-10 shadow-2xl border border-indigo-100 dark:border-indigo-900/30 text-center relative overflow-hidden">
-             {/* Decorative Background */}
              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
              <div className="absolute top-0 left-0 w-full h-1.5 bg-indigo-600"></div>
              
@@ -143,26 +131,31 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                  <CheckCircle size={48} strokeWidth={3} />
              </div>
              
-             <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-3">Submission Success</h2>
-             <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.3em] mb-10">System has received your data</p>
+             <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-3">Request Sent</h2>
+             <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.3em] mb-10">Awaiting Administrator Approval</p>
              
-             <div className="bg-slate-50 dark:bg-slate-900/50 p-8 rounded-[2rem] border border-slate-200 dark:border-slate-800 mb-10 relative group">
+             <div className="bg-slate-50 dark:bg-slate-900/50 p-8 rounded-[2rem] border border-slate-200 dark:border-slate-800 mb-10 relative group text-left">
                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
-                    Generated Secure Link
-                 </div>
-                 <div className="flex items-center justify-center space-x-3 mb-6">
-                    <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400 font-mono break-all select-all">{successState.link}</p>
-                    <button onClick={copyLink} className="p-2 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 rounded-lg hover:bg-indigo-200 transition-colors">
-                        {copied ? <Check size={16}/> : <Copy size={16}/>}
-                    </button>
+                    Validation Key
                  </div>
                  
-                 <div className="flex flex-col items-center space-y-2">
-                    <div className="flex items-center justify-center space-x-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                        <Loader2 size={12} className="animate-spin text-indigo-500" />
-                        <span>Awaiting Admin Approval</span>
-                    </div>
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Email: {successState.email}</p>
+                 <div className="space-y-4">
+                     <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
+                         <div>
+                             <p className="text-[9px] font-bold text-slate-400 uppercase">Secure Link ID</p>
+                             <p className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">{successState.id}</p>
+                         </div>
+                         <button onClick={copyLink} className="p-2 bg-slate-50 dark:bg-slate-900 text-slate-400 hover:text-indigo-600 rounded-lg transition-colors">
+                            {copied ? <Check size={16}/> : <Copy size={16}/>}
+                         </button>
+                     </div>
+                     
+                     <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30">
+                         <Info size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                         <p className="text-[10px] text-amber-700 dark:text-amber-400 font-medium leading-relaxed">
+                             Your request is now in the Admin Queue. You will receive a notification once your identity is verified.
+                         </p>
+                     </div>
                  </div>
              </div>
 
