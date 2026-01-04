@@ -1,480 +1,306 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { ChangeRequest, ActivityLog, View, SupportTicket, TicketMessage, UserProfile } from '../types';
+import { UserProfile, ChangeRequest, SupportTicket, TicketMessage } from '../types';
 import { 
-  BellRing, Eye, Trash2, FileClock, Search, RefreshCw, CheckCircle, XCircle, Send, Paperclip, Mail, X, Video, MapPin, Globe, Phone, User, Link, Copy, LifeBuoy, Clock, HardDrive, ArrowRight, AlertTriangle
+  Users, ShieldCheck, LifeBuoy, Search, Trash2, 
+  CheckCircle, XCircle, RefreshCw, User, Lock, 
+  ShieldAlert, MessageSquare, Send, Clock, Filter 
 } from 'lucide-react';
-import { ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
+import { ADMIN_USERNAME } from '../constants';
+
+type AdminView = 'OVERVIEW' | 'USERS' | 'REQUESTS' | 'SUPPORT';
 
 export const AdminDashboard: React.FC = () => {
-  const [usersList, setUsersList] = useState<any[]>([]);
+  const [viewMode, setViewMode] = useState<AdminView>('OVERVIEW');
+  const [users, setUsers] = useState<Record<string, any>>({}); // LocalStorage users
+  const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
-  const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [viewMode, setViewMode] = useState<'REQUESTS' | 'NODES' | 'LOGS' | 'INVITES' | 'SUPPORT'>('REQUESTS');
-  const [selectedRequest, setSelectedRequest] = useState<ChangeRequest | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
-  const [logFilter, setLogFilter] = useState('');
-  
-  const [emailMode, setEmailMode] = useState<'APPROVE' | 'REJECT' | null>(null);
-  const [emailSubject, setEmailSubject] = useState('');
-  const [emailBody, setEmailBody] = useState('');
-  const [isSending, setIsSending] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const [ticketReply, setTicketReply] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Invite Generator State
-  const [generatedInvite, setGeneratedInvite] = useState('');
-  const [inviteCopied, setInviteCopied] = useState(false);
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 5000); // Poll for updates
+    return () => clearInterval(interval);
+  }, []);
 
-  const refreshData = async () => {
-    const usersStr = localStorage.getItem('studentpocket_users');
-    if (usersStr) {
-      const usersObj = JSON.parse(usersStr);
-      const list = await Promise.all(Object.entries(usersObj).map(async ([key, value]: [string, any]) => {
-        const stored = await storageService.getData(`architect_data_${key}`);
-        return {
-            username: key,
-            email: value.email,
-            isVerified: stored?.user?.isVerified || false,
-            isBanned: stored?.user?.isBanned || false,
-            storageLimit: stored?.user?.storageLimitGB || 15,
-            isAdmin: key === ADMIN_USERNAME,
-            profile: stored?.user
-        };
-      }));
-      setUsersList(list);
+  useEffect(() => {
+    if (selectedTicket) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-    const reqStr = localStorage.getItem('studentpocket_requests') || '[]';
-    // Sort requests: Pending first, then by date
-    const parsedRequests: ChangeRequest[] = JSON.parse(reqStr);
-    const sortedRequests = parsedRequests.sort((a, b) => {
-        if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
-        if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
-        return b.createdAt - a.createdAt;
-    });
-    setRequests(sortedRequests);
-    
-    const logs = await storageService.getLogs();
-    setLogs(logs);
+  }, [selectedTicket, tickets]);
 
+  const loadData = async () => {
+    // Load Users from LocalStorage (Auth)
+    const usersStr = localStorage.getItem('studentpocket_users');
+    const usersObj = usersStr ? JSON.parse(usersStr) : {};
+    setUsers(usersObj);
+
+    // Load Profiles (from Architect Data nodes) - simulating fetch
+    const loadedProfiles: UserProfile[] = [];
+    for (const username of Object.keys(usersObj)) {
+        if (username === ADMIN_USERNAME) continue;
+        const data = await storageService.getData(`architect_data_${username}`);
+        if (data && data.user) loadedProfiles.push(data.user);
+    }
+    setProfiles(loadedProfiles);
+
+    // Load Requests
+    const reqStr = localStorage.getItem('studentpocket_requests');
+    if (reqStr) setRequests(JSON.parse(reqStr));
+
+    // Load Tickets
     const ticketStr = localStorage.getItem('studentpocket_tickets');
     if (ticketStr) {
-        const allTickets = JSON.parse(ticketStr);
-        setTickets(allTickets.sort((a: SupportTicket, b: SupportTicket) => b.updatedAt - a.updatedAt));
+        const allTickets: SupportTicket[] = JSON.parse(ticketStr);
+        setTickets(allTickets.sort((a, b) => b.updatedAt - a.updatedAt));
+        
+        // Update selected ticket if active
+        if (selectedTicket) {
+            const updated = allTickets.find(t => t.id === selectedTicket.id);
+            if (updated) setSelectedTicket(updated);
+        }
     }
   };
 
-  useEffect(() => {
-    refreshData();
-  }, [refreshTrigger]);
-
-  useEffect(() => {
-      if (selectedTicket) {
-          // Re-fetch selected ticket to get updates
-          const found = tickets.find(t => t.id === selectedTicket.id);
-          if (found) setSelectedTicket(found);
-          setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-      }
-  }, [tickets]);
-
-  const initiateProcess = (action: 'APPROVE' | 'REJECT') => {
-      setEmailMode(action);
-      if (action === 'APPROVE') {
-          setEmailSubject('Verification Successful: StudentPocket Identity Confirmed');
-          setEmailBody(`Dear Student,\n\nWe are pleased to inform you that your identity verification request has been approved. Your profile data has been updated with the information provided.\n\nYou now have full access to all StudentPocket features.\n\nBest regards,\nSystem Admin`);
-      } else {
-          setEmailSubject('Action Required: Verification Request Update');
-          setEmailBody(`Dear Student,\n\nWe reviewed your verification request but were unable to confirm your identity based on the provided documents.\n\nReason: Information mismatch.\n\nPlease review your details and resubmit.\n\nRegards,\nSystem Admin`);
-      }
-  };
-
-  const sendEmailAndFinalize = async () => {
-    if (!selectedRequest || !emailMode) return;
-    setIsSending(true);
-
-    const req = selectedRequest;
-    const action = emailMode;
-    const dataKey = `architect_data_${req.username}`;
-    const stored = await storageService.getData(dataKey);
-    
-    // Parse submitted details from the request
-    let submittedDetails: any = {};
-    try { submittedDetails = JSON.parse(req.details); } catch(e) {}
-
-    if (stored && stored.user) {
-      const currentUser: UserProfile = stored.user;
-
-      if (action === 'APPROVE') {
-          // --- DATA MERGE LOGIC ---
-          // Update the actual user profile with the submitted data
-          const updatedUser: UserProfile = {
-              ...currentUser,
-              isVerified: true,
-              verificationStatus: 'VERIFIED',
-              adminFeedback: emailBody,
-              // Map form fields to profile fields
-              name: submittedDetails.fullName || currentUser.name,
-              email: submittedDetails.email || currentUser.email,
-              phone: submittedDetails.phone || currentUser.phone,
-              avatar: submittedDetails._profileImage || currentUser.avatar,
-              // Save extra metadata if needed, possibly extending UserProfile in future
-          };
-          stored.user = updatedUser;
-      } else {
-          // REJECT LOGIC
-          stored.user.isVerified = false;
-          stored.user.verificationStatus = 'REJECTED';
-          stored.user.adminFeedback = emailBody;
-      }
-      
-      // Save updated user data to storage
-      await storageService.setData(dataKey, stored);
-
-      // Log the administrative action
-      await storageService.logActivity({
-          actor: ADMIN_USERNAME,
-          targetUser: req.username,
-          actionType: 'ADMIN',
-          description: `Request ${action}: ${req.username}`,
-          metadata: JSON.stringify({ requestId: req.id, action })
-      });
-
-      // Update centralized request store
-      const reqStr = localStorage.getItem('studentpocket_requests');
-      if (reqStr) {
-          const allRequests: ChangeRequest[] = JSON.parse(reqStr);
-          const updatedRequests = allRequests.map(r => r.id === req.id ? { ...r, status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED' } : r);
-          localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
-      }
-      
-      setTimeout(() => {
-        setIsSending(false);
-        setEmailMode(null);
-        setSelectedRequest(null);
-        setRefreshTrigger(prev => prev + 1);
-      }, 1000);
-
-    } else {
-        setIsSending(false);
-        alert(`Error: User data node not found.`);
-    }
-  };
-
-  const updateUserNode = async (username: string, updates: any) => {
-    const dataKey = `architect_data_${username}`;
-    const stored = await storageService.getData(dataKey);
-    if (stored) {
-        stored.user = { ...stored.user, ...updates };
-        await storageService.setData(dataKey, stored);
-        setRefreshTrigger(prev => prev + 1);
-    }
-  };
-  
-  const deleteUserNode = async (username: string) => {
-      if (!window.confirm(`CRITICAL: Are you sure you want to permanently delete user "${username}"? This will remove all their data, files, and logs. This action cannot be undone.`)) return;
-
-      try {
-          // 1. Remove from Users List (localStorage)
-          const usersStr = localStorage.getItem('studentpocket_users');
-          if (usersStr) {
-            const users = JSON.parse(usersStr);
-            delete users[username];
-            localStorage.setItem('studentpocket_users', JSON.stringify(users));
-          }
-
-          // 2. Remove Requests (localStorage)
-          const reqStr = localStorage.getItem('studentpocket_requests');
-          if (reqStr) {
-            const allRequests: ChangeRequest[] = JSON.parse(reqStr);
-            const filteredReqs = allRequests.filter(r => r.username !== username);
-            localStorage.setItem('studentpocket_requests', JSON.stringify(filteredReqs));
-          }
-
-          // 3. Remove Tickets (localStorage)
-          const ticketStr = localStorage.getItem('studentpocket_tickets');
-          if (ticketStr) {
-              const allTickets: SupportTicket[] = JSON.parse(ticketStr);
-              const filteredTickets = allTickets.filter(t => t.userId !== username);
-              localStorage.setItem('studentpocket_tickets', JSON.stringify(filteredTickets));
-          }
-
-          // 4. Remove Data Node (IndexedDB)
-          await storageService.deleteData(`architect_data_${username}`);
+  const handleVerifyRequest = async (req: ChangeRequest, approve: boolean) => {
+      // Logic to approve/reject verification
+      // Update User Profile
+      const data = await storageService.getData(`architect_data_${req.username}`);
+      if (data && data.user) {
+          data.user.isVerified = approve;
+          data.user.verificationStatus = approve ? 'VERIFIED' : 'REJECTED';
+          data.user.adminFeedback = approve 
+            ? "Identity Verified by Administration." 
+            : "Verification rejected. Please ensure details match your ID.";
           
-          await storageService.logActivity({
-              actor: ADMIN_USERNAME,
-              targetUser: username,
-              actionType: 'ADMIN',
-              description: `USER DELETED: ${username}`
-          });
-          
-          setRefreshTrigger(prev => prev + 1);
-          alert(`User ${username} has been deleted.`);
+          await storageService.setData(`architect_data_${req.username}`, data);
+      }
 
-      } catch (e) {
-          console.error("Deletion failed", e);
-          alert("Error deleting user data.");
+      // Update Request Status
+      const updatedReqs = requests.map(r => 
+        r.id === req.id ? { ...r, status: approve ? 'APPROVED' : 'REJECTED' } : r
+      );
+      setRequests(updatedReqs as ChangeRequest[]);
+      localStorage.setItem('studentpocket_requests', JSON.stringify(updatedReqs));
+  };
+
+  const handleBanUser = async (username: string) => {
+      if(!window.confirm(`Ban user ${username}?`)) return;
+      const data = await storageService.getData(`architect_data_${username}`);
+      if (data && data.user) {
+          data.user.isBanned = true;
+          data.user.banReason = "Account suspended by Administrator.";
+          await storageService.setData(`architect_data_${username}`, data);
+          loadData();
       }
   };
 
-  const resetUserData = async (username: string) => {
-      if (!window.confirm(`WARNING: Reset all data for "${username}"? This will clear files, chat history, and settings, but keep the account active.`)) return;
-      
-      const dataKey = `architect_data_${username}`;
-      const stored = await storageService.getData(dataKey);
-      
-      if (stored && stored.user) {
-          // Keep critical profile info
-          const baseProfile = {
-              ...stored.user,
-              storageUsedBytes: 0,
-              isVerified: false, // Force re-verification maybe? or keep true if just clearing data. Let's keep status.
-              verificationStatus: stored.user.verificationStatus // Preserve status
-          };
-          
-          await storageService.setData(dataKey, {
-              user: baseProfile,
-              chatHistory: [],
-              vaultDocs: []
-          });
-
-          await storageService.logActivity({
-            actor: ADMIN_USERNAME,
-            targetUser: username,
-            actionType: 'ADMIN',
-            description: `DATA RESET: ${username}`
-        });
-
-        setRefreshTrigger(prev => prev + 1);
-        alert(`Data for ${username} has been reset.`);
-      }
-  };
-
-  const generateInviteLink = () => {
-    const code = Math.random().toString(36).substring(7);
-    const origin = window.location.origin;
-    const link = `${origin}/register/${code}`;
-    
-    // Persist invite to storage so it can be validated
-    const invitesStr = localStorage.getItem('studentpocket_invites');
-    const invites = invitesStr ? JSON.parse(invitesStr) : [];
-    invites.push({
-        code,
-        status: 'ACTIVE',
-        createdAt: Date.now(),
-        createdBy: ADMIN_USERNAME
-    });
-    localStorage.setItem('studentpocket_invites', JSON.stringify(invites));
-
-    setGeneratedInvite(link);
-    setInviteCopied(false);
-  };
-
-  const copyInviteLink = () => {
-    navigator.clipboard.writeText(generatedInvite);
-    setInviteCopied(true);
-    setTimeout(() => setInviteCopied(false), 2000);
-  };
-
-  // Support Ticket Logic
-  const replyToTicket = (e: React.FormEvent) => {
+  // Support Ticket Functions
+  const sendTicketReply = (e: React.FormEvent) => {
       e.preventDefault();
-      if (!selectedTicket || !ticketReply.trim()) return;
+      if (!selectedTicket || !replyText.trim()) return;
 
       const message: TicketMessage = {
           id: Date.now().toString(),
-          sender: 'Admin Support',
-          text: ticketReply,
+          sender: ADMIN_USERNAME, // 'Admin' or specific admin name
+          text: replyText,
           timestamp: Date.now(),
           isAdmin: true
       };
 
-      const stored = localStorage.getItem('studentpocket_tickets');
-      if (stored) {
-          const allTickets: SupportTicket[] = JSON.parse(stored);
-          const idx = allTickets.findIndex(t => t.id === selectedTicket.id);
-          if (idx !== -1) {
-              allTickets[idx].messages.push(message);
-              allTickets[idx].updatedAt = Date.now();
-              localStorage.setItem('studentpocket_tickets', JSON.stringify(allTickets));
-              setRefreshTrigger(prev => prev + 1);
-              setTicketReply('');
+      const updatedTickets = tickets.map(t => {
+          if (t.id === selectedTicket.id) {
+              return {
+                  ...t,
+                  messages: [...t.messages, message],
+                  updatedAt: Date.now(),
+                  status: 'OPEN' // Re-open if replied
+              };
           }
-      }
+          return t;
+      });
+
+      localStorage.setItem('studentpocket_tickets', JSON.stringify(updatedTickets));
+      setTickets(updatedTickets as SupportTicket[]);
+      setReplyText('');
+      
+      // Update local selection
+      const updated = updatedTickets.find(t => t.id === selectedTicket.id);
+      if (updated) setSelectedTicket(updated);
   };
 
   const closeTicket = () => {
       if (!selectedTicket) return;
-      if (!window.confirm("Close this ticket?")) return;
-
-      const stored = localStorage.getItem('studentpocket_tickets');
-      if (stored) {
-          const allTickets: SupportTicket[] = JSON.parse(stored);
-          const idx = allTickets.findIndex(t => t.id === selectedTicket.id);
-          if (idx !== -1) {
-              allTickets[idx].status = 'CLOSED';
-              allTickets[idx].updatedAt = Date.now();
-              localStorage.setItem('studentpocket_tickets', JSON.stringify(allTickets));
-              setRefreshTrigger(prev => prev + 1);
-          }
-      }
+      const updatedTickets = tickets.map(t => 
+          t.id === selectedTicket.id ? { ...t, status: 'CLOSED', updatedAt: Date.now() } : t
+      );
+      localStorage.setItem('studentpocket_tickets', JSON.stringify(updatedTickets));
+      setTickets(updatedTickets as SupportTicket[]);
+      
+      const updated = updatedTickets.find(t => t.id === selectedTicket.id);
+      if (updated) setSelectedTicket(updated as SupportTicket);
   };
 
-
-  const filteredLogs = logs.filter(log => 
-    log.description.toLowerCase().includes(logFilter.toLowerCase()) || 
-    log.actor.toLowerCase().includes(logFilter.toLowerCase())
-  );
-
-  const renderRequestDetails = (request: ChangeRequest) => {
-    let details: any = {};
-    try {
-        details = JSON.parse(request.details);
-    } catch(e) {
-        return <p className="text-red-500 text-xs">Error parsing request details.</p>;
-    }
-    
-    const profileImage = details._profileImage;
-    const videoFile = details._videoFile;
-
-    return (
-        <div className="space-y-6">
-            <div className="flex items-start space-x-6">
-                 {/* Image */}
-                 <div className="w-32 h-32 rounded-2xl bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm">
-                    {profileImage ? (
-                        <img src={profileImage} alt="User" className="w-full h-full object-cover" />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center p-6"><img src="/logo.svg" className="w-full h-full object-contain opacity-20"/></div>
-                    )}
-                 </div>
-                 
-                 {/* Video Indicator */}
-                 <div className="flex-1">
-                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Media Status</p>
-                     <div className="flex items-center space-x-3 mb-3">
-                        <div className={`p-2 rounded-lg ${profileImage ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-                            <CheckCircle size={16} />
-                        </div>
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Photo Provided</span>
-                     </div>
-                     <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-lg ${videoFile ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
-                            <Video size={16} />
-                        </div>
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{videoFile ? 'Video Included' : 'No Video'}</span>
-                     </div>
-                 </div>
-            </div>
-
-            <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800">
-                 <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 border-b border-slate-200 dark:border-slate-700 pb-3 mb-4">Submitted Data</h3>
-                 
-                 <div className="grid grid-cols-1 gap-4">
-                     <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Full Name</p>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{details.fullName || 'N/A'}</p>
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Country</p>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white flex items-center"><Globe size={12} className="mr-1.5 opacity-50"/> {details.country || 'N/A'}</p>
-                        </div>
-                     </div>
-                     
-                     <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Email</p>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white break-all flex items-center"><Mail size={12} className="mr-1.5 opacity-50"/> {details.email}</p>
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Phone</p>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white flex items-center"><Phone size={12} className="mr-1.5 opacity-50"/> {details.phone}</p>
-                        </div>
-                     </div>
-                     
-                     <div className="pt-2">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Permanent Address</p>
-                        <p className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-start"><MapPin size={12} className="mr-1.5 mt-0.5 opacity-50"/> {details.permAddress}</p>
-                     </div>
-                     
-                     {details.tempAddress && (
-                        <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Temporary Address</p>
-                            <p className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-start"><MapPin size={12} className="mr-1.5 mt-0.5 opacity-50"/> {details.tempAddress}</p>
-                        </div>
-                     )}
-                 </div>
-            </div>
-            
-            <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 text-xs text-indigo-800 dark:text-indigo-300 font-medium leading-relaxed">
-                <p className="font-bold mb-1">Processing Action:</p>
-                Approving this request will automatically update the student's profile with the provided details and grant verification status.
-            </div>
-        </div>
-    );
+  const deleteSupportTicket = (id: string) => {
+      if (!window.confirm("Delete this ticket permanently?")) return;
+      const updatedTickets = tickets.filter(t => t.id !== id);
+      localStorage.setItem('studentpocket_tickets', JSON.stringify(updatedTickets));
+      setTickets(updatedTickets);
+      if (selectedTicket?.id === id) setSelectedTicket(null);
   };
+
+  // Filter Logic
+  const filteredUsers = profiles.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const pendingRequests = requests.filter(r => r.status === 'PENDING');
 
   return (
     <div className="pb-24 animate-fade-in w-full max-w-7xl mx-auto space-y-8">
-      {/* Admin Header */}
-      <div className="flex flex-col md:flex-row justify-between items-end gap-6 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Admin Console</h1>
-            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2">StudentPocket Management</p>
-        </div>
-        <div className="flex items-center gap-3">
-            <button onClick={() => setRefreshTrigger(prev => prev + 1)} className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-indigo-600 hover:bg-slate-100 transition-colors"><RefreshCw size={18}/></button>
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-                <button onClick={() => setViewMode('REQUESTS')} className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${viewMode === 'REQUESTS' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Requests</button>
-                <button onClick={() => setViewMode('NODES')} className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${viewMode === 'NODES' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Users</button>
-                <button onClick={() => setViewMode('SUPPORT')} className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${viewMode === 'SUPPORT' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Help Desk</button>
-                <button onClick={() => setViewMode('INVITES')} className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${viewMode === 'INVITES' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Invites</button>
-                <button onClick={() => setViewMode('LOGS')} className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${viewMode === 'LOGS' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Logs</button>
-            </div>
-        </div>
-      </div>
+       {/* Admin Header */}
+       <div className="bg-slate-900 text-white p-10 rounded-[3rem] shadow-2xl relative overflow-hidden">
+           <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+           <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
+               <div>
+                   <h1 className="text-4xl font-black uppercase tracking-tighter mb-2">System Command</h1>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em]">Administrative Console</p>
+               </div>
+               <div className="flex bg-white/10 p-1.5 rounded-2xl backdrop-blur-sm">
+                   {[
+                       { id: 'OVERVIEW', icon: ShieldAlert, label: 'Ops' },
+                       { id: 'USERS', icon: Users, label: 'Nodes' },
+                       { id: 'REQUESTS', icon: ShieldCheck, label: 'Auth' },
+                       { id: 'SUPPORT', icon: LifeBuoy, label: 'Help' }
+                   ].map(tab => (
+                       <button
+                           key={tab.id}
+                           onClick={() => setViewMode(tab.id as AdminView)}
+                           className={`flex items-center px-6 py-3 rounded-xl transition-all ${
+                               viewMode === tab.id 
+                               ? 'bg-white text-slate-900 shadow-lg' 
+                               : 'text-slate-400 hover:text-white hover:bg-white/5'
+                           }`}
+                       >
+                           <tab.icon size={16} className="mr-2" />
+                           <span className="text-[10px] font-black uppercase tracking-widest">{tab.label}</span>
+                       </button>
+                   ))}
+               </div>
+           </div>
+       </div>
 
-      {viewMode === 'INVITES' && (
-        <div className="bg-white dark:bg-slate-900 p-10 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-             <div className="flex flex-col md:flex-row items-center justify-between gap-10">
-                 <div className="flex-1">
-                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Student Enrollment</h2>
-                     <p className="text-sm text-slate-500 leading-relaxed mb-6">
-                        Generate securely signed registration links for new students. These links allow users to set up their profile and credentials directly.
-                     </p>
-                     <button onClick={generateInviteLink} className="px-8 py-4 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 active:scale-95 transition-all flex items-center">
-                        <Link size={18} className="mr-2" /> Generate Link
-                     </button>
-                 </div>
-                 
-                 <div className="flex-1 w-full md:max-w-md">
-                     <div className="bg-slate-50 dark:bg-slate-950 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
-                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Secure Link</p>
-                         <div className="flex items-center space-x-3 bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
-                             <input 
-                                readOnly 
-                                value={generatedInvite || 'No link generated'} 
-                                className="flex-1 bg-transparent border-none outline-none text-xs font-mono text-slate-600 dark:text-slate-300 px-2"
-                             />
-                             {generatedInvite && (
-                                <button onClick={copyInviteLink} className="p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors">
-                                    {inviteCopied ? <CheckCircle size={16}/> : <Copy size={16}/>}
-                                </button>
-                             )}
-                         </div>
-                         {generatedInvite && <p className="text-[10px] text-emerald-500 font-bold mt-3 flex items-center"><CheckCircle size={12} className="mr-1.5"/> Ready to share</p>}
-                     </div>
-                 </div>
-             </div>
-        </div>
-      )}
+       {/* VIEWS */}
+       {viewMode === 'OVERVIEW' && (
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+               {/* Stats Cards */}
+               <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
+                   <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl flex items-center justify-center text-indigo-600 mb-4">
+                       <Users size={24} />
+                   </div>
+                   <h3 className="text-3xl font-black text-slate-900 dark:text-white">{profiles.length}</h3>
+                   <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Active Nodes</p>
+               </div>
+               <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
+                   <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-2xl flex items-center justify-center text-amber-600 mb-4">
+                       <ShieldCheck size={24} />
+                   </div>
+                   <h3 className="text-3xl font-black text-slate-900 dark:text-white">{pendingRequests.length}</h3>
+                   <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Pending Auth</p>
+               </div>
+               <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
+                   <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl flex items-center justify-center text-emerald-600 mb-4">
+                       <LifeBuoy size={24} />
+                   </div>
+                   <h3 className="text-3xl font-black text-slate-900 dark:text-white">{tickets.filter(t => t.status === 'OPEN').length}</h3>
+                   <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Open Tickets</p>
+               </div>
+           </div>
+       )}
 
-      {viewMode === 'SUPPORT' && (
+       {viewMode === 'USERS' && (
+           <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
+               <div className="flex items-center space-x-4 mb-8 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl">
+                   <Search size={20} className="text-slate-400 ml-2" />
+                   <input 
+                        type="text" 
+                        placeholder="Search Identity Nodes..." 
+                        className="bg-transparent w-full outline-none font-bold text-slate-700 dark:text-white"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                   />
+               </div>
+               <div className="space-y-4">
+                   {filteredUsers.map((user, i) => (
+                       <div key={i} className="flex justify-between items-center p-6 border border-slate-100 dark:border-slate-800 rounded-[2rem] hover:bg-slate-50 dark:hover:bg-slate-950/50 transition-colors">
+                           <div className="flex items-center space-x-4">
+                               <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                   {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : <User className="p-3 w-full h-full text-slate-400" />}
+                               </div>
+                               <div>
+                                   <h4 className="font-bold text-slate-900 dark:text-white">{user.name}</h4>
+                                   <p className="text-xs text-slate-500">{user.email}</p>
+                               </div>
+                           </div>
+                           <div className="flex items-center space-x-3">
+                               <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${user.isVerified ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                                   {user.isVerified ? 'Verified' : 'Guest'}
+                               </span>
+                               <button 
+                                    onClick={() => handleBanUser(user.email.split('@')[0])} // Heuristic, better if we stored username in profile
+                                    className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                                    title="Ban User"
+                               >
+                                   <Lock size={18} />
+                               </button>
+                           </div>
+                       </div>
+                   ))}
+               </div>
+           </div>
+       )}
+
+       {viewMode === 'REQUESTS' && (
+           <div className="space-y-4">
+               {pendingRequests.length === 0 && (
+                   <div className="text-center py-20 text-slate-400">
+                       <CheckCircle size={48} className="mx-auto mb-4 opacity-50" />
+                       <p className="text-xs font-bold uppercase tracking-wider">All Clear</p>
+                   </div>
+               )}
+               {pendingRequests.map(req => (
+                   <div key={req.id} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
+                       <div className="flex items-center space-x-6">
+                           <div className="p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded-2xl">
+                               <ShieldAlert size={24} />
+                           </div>
+                           <div>
+                               <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-1">Verification Request</h4>
+                               <p className="text-xs text-slate-500 font-mono">ID: {req.username}</p>
+                           </div>
+                       </div>
+                       <div className="flex space-x-3">
+                           <button 
+                                onClick={() => handleVerifyRequest(req, false)}
+                                className="px-6 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-red-500 font-bold text-xs uppercase tracking-widest transition-colors"
+                           >
+                               Reject
+                           </button>
+                           <button 
+                                onClick={() => handleVerifyRequest(req, true)}
+                                className="px-6 py-3 rounded-xl bg-indigo-600 text-white font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 shadow-lg transition-colors"
+                           >
+                               Approve
+                           </button>
+                       </div>
+                   </div>
+               ))}
+           </div>
+       )}
+
+       {viewMode === 'SUPPORT' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Ticket List */}
               <div className="lg:col-span-1 space-y-4 max-h-[80vh] overflow-y-auto no-scrollbar">
@@ -484,19 +310,34 @@ export const AdminDashboard: React.FC = () => {
                           onClick={() => setSelectedTicket(ticket)}
                           className={`p-6 rounded-2xl border cursor-pointer transition-all ${
                               selectedTicket?.id === ticket.id
-                              ? 'bg-indigo-600 border-indigo-600 text-white'
+                              ? 'bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-600/20'
                               : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-indigo-300'
                           }`}
                       >
                          <div className="flex justify-between items-center mb-2">
                              <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg ${
-                                 ticket.status === 'OPEN' ? 'bg-emerald-500/20 text-emerald-100' : 'bg-black/20 text-slate-300'
+                                 ticket.status === 'OPEN' 
+                                 ? (selectedTicket?.id === ticket.id ? 'bg-white/20 text-white' : 'bg-emerald-500/20 text-emerald-600') 
+                                 : (selectedTicket?.id === ticket.id ? 'bg-black/20 text-white/50' : 'bg-slate-100 text-slate-400')
                              }`}>{ticket.status}</span>
-                             <span className="text-[10px] font-mono opacity-60">#{ticket.id}</span>
+                             <div className="flex items-center space-x-2">
+                                <span className={`text-[10px] font-mono ${selectedTicket?.id === ticket.id ? 'text-indigo-200' : 'text-slate-400 opacity-60'}`}>#{ticket.id}</span>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); deleteSupportTicket(ticket.id); }}
+                                    className={`p-1.5 rounded-lg transition-colors ${
+                                        selectedTicket?.id === ticket.id 
+                                        ? 'text-indigo-200 hover:text-white hover:bg-indigo-500' 
+                                        : 'text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
+                                    }`}
+                                    title="Delete Ticket"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                             </div>
                          </div>
-                         <h3 className="font-bold text-sm mb-1">{ticket.subject}</h3>
-                         <p className="text-xs opacity-70 mb-3 truncate">{ticket.messages[ticket.messages.length-1].text}</p>
-                         <div className="flex items-center text-[10px] font-bold uppercase tracking-wider opacity-60">
+                         <h3 className={`font-bold text-sm mb-1 ${selectedTicket?.id === ticket.id ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{ticket.subject}</h3>
+                         <p className={`text-xs opacity-70 mb-3 truncate ${selectedTicket?.id === ticket.id ? 'text-indigo-100' : 'text-slate-500'}`}>{ticket.messages[ticket.messages.length-1].text}</p>
+                         <div className={`flex items-center text-[10px] font-bold uppercase tracking-wider ${selectedTicket?.id === ticket.id ? 'text-indigo-200' : 'text-slate-400'}`}>
                              <User size={12} className="mr-1"/> {ticket.userId}
                          </div>
                       </div>
@@ -518,303 +359,68 @@ export const AdminDashboard: React.FC = () => {
                                   <h2 className="font-bold text-slate-900 dark:text-white">{selectedTicket.subject}</h2>
                                   <p className="text-xs text-slate-500 mt-1">User: {selectedTicket.userId}</p>
                               </div>
-                              {selectedTicket.status === 'OPEN' && (
-                                  <button onClick={closeTicket} className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-red-500 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-colors">Close Ticket</button>
-                              )}
+                              <div className="flex items-center space-x-3">
+                                  {selectedTicket.status === 'OPEN' && (
+                                      <button onClick={closeTicket} className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-colors">Close Ticket</button>
+                                  )}
+                                  <button onClick={() => deleteSupportTicket(selectedTicket.id)} className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-red-500 rounded-xl transition-colors" title="Delete Ticket">
+                                      <Trash2 size={18} />
+                                  </button>
+                              </div>
                           </div>
                           
                           <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50 dark:bg-slate-950/20">
-                              {selectedTicket.messages.map(msg => (
-                                  <div key={msg.id} className={`flex ${msg.isAdmin ? 'justify-end' : 'justify-start'}`}>
-                                      <div className={`max-w-[75%] p-4 rounded-2xl text-sm font-medium leading-relaxed ${
-                                          msg.isAdmin 
-                                          ? 'bg-indigo-600 text-white rounded-br-none' 
-                                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-100 dark:border-slate-700 rounded-bl-none'
-                                      }`}>
-                                          <p>{msg.text}</p>
-                                          <p className="text-[9px] font-bold uppercase tracking-widest opacity-60 mt-2 text-right">
-                                              {msg.sender} • {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                          </p>
-                                      </div>
-                                  </div>
-                              ))}
-                              <div ref={messagesEndRef} />
+                                {selectedTicket.messages.map(msg => (
+                                    <div key={msg.id} className={`flex ${msg.isAdmin ? 'justify-end' : 'justify-start'}`}>
+                                        <div className={`max-w-[80%] ${msg.isAdmin ? 'items-end' : 'items-start'} flex flex-col`}>
+                                            <div className={`p-4 rounded-2xl text-sm font-medium leading-relaxed shadow-sm ${
+                                                msg.isAdmin 
+                                                ? 'bg-indigo-600 text-white rounded-br-none' 
+                                                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-bl-none border border-slate-100 dark:border-slate-700'
+                                            }`}>
+                                                {msg.text}
+                                            </div>
+                                            <div className="flex items-center mt-2 space-x-2">
+                                                {msg.isAdmin && <ShieldCheck size={12} className="text-indigo-500" />}
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                    {msg.isAdmin ? 'Admin' : 'User'} • {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                <div ref={messagesEndRef} />
                           </div>
 
-                          {selectedTicket.status === 'OPEN' && (
-                              <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-                                  <form onSubmit={replyToTicket} className="flex gap-4">
-                                      <input 
-                                          type="text" 
-                                          value={ticketReply}
-                                          onChange={(e) => setTicketReply(e.target.value)}
-                                          className="flex-1 p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl outline-none font-medium text-sm focus:border-indigo-500 transition-all"
-                                          placeholder="Type a reply..."
-                                      />
-                                      <button type="submit" className="p-4 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20">
-                                          <Send size={20} />
-                                      </button>
-                                  </form>
-                              </div>
-                          )}
+                          <div className="p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
+                                <form onSubmit={sendTicketReply} className="relative">
+                                    <input 
+                                        type="text" 
+                                        value={replyText}
+                                        onChange={(e) => setReplyText(e.target.value)}
+                                        className="w-full pl-6 pr-14 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl outline-none font-medium text-slate-800 dark:text-white focus:border-indigo-500 transition-all placeholder:text-slate-400"
+                                        placeholder="Reply as Admin..."
+                                    />
+                                    <button 
+                                        type="submit"
+                                        disabled={!replyText.trim()}
+                                        className="absolute right-2 top-2 bottom-2 aspect-square bg-indigo-600 rounded-xl flex items-center justify-center text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                    >
+                                        <Send size={18} />
+                                    </button>
+                                </form>
+                          </div>
                       </>
                   ) : (
-                      <div className="flex items-center justify-center h-full text-slate-300">
-                          <div className="text-center">
-                              <LifeBuoy size={48} className="mx-auto mb-4" />
-                              <p className="text-sm font-bold uppercase tracking-widest">Select a ticket to view</p>
-                          </div>
+                      <div className="flex flex-col items-center justify-center h-full text-center p-12 opacity-50">
+                          <MessageSquare className="w-16 h-16 text-slate-300 mb-4" />
+                          <h3 className="text-xl font-black text-slate-400">Select a Ticket</h3>
+                          <p className="text-sm text-slate-400 mt-2">View user request details.</p>
                       </div>
                   )}
               </div>
           </div>
-      )}
-
-      {viewMode === 'REQUESTS' && (
-        <div className="grid grid-cols-1 gap-4">
-           {requests.map(req => {
-             let details: any = {};
-             try { details = JSON.parse(req.details); } catch(e) {}
-             const thumbnail = details._profileImage;
-             const isPending = req.status === 'PENDING';
-             
-             return (
-               <div key={req.id} className={`p-6 rounded-2xl border flex items-center justify-between shadow-sm transition-all ${
-                   isPending ? 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:shadow-md' : 'bg-slate-50 dark:bg-slate-950 border-slate-100 dark:border-slate-800 opacity-80'
-               }`}>
-                  <div className="flex items-center space-x-6">
-                     <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden shadow-inner">
-                        {thumbnail ? <img src={thumbnail} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center bg-slate-50 dark:bg-slate-800 p-2"><img src="/logo.svg" className="w-full h-full object-contain opacity-50"/></div>}
-                     </div>
-                     <div>
-                        <p className="font-bold text-slate-900 dark:text-white">{details.fullName || req.username}</p>
-                        <div className="flex items-center space-x-2 mt-0.5">
-                            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">{req.username}</span>
-                            {!isPending && (
-                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-                                    {req.status}
-                                </span>
-                            )}
-                        </div>
-                     </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {/* Delete Request Button */}
-                    <button 
-                        onClick={() => {
-                            if(window.confirm("Are you sure you want to delete this request log?")) {
-                                const newReqs = requests.filter(r => r.id !== req.id);
-                                localStorage.setItem('studentpocket_requests', JSON.stringify(newReqs));
-                                setRefreshTrigger(p => p + 1);
-                            }
-                        }}
-                        className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
-                        title="Delete Request Record"
-                    >
-                        <Trash2 size={16}/>
-                    </button>
-                    
-                    {isPending ? (
-                        <button 
-                            onClick={() => setSelectedRequest(req)} 
-                            className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition-colors"
-                        >
-                            Review
-                        </button>
-                    ) : (
-                        <span className="text-xs text-slate-400 font-medium">Processed {new Date(req.createdAt).toLocaleDateString()}</span>
-                    )}
-                  </div>
-               </div>
-             );
-           })}
-           {requests.length === 0 && (
-               <div className="text-center py-24 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
-                   <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
-                       <BellRing size={24} />
-                   </div>
-                   <p className="font-bold text-slate-400 text-sm uppercase tracking-widest">No verification requests</p>
-               </div>
-           )}
-        </div>
-      )}
-
-      {/* Review Modal */}
-      {selectedRequest && !emailMode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
-           <div className="bg-white dark:bg-slate-950 w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-950 rounded-t-3xl sticky top-0 z-10">
-                 <h2 className="text-lg font-bold uppercase tracking-tight text-slate-900 dark:text-white">Review Application</h2>
-                 <button onClick={() => setSelectedRequest(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"><X size={20} className="text-slate-400"/></button>
-              </div>
-              
-              <div className="flex-1 overflow-y-auto p-6 no-scrollbar">
-                {renderRequestDetails(selectedRequest)}
-              </div>
-
-              <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 rounded-b-3xl grid grid-cols-2 gap-4">
-                 <button onClick={() => initiateProcess('APPROVE')} className="bg-emerald-500 text-white py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-emerald-600 transition-colors flex items-center justify-center"><CheckCircle size={16} className="mr-2"/> Approve</button>
-                 <button onClick={() => initiateProcess('REJECT')} className="bg-red-500 text-white py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-600 transition-colors flex items-center justify-center"><XCircle size={16} className="mr-2"/> Reject</button>
-              </div>
-           </div>
-        </div>
-      )}
-
-      {/* Email Modal */}
-      {emailMode && selectedRequest && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-950 w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[85vh]">
-                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                    <div className="flex items-center space-x-4">
-                        <div className={`p-3 rounded-xl ${emailMode === 'APPROVE' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-                            <Mail size={20} />
-                        </div>
-                        <div>
-                            <h2 className="text-base font-bold text-slate-900 dark:text-white">Compose {emailMode === 'APPROVE' ? 'Approval' : 'Rejection'}</h2>
-                            <p className="text-xs text-slate-500">To: {selectedRequest.username}</p>
-                        </div>
-                    </div>
-                    <button onClick={() => setEmailMode(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"><X size={20}/></button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-8 space-y-6">
-                    <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Subject</label>
-                        <input 
-                            type="text" 
-                            value={emailSubject}
-                            onChange={(e) => setEmailSubject(e.target.value)}
-                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-sm outline-none focus:border-indigo-500 transition-colors"
-                        />
-                    </div>
-                    <div>
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Message</label>
-                        <textarea 
-                            value={emailBody}
-                            onChange={(e) => setEmailBody(e.target.value)}
-                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 font-medium text-sm outline-none focus:border-indigo-500 transition-colors h-40 resize-none"
-                        />
-                    </div>
-                    {emailMode === 'APPROVE' && (
-                        <div className="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-800/30 flex items-center gap-3">
-                            <HardDrive size={16} className="text-emerald-500"/>
-                            <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">User profile data will be updated and verification status granted upon sending.</p>
-                        </div>
-                    )}
-                </div>
-
-                <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex justify-end space-x-3">
-                    <button onClick={() => setEmailMode(null)} className="px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancel</button>
-                    <button 
-                        onClick={sendEmailAndFinalize}
-                        disabled={isSending}
-                        className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition-colors flex items-center"
-                    >
-                       {isSending ? <RefreshCw className="animate-spin mr-2" size={16} /> : <Send className="mr-2" size={16} />}
-                       Process & Send
-                    </button>
-                </div>
-            </div>
-        </div>
-      )}
-
-      {viewMode === 'NODES' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-           {usersList.map(u => (
-              <div key={u.username} className={`p-6 rounded-2xl border flex flex-col justify-between group ${u.isAdmin ? 'bg-slate-900 border-slate-800 shadow-xl' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'}`}>
-                 <div className="flex items-center space-x-4 mb-6">
-                    <div className="w-10 h-10 bg-indigo-50 dark:bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden p-2">
-                        <img src="/logo.svg" className="w-full h-full object-contain opacity-70"/>
-                    </div>
-                    <div className="overflow-hidden">
-                        <p className={`font-bold text-sm truncate ${u.isAdmin ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{u.username}</p>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">{u.email}</p>
-                        {u.profile && u.profile.isVerified && <p className="text-[9px] text-emerald-500 font-bold uppercase tracking-widest mt-1 flex items-center"><CheckCircle size={10} className="mr-1"/> Verified</p>}
-                    </div>
-                 </div>
-                 {!u.isAdmin && (
-                   <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
-                          <span className="text-[10px] font-bold uppercase text-slate-500">Storage: {u.storageLimit}GB</span>
-                          <div className="flex items-center space-x-1">
-                              <button onClick={() => updateUserNode(u.username, { storageLimitGB: Math.max(1, u.storageLimit - 5) })} className="w-6 h-6 flex items-center justify-center bg-white dark:bg-slate-700 rounded-lg text-xs font-bold hover:text-indigo-600">-</button>
-                              <button onClick={() => updateUserNode(u.username, { storageLimitGB: u.storageLimit + 5 })} className="w-6 h-6 flex items-center justify-center bg-white dark:bg-slate-700 rounded-lg text-xs font-bold hover:text-indigo-600">+</button>
-                          </div>
-                      </div>
-                      <button onClick={() => updateUserNode(u.username, { isBanned: !u.isBanned })} className={`w-full py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors ${u.isBanned ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
-                        {u.isBanned ? 'Restore Access' : 'Suspend User'}
-                      </button>
-
-                      {/* Advanced Admin Actions (Hidden by default, shown on hover/focus) */}
-                      <div className="pt-2 flex space-x-2 opacity-10 group-hover:opacity-100 transition-opacity">
-                          <button 
-                            onClick={() => resetUserData(u.username)}
-                            className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center"
-                            title="Reset User Data (Keeps Account)"
-                          >
-                             <RefreshCw size={12} className="mr-1"/> Reset
-                          </button>
-                          <button 
-                            onClick={() => deleteUserNode(u.username)}
-                            className="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center"
-                            title="Permanently Delete User"
-                          >
-                             <Trash2 size={12} className="mr-1"/> Delete
-                          </button>
-                      </div>
-                   </div>
-                 )}
-              </div>
-           ))}
-        </div>
-      )}
-
-      {viewMode === 'LOGS' && (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-           <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6">
-              <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-indigo-50 dark:bg-slate-800 rounded-xl flex items-center justify-center text-indigo-600"><FileClock size={20} /></div>
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">Activity Logs</h2>
-              </div>
-              <div className="relative w-full md:w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                  <input 
-                    type="text" 
-                    placeholder="Search logs..." 
-                    className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
-                    value={logFilter}
-                    onChange={(e) => setLogFilter(e.target.value)}
-                  />
-              </div>
-           </div>
-           
-           <div className="max-h-[500px] overflow-y-auto no-scrollbar">
-              <table className="w-full text-left">
-                  <thead className="bg-slate-50 dark:bg-slate-800/50 sticky top-0 backdrop-blur-md z-10">
-                      <tr>
-                          <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Time</th>
-                          <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Actor</th>
-                          <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Action</th>
-                      </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {filteredLogs.map(log => (
-                          <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                              <td className="p-4 text-[10px] font-mono text-slate-500 whitespace-nowrap">{new Date(log.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}</td>
-                              <td className="p-4 text-xs font-bold text-slate-700 dark:text-slate-300">{log.actor}</td>
-                              <td className="p-4 text-xs text-slate-600 dark:text-slate-400 font-medium">
-                                  {log.description}
-                              </td>
-                          </tr>
-                      ))}
-                      {filteredLogs.length === 0 && (
-                          <tr><td colSpan={3} className="p-8 text-center text-xs text-slate-400">No logs found.</td></tr>
-                      )}
-                  </tbody>
-              </table>
-           </div>
-        </div>
-      )}
+       )}
     </div>
   );
 };
