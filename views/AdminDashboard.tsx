@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, ChangeRequest, SupportTicket, TicketMessage } from '../types';
 import { 
@@ -24,7 +25,7 @@ export const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 5000); // Poll for updates
+    const interval = setInterval(loadData, 2000); // Poll every 2 seconds
     return () => clearInterval(interval);
   }, []);
 
@@ -35,35 +36,43 @@ export const AdminDashboard: React.FC = () => {
   }, [selectedTicket, tickets]);
 
   const loadData = async () => {
-    // Load Users from LocalStorage (Auth)
-    const usersStr = localStorage.getItem('studentpocket_users');
-    const usersObj = usersStr ? JSON.parse(usersStr) : {};
-    setUsers(usersObj);
+    try {
+        // Load Users from LocalStorage (Auth)
+        const usersStr = localStorage.getItem('studentpocket_users');
+        const usersObj = usersStr ? JSON.parse(usersStr) : {};
+        setUsers(usersObj);
 
-    // Load Profiles (from Architect Data nodes) - simulating fetch
-    const loadedProfiles: UserProfile[] = [];
-    for (const username of Object.keys(usersObj)) {
-        if (username === ADMIN_USERNAME) continue;
-        const data = await storageService.getData(`architect_data_${username}`);
-        if (data && data.user) loadedProfiles.push(data.user);
-    }
-    setProfiles(loadedProfiles);
-
-    // Load Requests
-    const reqStr = localStorage.getItem('studentpocket_requests');
-    if (reqStr) setRequests(JSON.parse(reqStr));
-
-    // Load Tickets
-    const ticketStr = localStorage.getItem('studentpocket_tickets');
-    if (ticketStr) {
-        const allTickets: SupportTicket[] = JSON.parse(ticketStr);
-        setTickets(allTickets.sort((a, b) => b.updatedAt - a.updatedAt));
-        
-        // Update selected ticket if active
-        if (selectedTicket) {
-            const updated = allTickets.find(t => t.id === selectedTicket.id);
-            if (updated) setSelectedTicket(updated);
+        // Load Profiles (from Architect Data nodes) - simulating fetch
+        const loadedProfiles: UserProfile[] = [];
+        for (const username of Object.keys(usersObj)) {
+            if (username === ADMIN_USERNAME) continue;
+            try {
+                const data = await storageService.getData(`architect_data_${username}`);
+                if (data && data.user) loadedProfiles.push(data.user);
+            } catch (e) { console.error("Error loading profile", username); }
         }
+        setProfiles(loadedProfiles);
+
+        // Load Requests
+        const reqStr = localStorage.getItem('studentpocket_requests');
+        if (reqStr) setRequests(JSON.parse(reqStr));
+
+        // Load Tickets
+        const ticketStr = localStorage.getItem('studentpocket_tickets');
+        if (ticketStr) {
+            const allTickets: SupportTicket[] = JSON.parse(ticketStr);
+            // Ensure tickets have messages before setting state to prevent render crashes
+            const validTickets = allTickets.filter(t => t && Array.isArray(t.messages) && t.messages.length > 0);
+            setTickets(validTickets.sort((a, b) => b.updatedAt - a.updatedAt));
+            
+            // Update selected ticket if active
+            if (selectedTicket) {
+                const updated = validTickets.find(t => t.id === selectedTicket.id);
+                if (updated) setSelectedTicket(updated);
+            }
+        }
+    } catch (error) {
+        console.error("Dashboard Sync Error:", error);
     }
   };
 
@@ -119,7 +128,7 @@ export const AdminDashboard: React.FC = () => {
                   ...t,
                   messages: [...t.messages, message],
                   updatedAt: Date.now(),
-                  status: 'OPEN' // Re-open if replied
+                  status: 'OPEN' as const // Re-open if replied
               };
           }
           return t;
@@ -137,7 +146,7 @@ export const AdminDashboard: React.FC = () => {
   const closeTicket = () => {
       if (!selectedTicket) return;
       const updatedTickets = tickets.map(t => 
-          t.id === selectedTicket.id ? { ...t, status: 'CLOSED', updatedAt: Date.now() } : t
+          t.id === selectedTicket.id ? { ...t, status: 'CLOSED' as const, updatedAt: Date.now() } : t
       );
       localStorage.setItem('studentpocket_tickets', JSON.stringify(updatedTickets));
       setTickets(updatedTickets as SupportTicket[]);
@@ -157,6 +166,7 @@ export const AdminDashboard: React.FC = () => {
   // Filter Logic
   const filteredUsers = profiles.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const pendingRequests = requests.filter(r => r.status === 'PENDING');
+  const openTicketsCount = tickets.filter(t => t.status === 'OPEN').length;
 
   return (
     <div className="pb-24 animate-fade-in w-full max-w-7xl mx-auto space-y-8">
@@ -172,13 +182,13 @@ export const AdminDashboard: React.FC = () => {
                    {[
                        { id: 'OVERVIEW', icon: ShieldAlert, label: 'Ops' },
                        { id: 'USERS', icon: Users, label: 'Nodes' },
-                       { id: 'REQUESTS', icon: ShieldCheck, label: 'Auth' },
-                       { id: 'SUPPORT', icon: LifeBuoy, label: 'Help' }
+                       { id: 'REQUESTS', icon: ShieldCheck, label: 'Auth', badge: pendingRequests.length },
+                       { id: 'SUPPORT', icon: LifeBuoy, label: 'Help', badge: openTicketsCount }
                    ].map(tab => (
                        <button
                            key={tab.id}
                            onClick={() => setViewMode(tab.id as AdminView)}
-                           className={`flex items-center px-6 py-3 rounded-xl transition-all ${
+                           className={`flex items-center px-6 py-3 rounded-xl transition-all relative ${
                                viewMode === tab.id 
                                ? 'bg-white text-slate-900 shadow-lg' 
                                : 'text-slate-400 hover:text-white hover:bg-white/5'
@@ -186,6 +196,9 @@ export const AdminDashboard: React.FC = () => {
                        >
                            <tab.icon size={16} className="mr-2" />
                            <span className="text-[10px] font-black uppercase tracking-widest">{tab.label}</span>
+                           {tab.badge > 0 && (
+                               <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full shadow-md animate-pulse"></div>
+                           )}
                        </button>
                    ))}
                </div>
@@ -214,7 +227,7 @@ export const AdminDashboard: React.FC = () => {
                    <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl flex items-center justify-center text-emerald-600 mb-4">
                        <LifeBuoy size={24} />
                    </div>
-                   <h3 className="text-3xl font-black text-slate-900 dark:text-white">{tickets.filter(t => t.status === 'OPEN').length}</h3>
+                   <h3 className="text-3xl font-black text-slate-900 dark:text-white">{openTicketsCount}</h3>
                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Open Tickets</p>
                </div>
            </div>
@@ -304,6 +317,20 @@ export const AdminDashboard: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Ticket List */}
               <div className="lg:col-span-1 space-y-4 max-h-[80vh] overflow-y-auto no-scrollbar">
+                  <div className="flex justify-between items-center px-2 mb-2">
+                      <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Inbox</h3>
+                      <button onClick={loadData} className="p-2 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors" title="Refresh Tickets">
+                          <RefreshCw size={14} />
+                      </button>
+                  </div>
+                  
+                  {tickets.length === 0 && (
+                      <div className="text-center py-12 text-slate-400">
+                          <LifeBuoy className="mx-auto mb-2 opacity-50" />
+                          <p className="text-xs font-bold uppercase">No tickets</p>
+                      </div>
+                  )}
+
                   {tickets.map(ticket => (
                       <div 
                           key={ticket.id}
@@ -336,18 +363,12 @@ export const AdminDashboard: React.FC = () => {
                              </div>
                          </div>
                          <h3 className={`font-bold text-sm mb-1 ${selectedTicket?.id === ticket.id ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{ticket.subject}</h3>
-                         <p className={`text-xs opacity-70 mb-3 truncate ${selectedTicket?.id === ticket.id ? 'text-indigo-100' : 'text-slate-500'}`}>{ticket.messages[ticket.messages.length-1].text}</p>
+                         <p className={`text-xs opacity-70 mb-3 truncate ${selectedTicket?.id === ticket.id ? 'text-indigo-100' : 'text-slate-500'}`}>{ticket.messages[ticket.messages.length-1]?.text || 'No content'}</p>
                          <div className={`flex items-center text-[10px] font-bold uppercase tracking-wider ${selectedTicket?.id === ticket.id ? 'text-indigo-200' : 'text-slate-400'}`}>
                              <User size={12} className="mr-1"/> {ticket.userId}
                          </div>
                       </div>
                   ))}
-                  {tickets.length === 0 && (
-                      <div className="text-center py-12 text-slate-400">
-                          <LifeBuoy className="mx-auto mb-2 opacity-50" />
-                          <p className="text-xs font-bold uppercase">No tickets</p>
-                      </div>
-                  )}
               </div>
 
               {/* Chat View */}
