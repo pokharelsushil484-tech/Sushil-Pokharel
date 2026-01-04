@@ -1,8 +1,7 @@
 
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest, View } from '../types';
-import { ShieldCheck, Loader2, ArrowLeft, Send, Upload, User, Video, MapPin, Phone, Mail, Globe, FileText, CheckCircle } from 'lucide-react';
-import { SYSTEM_DOMAIN } from '../constants';
+import { ShieldCheck, Loader2, ArrowLeft, Send, Upload, User, Video, MapPin, Phone, Mail, Globe, FileText, CheckCircle, Copy, Check } from 'lucide-react';
 
 interface VerificationFormProps {
   user: UserProfile;
@@ -14,6 +13,7 @@ interface VerificationFormProps {
 export const VerificationForm: React.FC<VerificationFormProps> = ({ user, username, updateUser, onNavigate }) => {
   const [submitting, setSubmitting] = useState(false);
   const [successState, setSuccessState] = useState<{ link: string; email: string } | null>(null);
+  const [copied, setCopied] = useState(false);
   
   // Permanent Fields State
   const [formData, setFormData] = useState({
@@ -51,6 +51,14 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
       // in a real app, upload to cloud and store URL.
       setVideoFile("Video_Uploaded_Mock_Path"); 
     }
+  };
+
+  const copyLink = () => {
+      if (successState?.link) {
+          navigator.clipboard.writeText(successState.link);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+      }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -114,7 +122,9 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
       updateUser({ ...user, verificationStatus: 'PENDING_APPROVAL' });
       setSubmitting(false);
       
-      const link = `https://${SYSTEM_DOMAIN}/v/${linkId}`;
+      // Use window.location.origin to ensure links work in local dev and production
+      const origin = window.location.origin;
+      const link = `${origin}/v/${linkId}`;
       
       // Instead of alert and redirect, show the Verification Box
       setSuccessState({ link, email: formData.email });
@@ -136,11 +146,16 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
              <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-3">Submission Success</h2>
              <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.3em] mb-10">System has received your data</p>
              
-             <div className="bg-slate-50 dark:bg-slate-900/50 p-8 rounded-[2rem] border border-slate-200 dark:border-slate-800 mb-10 relative">
+             <div className="bg-slate-50 dark:bg-slate-900/50 p-8 rounded-[2rem] border border-slate-200 dark:border-slate-800 mb-10 relative group">
                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
                     Generated Secure Link
                  </div>
-                 <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400 font-mono break-all mb-6 select-all">{successState.link}</p>
+                 <div className="flex items-center justify-center space-x-3 mb-6">
+                    <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400 font-mono break-all select-all">{successState.link}</p>
+                    <button onClick={copyLink} className="p-2 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 rounded-lg hover:bg-indigo-200 transition-colors">
+                        {copied ? <Check size={16}/> : <Copy size={16}/>}
+                    </button>
+                 </div>
                  
                  <div className="flex flex-col items-center space-y-2">
                     <div className="flex items-center justify-center space-x-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
@@ -198,7 +213,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                     <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Full Name</label>
                     <div className="relative group">
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input name="fullName" value={formData.fullName} onChange={handleInputChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all" placeholder="Legal Name" required />
+                        <input name="fullName" value={formData.fullName} onChange={handleInputChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all dark:text-white" placeholder="Legal Name" required />
                     </div>
                  </div>
                  
@@ -206,7 +221,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                     <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Email Address</label>
                     <div className="relative group">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input name="email" type="email" value={formData.email} onChange={handleInputChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all" placeholder="Student Email" required />
+                        <input name="email" type="email" value={formData.email} onChange={handleInputChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all dark:text-white" placeholder="Student Email" required />
                     </div>
                  </div>
 
@@ -214,7 +229,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                     <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Phone Number</label>
                     <div className="relative group">
                         <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input name="phone" type="tel" value={formData.phone} onChange={handleInputChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all" placeholder="Contact Number" required />
+                        <input name="phone" type="tel" value={formData.phone} onChange={handleInputChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all dark:text-white" placeholder="Contact Number" required />
                     </div>
                  </div>
 
@@ -222,7 +237,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                     <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Country</label>
                     <div className="relative group">
                         <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input name="country" value={formData.country} onChange={handleInputChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all" placeholder="Country of Residence" required />
+                        <input name="country" value={formData.country} onChange={handleInputChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all dark:text-white" placeholder="Country of Residence" required />
                     </div>
                  </div>
 
@@ -230,7 +245,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                     <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Permanent Address</label>
                     <div className="relative group">
                         <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input name="permAddress" value={formData.permAddress} onChange={handleInputChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all" placeholder="Full Permanent Address" required />
+                        <input name="permAddress" value={formData.permAddress} onChange={handleInputChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all dark:text-white" placeholder="Full Permanent Address" required />
                     </div>
                  </div>
 
@@ -238,7 +253,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                     <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Temporary Address</label>
                     <div className="relative group">
                         <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input name="tempAddress" value={formData.tempAddress} onChange={handleInputChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all" placeholder="Current / Temporary Address" required />
+                        <input name="tempAddress" value={formData.tempAddress} onChange={handleInputChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all dark:text-white" placeholder="Current / Temporary Address" required />
                     </div>
                  </div>
              </div>

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { UserProfile, View, ChangeRequest } from '../types';
 import { ShieldCheck, HardDrive, ArrowRight, Loader2, Sparkles, Lock, Database, Mail, XCircle, FileText, ChevronDown, ChevronUp, RefreshCw, CheckCircle, Copy } from 'lucide-react';
 import { CREATOR_NAME, ADMIN_USERNAME, SYSTEM_DOMAIN } from '../constants';
+import { storageService } from '../services/storageService';
 
 interface DashboardProps {
   user: UserProfile;
@@ -15,6 +16,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
   const [showFeedback, setShowFeedback] = useState(false);
   const [resending, setResending] = useState(false);
   const [newLinkState, setNewLinkState] = useState<{ link: string; email: string } | null>(null);
+  const [currentLinkId, setCurrentLinkId] = useState<string | null>(null);
 
   // Safety defaults
   const safeUsedBytes = user?.storageUsedBytes || 0;
@@ -22,6 +24,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
   
   const usedGB = (safeUsedBytes / (1024 ** 3)).toFixed(2);
   const usedPercent = isAdmin ? 0 : Math.min(100, (safeUsedBytes / (safeLimitGB * 1024 ** 3)) * 100);
+
+  // Fetch current link ID on mount
+  useEffect(() => {
+    const reqStr = localStorage.getItem('studentpocket_requests');
+    if (reqStr) {
+        const requests: ChangeRequest[] = JSON.parse(reqStr);
+        const myRequest = requests.find(r => r.username === username && r.status === 'PENDING');
+        if (myRequest?.linkId) {
+            setCurrentLinkId(myRequest.linkId);
+        }
+    }
+  }, [username]);
 
   const handleResendLink = () => {
     setResending(true);
@@ -54,9 +68,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                 localStorage.setItem('studentpocket_requests', JSON.stringify(requests));
                 
                 const details = JSON.parse(requests[myRequestIndex].details);
-                const link = `https://${SYSTEM_DOMAIN}/v/${newLinkId}`;
+                // Use origin for link
+                const origin = window.location.origin;
+                const link = `${origin}/v/${newLinkId}`;
                 
                 setNewLinkState({ link, email: details.email });
+                setCurrentLinkId(newLinkId);
             } else {
                 // Should not happen based on UI state, but handle anyway
                 alert("No pending request found to resend.");
@@ -64,6 +81,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
         }
         setResending(false);
     }, 1500);
+  };
+
+  const handleCheckStatus = async () => {
+      const stored = await storageService.getData(`architect_data_${username}`);
+      if (stored && stored.user && stored.user.verificationStatus !== user.verificationStatus) {
+          // Status changed! Reload to update app state
+          window.location.reload();
+      } else {
+          alert("Status is still pending review by administrator.");
+      }
   };
 
   const getVerificationUI = () => {
@@ -126,19 +153,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
               <div>
                  <p className="font-bold text-amber-700 dark:text-amber-400 text-sm uppercase tracking-wide">Pending Review</p>
                  <p className="text-xs text-amber-600/70 mt-1">Admin is reviewing your identity.</p>
+                 {currentLinkId && <p className="text-[10px] text-amber-500/60 font-mono mt-1">Link ID: {currentLinkId}</p>}
               </div>
            </div>
            
-           <div className="flex flex-col items-end gap-2">
+           <div className="flex flex-row items-center gap-3">
+               <button 
+                   onClick={handleCheckStatus}
+                   className="px-4 py-3 bg-white dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-amber-100 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors shadow-sm"
+               >
+                   Check Status
+               </button>
                <button 
                     onClick={handleResendLink}
                     disabled={resending}
-                    className="flex items-center px-5 py-3 bg-white dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-amber-100 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors shadow-sm"
+                    className="flex items-center px-4 py-3 bg-white dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-amber-100 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors shadow-sm"
+                    title="Generate a new secure link if previous one was lost"
                 >
-                    {resending ? <Loader2 size={14} className="animate-spin mr-2"/> : <RefreshCw size={14} className="mr-2"/>}
-                    {resending ? 'Generating...' : 'Regenerate Link'}
+                    {resending ? <Loader2 size={14} className="animate-spin"/> : <RefreshCw size={14}/>}
                 </button>
-                <span className="text-[9px] text-amber-500/60 font-bold uppercase tracking-wider">Invalidates previous links</span>
            </div>
         </div>
       );

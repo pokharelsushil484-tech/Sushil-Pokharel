@@ -4,7 +4,7 @@ import { ChangeRequest, ActivityLog, View } from '../types';
 import { 
   BellRing, Eye, Trash2, FileClock, Search, RefreshCw, CheckCircle, XCircle, Send, Paperclip, Mail, X, Video, MapPin, Globe, Phone, User, Link, Copy
 } from 'lucide-react';
-import { ADMIN_USERNAME, SYSTEM_DOMAIN } from '../constants';
+import { ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
 
 export const AdminDashboard: React.FC = () => {
@@ -116,7 +116,8 @@ export const AdminDashboard: React.FC = () => {
 
   const generateInviteLink = () => {
     const code = Math.random().toString(36).substring(7);
-    const link = `https://${SYSTEM_DOMAIN}/register/${code}`;
+    const origin = window.location.origin;
+    const link = `${origin}/register/${code}`;
     
     // Persist invite to storage so it can be validated
     const invitesStr = localStorage.getItem('studentpocket_invites');
@@ -145,15 +146,15 @@ export const AdminDashboard: React.FC = () => {
   );
 
   const renderRequestDetails = (request: ChangeRequest) => {
-    let detailsObj: any = {};
+    let details: any = {};
     try {
-        detailsObj = JSON.parse(request.details);
+        details = JSON.parse(request.details);
     } catch(e) {
         return <p className="text-red-500 text-xs">Error parsing request details.</p>;
     }
     
-    const profileImage = detailsObj._profileImage;
-    const videoFile = detailsObj._videoFile;
+    const profileImage = details._profileImage;
+    const videoFile = details._videoFile;
 
     return (
         <div className="space-y-6">
@@ -192,33 +193,33 @@ export const AdminDashboard: React.FC = () => {
                      <div className="grid grid-cols-2 gap-4">
                         <div>
                             <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Full Name</p>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{detailsObj.fullName}</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{details.fullName}</p>
                         </div>
                         <div>
                             <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Country</p>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white flex items-center"><Globe size={12} className="mr-1.5 opacity-50"/> {detailsObj.country}</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white flex items-center"><Globe size={12} className="mr-1.5 opacity-50"/> {details.country}</p>
                         </div>
                      </div>
                      
                      <div className="grid grid-cols-2 gap-4">
                         <div>
                             <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Email</p>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white break-all flex items-center"><Mail size={12} className="mr-1.5 opacity-50"/> {detailsObj.email}</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white break-all flex items-center"><Mail size={12} className="mr-1.5 opacity-50"/> {details.email}</p>
                         </div>
                         <div>
                             <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Phone</p>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white flex items-center"><Phone size={12} className="mr-1.5 opacity-50"/> {detailsObj.phone}</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white flex items-center"><Phone size={12} className="mr-1.5 opacity-50"/> {details.phone}</p>
                         </div>
                      </div>
                      
                      <div className="pt-2">
                         <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Permanent Address</p>
-                        <p className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-start"><MapPin size={12} className="mr-1.5 mt-0.5 opacity-50"/> {detailsObj.permAddress}</p>
+                        <p className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-start"><MapPin size={12} className="mr-1.5 mt-0.5 opacity-50"/> {details.permAddress}</p>
                      </div>
                      
                      <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Temporary Address</p>
-                        <p className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-start"><MapPin size={12} className="mr-1.5 mt-0.5 opacity-50"/> {detailsObj.tempAddress}</p>
+                        <p className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-start"><MapPin size={12} className="mr-1.5 mt-0.5 opacity-50"/> {details.tempAddress}</p>
                      </div>
                  </div>
             </div>
@@ -283,7 +284,9 @@ export const AdminDashboard: React.FC = () => {
       {viewMode === 'REQUESTS' && (
         <div className="grid grid-cols-1 gap-4">
            {requests.map(req => {
-             const thumbnail = JSON.parse(req.details)._profileImage;
+             let details: any = {};
+             try { details = JSON.parse(req.details); } catch(e) {}
+             const thumbnail = details._profileImage;
              return (
                <div key={req.id} className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
                   <div className="flex items-center space-x-6">
