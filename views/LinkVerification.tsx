@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, View } from '../types';
-import { ShieldCheck, User, MapPin, Globe, Mail, Phone, Video, CheckCircle, XCircle, Home, Lock, RefreshCw, Search, LayoutGrid, ArrowRight, Eye, KeyRound, ArrowLeft } from 'lucide-react';
+import { ShieldCheck, User, MapPin, Globe, Mail, Phone, Video, CheckCircle, XCircle, Home, Lock, RefreshCw, Search, LayoutGrid, ArrowRight, Eye, KeyRound, ArrowLeft, Clock } from 'lucide-react';
 import { ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -11,12 +11,15 @@ interface LinkVerificationProps {
   currentUser: string | null;
 }
 
+const LINK_EXPIRATION_MS = 15 * 60 * 1000; // 15 Minutes Validity
+
 export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNavigate, currentUser }) => {
   const [request, setRequest] = useState<ChangeRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [redirecting, setRedirecting] = useState(false);
   const [actionProcessing, setActionProcessing] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [expired, setExpired] = useState(false);
   
   // Security State
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -34,16 +37,22 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
         const match = requests.find(r => r.linkId === linkId);
         
         if (match) {
-            setRequest(match);
-            // If Admin or the owner is viewing, auto-unlock
-            if (isAdmin || (currentUser && match.username === currentUser)) {
-                setIsUnlocked(true);
+            // Check Expiration (only if pending)
+            if (match.status === 'PENDING' && (Date.now() - match.createdAt > LINK_EXPIRATION_MS)) {
+                setExpired(true);
+            } else {
+                setRequest(match);
+                // If Admin or the owner is viewing, auto-unlock
+                if (isAdmin || (currentUser && match.username === currentUser)) {
+                    setIsUnlocked(true);
+                }
             }
         } else {
-            // Check for expired link
+            // Check for replaced/old link
             const expiredMatch = requests.find(r => r.previousLinkIds && r.previousLinkIds.includes(linkId));
             if (expiredMatch && expiredMatch.linkId) {
                 setRedirecting(true);
+                // In a real app, you might not auto-redirect for security, but for UX here:
                 window.location.replace(`/v/${expiredMatch.linkId}`);
                 return;
             }
@@ -138,6 +147,25 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Authenticating Secure Link...</p>
           </div>
       </div>
+    );
+  }
+
+  if (expired) {
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-[#020617] p-6">
+            <div className="text-center max-w-md w-full bg-white dark:bg-slate-900 p-12 rounded-[2rem] shadow-2xl shadow-slate-200 dark:shadow-none border border-slate-100 dark:border-slate-800">
+                <div className="w-16 h-16 bg-amber-50 dark:bg-amber-900/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-amber-500 shadow-inner">
+                    <Clock size={28} />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Link Expired</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+                    This verification link has expired for security reasons. Please generate a new one from your dashboard.
+                </p>
+                <button onClick={() => window.location.href = '/'} className="w-full py-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-[10px] uppercase tracking-[0.2em] hover:opacity-90 transition-opacity flex items-center justify-center shadow-lg">
+                    <Home size={14} className="mr-2"/> Return Home
+                </button>
+            </div>
+        </div>
     );
   }
 
