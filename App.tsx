@@ -160,6 +160,13 @@ const App = () => {
         window.history.pushState({}, '', '/');
     }
 
+    // Redirect based on role
+    if (username === ADMIN_USERNAME) {
+        setView(View.ADMIN_DASHBOARD);
+    } else {
+        setView(View.DASHBOARD);
+    }
+
     await storageService.logActivity({
       actor: username,
       actionType: 'AUTH',
@@ -224,7 +231,12 @@ const App = () => {
              verificationStatus: isPowerUser ? 'VERIFIED' : p.verificationStatus
           };
           setData(prev => ({...prev, user: profile}));
-          setView(View.DASHBOARD);
+          // If admin, go to admin dashboard
+          if (isPowerUser) {
+              setView(View.ADMIN_DASHBOARD);
+          } else {
+              setView(View.DASHBOARD);
+          }
         }} 
       />
     );

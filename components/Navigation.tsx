@@ -15,6 +15,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
   // Main tools for the upper section
   const navItems = [
     { view: View.DASHBOARD, icon: LayoutGrid, label: 'Workbench' },
+    ...(isAdmin ? [{ view: View.ADMIN_DASHBOARD, icon: ShieldCheck, label: 'Console' }] : []),
     { view: View.FILE_HUB, icon: Database, label: 'Repository' },
     { view: View.AI_CHAT, icon: MessageCircle, label: 'Assistant' },
     { view: View.SUPPORT, icon: LifeBuoy, label: 'Help Desk' },

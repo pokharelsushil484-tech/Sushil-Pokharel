@@ -262,6 +262,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
           </div>
       </div>
 
+      {/* Admin Console Card */}
+      {isAdmin && (
+        <div 
+          onClick={() => onNavigate(View.ADMIN_DASHBOARD)}
+          className="bg-indigo-600 text-white p-8 rounded-3xl shadow-lg cursor-pointer hover:bg-indigo-700 transition-all relative overflow-hidden group"
+        >
+             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+             <div className="relative z-10 flex items-center justify-between">
+                <div className="flex items-center space-x-6">
+                    <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                        <ShieldCheck size={32} />
+                    </div>
+                    <div>
+                        <h3 className="text-2xl font-black uppercase tracking-tight">Admin Console</h3>
+                        <p className="text-xs text-indigo-200 font-bold uppercase tracking-widest mt-1">System Control & Management</p>
+                    </div>
+                </div>
+                <div className="p-3 bg-white/10 rounded-full group-hover:bg-white/20 transition-colors">
+                    <ArrowRight size={24} />
+                </div>
+             </div>
+        </div>
+      )}
+
       {getVerificationUI()}
 
       {/* METRICS - Adjusted for straight alignment and smaller icons */}
