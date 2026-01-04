@@ -87,8 +87,13 @@ export const AdminDashboard: React.FC = () => {
           metadata: JSON.stringify({ requestId: req.id, action })
       });
 
-      const updatedRequests = requests.filter(r => r.id !== req.id);
-      localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
+      // Update centralized request store
+      const reqStr = localStorage.getItem('studentpocket_requests');
+      if (reqStr) {
+          const allRequests: ChangeRequest[] = JSON.parse(reqStr);
+          const updatedRequests = allRequests.map(r => r.id === req.id ? { ...r, status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED' } : r);
+          localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
+      }
       
       setTimeout(() => {
         setIsSending(false);
@@ -160,7 +165,7 @@ export const AdminDashboard: React.FC = () => {
         <div className="space-y-6">
             <div className="flex items-start space-x-6">
                  {/* Image */}
-                 <div className="w-32 h-32 rounded-2xl bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700">
+                 <div className="w-32 h-32 rounded-2xl bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm">
                     {profileImage ? (
                         <img src={profileImage} alt="User" className="w-full h-full object-cover" />
                     ) : (
@@ -170,8 +175,8 @@ export const AdminDashboard: React.FC = () => {
                  
                  {/* Video Indicator */}
                  <div className="flex-1">
-                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Media Status</p>
-                     <div className="flex items-center space-x-3 mb-2">
+                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Media Status</p>
+                     <div className="flex items-center space-x-3 mb-3">
                         <div className={`p-2 rounded-lg ${profileImage ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
                             <CheckCircle size={16} />
                         </div>
@@ -193,11 +198,11 @@ export const AdminDashboard: React.FC = () => {
                      <div className="grid grid-cols-2 gap-4">
                         <div>
                             <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Full Name</p>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{details.fullName}</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{details.fullName || 'N/A'}</p>
                         </div>
                         <div>
                             <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Country</p>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white flex items-center"><Globe size={12} className="mr-1.5 opacity-50"/> {details.country}</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white flex items-center"><Globe size={12} className="mr-1.5 opacity-50"/> {details.country || 'N/A'}</p>
                         </div>
                      </div>
                      
@@ -217,10 +222,12 @@ export const AdminDashboard: React.FC = () => {
                         <p className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-start"><MapPin size={12} className="mr-1.5 mt-0.5 opacity-50"/> {details.permAddress}</p>
                      </div>
                      
-                     <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Temporary Address</p>
-                        <p className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-start"><MapPin size={12} className="mr-1.5 mt-0.5 opacity-50"/> {details.tempAddress}</p>
-                     </div>
+                     {details.tempAddress && (
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Temporary Address</p>
+                            <p className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-start"><MapPin size={12} className="mr-1.5 mt-0.5 opacity-50"/> {details.tempAddress}</p>
+                        </div>
+                     )}
                  </div>
             </div>
         </div>
@@ -283,19 +290,19 @@ export const AdminDashboard: React.FC = () => {
 
       {viewMode === 'REQUESTS' && (
         <div className="grid grid-cols-1 gap-4">
-           {requests.map(req => {
+           {requests.filter(r => r.status === 'PENDING').map(req => {
              let details: any = {};
              try { details = JSON.parse(req.details); } catch(e) {}
              const thumbnail = details._profileImage;
              return (
                <div key={req.id} className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
                   <div className="flex items-center space-x-6">
-                     <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden">
+                     <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden shadow-inner">
                         {thumbnail ? <img src={thumbnail} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-slate-400"><User size={20}/></div>}
                      </div>
                      <div>
-                        <p className="font-bold text-slate-900 dark:text-white">{req.username}</p>
-                        <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-0.5">Verification Application</p>
+                        <p className="font-bold text-slate-900 dark:text-white">{details.fullName || req.username}</p>
+                        <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-0.5">Verification Application • {req.username}</p>
                      </div>
                   </div>
                   <button 
@@ -307,7 +314,7 @@ export const AdminDashboard: React.FC = () => {
                </div>
              );
            })}
-           {requests.length === 0 && (
+           {requests.filter(r => r.status === 'PENDING').length === 0 && (
                <div className="text-center py-24 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
                    <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
                        <BellRing size={24} />
