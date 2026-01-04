@@ -15,7 +15,7 @@ import { Support } from './views/Support';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { TermsModal } from './components/TermsModal';
-import { ShieldX, Globe, Terminal } from 'lucide-react';
+import { ShieldX, Globe, Terminal, CheckCircle, XCircle, X } from 'lucide-react';
 
 import { View, UserProfile, VaultDocument, ChatMessage } from './types';
 import { ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN, APP_NAME, ADMIN_EMAIL, SYSTEM_DOMAIN } from './constants';
@@ -30,6 +30,7 @@ const App = () => {
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('architect_theme') === 'true');
   const [verifyLinkId, setVerifyLinkId] = useState<string | null>(null);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   
   const initialData = {
     user: null as UserProfile | null,
@@ -38,6 +39,36 @@ const App = () => {
   };
 
   const [data, setData] = useState(initialData);
+
+  // Verification Polling Logic
+  useEffect(() => {
+    let pollInterval: any;
+    if (currentUsername && data.user && data.user.verificationStatus === 'PENDING_APPROVAL') {
+      pollInterval = setInterval(async () => {
+        const stored = await storageService.getData(`architect_data_${currentUsername}`);
+        if (stored && stored.user) {
+          if (stored.user.verificationStatus !== data.user!.verificationStatus) {
+             // Status Changed!
+             const newStatus = stored.user.verificationStatus;
+             setData(prev => ({ ...prev, user: stored.user })); // Update local state
+             
+             if (newStatus === 'VERIFIED') {
+                 setNotification({
+                     message: 'Identity Verified! Full access granted.',
+                     type: 'success'
+                 });
+             } else if (newStatus === 'REJECTED') {
+                 setNotification({
+                     message: 'Verification Failed. Please check dashboard for details.',
+                     type: 'error'
+                 });
+             }
+          }
+        }
+      }, 5000); // Check every 5 seconds
+    }
+    return () => clearInterval(pollInterval);
+  }, [currentUsername, data.user]);
 
   useEffect(() => {
     const path = window.location.pathname;
@@ -215,6 +246,26 @@ const App = () => {
       <GlobalLoader isLoading={isLoading} />
       {showTerms && <TermsModal onAccept={() => { if(data.user) setData(prev => ({...prev, user: { ...prev.user!, acceptedTermsVersion: SYSTEM_UPGRADE_TOKEN } })); setShowTerms(false); }} />}
       
+      {/* Toast Notification */}
+      {notification && (
+          <div className="fixed top-24 right-4 z-[200] animate-slide-left">
+              <div className={`p-4 rounded-2xl shadow-2xl border flex items-start gap-3 max-w-sm backdrop-blur-xl ${
+                  notification.type === 'success' ? 'bg-emerald-900/90 border-emerald-500/50 text-white' : 
+                  notification.type === 'error' ? 'bg-red-900/90 border-red-500/50 text-white' :
+                  'bg-indigo-900/90 border-indigo-500/50 text-white'
+              }`}>
+                  {notification.type === 'success' ? <CheckCircle className="text-emerald-400" size={24} /> : 
+                   notification.type === 'error' ? <XCircle className="text-red-400" size={24} /> :
+                   <Globe className="text-indigo-400" size={24} />}
+                  <div className="flex-1">
+                      <p className="font-bold text-sm mb-1">{notification.type === 'success' ? 'Success' : notification.type === 'error' ? 'Attention' : 'Info'}</p>
+                      <p className="text-xs opacity-90 leading-relaxed">{notification.message}</p>
+                  </div>
+                  <button onClick={() => setNotification(null)} className="opacity-50 hover:opacity-100 transition-opacity"><X size={16}/></button>
+              </div>
+          </div>
+      )}
+
       {(!isLoading || data.user) && (
         <div className="md:ml-20 lg:ml-64 transition-all animate-fade-in min-h-screen flex flex-col">
           <header className="bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800 h-16 flex items-center justify-between px-6 sticky top-0 z-40">

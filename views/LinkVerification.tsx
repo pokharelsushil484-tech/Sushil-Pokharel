@@ -28,8 +28,10 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
 
   const isAdmin = currentUser === ADMIN_USERNAME;
 
-  // Initial Load
+  // Real-time Status Check
   useEffect(() => {
+    let intervalId: any;
+
     const fetchRequest = () => {
       const reqStr = localStorage.getItem('studentpocket_requests');
       if (reqStr) {
@@ -41,7 +43,14 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
             if (match.status === 'PENDING' && (Date.now() - match.createdAt > LINK_EXPIRATION_MS)) {
                 setExpired(true);
             } else {
-                setRequest(match);
+                // If status changed from what we had, update it
+                setRequest(prev => {
+                    if (!prev || prev.status !== match.status) {
+                        return match;
+                    }
+                    return prev;
+                });
+                
                 // If Admin or the owner is viewing, auto-unlock
                 if (isAdmin || (currentUser && match.username === currentUser)) {
                     setIsUnlocked(true);
@@ -65,6 +74,10 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
     };
 
     fetchRequest();
+    // Poll every 2 seconds if request is pending to show updates immediately
+    intervalId = setInterval(fetchRequest, 2000);
+
+    return () => clearInterval(intervalId);
   }, [linkId, isAdmin, currentUser]);
 
   const handleUnlock = (e: React.FormEvent) => {
