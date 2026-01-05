@@ -3,7 +3,7 @@ import { UserProfile } from './types';
 
 export const APP_VERSION = "25.4.5-SECURE"; 
 export const ADMIN_USERNAME = "admin"; 
-export const ADMIN_SECRET = "a"; 
+export const ADMIN_SECRET = "Sushil@Architect2025"; 
 export const CREATOR_NAME = "Sushil Pokharel";
 export const SYSTEM_DOMAIN = "sushilpokharel00.com.np";
 

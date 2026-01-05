@@ -292,6 +292,48 @@ export const AdminDashboard: React.FC = () => {
       }
   };
 
+  const handleDeleteUser = async (username: string) => {
+      const confirmDelete = window.confirm(`CRITICAL: Are you sure you want to PERMANENTLY DELETE user '${username}'? This action wipes all data and cannot be undone.`);
+      if (!confirmDelete) return;
+
+      try {
+        // 1. Remove from Auth Storage
+        const usersStr = localStorage.getItem('studentpocket_users');
+        if (usersStr) {
+            const users = JSON.parse(usersStr);
+            if (users[username]) {
+                delete users[username];
+                localStorage.setItem('studentpocket_users', JSON.stringify(users));
+            }
+        }
+
+        // 2. Remove Data Profile
+        await storageService.deleteData(`architect_data_${username}`);
+
+        // 3. Remove Related Requests
+        const reqStr = localStorage.getItem('studentpocket_requests');
+        if (reqStr) {
+            let requests: ChangeRequest[] = JSON.parse(reqStr);
+            requests = requests.filter(r => r.username !== username);
+            localStorage.setItem('studentpocket_requests', JSON.stringify(requests));
+        }
+
+        // 4. Remove Tickets
+        const ticketStr = localStorage.getItem('studentpocket_tickets');
+        if (ticketStr) {
+             let tickets: SupportTicket[] = JSON.parse(ticketStr);
+             tickets = tickets.filter(t => t.userId !== username);
+             localStorage.setItem('studentpocket_tickets', JSON.stringify(tickets));
+        }
+
+        alert(`User ${username} has been successfully deleted.`);
+        loadData();
+      } catch (e) {
+          console.error("Deletion failed", e);
+          alert("Failed to delete user data.");
+      }
+  };
+
   const sendTicketReply = (e: React.FormEvent) => {
       e.preventDefault();
       if (!selectedTicket || !replyText.trim()) return;
@@ -543,6 +585,13 @@ export const AdminDashboard: React.FC = () => {
                                                 title="Suspend User"
                                         >
                                             <Lock size={16} />
+                                        </button>
+                                        <button 
+                                                onClick={() => handleDeleteUser(user._username)} 
+                                                className="p-2 text-slate-300 hover:text-red-600 transition-colors bg-slate-50 dark:bg-slate-800 rounded-lg"
+                                                title="Delete User Permanently"
+                                        >
+                                            <Trash2 size={16} />
                                         </button>
                                 </div>
                            </div>
