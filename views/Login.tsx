@@ -150,6 +150,15 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
          users[ADMIN_USERNAME] = { password: ADMIN_SECRET, email: ADMIN_EMAIL, name: CREATOR_NAME, verified: true };
          localStorage.setItem('studentpocket_users', JSON.stringify(users));
       }
+      
+      // Check for Admin Lock State
+      const adminData = await storageService.getData(`architect_data_${ADMIN_USERNAME}`);
+      if (adminData && adminData.user && adminData.user.isBanned) { // Using isBanned field for Admin Lock
+          setError("SECURITY LOCKDOWN: Admin access suspended. Use Admission Key.");
+          setIsProcessing(false);
+          return;
+      }
+
       setIsProcessing(false);
       setView('IDENTITY_SNAP');
       return;
@@ -186,8 +195,14 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
     // Verify Password
     const storedPassword = typeof userData === 'string' ? userData : userData.password;
     if (storedPassword === password) {
-       // Check for Ban Status before allowing snap (Admin is immune)
+       // Check for Ban Status before allowing snap (Admin is immune unless specifically locked)
        if (foundUsername === ADMIN_USERNAME) {
+           const data = await storageService.getData(`architect_data_${ADMIN_USERNAME}`);
+           if (data && data.user && data.user.isBanned) {
+               setError("SECURITY LOCKDOWN: Admin access suspended. Use Admission Key.");
+               setIsProcessing(false);
+               return;
+           }
            setLoginInput(foundUsername);
            setIsProcessing(false);
            setView('IDENTITY_SNAP');
@@ -244,14 +259,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
               const stored = await storageService.getData(dataKey);
               
               if (stored && stored.user) {
-                  // Admin cannot be suspended, so no admission logic needed for admin
-                  if (targetUsername === ADMIN_USERNAME) {
-                      setLoginInput(ADMIN_USERNAME);
-                      setView('IDENTITY_SNAP');
-                      setIsProcessing(false);
-                      return;
-                  }
-
                   // Check Key Validation
                   // 1. Check user-specific generated key
                   const isPersonalKeyValid = stored.user.admissionKey === admissionKey;
@@ -264,21 +271,34 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
 
                   if (isPersonalKeyValid || isGlobalKeyValid) {
                       // Valid Key! Unban if banned and proceed
-                      // IMPORTANT: Set to FORM_PENDING to force re-verification
                       if (stored.user.isBanned) {
                           stored.user.isBanned = false;
                           stored.user.banReason = undefined;
-                          stored.user.isVerified = false;
-                          stored.user.isSuspicious = true; // Mark suspicious until re-verified
-                          stored.user.verificationStatus = 'FORM_PENDING'; // Force Form
+                          
+                          // ADMIN UNLOCK: Fully restore
+                          if (targetUsername === ADMIN_USERNAME) {
+                              stored.user.isVerified = true;
+                              stored.user.isSuspicious = false;
+                              stored.user.verificationStatus = 'VERIFIED';
+                              await storageService.logActivity({
+                                  actor: targetUsername,
+                                  actionType: 'SECURITY',
+                                  description: 'ADMIN SECURITY UNLOCK: Full privileges restored.'
+                              });
+                          } else {
+                              // USER UNLOCK: Force Re-verification (Locked Again)
+                              stored.user.isVerified = false;
+                              stored.user.isSuspicious = true; // Mark suspicious until re-verified
+                              stored.user.verificationStatus = 'FORM_PENDING'; // Force Form
+                              
+                              await storageService.logActivity({
+                                  actor: targetUsername,
+                                  actionType: 'SECURITY',
+                                  description: 'Account Unlocked via Admission Key. Re-verification required.'
+                              });
+                          }
                           
                           await storageService.setData(dataKey, stored);
-                          
-                          await storageService.logActivity({
-                              actor: targetUsername,
-                              actionType: 'SECURITY',
-                              description: 'Account Unlocked via Admission Key. Re-verification required.'
-                          });
                       }
                       setLoginInput(targetUsername); // Ensure next step uses username
                       setView('IDENTITY_SNAP');
@@ -549,7 +569,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                       disabled={isProcessing} 
                       className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg transition-all flex items-center justify-center group"
                     >
-                      {isProcessing ? <Loader2 className="animate-spin" size={16}/> : 'Unlock & Start Verification'}
+                      {isProcessing ? <Loader2 className="animate-spin" size={16}/> : 'Unlock & Restore Access'}
                     </button>
                     <button 
                       type="button"
