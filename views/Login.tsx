@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, Info, X, ShieldCheck, Globe, Camera, ArrowLeft, Check, Key, HelpCircle, AlertTriangle } from 'lucide-react';
-import { ADMIN_USERNAME, ADMIN_SECRET, ADMIN_EMAIL, COPYRIGHT_NOTICE, MIN_PASSWORD_LENGTH, SYSTEM_DOMAIN, DEFAULT_USER, SYSTEM_UPGRADE_TOKEN, CREATOR_NAME } from '../constants';
+import { ADMIN_USERNAME, ADMIN_SECRET, ADMIN_EMAIL, COPYRIGHT_NOTICE, MIN_PASSWORD_LENGTH, SYSTEM_DOMAIN, DEFAULT_USER, SYSTEM_UPGRADE_TOKEN, CREATOR_NAME, ADMIN_ADMISSION_KEY } from '../constants';
 import { storageService } from '../services/storageService';
 import { View } from '../types';
 
@@ -244,13 +244,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                   // 1. Check user-specific generated key (Recovery Appeal)
                   const isPersonalKeyValid = stored.user.admissionKey === admissionKey;
                   
-                  // 2. Check global system key (Master Override)
+                  // 2. Check Static Admin Mission Key
+                  const isMasterKey = admissionKey === ADMIN_ADMISSION_KEY;
+                  
+                  // 3. Check global system key (Master Override)
                   let isGlobalKeyValid = false;
-                  if (!isPersonalKeyValid) {
+                  if (!isPersonalKeyValid && !isMasterKey) {
                       isGlobalKeyValid = await storageService.consumeAdmissionKey(admissionKey);
                   }
 
-                  if (isPersonalKeyValid || isGlobalKeyValid) {
+                  if (isPersonalKeyValid || isGlobalKeyValid || isMasterKey) {
                       
                       // Case 1: Unlock Admin - FULL RESTORATION (Though admin shouldn't be locked)
                       if (targetUsername === ADMIN_USERNAME) {
@@ -259,11 +262,15 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                           stored.user.isVerified = true;
                           stored.user.verificationStatus = 'VERIFIED';
                           stored.user.banReason = undefined;
+                          // Clean up badges
+                          if (stored.user.badges) {
+                              stored.user.badges = stored.user.badges.filter(b => b !== 'DANGEROUS' && b !== 'SUSPICIOUS');
+                          }
                           
                           await storageService.logActivity({
                               actor: targetUsername,
                               actionType: 'ADMIN',
-                              description: 'ADMIN SECURITY UNLOCK: Full privileges restored.'
+                              description: 'ADMIN SECURITY UNLOCK: Full privileges restored via Mission Key.'
                           });
                       } 
                       // Case 2: Unlock User - PARTIAL RESTORATION (Suspicious + Dangerous + Pending)
