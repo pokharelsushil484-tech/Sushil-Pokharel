@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest } from '../types';
-import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Gavel, ExternalLink, ShieldAlert, UserMinus, Key, Lock, Eye, EyeOff, Edit3, Save, X, Smartphone, Mail, GraduationCap } from 'lucide-react';
+import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Gavel, ShieldAlert, UserMinus, Key, Lock, Eye, EyeOff, Edit3, Save, X, Smartphone, Mail, GraduationCap, AlertTriangle, Link as LinkIcon, Server, ExternalLink } from 'lucide-react';
 import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, CREATOR_NAME, MIN_PASSWORD_LENGTH, DEFAULT_USER, APP_VERSION } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -14,6 +14,9 @@ interface SettingsProps {
   toggleDarkMode: () => void;
   updateUser: (u: UserProfile) => void;
 }
+
+// Master Key Interval for client-side validation simulation
+const MASTER_KEY_INTERVAL = 50000; 
 
 export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, username, darkMode, toggleDarkMode, updateUser }) => {
   const [isSyncing, setIsSyncing] = useState(false);
@@ -31,16 +34,52 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
 
   // Profile Edit State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [requestMode, setRequestMode] = useState<'NONE' | 'SELECT' | 'MASTER_KEY'>('NONE');
   const [editForm, setEditForm] = useState({
       name: user.name,
       email: user.email,
       phone: user.phone,
       education: user.education || ''
   });
+  const [masterKeyInput, setMasterKeyInput] = useState('');
+  const [masterKeyError, setMasterKeyError] = useState('');
 
   const [updateAvailable, setUpdateAvailable] = useState(false);
 
   const isAdmin = username === ADMIN_USERNAME;
+
+  // --- SECURITY & VIOLENCE DETECTION ---
+  const detectViolations = async (text: string) => {
+      const lower = text.toLowerCase();
+      const negativeTerms = ["hate", "kill", "die", "attack", "bomb", "stupid", "idiot", "violence", "blood", "death", "hack", "crack", "destroy"];
+      
+      if (negativeTerms.some(term => lower.includes(term))) {
+          // IMMEDIATE BLOCK LOGIC
+          const updatedProfile: UserProfile = {
+            ...user,
+            isBanned: true,
+            banReason: "CRITICAL: VIOLENCE OR NEGATIVE CONTENT DETECTED. IMMEDIATE TERMINATION."
+          };
+          
+          await storageService.setData(`architect_data_${username}`, { 
+              ...await storageService.getData(`architect_data_${username}`), 
+              user: updatedProfile 
+          });
+          
+          await storageService.logActivity({
+            actor: username,
+            targetUser: username,
+            actionType: 'SECURITY',
+            description: `VIOLENCE DETECTED: Blocked immediately.`,
+            metadata: `Content: ${text}`
+          });
+
+          // Force reload to trigger "App Removed" screen
+          window.location.reload();
+          return true;
+      }
+      return false;
+  };
 
   const initiateTotpSetup = () => {
     setIsSyncing(true);
@@ -62,29 +101,19 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
         actionType: 'SECURITY',
         description: `MFA Protocol Enforced: ${user.name}`
     });
-
-    alert("Authenticator Synced. Your node is now protected by Google Authenticator protocols.");
   };
 
   const copySecret = () => {
     if (user.totpSecret) {
       navigator.clipboard.writeText(user.totpSecret);
-      alert("Secret Key Copied to Clipboard.");
     }
-  };
-
-  const validatePasswordStrength = (pw: string) => {
-    const hasUpper = /[A-Z]/.test(pw);
-    const hasLower = /[a-z]/.test(pw);
-    const hasNumber = /\d/.test(pw);
-    const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(pw);
-    return pw.length >= MIN_PASSWORD_LENGTH && hasUpper && hasLower && hasNumber && hasSymbol;
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
       e.preventDefault();
       setPasswordError('');
-      setPasswordSuccess('');
+      
+      if (await detectViolations(newPassword)) return;
 
       if (!currentPassword || !newPassword || !confirmNewPassword) {
           setPasswordError("All fields are required.");
@@ -94,12 +123,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
           setPasswordError("New passwords do not match.");
           return;
       }
-      if (!validatePasswordStrength(newPassword)) {
-          setPasswordError(`Password must be at least ${MIN_PASSWORD_LENGTH} chars, include upper/lowercase, number & symbol.`);
-          return;
-      }
 
-      // Verify Current Password (simulated fetch from localStorage since we don't have user obj with password here)
       const usersStr = localStorage.getItem('studentpocket_users');
       if (usersStr) {
           const users = JSON.parse(usersStr);
@@ -125,44 +149,27 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
             description: `Password Rotation: ${username}`
           });
 
-          setPasswordSuccess("Password updated successfully.");
-          setCurrentPassword('');
-          setNewPassword('');
-          setConfirmNewPassword('');
+          setPasswordSuccess("Password updated.");
           setTimeout(() => {
               setShowPasswordChange(false);
               setPasswordSuccess('');
-          }, 1500);
-      } else {
-          setPasswordError("User record not found.");
+              setCurrentPassword('');
+              setNewPassword('');
+          }, 1000);
       }
   };
 
-  const handleProfileUpdate = async () => {
-    // 1. Content Safety Check (Privacy & Rules)
-    const combinedData = `${editForm.name} ${editForm.education} ${editForm.email}`.toLowerCase();
-    const bannedTerms = ["admin", "hacker", "root", "system", "support", "staff", "script", "kill", "attack", "violence", "terror", "bomb", "gun", "death", "suicide"];
-    
-    if (bannedTerms.some(term => combinedData.includes(term))) {
-        // Auto-ban!
-        const updatedProfile: UserProfile = {
-            ...user,
-            isBanned: true,
-            banReason: "Security Violation: Harmful or Restricted Content Detected in Profile."
-        };
-        await storageService.setData(`architect_data_${username}`, { ...await storageService.getData(`architect_data_${username}`), user: updatedProfile });
-        updateUser(updatedProfile);
-        window.location.reload();
+  const handleRequestSubmit = async (method: 'ADMIN' | 'MASTER' | 'LINK') => {
+    // 1. Scan for Violence
+    const combinedData = `${editForm.name} ${editForm.education} ${editForm.email} ${editForm.phone}`;
+    if (await detectViolations(combinedData)) return;
+
+    if (method === 'MASTER') {
+        setRequestMode('MASTER_KEY');
         return;
     }
 
-    // 2. Check if data actually changed
-    if (editForm.name === user.name && editForm.email === user.email && editForm.phone === user.phone && editForm.education === user.education) {
-        setIsEditingProfile(false);
-        return;
-    }
-
-    // 3. Create Change Request
+    // Common Request Object
     const linkId = Math.random().toString(36).substring(7);
     const existingReqs = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
     
@@ -180,93 +187,99 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
         linkId: linkId,
         generatedStudentId: user.studentId
     };
-    
+
     existingReqs.push(request);
     localStorage.setItem('studentpocket_requests', JSON.stringify(existingReqs));
 
-    // 4. Set user to pending verification to lock them out until approved
-    // Editing sensitive data requires re-verification
-    const pendingProfile: UserProfile = {
-        ...user,
-        verificationStatus: 'PENDING_APPROVAL',
-        adminFeedback: 'Profile Data Update Pending Approval.'
-    };
-    
-    await storageService.setData(`architect_data_${username}`, { ...await storageService.getData(`architect_data_${username}`), user: pendingProfile });
-    updateUser(pendingProfile);
-    
-    // Redirect to lock screen
-    window.location.href = '/';
+    if (method === 'LINK') {
+        const url = `www.example.com/v/${linkId}`; // Per user request
+        alert(`Request Link Generated:\n\n${url}\n\nCopy this to the external system.`);
+        setIsEditingProfile(false);
+        setRequestMode('NONE');
+    } else {
+        // Admin Request - Lock Account
+        const pendingProfile: UserProfile = {
+            ...user,
+            verificationStatus: 'PENDING_APPROVAL',
+            adminFeedback: 'Data Change Request Pending Administrator Review.'
+        };
+        
+        await storageService.setData(`architect_data_${username}`, { ...await storageService.getData(`architect_data_${username}`), user: pendingProfile });
+        updateUser(pendingProfile);
+        window.location.href = '/';
+    }
+  };
+
+  const validateMasterKey = async () => {
+      // Logic: Master key rotates every 50s.
+      const timeStep = MASTER_KEY_INTERVAL;
+      const now = Date.now();
+      const seed = Math.floor(now / timeStep);
+      const currentMasterKey = Math.abs(Math.sin(seed + 1) * 1000000).toFixed(0).slice(0, 6).padEnd(6, '0');
+      
+      // Also check Admin Key ('a') or specific user key
+      const isAdminKey = masterKeyInput === 'a' || masterKeyInput === ADMIN_USERNAME; 
+      
+      if (masterKeyInput === currentMasterKey || isAdminKey) {
+          // Success - Apply Changes Immediately
+          const updatedProfile: UserProfile = {
+              ...user,
+              name: editForm.name,
+              email: editForm.email,
+              phone: editForm.phone,
+              education: editForm.education,
+              adminFeedback: "Updated via Master Key Protocol."
+          };
+          
+          await storageService.setData(`architect_data_${username}`, { ...await storageService.getData(`architect_data_${username}`), user: updatedProfile });
+          updateUser(updatedProfile);
+          
+          // Update Global Auth Store if name/email changed
+          const usersStr = localStorage.getItem('studentpocket_users');
+          if (usersStr) {
+             const users = JSON.parse(usersStr);
+             if (users[username]) {
+                 users[username].name = editForm.name;
+                 users[username].email = editForm.email;
+                 localStorage.setItem('studentpocket_users', JSON.stringify(users));
+             }
+          }
+
+          setIsEditingProfile(false);
+          setRequestMode('NONE');
+          alert("Master Key Accepted. Profile Updated.");
+      } else {
+          setMasterKeyError("Invalid Master Key.");
+      }
   };
 
   const handleSystemWipe = async () => {
       if (window.confirm("CRITICAL: Wipe all local data nodes permanently?")) {
-          await storageService.logActivity({
-            actor: username,
-            actionType: 'SYSTEM',
-            description: `SYSTEM PURGE INITIATED`,
-            metadata: 'Factory Reset Triggered'
-          });
           resetApp();
+      }
+  };
+
+  const handleDeleteAccount = async () => {
+      if (window.confirm("PERMANENT ACTION: Are you sure you want to delete your account? This action cannot be undone.")) {
+          const usersStr = localStorage.getItem('studentpocket_users');
+          if (usersStr) {
+              const users = JSON.parse(usersStr);
+              if (users[username]) {
+                  delete users[username];
+                  localStorage.setItem('studentpocket_users', JSON.stringify(users));
+              }
+          }
+          await storageService.deleteData(`architect_data_${username}`);
+          onLogout();
       }
   };
 
   const checkForUpdates = () => {
       setIsSyncing(true);
-      // Simulate checking server
       setTimeout(() => {
           setIsSyncing(false);
-          const hasUpdate = Math.random() > 0.5; // Simulate randomness
-          if (hasUpdate) {
-              setUpdateAvailable(true);
-          } else {
-              alert("System is up to date. Version: " + APP_VERSION);
-          }
-      }, 1500);
-  };
-
-  const handleDeleteAccount = async () => {
-    if (username === ADMIN_USERNAME) {
-      alert("System Architect node cannot be deleted.");
-      return;
-    }
-
-    if (window.confirm("CRITICAL WARNING: This will permanently delete your identity node and all associated data segments (Files, Notes, Tasks). This action cannot be undone.\n\nAre you sure you want to proceed?")) {
-      try {
-        await storageService.logActivity({
-            actor: user.name,
-            targetUser: user.name,
-            actionType: 'SYSTEM',
-            description: `IDENTITY DELETION: ${username}`,
-            metadata: 'Permanent Account Removal'
-        });
-
-        // 1. Remove from Users List (localStorage)
-        const usersStr = localStorage.getItem('studentpocket_users');
-        if (usersStr) {
-          const users = JSON.parse(usersStr);
-          delete users[username];
-          localStorage.setItem('studentpocket_users', JSON.stringify(users));
-        }
-
-        // 2. Remove Requests (localStorage)
-        const reqStr = localStorage.getItem('studentpocket_requests');
-        if (reqStr) {
-          const requests = JSON.parse(reqStr);
-          const filteredReqs = requests.filter((r: any) => r.username !== username);
-          localStorage.setItem('studentpocket_requests', JSON.stringify(filteredReqs));
-        }
-
-        // 3. Remove Data Node (IndexedDB)
-        await storageService.deleteData(`architect_data_${username}`);
-
-      } catch (e) { 
-        console.error("Deletion Process Error", e); 
-      } finally {
-        // 4. Logout regardless of minor errors
-        onLogout();
-      }
-    }
+          setUpdateAvailable(true);
+      }, 1000);
   };
 
   return (
@@ -286,66 +299,139 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
             
             <div className="flex-1 text-center md:text-left w-full">
                 {isEditingProfile ? (
-                    <div className="space-y-4 bg-white/10 p-6 rounded-3xl animate-scale-up border border-white/10 backdrop-blur-sm">
+                    <div className="space-y-4 bg-white/10 p-6 rounded-3xl animate-scale-up border border-white/10 backdrop-blur-sm relative">
                         <div className="flex items-center justify-between mb-2">
-                             <h3 className="text-xs font-bold uppercase tracking-widest text-indigo-300">Edit Profile Data</h3>
-                             <button onClick={() => setIsEditingProfile(false)} className="text-white/50 hover:text-white"><X size={18}/></button>
+                             <h3 className="text-xs font-bold uppercase tracking-widest text-indigo-300">Request Edit</h3>
+                             <button onClick={() => { setIsEditingProfile(false); setRequestMode('NONE'); }} className="text-white/50 hover:text-white"><X size={18}/></button>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1 text-left">
-                                <label className="text-[10px] uppercase font-bold text-white/50">Full Name</label>
-                                <input 
-                                    type="text" 
-                                    value={editForm.name}
-                                    onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
-                                />
+
+                        {/* EDIT FORM INPUTS */}
+                        {requestMode === 'NONE' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1 text-left">
+                                    <label className="text-[10px] uppercase font-bold text-white/50">Full Name</label>
+                                    <input 
+                                        type="text" 
+                                        value={editForm.name}
+                                        onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
+                                    />
+                                </div>
+                                <div className="space-y-1 text-left">
+                                    <label className="text-[10px] uppercase font-bold text-white/50">Education</label>
+                                    <input 
+                                        type="text" 
+                                        value={editForm.education}
+                                        onChange={(e) => setEditForm({...editForm, education: e.target.value})}
+                                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
+                                    />
+                                </div>
+                                <div className="space-y-1 text-left">
+                                    <label className="text-[10px] uppercase font-bold text-white/50">Email</label>
+                                    <input 
+                                        type="email" 
+                                        value={editForm.email}
+                                        onChange={(e) => setEditForm({...editForm, email: e.target.value})}
+                                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
+                                    />
+                                </div>
+                                <div className="space-y-1 text-left">
+                                    <label className="text-[10px] uppercase font-bold text-white/50">Phone</label>
+                                    <input 
+                                        type="tel" 
+                                        value={editForm.phone}
+                                        onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
+                                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
+                                    />
+                                </div>
+                                <div className="col-span-1 md:col-span-2 mt-2">
+                                     <button onClick={() => setRequestMode('SELECT')} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-widest py-3 rounded-xl transition-colors shadow-lg flex items-center justify-center">
+                                        Proceed to Request Options <ShieldCheck size={14} className="ml-2"/>
+                                    </button>
+                                </div>
                             </div>
-                            <div className="space-y-1 text-left">
-                                <label className="text-[10px] uppercase font-bold text-white/50">Education</label>
-                                <input 
-                                    type="text" 
-                                    value={editForm.education}
-                                    onChange={(e) => setEditForm({...editForm, education: e.target.value})}
-                                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
-                                />
+                        )}
+
+                        {/* REQUEST MODE SELECTION */}
+                        {requestMode === 'SELECT' && (
+                             <div className="space-y-3 animate-slide-left">
+                                 <p className="text-[10px] text-white/70 uppercase tracking-widest text-center mb-2">Select Authentication Method</p>
+                                 
+                                 <button onClick={() => handleRequestSubmit('ADMIN')} className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors group">
+                                     <div className="flex items-center">
+                                         <div className="p-2 bg-indigo-500/20 rounded-lg mr-3 text-indigo-300"><Server size={16}/></div>
+                                         <div className="text-left">
+                                             <span className="block text-xs font-bold text-white">Option 1: Admin Request</span>
+                                             <span className="block text-[9px] text-white/50">Submit for manual approval</span>
+                                         </div>
+                                     </div>
+                                     <ShieldCheck size={14} className="text-white/30 group-hover:text-white"/>
+                                 </button>
+
+                                 <button onClick={() => handleRequestSubmit('MASTER')} className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors group">
+                                     <div className="flex items-center">
+                                         <div className="p-2 bg-emerald-500/20 rounded-lg mr-3 text-emerald-300"><Key size={16}/></div>
+                                         <div className="text-left">
+                                             <span className="block text-xs font-bold text-white">Option 2: Master Key</span>
+                                             <span className="block text-[9px] text-white/50">Instant update with AI-Generated Key</span>
+                                         </div>
+                                     </div>
+                                     <Check size={14} className="text-white/30 group-hover:text-white"/>
+                                 </button>
+
+                                 <button onClick={() => handleRequestSubmit('LINK')} className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors group">
+                                     <div className="flex items-center">
+                                         <div className="p-2 bg-amber-500/20 rounded-lg mr-3 text-amber-300"><LinkIcon size={16}/></div>
+                                         <div className="text-left">
+                                             <span className="block text-xs font-bold text-white">Option 3: Request Link</span>
+                                             <span className="block text-[9px] text-white/50">Generate link for www.example.com</span>
+                                         </div>
+                                     </div>
+                                     <ExternalLink size={14} className="text-white/30 group-hover:text-white"/>
+                                 </button>
+                             </div>
+                        )}
+
+                        {/* MASTER KEY INPUT */}
+                        {requestMode === 'MASTER_KEY' && (
+                            <div className="space-y-4 animate-scale-up">
+                                <div className="text-center space-y-1">
+                                    <h4 className="text-sm font-bold text-white">Enter Master Key</h4>
+                                    <p className="text-[10px] text-white/50">Provided by AI Generator or Administrator (a)</p>
+                                </div>
+                                <div className="relative">
+                                    <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" size={16}/>
+                                    <input 
+                                        type="text" 
+                                        value={masterKeyInput} 
+                                        onChange={(e) => setMasterKeyInput(e.target.value)}
+                                        className="w-full bg-black/40 border border-emerald-500/50 rounded-xl py-3 pl-12 pr-4 text-center font-mono text-emerald-400 font-bold tracking-widest outline-none focus:bg-black/60 transition-all"
+                                        placeholder="KEY"
+                                    />
+                                </div>
+                                {masterKeyError && <p className="text-[10px] text-red-400 text-center font-bold">{masterKeyError}</p>}
+                                <button onClick={validateMasterKey} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest py-3 rounded-xl shadow-lg">
+                                    Authorize Update
+                                </button>
+                                <button onClick={() => setRequestMode('SELECT')} className="w-full text-white/50 text-[10px] font-bold uppercase tracking-widest py-2 hover:text-white">
+                                    Back
+                                </button>
                             </div>
-                            <div className="space-y-1 text-left">
-                                <label className="text-[10px] uppercase font-bold text-white/50">Email</label>
-                                <input 
-                                    type="email" 
-                                    value={editForm.email}
-                                    onChange={(e) => setEditForm({...editForm, email: e.target.value})}
-                                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
-                                />
-                            </div>
-                            <div className="space-y-1 text-left">
-                                <label className="text-[10px] uppercase font-bold text-white/50">Phone</label>
-                                <input 
-                                    type="tel" 
-                                    value={editForm.phone}
-                                    onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
-                                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
-                                />
-                            </div>
-                        </div>
-                        <button onClick={handleProfileUpdate} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-widest py-3 rounded-xl transition-colors shadow-lg flex items-center justify-center">
-                            <Save size={14} className="mr-2"/> Save Changes & Re-verify
-                        </button>
+                        )}
                     </div>
                 ) : (
                     <>
                         <div className="flex items-center justify-center md:justify-start gap-3 mb-2 group">
                              <h2 className="text-4xl font-bold tracking-tight">{user.name}</h2>
                              {!isAdmin && (
-                                 <button onClick={() => setIsEditingProfile(true)} className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-white/10 rounded-full text-indigo-300">
+                                 <button onClick={() => setIsEditingProfile(true)} className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-white/10 rounded-full text-indigo-300" title="Submit Edit Request">
                                      <Edit3 size={18} />
                                  </button>
                              )}
                         </div>
                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-4">
                            <span className="text-[10px] font-black uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full text-indigo-300">{isAdmin ? 'Lead Architect' : 'Identity Node'}</span>
-                           <span className="text-[10px] font-mono text-slate-400">ID: {username}</span>
+                           <span className="text-[10px] font-mono text-slate-400">AI-ID: {user.studentId || username}</span>
                         </div>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-slate-400 max-w-lg mx-auto md:mx-0">
@@ -384,7 +470,16 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
               <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Security Protocol</h3>
               
               {/* MFA Card */}
-              <div className="bg-white dark:bg-[#0f172a] p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="bg-white dark:bg-[#0f172a] p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+                  {/* Block Security Features if Intermediate issues exist (simulated by checking ban status, though banned users are usually logged out) */}
+                  {user.isBanned && (
+                      <div className="absolute inset-0 bg-red-500/10 backdrop-blur-[2px] z-20 flex items-center justify-center">
+                          <div className="bg-red-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center">
+                              <ShieldAlert size={14} className="mr-2"/> Security Blocked
+                          </div>
+                      </div>
+                  )}
+
                   <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-4">
                           <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl">
@@ -419,7 +514,12 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
               </div>
 
               {/* Password Card */}
-              <div className="bg-white dark:bg-[#0f172a] p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="bg-white dark:bg-[#0f172a] p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+                  {user.isBanned && (
+                      <div className="absolute inset-0 bg-red-500/10 backdrop-blur-[2px] z-20 flex items-center justify-center">
+                          <Lock size={24} className="text-red-500"/>
+                      </div>
+                  )}
                   <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                           <div className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-500 rounded-xl">
@@ -527,7 +627,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                       </button>
 
                       {!isAdmin && (
-                          <button onClick={handleDeleteAccount} className="w-full flex items-center justify-between p-3 bg-white dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group">
+                          <button onClick={() => { if(user.isBanned) return; handleDeleteAccount(); }} className={`w-full flex items-center justify-between p-3 bg-white dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-900/50 transition-colors group ${user.isBanned ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-50 dark:hover:bg-red-900/30'}`}>
                               <span className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">Delete Account</span>
                               <UserMinus size={16} className="text-red-400 group-hover:text-red-600" />
                           </button>

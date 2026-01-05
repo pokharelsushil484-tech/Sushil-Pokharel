@@ -18,7 +18,7 @@ import { ErrorPage } from './views/ErrorPage';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { TermsModal } from './components/TermsModal';
-import { ShieldX, Globe, CheckCircle, XCircle, X, RefreshCw } from 'lucide-react';
+import { ShieldX, Globe, CheckCircle, XCircle, X, RefreshCw, AlertTriangle } from 'lucide-react';
 
 import { View, UserProfile, VaultDocument, ChatMessage } from './types';
 import { ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN, APP_NAME, SYSTEM_DOMAIN } from './constants';
@@ -228,21 +228,47 @@ const App = () => {
     return <Login user={null} onLogin={handleLoginSuccess} onNavigate={setView} />;
   }
 
+  // FORCE BLOCK ON VIOLENCE
   if (data.user?.isBanned) {
+    const isViolence = data.user.banReason?.includes("VIOLENCE");
+    
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-        <div className="bg-red-950/20 p-16 rounded-[2rem] border border-red-500/30 shadow-2xl max-w-lg w-full">
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center animate-fade-in relative overflow-hidden">
+        {/* Urgent Pulse Background for Violence */}
+        {isViolence && <div className="absolute inset-0 bg-red-900/20 animate-pulse pointer-events-none"></div>}
+
+        <div className="bg-red-950/20 p-16 rounded-[2rem] border border-red-500/30 shadow-2xl max-w-lg w-full relative z-10 backdrop-blur-xl">
           <ShieldX size={64} className="text-red-500 mx-auto mb-6 animate-pulse" />
-          <h1 className="text-3xl font-bold text-white mb-4 tracking-tight">Access Suspended</h1>
-          <p className="text-red-200 text-sm mb-8">{data.user.banReason}</p>
+          <h1 className="text-3xl font-black text-white mb-4 tracking-tighter uppercase">
+              {isViolence ? 'Critical Security Stop' : 'Access Suspended'}
+          </h1>
+          
+          <div className="bg-red-900/40 p-4 rounded-xl border border-red-500/30 mb-8">
+              <div className="flex items-center justify-center text-red-200 text-sm font-bold uppercase tracking-widest mb-2">
+                  <AlertTriangle size={16} className="mr-2" /> Reason
+              </div>
+              <p className="text-white text-xs font-mono">{data.user.banReason}</p>
+          </div>
+
+          <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest mb-8">
+              Application Access Removed due to Security Policy Violation.
+          </p>
+
           <div className="space-y-4">
+              {!isViolence && (
+                  <button 
+                    onClick={() => { handleLogout(); setView(View.ACCESS_RECOVERY); }} 
+                    className="w-full py-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-[0.2em] transition-all shadow-lg"
+                  >
+                    Request Recovery
+                  </button>
+              )}
               <button 
-                onClick={() => { handleLogout(); setView(View.ACCESS_RECOVERY); }} 
-                className="w-full py-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-[0.2em] transition-all shadow-lg"
+                  onClick={handleLogout} 
+                  className={`w-full py-4 rounded-xl text-white font-bold text-xs uppercase tracking-[0.2em] transition-all border border-white/10 ${isViolence ? 'bg-red-600 hover:bg-red-700 shadow-xl' : 'hover:bg-white/5'}`}
               >
-                Request Recovery
+                  {isViolence ? 'Close & Exit' : 'Sign Out'}
               </button>
-              <button onClick={handleLogout} className="text-slate-400 hover:text-white text-xs font-bold uppercase tracking-widest underline transition-colors">Sign Out</button>
           </div>
         </div>
       </div>
