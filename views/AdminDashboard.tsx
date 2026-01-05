@@ -105,6 +105,16 @@ export const AdminDashboard: React.FC = () => {
           if (req.type === 'NAME_CHANGE' && approve) {
               const details = JSON.parse(req.details);
               data.user.name = details.newName;
+              
+               // Update global users list if name changed
+               const usersStr = localStorage.getItem('studentpocket_users');
+               if (usersStr) {
+                  const users = JSON.parse(usersStr);
+                  if (users[req.username]) {
+                      users[req.username].name = details.newName;
+                      localStorage.setItem('studentpocket_users', JSON.stringify(users));
+                  }
+               }
           }
 
           data.user.isVerified = approve;
@@ -119,19 +129,6 @@ export const AdminDashboard: React.FC = () => {
             : "Request rejected by administrator.";
           
           await storageService.setData(`architect_data_${req.username}`, data);
-          
-          // Update global users list if name changed
-          if (req.type === 'NAME_CHANGE' && approve) {
-               const details = JSON.parse(req.details);
-               const usersStr = localStorage.getItem('studentpocket_users');
-               if (usersStr) {
-                  const users = JSON.parse(usersStr);
-                  if (users[req.username]) {
-                      users[req.username].name = details.newName;
-                      localStorage.setItem('studentpocket_users', JSON.stringify(users));
-                  }
-               }
-          }
       }
 
       const updatedReqs = requests.map(r => 

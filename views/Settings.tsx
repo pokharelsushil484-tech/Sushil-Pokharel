@@ -138,9 +138,11 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
         return;
     }
     
-    // 1. Content Safety Check
+    // 1. Content Safety Check (Privacy & Rules)
     const lowerName = newName.toLowerCase();
-    if (lowerName.includes("admin") || lowerName.includes("hacker") || lowerName.includes("root") || lowerName.includes("system")) {
+    const bannedTerms = ["admin", "hacker", "root", "system", "support", "staff"];
+    
+    if (bannedTerms.some(term => lowerName.includes(term))) {
         // Auto-ban!
         const updatedProfile: UserProfile = {
             ...user,
@@ -167,7 +169,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
         details: JSON.stringify({ oldName: user.name, newName: newName }),
         status: 'PENDING',
         createdAt: Date.now(),
-        linkId: linkId
+        linkId: linkId,
+        generatedStudentId: user.studentId
     };
     
     existingReqs.push(request);
@@ -260,16 +263,17 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
             <div className="flex-1 text-center md:text-left">
                 <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
                     {showNameChange ? (
-                        <div className="flex items-center gap-2 bg-white/10 p-1 rounded-lg">
+                        <div className="flex items-center gap-2 bg-white/10 p-1 rounded-lg animate-scale-up">
                             <input 
                                 type="text" 
                                 value={newName}
                                 onChange={(e) => setNewName(e.target.value)}
-                                className="bg-transparent border-none outline-none text-white font-bold text-2xl w-full"
+                                className="bg-transparent border-none outline-none text-white font-bold text-2xl w-full focus:ring-0"
                                 autoFocus
+                                placeholder="Enter New Name"
                             />
-                            <button onClick={handleSubmitNameChange} className="p-1 hover:bg-white/20 rounded"><Check size={20}/></button>
-                            <button onClick={() => { setShowNameChange(false); setNewName(user.name); }} className="p-1 hover:bg-white/20 rounded"><X size={20}/></button>
+                            <button onClick={handleSubmitNameChange} className="p-2 hover:bg-emerald-500/20 rounded-lg text-emerald-400 transition-colors"><Check size={20}/></button>
+                            <button onClick={() => { setShowNameChange(false); setNewName(user.name); }} className="p-2 hover:bg-red-500/20 rounded-lg text-red-400 transition-colors"><X size={20}/></button>
                         </div>
                     ) : (
                         <div className="group flex items-center gap-3">
