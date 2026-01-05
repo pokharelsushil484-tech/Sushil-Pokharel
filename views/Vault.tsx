@@ -193,26 +193,32 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
           ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {filteredDocs.map(doc => (
-                  <div key={doc.id} className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl transition-all relative group h-64 flex flex-col justify-between overflow-hidden">
-                      <div className="flex justify-between items-start">
-                         <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center shadow-inner ${
-                           doc.type === 'IMAGE' ? 'bg-emerald-50 text-emerald-600' : 
-                           doc.type === 'VIDEO' ? 'bg-amber-50 text-amber-600' :
-                           'bg-indigo-50 text-indigo-600'
-                         }`}>
-                            {doc.type === 'IMAGE' ? <ImageIcon size={24} /> : doc.type === 'VIDEO' ? <Video size={24} /> : <FileText size={24} />}
-                         </div>
-                         <div className="flex space-x-2">
-                            <button onClick={() => downloadFile(doc)} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 hover:text-indigo-600 transition-colors"><Download size={18}/></button>
-                            <button onClick={() => deleteFile(doc.id)} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
-                         </div>
+                  <div key={doc.id} className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl transition-all relative group h-72 flex flex-col justify-between overflow-hidden">
+                      {/* Image Preview or Icon */}
+                      <div className="w-full h-32 rounded-3xl overflow-hidden mb-4 bg-slate-50 dark:bg-slate-800 relative">
+                           {doc.type === 'IMAGE' ? (
+                               <img src={doc.content} alt={doc.title} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                           ) : (
+                               <div className={`w-full h-full flex items-center justify-center ${
+                                   doc.type === 'VIDEO' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-500' : 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500'
+                               }`}>
+                                   {doc.type === 'VIDEO' ? <Video size={32} /> : <FileText size={32} />}
+                               </div>
+                           )}
                       </div>
-                      <div className="mt-4">
-                        <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight truncate mb-2" title={doc.title}>{doc.title}</h4>
-                        <div className="flex justify-between items-center text-[9px] text-slate-400 font-black uppercase tracking-widest">
-                           <span>{doc.type}</span>
-                           <span>{(doc.size / 1024).toFixed(1)} KB</span>
-                        </div>
+
+                      <div className="flex justify-between items-start">
+                         <div className="min-w-0 flex-1 mr-2">
+                             <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight truncate" title={doc.title}>{doc.title}</h4>
+                             <div className="flex justify-between items-center text-[9px] text-slate-400 font-black uppercase tracking-widest mt-1">
+                                <span>{doc.type}</span>
+                                <span>{(doc.size / 1024).toFixed(1)} KB</span>
+                             </div>
+                         </div>
+                         <div className="flex flex-col gap-2">
+                            <button onClick={() => downloadFile(doc)} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 hover:text-indigo-600 transition-colors"><Download size={16}/></button>
+                            <button onClick={() => deleteFile(doc.id)} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
+                         </div>
                       </div>
                   </div>
                 ))}
@@ -220,10 +226,14 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
           ) : (
             <div className="space-y-4">
                {filteredDocs.map(doc => (
-                 <div key={doc.id} className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-100 dark:border-white/5 flex items-center justify-between group hover:shadow-lg transition-all">
+                 <div key={doc.id} className="bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-100 dark:border-white/5 flex items-center justify-between group hover:shadow-lg transition-all">
                     <div className="flex items-center space-x-5 overflow-hidden">
-                       <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-indigo-600 flex-shrink-0">
-                          {doc.type === 'IMAGE' ? <ImageIcon size={20} /> : doc.type === 'VIDEO' ? <Video size={20} /> : <FileText size={20} />}
+                       <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-indigo-600 flex-shrink-0 overflow-hidden">
+                          {doc.type === 'IMAGE' ? (
+                              <img src={doc.content} alt={doc.title} className="w-full h-full object-cover" />
+                          ) : (
+                              doc.type === 'VIDEO' ? <Video size={24} /> : <FileText size={24} />
+                          )}
                        </div>
                        <div className="min-w-0">
                           <p className="font-black text-slate-800 dark:text-white uppercase tracking-tight text-sm truncate">{doc.title}</p>

@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Settings, MessageCircle, LayoutGrid, ShieldCheck, Lock, Database, LifeBuoy, User, Terminal } from 'lucide-react';
+import React from 'react';
+import { Settings, MessageCircle, LayoutGrid, ShieldCheck, Lock, Database, LifeBuoy, User } from 'lucide-react';
 import { View } from '../types';
 
 interface NavigationProps {
@@ -13,8 +13,6 @@ interface NavigationProps {
 }
 
 export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, isAdmin, isVerified, username, onLogout }) => {
-  const [command, setCommand] = useState('');
-
   // Main tools for the upper section
   const navItems = [
     { view: View.DASHBOARD, icon: LayoutGrid, label: 'Workbench' },
@@ -23,25 +21,6 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
     { view: View.AI_CHAT, icon: MessageCircle, label: 'Assistant' },
     { view: View.SUPPORT, icon: LifeBuoy, label: 'Help Desk' },
   ];
-
-  const handleCommand = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      const cmd = command.trim().toLowerCase();
-      setCommand('');
-      
-      if (cmd === 'admin') {
-        if (isAdmin) setView(View.ADMIN_DASHBOARD);
-        else setView(View.ERROR); // Or access denied
-      } else if (cmd === 'login') {
-        onLogout();
-      } else if (cmd === 'dashboard' || cmd === 'home') {
-        setView(View.DASHBOARD);
-      } else {
-        // Trigger Error Page for invalid commands
-        setView(View.ERROR);
-      }
-    }
-  };
 
   return (
     <>
@@ -79,22 +58,6 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
             );
           })}
         </nav>
-
-        {/* Command Input Area */}
-        <div className="px-4 pb-4 hidden lg:block">
-            <div className="relative group">
-                <Terminal size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
-                <input 
-                    type="text" 
-                    value={command}
-                    onChange={(e) => setCommand(e.target.value)}
-                    onKeyDown={handleCommand}
-                    placeholder="COMMAND MODE..."
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-3 pl-9 pr-3 text-[10px] font-mono text-slate-600 dark:text-slate-300 outline-none focus:border-indigo-500 transition-all uppercase placeholder:text-slate-400"
-                />
-            </div>
-            <p className="text-[9px] text-slate-300 mt-2 text-center">Enter 'admin' or 'login'</p>
-        </div>
 
         {/* Bottom Profile Section */}
         <div className="p-3 border-t border-slate-50 dark:border-slate-800/50">
