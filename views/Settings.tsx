@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest } from '../types';
-import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Gavel, ExternalLink, ShieldAlert, UserMinus, Key, Lock, Eye, EyeOff, Edit3, Save, X } from 'lucide-react';
-import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, CREATOR_NAME, MIN_PASSWORD_LENGTH, DEFAULT_USER } from '../constants';
+import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Gavel, ExternalLink, ShieldAlert, UserMinus, Key, Lock, Eye, EyeOff, Edit3, Save, X, Smartphone, Mail, GraduationCap } from 'lucide-react';
+import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, CREATOR_NAME, MIN_PASSWORD_LENGTH, DEFAULT_USER, APP_VERSION } from '../constants';
 import { storageService } from '../services/storageService';
 
 interface SettingsProps {
@@ -29,10 +29,16 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
 
-  // Name Change State
-  const [showNameChange, setShowNameChange] = useState(false);
-  const [newName, setNewName] = useState(user.name);
-  const [nameError, setNameError] = useState('');
+  // Profile Edit State
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editForm, setEditForm] = useState({
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      education: user.education || ''
+  });
+
+  const [updateAvailable, setUpdateAvailable] = useState(false);
 
   const isAdmin = username === ADMIN_USERNAME;
 
@@ -132,41 +138,43 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       }
   };
 
-  const handleSubmitNameChange = async () => {
-    if (!newName.trim() || newName === user.name) {
-        setShowNameChange(false);
-        return;
-    }
-    
+  const handleProfileUpdate = async () => {
     // 1. Content Safety Check (Privacy & Rules)
-    const lowerName = newName.toLowerCase();
-    const bannedTerms = ["admin", "hacker", "root", "system", "support", "staff"];
+    const combinedData = `${editForm.name} ${editForm.education} ${editForm.email}`.toLowerCase();
+    const bannedTerms = ["admin", "hacker", "root", "system", "support", "staff", "script"];
     
-    if (bannedTerms.some(term => lowerName.includes(term))) {
+    if (bannedTerms.some(term => combinedData.includes(term))) {
         // Auto-ban!
         const updatedProfile: UserProfile = {
             ...user,
             isBanned: true,
-            banReason: "Security Violation: Inappropriate Profile Name Detected."
+            banReason: "Security Violation: Restricted Data Detected in Profile Update."
         };
         await storageService.setData(`architect_data_${username}`, { ...await storageService.getData(`architect_data_${username}`), user: updatedProfile });
         updateUser(updatedProfile);
-        
-        // Force logout/reload to hit banned screen
         window.location.reload();
         return;
     }
 
-    // 2. Create Change Request
+    // 2. Check if data actually changed
+    if (editForm.name === user.name && editForm.email === user.email && editForm.phone === user.phone && editForm.education === user.education) {
+        setIsEditingProfile(false);
+        return;
+    }
+
+    // 3. Create Change Request
     const linkId = Math.random().toString(36).substring(7);
     const existingReqs = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
     
     const request: ChangeRequest = {
-        id: 'REQ-NAME-' + Date.now(),
+        id: 'REQ-DATA-' + Date.now(),
         userId: username,
         username: username,
-        type: 'NAME_CHANGE',
-        details: JSON.stringify({ oldName: user.name, newName: newName }),
+        type: 'DATA_CHANGE',
+        details: JSON.stringify({ 
+            old: { name: user.name, email: user.email, phone: user.phone, education: user.education },
+            new: editForm 
+        }),
         status: 'PENDING',
         createdAt: Date.now(),
         linkId: linkId,
@@ -176,11 +184,12 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
     existingReqs.push(request);
     localStorage.setItem('studentpocket_requests', JSON.stringify(existingReqs));
 
-    // 3. Set user to pending verification to lock them out until approved
+    // 4. Set user to pending verification to lock them out until approved
+    // Editing sensitive data requires re-verification
     const pendingProfile: UserProfile = {
         ...user,
         verificationStatus: 'PENDING_APPROVAL',
-        adminFeedback: 'Profile Name Change Request Pending Approval.'
+        adminFeedback: 'Profile Data Update Pending Approval.'
     };
     
     await storageService.setData(`architect_data_${username}`, { ...await storageService.getData(`architect_data_${username}`), user: pendingProfile });
@@ -200,6 +209,20 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
           });
           resetApp();
       }
+  };
+
+  const checkForUpdates = () => {
+      setIsSyncing(true);
+      // Simulate checking server
+      setTimeout(() => {
+          setIsSyncing(false);
+          const hasUpdate = Math.random() > 0.5; // Simulate randomness
+          if (hasUpdate) {
+              setUpdateAvailable(true);
+          } else {
+              alert("System is up to date. Version: " + APP_VERSION);
+          }
+      }, 1500);
   };
 
   const handleDeleteAccount = async () => {
@@ -260,41 +283,99 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                   <img src="/logo.svg" className="w-16 h-16 object-contain opacity-50 filter brightness-0 invert" alt="Avatar Placeholder" />
                 )}
             </div>
-            <div className="flex-1 text-center md:text-left">
-                <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
-                    {showNameChange ? (
-                        <div className="flex items-center gap-2 bg-white/10 p-1 rounded-lg animate-scale-up">
-                            <input 
-                                type="text" 
-                                value={newName}
-                                onChange={(e) => setNewName(e.target.value)}
-                                className="bg-transparent border-none outline-none text-white font-bold text-2xl w-full focus:ring-0"
-                                autoFocus
-                                placeholder="Enter New Name"
-                            />
-                            <button onClick={handleSubmitNameChange} className="p-2 hover:bg-emerald-500/20 rounded-lg text-emerald-400 transition-colors"><Check size={20}/></button>
-                            <button onClick={() => { setShowNameChange(false); setNewName(user.name); }} className="p-2 hover:bg-red-500/20 rounded-lg text-red-400 transition-colors"><X size={20}/></button>
+            
+            <div className="flex-1 text-center md:text-left w-full">
+                {isEditingProfile ? (
+                    <div className="space-y-4 bg-white/10 p-6 rounded-3xl animate-scale-up border border-white/10 backdrop-blur-sm">
+                        <div className="flex items-center justify-between mb-2">
+                             <h3 className="text-xs font-bold uppercase tracking-widest text-indigo-300">Edit Profile Data</h3>
+                             <button onClick={() => setIsEditingProfile(false)} className="text-white/50 hover:text-white"><X size={18}/></button>
                         </div>
-                    ) : (
-                        <div className="group flex items-center gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1 text-left">
+                                <label className="text-[10px] uppercase font-bold text-white/50">Full Name</label>
+                                <input 
+                                    type="text" 
+                                    value={editForm.name}
+                                    onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
+                                />
+                            </div>
+                            <div className="space-y-1 text-left">
+                                <label className="text-[10px] uppercase font-bold text-white/50">Education</label>
+                                <input 
+                                    type="text" 
+                                    value={editForm.education}
+                                    onChange={(e) => setEditForm({...editForm, education: e.target.value})}
+                                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
+                                />
+                            </div>
+                            <div className="space-y-1 text-left">
+                                <label className="text-[10px] uppercase font-bold text-white/50">Email</label>
+                                <input 
+                                    type="email" 
+                                    value={editForm.email}
+                                    onChange={(e) => setEditForm({...editForm, email: e.target.value})}
+                                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
+                                />
+                            </div>
+                            <div className="space-y-1 text-left">
+                                <label className="text-[10px] uppercase font-bold text-white/50">Phone</label>
+                                <input 
+                                    type="tel" 
+                                    value={editForm.phone}
+                                    onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
+                                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
+                                />
+                            </div>
+                        </div>
+                        <button onClick={handleProfileUpdate} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-widest py-3 rounded-xl transition-colors shadow-lg flex items-center justify-center">
+                            <Save size={14} className="mr-2"/> Save Changes & Re-verify
+                        </button>
+                    </div>
+                ) : (
+                    <>
+                        <div className="flex items-center justify-center md:justify-start gap-3 mb-2 group">
                              <h2 className="text-4xl font-bold tracking-tight">{user.name}</h2>
                              {!isAdmin && (
-                                 <button onClick={() => setShowNameChange(true)} className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-white/10 rounded-full">
-                                     <Edit3 size={16} className="text-slate-300" />
+                                 <button onClick={() => setIsEditingProfile(true)} className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-white/10 rounded-full text-indigo-300">
+                                     <Edit3 size={18} />
                                  </button>
                              )}
                         </div>
-                    )}
-                </div>
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-                   <span className="text-[10px] font-black uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full text-indigo-300">{isAdmin ? 'Lead Architect' : 'Identity Node'}</span>
-                   <span className="text-[10px] font-mono text-slate-400">ID: {username}</span>
-                </div>
+                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-4">
+                           <span className="text-[10px] font-black uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full text-indigo-300">{isAdmin ? 'Lead Architect' : 'Identity Node'}</span>
+                           <span className="text-[10px] font-mono text-slate-400">ID: {username}</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-slate-400 max-w-lg mx-auto md:mx-0">
+                            <div className="flex items-center space-x-2 bg-white/5 px-3 py-2 rounded-lg">
+                                <Mail size={14} /> <span>{user.email}</span>
+                            </div>
+                            <div className="flex items-center space-x-2 bg-white/5 px-3 py-2 rounded-lg">
+                                <Smartphone size={14} /> <span>{user.phone || 'N/A'}</span>
+                            </div>
+                            {user.education && (
+                                <div className="flex items-center space-x-2 bg-white/5 px-3 py-2 rounded-lg col-span-1 sm:col-span-2">
+                                    <GraduationCap size={14} /> <span>{user.education}</span>
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
             </div>
             <div className="bg-white/10 p-4 rounded-2xl">
                 <img src="/logo.svg" className="w-8 h-8 object-contain filter brightness-0 invert" alt="Logo" />
             </div>
         </div>
+        
+        {/* Update Banner */}
+        {updateAvailable && (
+            <div className="absolute bottom-0 left-0 w-full bg-emerald-600 text-white p-3 flex justify-between items-center px-8 animate-slide-up">
+                <span className="text-xs font-bold uppercase tracking-widest flex items-center"><RefreshCw size={14} className="mr-2 animate-spin-slow"/> System Update Available</span>
+                <button onClick={() => window.location.reload()} className="bg-white text-emerald-700 px-4 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-50">Reload Now</button>
+            </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -451,6 +532,11 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                               <UserMinus size={16} className="text-red-400 group-hover:text-red-600" />
                           </button>
                       )}
+
+                      <button onClick={checkForUpdates} className="w-full flex items-center justify-between p-3 bg-white dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group">
+                           <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Check for Updates</span>
+                           {isSyncing ? <RefreshCw size={16} className="animate-spin text-slate-400"/> : <RefreshCw size={16} className="text-slate-400 group-hover:text-slate-600" />}
+                      </button>
 
                       {isAdmin && (
                           <button onClick={handleSystemWipe} className="w-full flex items-center justify-between p-3 bg-red-600 text-white rounded-xl shadow-lg hover:bg-red-700 transition-colors">

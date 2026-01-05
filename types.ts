@@ -80,7 +80,7 @@ export interface ChangeRequest {
   id: string;
   userId: string;
   username: string;
-  type: 'VERIFICATION' | 'STORAGE' | 'RECOVERY' | 'NAME_CHANGE';
+  type: 'VERIFICATION' | 'STORAGE' | 'RECOVERY' | 'DATA_CHANGE' | 'NAME_CHANGE';
   details: string; // Will store the JSON of the form answers
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: number;

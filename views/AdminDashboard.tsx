@@ -102,16 +102,21 @@ export const AdminDashboard: React.FC = () => {
       const data = await storageService.getData(`architect_data_${req.username}`);
       if (data && data.user) {
           
-          if (req.type === 'NAME_CHANGE' && approve) {
+          if (req.type === 'DATA_CHANGE' && approve) {
               const details = JSON.parse(req.details);
-              data.user.name = details.newName;
+              // Update user profile with new data
+              data.user.name = details.new.name;
+              data.user.email = details.new.email;
+              data.user.phone = details.new.phone;
+              data.user.education = details.new.education;
               
-               // Update global users list if name changed
+               // Update global users list if name or email changed
                const usersStr = localStorage.getItem('studentpocket_users');
                if (usersStr) {
                   const users = JSON.parse(usersStr);
                   if (users[req.username]) {
-                      users[req.username].name = details.newName;
+                      users[req.username].name = details.new.name;
+                      users[req.username].email = details.new.email;
                       localStorage.setItem('studentpocket_users', JSON.stringify(users));
                   }
                }
@@ -119,13 +124,13 @@ export const AdminDashboard: React.FC = () => {
 
           data.user.isVerified = approve;
           data.user.verificationStatus = approve ? 'VERIFIED' : 'REJECTED';
-          // Maintain level for Name Change, set for new Verification
+          // Maintain level for Data Change, set for new Verification
           if (req.type === 'VERIFICATION') {
               data.user.level = approve ? 2 : 0; 
           }
           
           data.user.adminFeedback = approve 
-            ? (req.type === 'NAME_CHANGE' ? "Name Change Approved." : "Identity Verified by Administration. Level Increased.") 
+            ? (req.type === 'DATA_CHANGE' ? "Profile Update Approved." : "Identity Verified by Administration. Level Increased.") 
             : "Request rejected by administrator.";
           
           await storageService.setData(`architect_data_${req.username}`, data);
@@ -237,7 +242,7 @@ export const AdminDashboard: React.FC = () => {
       if (selectedTicket?.id === id) setSelectedTicket(null);
   };
 
-  const pendingRequests = requests.filter(r => r.status === 'PENDING' && (r.type === 'VERIFICATION' || r.type === 'NAME_CHANGE'));
+  const pendingRequests = requests.filter(r => r.status === 'PENDING' && (r.type === 'VERIFICATION' || r.type === 'DATA_CHANGE' || r.type === 'NAME_CHANGE'));
   const recoveryRequests = requests.filter(r => r.status === 'PENDING' && r.type === 'RECOVERY');
   const openTicketsCount = tickets.filter(t => t.status === 'OPEN').length;
 
@@ -378,26 +383,32 @@ export const AdminDashboard: React.FC = () => {
                    </div>
                )}
                {pendingRequests.map(req => {
-                   const isNameChange = req.type === 'NAME_CHANGE';
-                   const details = isNameChange ? JSON.parse(req.details) : {};
+                   const isDataChange = req.type === 'DATA_CHANGE' || req.type === 'NAME_CHANGE';
+                   const details = isDataChange ? JSON.parse(req.details) : {};
                    
                    return (
                    <div key={req.id} className={`bg-white dark:bg-slate-900 p-6 rounded-2xl border ${req.autoFlagged ? 'border-red-500/50 dark:border-red-500/50' : 'border-slate-200 dark:border-slate-800'} shadow-sm flex flex-col md:flex-row justify-between items-center gap-4`}>
                        <div>
                            <div className="flex items-center gap-2 mb-1">
-                               {isNameChange ? <Edit2 size={16} className="text-blue-500"/> : <ShieldCheck size={16} className="text-emerald-500"/>}
+                               {isDataChange ? <Edit2 size={16} className="text-blue-500"/> : <ShieldCheck size={16} className="text-emerald-500"/>}
                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">
-                                   {isNameChange ? 'Profile Name Change' : 'Verification Request'}
+                                   {isDataChange ? 'Profile Update Request' : 'Verification Request'}
                                </h4>
                                {req.autoFlagged && <span className="bg-red-100 text-red-600 text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center"><ShieldAlert size={10} className="mr-1"/> Unverified Data Detected</span>}
                            </div>
                            
-                           {isNameChange ? (
-                               <p className="text-xs text-slate-500">
-                                   <span className="line-through opacity-50">{details.oldName}</span> 
-                                   <ArrowRight size={10} className="inline mx-1"/> 
-                                   <span className="font-bold text-indigo-600 dark:text-indigo-400">{details.newName}</span>
-                               </p>
+                           {isDataChange ? (
+                               <div className="text-xs text-slate-500 mt-2 space-y-1">
+                                   {details.old.name !== details.new.name && (
+                                       <p><span className="font-bold text-slate-400">Name:</span> <span className="line-through opacity-50">{details.old.name}</span> <ArrowRight size={10} className="inline mx-1"/> <span className="font-bold text-indigo-600 dark:text-indigo-400">{details.new.name}</span></p>
+                                   )}
+                                   {details.old.email !== details.new.email && (
+                                       <p><span className="font-bold text-slate-400">Email:</span> <span className="line-through opacity-50">{details.old.email}</span> <ArrowRight size={10} className="inline mx-1"/> <span className="font-bold text-indigo-600 dark:text-indigo-400">{details.new.email}</span></p>
+                                   )}
+                                   {details.old.education !== details.new.education && (
+                                       <p><span className="font-bold text-slate-400">Education:</span> <span className="line-through opacity-50">{details.old.education}</span> <ArrowRight size={10} className="inline mx-1"/> <span className="font-bold text-indigo-600 dark:text-indigo-400">{details.new.education}</span></p>
+                                   )}
+                               </div>
                            ) : (
                                <p className="text-xs text-slate-500 font-mono">Ref: {req.generatedStudentId || 'N/A'} • User: {req.username}</p>
                            )}
