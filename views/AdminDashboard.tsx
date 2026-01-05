@@ -20,7 +20,8 @@ export const AdminDashboard: React.FC = () => {
   const [replyText, setReplyText] = useState('');
   
   // Admission Key State
-  const [admissionKey, setAdmissionKey] = useState<string | null>(null);
+  const [msKey, setMsKey] = useState<string | null>(null);
+  const [admKey, setAdmKey] = useState<string | null>(null);
   const [keyStatus, setKeyStatus] = useState<'ACTIVE' | 'COOLDOWN'>('ACTIVE');
   const [cooldownTime, setCooldownTime] = useState(0);
   
@@ -39,10 +40,11 @@ export const AdminDashboard: React.FC = () => {
   // Poll for Admission Key Status
   useEffect(() => {
     const checkKey = async () => {
-        const state = await storageService.getAdmissionKeyState();
-        setAdmissionKey(state.code);
+        const state = await storageService.getSystemKeys();
+        setMsKey(state.msCode);
+        setAdmKey(state.admCode);
         setKeyStatus(state.status);
-        setCooldownTime(state.cooldownRemaining);
+        setCooldownTime(state.timerRemaining);
     };
     
     checkKey();
@@ -82,7 +84,6 @@ export const AdminDashboard: React.FC = () => {
         const reqStr = localStorage.getItem('studentpocket_requests');
         if (reqStr) setRequests(JSON.parse(reqStr));
 
-        // Fix: Ensure tickets are loaded from the correct key and not filtered out
         const ticketStr = localStorage.getItem('studentpocket_tickets');
         if (ticketStr) {
             const allTickets: SupportTicket[] = JSON.parse(ticketStr);
@@ -408,29 +409,38 @@ export const AdminDashboard: React.FC = () => {
                    <div className="flex justify-between items-start mb-2">
                        <div className="flex items-center space-x-2">
                            <Key size={18} className="text-emerald-400" />
-                           <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Master Admission Key</span>
+                           <span className="text-xs font-bold uppercase tracking-widest text-slate-400">System Access Keys</span>
                        </div>
                        <div className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${keyStatus === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
                            {keyStatus}
                        </div>
                    </div>
-                   <div className="text-center py-2 relative">
+                   <div className="text-center py-2 relative flex flex-col gap-2 justify-center h-full">
                        {keyStatus === 'ACTIVE' ? (
-                          <>
-                            <h3 className="text-4xl md:text-5xl font-black font-mono tracking-[0.1em] text-emerald-400 select-all">{admissionKey}</h3>
-                            <p className="text-[9px] text-slate-500 mt-2 uppercase">Provide for manual verification</p>
-                          </>
+                          <div className="flex flex-col md:flex-row justify-center gap-4 items-center">
+                            <div className="bg-black/30 p-2 rounded-lg">
+                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Master Key</p>
+                                <h3 className="text-2xl font-black font-mono tracking-wider text-emerald-400 select-all">{msKey}</h3>
+                            </div>
+                            <div className="bg-black/30 p-2 rounded-lg">
+                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Admission Key</p>
+                                <h3 className="text-2xl font-black font-mono tracking-wider text-blue-400 select-all">{admKey}</h3>
+                            </div>
+                          </div>
                        ) : (
                           <>
                             <h3 className="text-4xl md:text-5xl font-black font-mono tracking-widest text-amber-500 animate-pulse">
                                 {String(Math.floor(cooldownTime / 60)).padStart(2, '0')}:{String(cooldownTime % 60).padStart(2, '0')}
                             </h3>
-                            <p className="text-[9px] text-slate-500 mt-2 uppercase">Regenerating in...</p>
+                            <p className="text-[9px] text-slate-500 mt-2 uppercase">Cycling Keys...</p>
                           </>
                        )}
                    </div>
                    {keyStatus === 'COOLDOWN' && (
                         <div className="absolute bottom-0 left-0 h-1 bg-amber-500 transition-all duration-1000 linear" style={{width: `${(cooldownTime / 60) * 100}%`}}></div>
+                   )}
+                   {keyStatus === 'ACTIVE' && (
+                        <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all duration-1000 linear" style={{width: `${(cooldownTime / 60) * 100}%`}}></div>
                    )}
                </div>
 

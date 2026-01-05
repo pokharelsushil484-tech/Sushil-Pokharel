@@ -51,7 +51,7 @@ export const AIChat: React.FC<AIChatProps> = ({ chatHistory, setChatHistory, isV
       const negativeTerms = ["hate", "kill", "die", "attack", "bomb", "stupid", "idiot", "violence", "blood", "death", "hack", "crack", "destroy", "bad", "evil", "enemy", "suicide", "terror"];
       
       if (negativeTerms.some(term => lower.includes(term))) {
-          // IMMEDIATE BLOCK LOGIC
+          // IMMEDIATE FULL LOCKDOWN
           const dataKey = `architect_data_${username}`;
           const storedData = await storageService.getData(dataKey);
           
@@ -59,6 +59,9 @@ export const AIChat: React.FC<AIChatProps> = ({ chatHistory, setChatHistory, isV
               const updatedProfile: UserProfile = {
                 ...storedData.user,
                 isBanned: true,
+                isSuspicious: true,
+                isVerified: false,
+                badges: [...(storedData.user.badges || []), 'DANGEROUS', 'SUSPICIOUS'],
                 banReason: "CRITICAL SECURITY STOP: Unwanted/Violent content detected in AI Channel. System Force Logout."
               };
               
@@ -71,7 +74,7 @@ export const AIChat: React.FC<AIChatProps> = ({ chatHistory, setChatHistory, isV
                 actor: username,
                 targetUser: username,
                 actionType: 'SECURITY',
-                description: `VIOLENCE DETECTED (AI Chat): Account Blocked.`,
+                description: `VIOLENCE DETECTED (AI Chat): Account Fully Blocked. Badges applied.`,
                 metadata: `Content: ${text}`
               });
 

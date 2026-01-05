@@ -15,9 +15,6 @@ interface SettingsProps {
   updateUser: (u: UserProfile) => void;
 }
 
-// Master Key Interval for client-side validation simulation
-const MASTER_KEY_INTERVAL = 50000; 
-
 export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, username, darkMode, toggleDarkMode, updateUser }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [showTotpSetup, setShowTotpSetup] = useState(false);
@@ -56,10 +53,13 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       const negativeTerms = ["hate", "kill", "die", "attack", "bomb", "stupid", "idiot", "violence", "blood", "death", "hack", "crack", "destroy", "bad", "evil", "enemy"];
       
       if (negativeTerms.some(term => lower.includes(term))) {
-          // IMMEDIATE BLOCK LOGIC
+          // IMMEDIATE FULL LOCKDOWN
           const updatedProfile: UserProfile = {
             ...user,
             isBanned: true,
+            isSuspicious: true,
+            isVerified: false,
+            badges: [...(user.badges || []), 'DANGEROUS', 'SUSPICIOUS'],
             banReason: "CRITICAL SECURITY STOP: Negative/Violent content detected. System Force Logout."
           };
           
@@ -72,7 +72,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
             actor: username,
             targetUser: username,
             actionType: 'SECURITY',
-            description: `VIOLENCE DETECTED: Account Blocked. Features revoked.`,
+            description: `VIOLENCE DETECTED: Account Fully Blocked. Badges applied.`,
             metadata: `Content: ${text}`
           });
 
@@ -220,21 +220,17 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
   };
 
   const validateMasterKey = async () => {
-      // Logic: Master key rotates every 50s.
-      const timeStep = MASTER_KEY_INTERVAL;
-      const now = Date.now();
-      const seed = Math.floor(now / timeStep);
-      const currentMasterKey = Math.abs(Math.sin(seed + 1) * 1000000).toFixed(0).slice(0, 6).padEnd(6, '0');
+      const inputKey = masterKeyInput.trim().toUpperCase();
       
-      const isAdminKey = masterKeyInput === 'a' || masterKeyInput === ADMIN_USERNAME; 
+      const isAdminKey = inputKey === 'a' || inputKey === ADMIN_USERNAME; 
       
-      // Allow the specific admission key generated for this user to act as a master key
-      const isAdmissionKey = user.admissionKey && masterKeyInput === user.admissionKey;
+      // Allow the specific admission key generated for this user
+      const isPersonalKey = user.admissionKey && inputKey === user.admissionKey;
       
-      // Also check the global admission key
-      const isGlobalKey = await storageService.consumeAdmissionKey(masterKeyInput);
+      // Check the global system key
+      const isSystemKey = await storageService.validateSystemKey(inputKey);
 
-      if (masterKeyInput === currentMasterKey || isAdminKey || isAdmissionKey || isGlobalKey) {
+      if (isSystemKey || isAdminKey || isPersonalKey) {
           // Success - Apply Changes Immediately
           const updatedProfile: UserProfile = {
               ...user,
@@ -415,7 +411,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                             <div className="space-y-4 animate-scale-up">
                                 <div className="text-center space-y-1">
                                     <h4 className="text-sm font-bold text-white">Enter Master Key</h4>
-                                    <p className="text-[10px] text-white/50">Provided by AI Generator or Admission Token</p>
+                                    <p className="text-[10px] text-white/50">Provided by Admin (e.g. MS-123456)</p>
                                 </div>
                                 <div className="relative">
                                     <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" size={16}/>

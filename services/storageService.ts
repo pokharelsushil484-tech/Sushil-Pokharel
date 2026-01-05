@@ -46,6 +46,14 @@ const generateUUID = () => {
   });
 };
 
+export interface SystemKeyState {
+    msCode: string | null;
+    admCode: string | null;
+    status: 'ACTIVE' | 'COOLDOWN';
+    timerStart: number;
+    timerRemaining: number;
+}
+
 export const storageService = {
   /**
    * Commits data to the high-capacity node.
@@ -146,74 +154,82 @@ export const storageService = {
   },
 
   /**
-   * ADMISSION KEY SYSTEM
-   * Handles lifecycle: Generate -> Use -> Delete -> Wait 1 min -> Generate
+   * MASTER KEY / ADMISSION KEY ROTATION SYSTEM
+   * 1 Minute Active -> 1 Minute Deleted (Cooldown) -> Regenerate
    */
-  async getAdmissionKeyState(): Promise<{ code: string | null, status: 'ACTIVE' | 'COOLDOWN', cooldownRemaining: number }> {
+  async getSystemKeys(): Promise<SystemKeyState> {
     const db = await initDB();
     return new Promise((resolve, reject) => {
         const transaction = db.transaction(SYSTEM_STORE_NAME, 'readwrite');
         const store = transaction.objectStore(SYSTEM_STORE_NAME);
-        const request = store.get('global_admission_key');
+        const request = store.get('key_cycle_state');
+
+        const DURATION = 60 * 1000; // 1 Minute
 
         request.onsuccess = () => {
             let data = request.result;
             const now = Date.now();
 
-            // Initialize if empty
+            // Initial Generation
             if (!data) {
-                const newCode = 'ADM-' + Math.floor(100000 + Math.random() * 900000);
-                data = { code: newCode, status: 'ACTIVE', cooldownStart: 0 };
-                store.put(data, 'global_admission_key');
-                resolve({ code: newCode, status: 'ACTIVE', cooldownRemaining: 0 });
+                const msKey = 'MS-' + Math.floor(100000 + Math.random() * 900000);
+                const admKey = 'ADM-' + Math.floor(100000 + Math.random() * 900000);
+                data = { 
+                    msCode: msKey, 
+                    admCode: admKey, 
+                    status: 'ACTIVE', 
+                    timerStart: now 
+                };
+                store.put(data, 'key_cycle_state');
+                resolve({ ...data, timerRemaining: Math.ceil(DURATION / 1000) });
                 return;
             }
 
-            // Check if in cooldown
-            if (data.status === 'COOLDOWN') {
-                const elapsed = now - data.cooldownStart;
-                const COOLDOWN_PERIOD = 60 * 1000; // 1 Minute
+            const elapsed = now - data.timerStart;
 
-                if (elapsed >= COOLDOWN_PERIOD) {
-                    // Regenerate
-                    const newCode = 'ADM-' + Math.floor(100000 + Math.random() * 900000);
-                    data = { code: newCode, status: 'ACTIVE', cooldownStart: 0 };
-                    store.put(data, 'global_admission_key');
-                    resolve({ code: newCode, status: 'ACTIVE', cooldownRemaining: 0 });
+            if (data.status === 'ACTIVE') {
+                if (elapsed >= DURATION) {
+                    // Switch to Cooldown (Delete Keys)
+                    data.status = 'COOLDOWN';
+                    data.msCode = null;
+                    data.admCode = null;
+                    data.timerStart = now;
+                    store.put(data, 'key_cycle_state');
+                    resolve({ ...data, timerRemaining: Math.ceil(DURATION / 1000) });
                 } else {
-                    // Still in cooldown
-                    resolve({ code: null, status: 'COOLDOWN', cooldownRemaining: Math.ceil((COOLDOWN_PERIOD - elapsed) / 1000) });
+                    // Still Active
+                    resolve({ ...data, timerRemaining: Math.ceil((DURATION - elapsed) / 1000) });
                 }
             } else {
-                // Active
-                resolve({ code: data.code, status: 'ACTIVE', cooldownRemaining: 0 });
+                // Status is COOLDOWN
+                if (elapsed >= DURATION) {
+                    // Regenerate Keys
+                    const msKey = 'MS-' + Math.floor(100000 + Math.random() * 900000);
+                    const admKey = 'ADM-' + Math.floor(100000 + Math.random() * 900000);
+                    data.status = 'ACTIVE';
+                    data.msCode = msKey;
+                    data.admCode = admKey;
+                    data.timerStart = now;
+                    store.put(data, 'key_cycle_state');
+                    resolve({ ...data, timerRemaining: Math.ceil(DURATION / 1000) });
+                } else {
+                     // Still in Cooldown
+                     resolve({ ...data, timerRemaining: Math.ceil((DURATION - elapsed) / 1000) });
+                }
             }
         };
         request.onerror = () => reject(request.error);
     });
   },
 
-  async consumeAdmissionKey(inputCode: string): Promise<boolean> {
-    const db = await initDB();
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(SYSTEM_STORE_NAME, 'readwrite');
-        const store = transaction.objectStore(SYSTEM_STORE_NAME);
-        const request = store.get('global_admission_key');
-
-        request.onsuccess = () => {
-            const data = request.result;
-            if (data && data.status === 'ACTIVE' && data.code === inputCode) {
-                // CONSUME: Set to Cooldown
-                data.status = 'COOLDOWN';
-                data.code = null;
-                data.cooldownStart = Date.now();
-                store.put(data, 'global_admission_key');
-                resolve(true);
-            } else {
-                resolve(false);
-            }
-        };
-        request.onerror = () => reject(request.error);
-    });
+  /**
+   * Validate Input Key against current System Keys
+   */
+  async validateSystemKey(input: string): Promise<boolean> {
+      const state = await this.getSystemKeys();
+      if (state.status === 'ACTIVE') {
+          return input === state.msCode || input === state.admCode;
+      }
+      return false;
   }
 };

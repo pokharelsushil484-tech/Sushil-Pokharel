@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, Info, X, ShieldCheck, Globe, Camera, ArrowLeft, Check, Key, HelpCircle, AlertTriangle } from 'lucide-react';
-import { ADMIN_USERNAME, ADMIN_SECRET, ADMIN_EMAIL, COPYRIGHT_NOTICE, MIN_PASSWORD_LENGTH, SYSTEM_DOMAIN, DEFAULT_USER, SYSTEM_UPGRADE_TOKEN, CREATOR_NAME, ADMIN_ADMISSION_KEY, BACKUP_ADMISSION_KEY } from '../constants';
+import { ADMIN_USERNAME, ADMIN_SECRET, ADMIN_EMAIL, COPYRIGHT_NOTICE, MIN_PASSWORD_LENGTH, SYSTEM_DOMAIN, DEFAULT_USER, SYSTEM_UPGRADE_TOKEN, CREATOR_NAME } from '../constants';
 import { storageService } from '../services/storageService';
 import { View } from '../types';
 
@@ -218,7 +218,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
       setIsProcessing(true);
       
       const cleanInput = loginInput.trim();
-      // NORMALIZE KEY TO UPPERCASE TO PREVENT CASE SENSITIVITY ISSUES
       const inputKey = admissionKey.trim().toUpperCase();
 
       setTimeout(async () => {
@@ -246,16 +245,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                   // 1. Check user-specific generated key (Recovery Appeal)
                   const isPersonalKeyValid = stored.user.admissionKey === inputKey;
                   
-                  // 2. Check Static Admin Mission Keys
-                  const isMasterKey = inputKey === ADMIN_ADMISSION_KEY || inputKey === BACKUP_ADMISSION_KEY;
-                  
-                  // 3. Check global system key (Master Override)
-                  let isGlobalKeyValid = false;
-                  if (!isPersonalKeyValid && !isMasterKey) {
-                      isGlobalKeyValid = await storageService.consumeAdmissionKey(inputKey);
-                  }
+                  // 2. Check Rotating System Key (MS or ADM)
+                  const isSystemKeyValid = await storageService.validateSystemKey(inputKey);
 
-                  if (isPersonalKeyValid || isGlobalKeyValid || isMasterKey) {
+                  if (isPersonalKeyValid || isSystemKeyValid) {
                       
                       // Case 1: Unlock Admin - FULL RESTORATION (Though admin shouldn't be locked)
                       if (targetUsername === ADMIN_USERNAME) {
@@ -264,7 +257,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                           stored.user.isVerified = true;
                           stored.user.verificationStatus = 'VERIFIED';
                           stored.user.banReason = undefined;
-                          // Clean up badges
                           if (stored.user.badges) {
                               stored.user.badges = stored.user.badges.filter(b => b !== 'DANGEROUS' && b !== 'SUSPICIOUS');
                           }
@@ -272,7 +264,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                           await storageService.logActivity({
                               actor: targetUsername,
                               actionType: 'ADMIN',
-                              description: 'ADMIN SECURITY UNLOCK: Full privileges restored via Mission Key.'
+                              description: 'ADMIN SECURITY UNLOCK: Privileges restored via Key.'
                           });
                       } 
                       // Case 2: Unlock User - PARTIAL RESTORATION (Suspicious + Dangerous + Pending)
@@ -296,7 +288,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                       setLoginInput(targetUsername); // Ensure next step uses username
                       setView('IDENTITY_SNAP');
                   } else {
-                      setError("Invalid or Expired Admission Key.");
+                      setError("Invalid or Expired Key (Keys cycle every minute).");
                   }
               } else {
                   setError("Profile data corruption.");
@@ -482,7 +474,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
               
               <div className="flex justify-between items-center">
                   <button type="button" onClick={() => setView('ADMISSION_LOGIN')} className="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-wide flex items-center">
-                      <Key size={12} className="mr-1"/> Use Admission Key
+                      <Key size={12} className="mr-1"/> Use Master/Admission Key
                   </button>
                   <button type="button" onClick={() => setView('FORGOT_PASSWORD')} className="text-[10px] text-slate-400 hover:text-white font-bold uppercase tracking-wide">
                       Forgot Password?
@@ -524,10 +516,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
           {view === 'ADMISSION_LOGIN' && (
               <form onSubmit={handleAdmissionLogin} className="space-y-6 animate-scale-up">
                   <div className="text-center">
-                      <h3 className="text-white font-bold text-lg mb-2">Admission Key Login</h3>
-                      <p className="text-xs text-slate-400">Use the key provided by the administrator to restore access.</p>
+                      <h3 className="text-white font-bold text-lg mb-2">System Key Login</h3>
+                      <p className="text-xs text-slate-400">Use 'MS-' (Master) or 'ADM-' (Admission) keys.</p>
                       <div className="mt-2 flex items-center justify-center text-amber-400 text-[10px] font-bold uppercase tracking-wide">
-                        <AlertTriangle size={12} className="mr-1" /> Security Protocol
+                        <AlertTriangle size={12} className="mr-1" /> Dynamic Key Rotation (1 min)
                       </div>
                   </div>
                   
@@ -549,7 +541,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                         value={admissionKey} 
                         onChange={(e) => setAdmissionKey(e.target.value)} 
                         className="w-full pl-12 pr-4 py-4 bg-white/5 border border-emerald-500/30 rounded-xl outline-none text-white font-mono font-bold tracking-widest placeholder:text-slate-600 focus:border-emerald-500 transition-all text-sm uppercase" 
-                        placeholder="ADMISSION KEY" 
+                        placeholder="KEY (MS- / ADM-)" 
                       />
                     </div>
                   </div>
