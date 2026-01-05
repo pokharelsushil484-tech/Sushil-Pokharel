@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, View } from '../types';
-import { ShieldCheck, User, MapPin, Globe, Mail, Phone, Video, CheckCircle, XCircle, Home, Lock, RefreshCw, Search, LayoutGrid, ArrowRight, Eye, KeyRound, ArrowLeft, Clock, Camera } from 'lucide-react';
+import { ShieldCheck, User, MapPin, Globe, Mail, Phone, Video, CheckCircle, XCircle, Home, Lock, RefreshCw, Search, LayoutGrid, ArrowRight, Eye, KeyRound, ArrowLeft, Clock, Camera, LogIn } from 'lucide-react';
 import { ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -32,6 +32,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
   const [manualCode, setManualCode] = useState('');
   const [manualProcessing, setManualProcessing] = useState(false);
   const [manualFaceScan, setManualFaceScan] = useState(false);
+  const [verificationSuccess, setVerificationSuccess] = useState(false);
 
   const isAdmin = currentUser === ADMIN_USERNAME;
 
@@ -152,8 +153,8 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
           localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
       }
 
-      alert("Verification Successful! Redirecting...");
-      window.location.href = '/';
+      setVerificationSuccess(true);
+      setManualProcessing(false);
   };
 
   const simulateFaceScan = () => {
@@ -237,6 +238,25 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
 
   // MANUAL VERIFICATION UI (Alternative Option)
   if (showManualVerify) {
+      if (verificationSuccess) {
+          return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-[#020617] p-6">
+                <div className="text-center max-w-md w-full bg-white dark:bg-slate-900 p-12 rounded-[2rem] shadow-2xl border border-emerald-500/20 animate-scale-up relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-500"></div>
+                    <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-500 shadow-xl">
+                        <CheckCircle size={32} />
+                    </div>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">Access Granted</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-8 font-medium">Your identity has been verified by the Master Key protocol.</p>
+                    
+                    <button onClick={() => window.location.href = '/'} className="w-full py-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black text-xs uppercase tracking-[0.2em] hover:scale-[1.02] transition-transform shadow-xl flex items-center justify-center">
+                        <LogIn size={16} className="mr-2"/> Login Now
+                    </button>
+                </div>
+            </div>
+          );
+      }
+
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-[#020617] p-6">
             <div className="text-center max-w-md w-full bg-white dark:bg-slate-900 p-12 rounded-[2rem] shadow-2xl border border-slate-100 dark:border-slate-800 animate-fade-in relative overflow-hidden">

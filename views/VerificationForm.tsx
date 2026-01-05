@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest, View } from '../types';
-import { ShieldCheck, Loader2, ArrowLeft, Send, Upload, User, Video, MapPin, Phone, Mail, Globe, FileText, CheckCircle, Copy, Check, Info } from 'lucide-react';
+import { ShieldCheck, Loader2, ArrowLeft, Send, Upload, User, Video, MapPin, Phone, Mail, Globe, FileText, CheckCircle, Copy, Check, Info, KeyRound } from 'lucide-react';
 
 interface VerificationFormProps {
   user: UserProfile;
@@ -12,7 +12,7 @@ interface VerificationFormProps {
 
 export const VerificationForm: React.FC<VerificationFormProps> = ({ user, username, updateUser, onNavigate }) => {
   const [submitting, setSubmitting] = useState(false);
-  const [successState, setSuccessState] = useState<{ link: string; email: string; id: string } | null>(null);
+  const [successState, setSuccessState] = useState<{ link: string; email: string; id: string; studentId: string } | null>(null);
   const [copied, setCopied] = useState(false);
   
   // Permanent Fields State
@@ -69,10 +69,16 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     
     setSubmitting(true);
     
+    // Generate Secure Link ID
     const linkId = Math.random().toString(36).substring(7);
+    
+    // Generate Student ID (if one doesn't exist in username context, create a new format)
+    // If username is "guest", we generate a formal ID. If username is already an ID format, we use it.
+    const generatedStudentId = username.includes('STU-') ? username : `STU-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const finalDetails = {
         ...formData,
+        generatedStudentId: generatedStudentId,
         _profileImage: profileImage,     
         _videoFile: videoFile || null,
         _submissionTime: new Date().toISOString()
@@ -83,6 +89,14 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     
     let request: ChangeRequest;
 
+    // Use the generated ID as the primary key for the request if switching from guest
+    const targetUserId = generatedStudentId;
+
+    // We need to ensure the user data exists under this new ID if it's different
+    if (targetUserId !== username) {
+        // Migration simulation logic would go here, for now we assume the current session adapts
+    }
+
     if (pendingIndex !== -1) {
         request = existing[pendingIndex];
         request.details = JSON.stringify(finalDetails);
@@ -92,12 +106,14 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
              request.previousLinkIds.push(request.linkId);
         }
         request.linkId = linkId;
+        // Update username reference if we generated a new ID
+        request.username = targetUserId;
         existing[pendingIndex] = request;
     } else {
         request = {
             id: 'REQ-' + Date.now(),
-            userId: username,
-            username: username,
+            userId: targetUserId,
+            username: targetUserId,
             type: 'VERIFICATION',
             details: JSON.stringify(finalDetails),
             status: 'PENDING',
@@ -110,13 +126,14 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     localStorage.setItem('studentpocket_requests', JSON.stringify(existing));
 
     setTimeout(() => {
+      // Update local user state
       updateUser({ ...user, verificationStatus: 'PENDING_APPROVAL' });
       setSubmitting(false);
       
       const origin = window.location.origin;
       const link = `${origin}/v/${linkId}`;
       
-      setSuccessState({ link, email: formData.email, id: linkId });
+      setSuccessState({ link, email: formData.email, id: linkId, studentId: targetUserId });
     }, 1500);
   };
 
@@ -127,35 +144,38 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
              <div className="absolute top-0 left-0 w-full h-1.5 bg-indigo-600"></div>
              
-             <div className="w-24 h-24 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-8 text-emerald-500 shadow-xl shadow-emerald-500/10 animate-scale-up">
+             <div className="w-24 h-24 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-500 shadow-xl shadow-emerald-500/10 animate-scale-up">
                  <CheckCircle size={48} strokeWidth={3} />
              </div>
              
-             <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-3">Request Sent</h2>
-             <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.3em] mb-10">Awaiting Administrator Approval</p>
+             <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-2">Request Processed</h2>
+             <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.3em] mb-8">Identity Node Created</p>
              
-             <div className="bg-slate-50 dark:bg-slate-900/50 p-8 rounded-[2rem] border border-slate-200 dark:border-slate-800 mb-10 relative group text-left">
+             <div className="bg-indigo-50 dark:bg-slate-900/50 p-8 rounded-[2rem] border border-indigo-200 dark:border-slate-800 mb-8 relative group text-left">
                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
-                    Validation Key
+                    Generated Student ID
                  </div>
-                 
-                 <div className="space-y-4">
-                     <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
-                         <div>
-                             <p className="text-[9px] font-bold text-slate-400 uppercase">Secure Link ID</p>
-                             <p className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">{successState.id}</p>
-                         </div>
-                         <button onClick={copyLink} className="p-2 bg-slate-50 dark:bg-slate-900 text-slate-400 hover:text-indigo-600 rounded-lg transition-colors">
-                            {copied ? <Check size={16}/> : <Copy size={16}/>}
+                 <div className="text-center mt-2">
+                     <p className="text-3xl font-black text-indigo-700 dark:text-indigo-400 tracking-widest font-mono">{successState.studentId}</p>
+                     <p className="text-[10px] text-slate-500 mt-2 font-medium">Please save this ID. It is required for Master Key verification.</p>
+                 </div>
+             </div>
+             
+             <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 mb-10 text-left">
+                 <div className="flex items-center justify-between mb-2">
+                     <p className="text-[9px] font-bold text-slate-400 uppercase">Secure Link ID</p>
+                     <div className="flex items-center space-x-2">
+                         <p className="text-xs font-mono font-bold text-slate-600 dark:text-slate-300">{successState.id}</p>
+                         <button onClick={copyLink} className="p-1.5 bg-white dark:bg-slate-950 text-slate-400 hover:text-indigo-600 rounded-lg transition-colors border border-slate-200 dark:border-slate-700">
+                            {copied ? <Check size={12}/> : <Copy size={12}/>}
                          </button>
                      </div>
-                     
-                     <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30">
-                         <Info size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
-                         <p className="text-[10px] text-amber-700 dark:text-amber-400 font-medium leading-relaxed">
-                             Your request is now in the Admin Queue. You will receive a notification once your identity is verified.
-                         </p>
-                     </div>
+                 </div>
+                 <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30">
+                     <KeyRound size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                     <p className="text-[10px] text-amber-700 dark:text-amber-400 font-medium leading-relaxed">
+                         <b>Next Step:</b> Send your Student ID to the Administrator to receive the dynamic <b>Master Key</b> for final verification.
+                     </p>
                  </div>
              </div>
 
@@ -309,10 +329,10 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                 className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-sm uppercase tracking-widest shadow-xl shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center"
             >
                 {submitting ? <Loader2 className="animate-spin mr-2" size={18} /> : <Send className="mr-2" size={18} />}
-                {submitting ? 'Generating Link...' : 'Submit & Generate Link'}
+                {submitting ? 'Generating Identity...' : 'Submit & Generate ID'}
             </button>
             <p className="text-center text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-4">
-                Secure 2-Second Verification Protocol
+                Secure 2-Step Verification Protocol
             </p>
           </div>
         </form>
