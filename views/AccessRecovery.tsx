@@ -55,11 +55,11 @@ export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate }) =>
                  </div>
                  <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Request Filed</h2>
                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-8 font-medium">
-                     Your recovery request ID (Master Key) has been generated. Send this key to the administrator to receive your Admission Key.
+                     Your recovery request ID has been generated. Provide this key to the administrator to process your appeal.
                  </p>
                  
                  <div className="bg-slate-100 dark:bg-slate-800 p-6 rounded-2xl mb-8 relative group">
-                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Your Recovery Master Key</p>
+                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Your Recovery Key</p>
                      <p className="text-2xl font-mono font-black text-indigo-600 dark:text-indigo-400 tracking-wider">{masterKey}</p>
                      <button onClick={handleCopy} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white bg-black/5 hover:bg-black/20 rounded-lg transition-all">
                         {copied ? <Check size={16} className="text-emerald-500"/> : <Copy size={16}/>}
@@ -91,7 +91,7 @@ export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate }) =>
                 <div className="p-4 bg-red-50 dark:bg-red-900/10 rounded-2xl border border-red-100 dark:border-red-900/30 flex items-start gap-4">
                     <ShieldAlert className="text-red-500 shrink-0" size={20} />
                     <p className="text-xs text-red-600 dark:text-red-400 leading-relaxed font-medium">
-                        Your account has been flagged for security or privacy violations. Please explain why your access should be restored.
+                        Your account is currently locked due to security protocols. Please provide a valid reason for reactivation.
                     </p>
                 </div>
 
@@ -108,19 +108,19 @@ export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate }) =>
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reason for Appeal</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Apology / Explanation</label>
                     <textarea 
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
                         rows={4}
                         className="w-full p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none font-medium text-sm focus:border-indigo-500 transition-all resize-none dark:text-white"
-                        placeholder="Explain why the block was in error..."
+                        placeholder="Please explain the situation..."
                         required
                     />
                 </div>
 
                 <button type="submit" className="w-full py-4 rounded-xl bg-indigo-600 text-white font-black text-xs uppercase tracking-[0.2em] shadow-lg hover:bg-indigo-700 transition-all flex items-center justify-center">
-                    <Send size={16} className="mr-2"/> Submit & Generate Key
+                    <Send size={16} className="mr-2"/> Submit Appeal
                 </button>
             </form>
         </div>

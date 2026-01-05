@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest } from '../types';
 import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Gavel, ShieldAlert, UserMinus, Key, Lock, Eye, EyeOff, Edit3, Save, X, Smartphone, Mail, GraduationCap, AlertTriangle, Link as LinkIcon, Server, ExternalLink } from 'lucide-react';
-import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, CREATOR_NAME, MIN_PASSWORD_LENGTH, DEFAULT_USER, APP_VERSION } from '../constants';
+import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, CREATOR_NAME, MIN_PASSWORD_LENGTH, DEFAULT_USER, APP_VERSION, SYSTEM_DOMAIN } from '../constants';
 import { storageService } from '../services/storageService';
 
 interface SettingsProps {
@@ -34,7 +34,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
 
   // Profile Edit State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [requestMode, setRequestMode] = useState<'NONE' | 'SELECT' | 'MASTER_KEY'>('NONE');
+  const [requestMode, setRequestMode] = useState<'NONE' | 'SELECT' | 'MASTER_KEY' | 'LINK_VIEW'>('NONE');
   const [editForm, setEditForm] = useState({
       name: user.name,
       email: user.email,
@@ -43,6 +43,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
   });
   const [masterKeyInput, setMasterKeyInput] = useState('');
   const [masterKeyError, setMasterKeyError] = useState('');
+  const [generatedLink, setGeneratedLink] = useState('');
 
   const [updateAvailable, setUpdateAvailable] = useState(false);
 
@@ -51,14 +52,15 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
   // --- SECURITY & VIOLENCE DETECTION ---
   const detectViolations = async (text: string) => {
       const lower = text.toLowerCase();
-      const negativeTerms = ["hate", "kill", "die", "attack", "bomb", "stupid", "idiot", "violence", "blood", "death", "hack", "crack", "destroy"];
+      // Bad / Negative / Violent Keywords
+      const negativeTerms = ["hate", "kill", "die", "attack", "bomb", "stupid", "idiot", "violence", "blood", "death", "hack", "crack", "destroy", "bad", "evil", "enemy"];
       
       if (negativeTerms.some(term => lower.includes(term))) {
           // IMMEDIATE BLOCK LOGIC
           const updatedProfile: UserProfile = {
             ...user,
             isBanned: true,
-            banReason: "CRITICAL: VIOLENCE OR NEGATIVE CONTENT DETECTED. IMMEDIATE TERMINATION."
+            banReason: "CRITICAL SECURITY STOP: Negative/Violent content detected. System Force Logout."
           };
           
           await storageService.setData(`architect_data_${username}`, { 
@@ -70,11 +72,11 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
             actor: username,
             targetUser: username,
             actionType: 'SECURITY',
-            description: `VIOLENCE DETECTED: Blocked immediately.`,
+            description: `VIOLENCE DETECTED: Account Blocked. Features revoked.`,
             metadata: `Content: ${text}`
           });
 
-          // Force reload to trigger "App Removed" screen
+          // Force reload to trigger "App Removed" / Lock Screen
           window.location.reload();
           return true;
       }
@@ -159,8 +161,9 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       }
   };
 
+  // The 3 Option Logic
   const handleRequestSubmit = async (method: 'ADMIN' | 'MASTER' | 'LINK') => {
-    // 1. Scan for Violence
+    // 1. Scan for Violence first
     const combinedData = `${editForm.name} ${editForm.education} ${editForm.email} ${editForm.phone}`;
     if (await detectViolations(combinedData)) return;
 
@@ -169,10 +172,11 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
         return;
     }
 
-    // Common Request Object
-    const linkId = Math.random().toString(36).substring(7);
+    // Prepare Request Object
+    const linkId = Math.random().toString(36).substring(2, 9);
     const existingReqs = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
     
+    // Create change request for Admin visibility
     const request: ChangeRequest = {
         id: 'REQ-DATA-' + Date.now(),
         userId: username,
@@ -188,25 +192,29 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
         generatedStudentId: user.studentId
     };
 
-    existingReqs.push(request);
-    localStorage.setItem('studentpocket_requests', JSON.stringify(existingReqs));
-
     if (method === 'LINK') {
-        const url = `www.example.com/v/${linkId}`; // Per user request
-        alert(`Request Link Generated:\n\n${url}\n\nCopy this to the external system.`);
-        setIsEditingProfile(false);
-        setRequestMode('NONE');
+        const url = `www.${SYSTEM_DOMAIN}/r/${linkId}`;
+        setGeneratedLink(url);
+        
+        // Save request but keep user in session for link view, don't lock yet
+        existingReqs.push(request);
+        localStorage.setItem('studentpocket_requests', JSON.stringify(existingReqs));
+        
+        setRequestMode('LINK_VIEW');
     } else {
-        // Admin Request - Lock Account
+        // Admin Request - Lock Account to Pending
+        existingReqs.push(request);
+        localStorage.setItem('studentpocket_requests', JSON.stringify(existingReqs));
+
         const pendingProfile: UserProfile = {
             ...user,
             verificationStatus: 'PENDING_APPROVAL',
-            adminFeedback: 'Data Change Request Pending Administrator Review.'
+            adminFeedback: 'Data Change Request Sent. Awaiting Admin Approval.'
         };
         
         await storageService.setData(`architect_data_${username}`, { ...await storageService.getData(`architect_data_${username}`), user: pendingProfile });
         updateUser(pendingProfile);
-        window.location.href = '/';
+        window.location.href = '/'; // Force reload to trigger pending view
     }
   };
 
@@ -217,7 +225,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       const seed = Math.floor(now / timeStep);
       const currentMasterKey = Math.abs(Math.sin(seed + 1) * 1000000).toFixed(0).slice(0, 6).padEnd(6, '0');
       
-      // Also check Admin Key ('a') or specific user key
       const isAdminKey = masterKeyInput === 'a' || masterKeyInput === ADMIN_USERNAME; 
       
       if (masterKeyInput === currentMasterKey || isAdminKey) {
@@ -249,7 +256,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
           setRequestMode('NONE');
           alert("Master Key Accepted. Profile Updated.");
       } else {
-          setMasterKeyError("Invalid Master Key.");
+          setMasterKeyError("Invalid or Expired Master Key.");
       }
   };
 
@@ -301,11 +308,11 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                 {isEditingProfile ? (
                     <div className="space-y-4 bg-white/10 p-6 rounded-3xl animate-scale-up border border-white/10 backdrop-blur-sm relative">
                         <div className="flex items-center justify-between mb-2">
-                             <h3 className="text-xs font-bold uppercase tracking-widest text-indigo-300">Request Edit</h3>
+                             <h3 className="text-xs font-bold uppercase tracking-widest text-indigo-300">Edit Data Protocol</h3>
                              <button onClick={() => { setIsEditingProfile(false); setRequestMode('NONE'); }} className="text-white/50 hover:text-white"><X size={18}/></button>
                         </div>
 
-                        {/* EDIT FORM INPUTS */}
+                        {/* STEP 1: EDIT FORM INPUTS */}
                         {requestMode === 'NONE' && (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1 text-left">
@@ -344,60 +351,69 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                                         className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
                                     />
                                 </div>
-                                <div className="col-span-1 md:col-span-2 mt-2">
+                                <div className="col-span-1 md:col-span-2 mt-4">
                                      <button onClick={() => setRequestMode('SELECT')} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-widest py-3 rounded-xl transition-colors shadow-lg flex items-center justify-center">
-                                        Proceed to Request Options <ShieldCheck size={14} className="ml-2"/>
+                                        Save & Verify Changes <ShieldCheck size={14} className="ml-2"/>
                                     </button>
                                 </div>
                             </div>
                         )}
 
-                        {/* REQUEST MODE SELECTION */}
+                        {/* STEP 2: THE 3 OPTION BOXES */}
                         {requestMode === 'SELECT' && (
-                             <div className="space-y-3 animate-slide-left">
-                                 <p className="text-[10px] text-white/70 uppercase tracking-widest text-center mb-2">Select Authentication Method</p>
+                             <div className="space-y-4 animate-slide-left">
+                                 <p className="text-[10px] text-white/70 uppercase tracking-widest text-center mb-2">Select Verification Method</p>
                                  
-                                 <button onClick={() => handleRequestSubmit('ADMIN')} className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors group">
-                                     <div className="flex items-center">
-                                         <div className="p-2 bg-indigo-500/20 rounded-lg mr-3 text-indigo-300"><Server size={16}/></div>
-                                         <div className="text-left">
-                                             <span className="block text-xs font-bold text-white">Option 1: Admin Request</span>
-                                             <span className="block text-[9px] text-white/50">Submit for manual approval</span>
+                                 {/* Option 1 Box */}
+                                 <div className="p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all cursor-pointer group" onClick={() => handleRequestSubmit('ADMIN')}>
+                                     <div className="flex items-center justify-between">
+                                         <div className="flex items-center">
+                                             <div className="p-3 bg-indigo-500/20 rounded-xl mr-3 text-indigo-300"><Server size={20}/></div>
+                                             <div className="text-left">
+                                                 <span className="block text-sm font-bold text-white">1. Request Admin</span>
+                                                 <span className="block text-[10px] text-white/50 uppercase tracking-wide">Standard Approval Process</span>
+                                             </div>
                                          </div>
+                                         <ShieldCheck size={18} className="text-white/30 group-hover:text-white transition-colors"/>
                                      </div>
-                                     <ShieldCheck size={14} className="text-white/30 group-hover:text-white"/>
-                                 </button>
+                                 </div>
 
-                                 <button onClick={() => handleRequestSubmit('MASTER')} className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors group">
-                                     <div className="flex items-center">
-                                         <div className="p-2 bg-emerald-500/20 rounded-lg mr-3 text-emerald-300"><Key size={16}/></div>
-                                         <div className="text-left">
-                                             <span className="block text-xs font-bold text-white">Option 2: Master Key</span>
-                                             <span className="block text-[9px] text-white/50">Instant update with AI-Generated Key</span>
+                                 {/* Option 2 Box */}
+                                 <div className="p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all cursor-pointer group" onClick={() => handleRequestSubmit('MASTER')}>
+                                     <div className="flex items-center justify-between">
+                                         <div className="flex items-center">
+                                             <div className="p-3 bg-emerald-500/20 rounded-xl mr-3 text-emerald-300"><Key size={20}/></div>
+                                             <div className="text-left">
+                                                 <span className="block text-sm font-bold text-white">2. Master Keys</span>
+                                                 <span className="block text-[10px] text-white/50 uppercase tracking-wide">Instant Override</span>
+                                             </div>
                                          </div>
+                                         <Check size={18} className="text-white/30 group-hover:text-white transition-colors"/>
                                      </div>
-                                     <Check size={14} className="text-white/30 group-hover:text-white"/>
-                                 </button>
+                                 </div>
 
-                                 <button onClick={() => handleRequestSubmit('LINK')} className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors group">
-                                     <div className="flex items-center">
-                                         <div className="p-2 bg-amber-500/20 rounded-lg mr-3 text-amber-300"><LinkIcon size={16}/></div>
-                                         <div className="text-left">
-                                             <span className="block text-xs font-bold text-white">Option 3: Request Link</span>
-                                             <span className="block text-[9px] text-white/50">Generate link for www.example.com</span>
+                                 {/* Option 3 Box */}
+                                 <div className="p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all cursor-pointer group" onClick={() => handleRequestSubmit('LINK')}>
+                                     <div className="flex items-center justify-between">
+                                         <div className="flex items-center">
+                                             <div className="p-3 bg-amber-500/20 rounded-xl mr-3 text-amber-300"><LinkIcon size={20}/></div>
+                                             <div className="text-left">
+                                                 <span className="block text-sm font-bold text-white">3. Verification Link</span>
+                                                 <span className="block text-[10px] text-white/50 uppercase tracking-wide">Generate External URL</span>
+                                             </div>
                                          </div>
+                                         <ExternalLink size={18} className="text-white/30 group-hover:text-white transition-colors"/>
                                      </div>
-                                     <ExternalLink size={14} className="text-white/30 group-hover:text-white"/>
-                                 </button>
+                                 </div>
                              </div>
                         )}
 
-                        {/* MASTER KEY INPUT */}
+                        {/* MASTER KEY INPUT BOX */}
                         {requestMode === 'MASTER_KEY' && (
-                            <div className="space-y-4 animate-scale-up">
+                            <div className="space-y-4 animate-scale-up p-4 bg-black/20 rounded-2xl border border-emerald-500/30">
                                 <div className="text-center space-y-1">
                                     <h4 className="text-sm font-bold text-white">Enter Master Key</h4>
-                                    <p className="text-[10px] text-white/50">Provided by AI Generator or Administrator (a)</p>
+                                    <p className="text-[10px] text-white/50">Provided by System Admin</p>
                                 </div>
                                 <div className="relative">
                                     <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" size={16}/>
@@ -418,13 +434,33 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                                 </button>
                             </div>
                         )}
+
+                        {/* LINK VIEW BOX */}
+                        {requestMode === 'LINK_VIEW' && (
+                            <div className="space-y-4 animate-scale-up p-4 bg-black/20 rounded-2xl border border-amber-500/30 text-center">
+                                <div className="text-center space-y-1">
+                                    <h4 className="text-sm font-bold text-white">Verification Link Created</h4>
+                                    <p className="text-[10px] text-white/50 uppercase tracking-widest">Share or use for verification</p>
+                                </div>
+                                
+                                <div className="p-3 bg-white/10 rounded-xl border border-white/5 break-all">
+                                    <p className="font-mono text-xs text-amber-400 select-all">{generatedLink}</p>
+                                </div>
+
+                                <p className="text-[9px] text-white/40">This link allows external systems to verify this update request.</p>
+
+                                <button onClick={() => { setRequestMode('NONE'); setIsEditingProfile(false); }} className="w-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-widest py-3 rounded-xl shadow-lg">
+                                    Close
+                                </button>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <>
                         <div className="flex items-center justify-center md:justify-start gap-3 mb-2 group">
                              <h2 className="text-4xl font-bold tracking-tight">{user.name}</h2>
                              {!isAdmin && (
-                                 <button onClick={() => setIsEditingProfile(true)} className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-white/10 rounded-full text-indigo-300" title="Submit Edit Request">
+                                 <button onClick={() => setIsEditingProfile(true)} className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-white/10 rounded-full text-indigo-300" title="Edit Profile Data">
                                      <Edit3 size={18} />
                                  </button>
                              )}
@@ -471,7 +507,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
               
               {/* MFA Card */}
               <div className="bg-white dark:bg-[#0f172a] p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-                  {/* Block Security Features if Intermediate issues exist (simulated by checking ban status, though banned users are usually logged out) */}
                   {user.isBanned && (
                       <div className="absolute inset-0 bg-red-500/10 backdrop-blur-[2px] z-20 flex items-center justify-center">
                           <div className="bg-red-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center">

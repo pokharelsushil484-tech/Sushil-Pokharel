@@ -92,9 +92,18 @@ const App = () => {
     const path = window.location.pathname;
     
     // Check for verification link
-    const verifyMatch = path.match(/^\/v\/([a-zA-Z0-9]+)\/?$/i);
+    const verifyMatch = path.match(/^\/r\/([a-zA-Z0-9]+)\/?$/i);
     if (verifyMatch) {
         setVerifyLinkId(verifyMatch[1]);
+        setView(View.VERIFY_LINK);
+        setShowSplash(false); 
+        setIsLoading(false);
+        return;
+    }
+    // Backward compatibility for /v/ links
+    const oldVerifyMatch = path.match(/^\/v\/([a-zA-Z0-9]+)\/?$/i);
+    if (oldVerifyMatch) {
+        setVerifyLinkId(oldVerifyMatch[1]);
         setView(View.VERIFY_LINK);
         setShowSplash(false); 
         setIsLoading(false);
@@ -230,7 +239,7 @@ const App = () => {
 
   // FORCE BLOCK ON VIOLENCE
   if (data.user?.isBanned) {
-    const isViolence = data.user.banReason?.includes("VIOLENCE");
+    const isViolence = data.user.banReason?.includes("VIOLENCE") || data.user.banReason?.includes("CRITICAL SECURITY");
     
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center animate-fade-in relative overflow-hidden">
@@ -251,23 +260,22 @@ const App = () => {
           </div>
 
           <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest mb-8">
-              Application Access Removed due to Security Policy Violation.
+              System Access Revoked. All Features Blocked.
           </p>
 
           <div className="space-y-4">
-              {!isViolence && (
-                  <button 
-                    onClick={() => { handleLogout(); setView(View.ACCESS_RECOVERY); }} 
-                    className="w-full py-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-[0.2em] transition-all shadow-lg"
-                  >
-                    Request Recovery
-                  </button>
-              )}
+              <button 
+                onClick={() => { handleLogout(); setView(View.ACCESS_RECOVERY); }} 
+                className="w-full py-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-[0.2em] transition-all shadow-lg"
+              >
+                Appeal / Request Recovery
+              </button>
+              
               <button 
                   onClick={handleLogout} 
                   className={`w-full py-4 rounded-xl text-white font-bold text-xs uppercase tracking-[0.2em] transition-all border border-white/10 ${isViolence ? 'bg-red-600 hover:bg-red-700 shadow-xl' : 'hover:bg-white/5'}`}
               >
-                  {isViolence ? 'Close & Exit' : 'Sign Out'}
+                  Force Logout
               </button>
           </div>
         </div>
