@@ -18,7 +18,7 @@ import { ErrorPage } from './views/ErrorPage';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { TermsModal } from './components/TermsModal';
-import { ShieldX, Globe, CheckCircle, XCircle, X, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ShieldX, Globe, CheckCircle, XCircle, X, RefreshCw, AlertTriangle, Search } from 'lucide-react';
 
 import { View, UserProfile, VaultDocument, ChatMessage } from './types';
 import { ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN, APP_NAME, SYSTEM_DOMAIN, CREATOR_NAME } from './constants';
@@ -33,6 +33,7 @@ const App = () => {
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('architect_theme') === 'true');
   const [verifyLinkId, setVerifyLinkId] = useState<string | null>(null);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [recoveryId, setRecoveryId] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   const [systemUpdateAvailable, setSystemUpdateAvailable] = useState(false);
   
@@ -91,7 +92,7 @@ const App = () => {
   useEffect(() => {
     const path = window.location.pathname;
     
-    // Check for verification link
+    // Check for verification link: /r/{id}
     const verifyMatch = path.match(/^\/r\/([a-zA-Z0-9]+)\/?$/i);
     if (verifyMatch) {
         setVerifyLinkId(verifyMatch[1]);
@@ -106,6 +107,16 @@ const App = () => {
         setVerifyLinkId(oldVerifyMatch[1]);
         setView(View.VERIFY_LINK);
         setShowSplash(false); 
+        setIsLoading(false);
+        return;
+    }
+
+    // Check for recovery link: /recovery/{id}
+    const recoveryMatch = path.match(/^\/recovery\/([a-zA-Z0-9]+)\/?$/i);
+    if (recoveryMatch) {
+        setRecoveryId(recoveryMatch[1]);
+        setView(View.ACCESS_RECOVERY);
+        setShowSplash(false);
         setIsLoading(false);
         return;
     }
@@ -141,14 +152,14 @@ const App = () => {
               setShowTerms(true);
             }
           } else {
-            if (view !== View.VERIFY_LINK && view !== View.INVITE_REGISTRATION) {
+            if (view !== View.VERIFY_LINK && view !== View.INVITE_REGISTRATION && view !== View.ACCESS_RECOVERY) {
                 setView(View.ONBOARDING);
             }
             setData(prev => ({ ...prev, user: null }));
           }
         } catch (err) {
           console.error("Critical Sync Failure", err);
-          if (view !== View.VERIFY_LINK && view !== View.INVITE_REGISTRATION) setView(View.ONBOARDING);
+          if (view !== View.VERIFY_LINK && view !== View.INVITE_REGISTRATION && view !== View.ACCESS_RECOVERY) setView(View.ONBOARDING);
         } finally {
           setIsLoading(false);
         }
@@ -156,7 +167,7 @@ const App = () => {
           setIsLoading(false);
       }
     };
-    if (view !== View.VERIFY_LINK && view !== View.INVITE_REGISTRATION) {
+    if (view !== View.VERIFY_LINK && view !== View.INVITE_REGISTRATION && view !== View.ACCESS_RECOVERY) {
         sync();
     }
   }, [currentUsername]);
@@ -181,9 +192,11 @@ const App = () => {
     localStorage.setItem('active_session_user', username);
     setCurrentUsername(username);
     
-    // Clear invite mode if active
-    if (inviteCode) {
+    // Clear special modes if active
+    if (inviteCode || recoveryId || verifyLinkId) {
         setInviteCode(null);
+        setRecoveryId(null);
+        setVerifyLinkId(null);
         // Clean URL without refresh
         window.history.pushState({}, '', '/');
     }
@@ -228,7 +241,8 @@ const App = () => {
   }
 
   if (view === View.ACCESS_RECOVERY) {
-     return <AccessRecovery onNavigate={setView} />;
+     // Pass recoveryId if present from URL
+     return <AccessRecovery onNavigate={(v) => { setView(v); setRecoveryId(null); window.history.pushState({}, '', '/'); }} initialRecoveryId={recoveryId} />;
   }
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
@@ -307,9 +321,15 @@ const App = () => {
       />
     );
     
+    // FORCE VERIFICATION FORM IF STATUS IS FORM_PENDING
+    // This happens after Admission Key usage
+    if (data.user.verificationStatus === 'FORM_PENDING') {
+        return <VerificationForm user={data.user} username={currentUsername!} updateUser={u => setData(prev => ({...prev, user: u}))} onNavigate={setView} isSuspicious={true} />;
+    }
+
     // STRICT SECURITY GATE: Block access if pending verification
     if (data.user.verificationStatus === 'PENDING_APPROVAL' && view !== View.SUPPORT) {
-        return <VerificationPending studentId={data.user.studentId} onLogout={handleLogout} />;
+        return <VerificationPending studentId={data.user.studentId} onLogout={handleLogout} isSuspicious={data.user.isSuspicious} />;
     }
     
     switch (view) {
@@ -366,7 +386,7 @@ const App = () => {
           </div>
       )}
 
-      {(!isLoading || data.user) && data.user?.verificationStatus !== 'PENDING_APPROVAL' && (
+      {(!isLoading || data.user) && data.user?.verificationStatus !== 'PENDING_APPROVAL' && data.user?.verificationStatus !== 'FORM_PENDING' && (
         <div className="md:ml-20 lg:ml-64 transition-all animate-fade-in min-h-screen flex flex-col">
           <header className="bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800 h-16 flex items-center justify-between px-6 sticky top-0 z-40">
              <div className="flex items-center space-x-3">
@@ -381,6 +401,14 @@ const App = () => {
                 </div>
              </div>
              <div className="flex items-center space-x-3">
+                {/* Suspicious Warning Indicator */}
+                {data.user?.isSuspicious && (
+                   <div className="flex items-center text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 animate-pulse">
+                      <Search size={14} className="mr-2" />
+                      <span className="text-[9px] font-bold uppercase tracking-widest">Verification Required</span>
+                   </div>
+                )}
+                
                 <div className="text-right hidden sm:block">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Session Active</p>
                     <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{currentUsername}</p>
@@ -395,12 +423,12 @@ const App = () => {
         </div>
       )}
       
-      {/* If pending, render content directly (which is the VerificationPending component) without wrapper */}
-      {data.user && data.user.verificationStatus === 'PENDING_APPROVAL' && (
+      {/* If pending/form needed, render content directly without wrapper */}
+      {data.user && (data.user.verificationStatus === 'PENDING_APPROVAL' || data.user.verificationStatus === 'FORM_PENDING') && (
          <main className="w-full h-full">{renderContent()}</main>
       )}
       
-      {data.user && !isLoading && data.user.verificationStatus !== 'PENDING_APPROVAL' && (
+      {data.user && !isLoading && data.user.verificationStatus !== 'PENDING_APPROVAL' && data.user.verificationStatus !== 'FORM_PENDING' && (
         <Navigation 
             currentView={view} 
             setView={setView} 

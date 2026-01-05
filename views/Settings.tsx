@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest } from '../types';
-import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Gavel, ShieldAlert, UserMinus, Key, Lock, Eye, EyeOff, Edit3, Save, X, Smartphone, Mail, GraduationCap, AlertTriangle, Link as LinkIcon, Server, ExternalLink } from 'lucide-react';
+import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Gavel, ShieldAlert, UserMinus, Key, Lock, Eye, EyeOff, Edit3, Save, X, Smartphone, Mail, GraduationCap, AlertTriangle, Link as LinkIcon, Server, ExternalLink, Search } from 'lucide-react';
 import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, CREATOR_NAME, MIN_PASSWORD_LENGTH, DEFAULT_USER, APP_VERSION, SYSTEM_DOMAIN } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -193,6 +193,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
     };
 
     if (method === 'LINK') {
+        // Use /r/ for Verification Links
         const url = `www.${SYSTEM_DOMAIN}/r/${linkId}`;
         setGeneratedLink(url);
         
@@ -227,7 +228,10 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       
       const isAdminKey = masterKeyInput === 'a' || masterKeyInput === ADMIN_USERNAME; 
       
-      if (masterKeyInput === currentMasterKey || isAdminKey) {
+      // Allow the specific admission key generated for this user to act as a master key
+      const isAdmissionKey = user.admissionKey && masterKeyInput === user.admissionKey;
+      
+      if (masterKeyInput === currentMasterKey || isAdminKey || isAdmissionKey) {
           // Success - Apply Changes Immediately
           const updatedProfile: UserProfile = {
               ...user,
@@ -235,7 +239,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
               email: editForm.email,
               phone: editForm.phone,
               education: editForm.education,
-              adminFeedback: "Updated via Master Key Protocol."
+              adminFeedback: "Updated via Master Key Protocol.",
+              isSuspicious: false // Clear suspicion on master key update
           };
           
           await storageService.setData(`architect_data_${username}`, { ...await storageService.getData(`architect_data_${username}`), user: updatedProfile });
@@ -359,39 +364,42 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                             </div>
                         )}
 
-                        {/* REQUEST MODE SELECTION */}
+                        {/* REQUEST MODE SELECTION - The 3 Options */}
                         {requestMode === 'SELECT' && (
                              <div className="space-y-3 animate-slide-left">
                                  <p className="text-[10px] text-white/70 uppercase tracking-widest text-center mb-2">Select Authentication Method</p>
                                  
+                                 {/* Option 1: Admin Request */}
                                  <button onClick={() => handleRequestSubmit('ADMIN')} className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors group">
                                      <div className="flex items-center">
                                          <div className="p-2 bg-indigo-500/20 rounded-lg mr-3 text-indigo-300"><Server size={16}/></div>
                                          <div className="text-left">
-                                             <span className="block text-xs font-bold text-white">Option 1: Admin Request</span>
+                                             <span className="block text-xs font-bold text-white">1. Request Admin</span>
                                              <span className="block text-[9px] text-white/50">Submit for manual approval</span>
                                          </div>
                                      </div>
                                      <ShieldCheck size={14} className="text-white/30 group-hover:text-white"/>
                                  </button>
 
+                                 {/* Option 2: Master Key */}
                                  <button onClick={() => handleRequestSubmit('MASTER')} className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors group">
                                      <div className="flex items-center">
                                          <div className="p-2 bg-emerald-500/20 rounded-lg mr-3 text-emerald-300"><Key size={16}/></div>
                                          <div className="text-left">
-                                             <span className="block text-xs font-bold text-white">Option 2: Master Key</span>
-                                             <span className="block text-[9px] text-white/50">Instant update with AI-Generated Key</span>
+                                             <span className="block text-xs font-bold text-white">2. Master Keys</span>
+                                             <span className="block text-[9px] text-white/50">Instant update with Master/Admission Key</span>
                                          </div>
                                      </div>
                                      <Check size={14} className="text-white/30 group-hover:text-white"/>
                                  </button>
 
+                                 {/* Option 3: Verification Link */}
                                  <button onClick={() => handleRequestSubmit('LINK')} className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors group">
                                      <div className="flex items-center">
                                          <div className="p-2 bg-amber-500/20 rounded-lg mr-3 text-amber-300"><LinkIcon size={16}/></div>
                                          <div className="text-left">
-                                             <span className="block text-xs font-bold text-white">Option 3: Request Link</span>
-                                             <span className="block text-[9px] text-white/50">Generate link for www.example.com</span>
+                                             <span className="block text-xs font-bold text-white">3. Link</span>
+                                             <span className="block text-[9px] text-white/50">Generate {SYSTEM_DOMAIN}/r/ link</span>
                                          </div>
                                      </div>
                                      <ExternalLink size={14} className="text-white/30 group-hover:text-white"/>
@@ -404,7 +412,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                             <div className="space-y-4 animate-scale-up">
                                 <div className="text-center space-y-1">
                                     <h4 className="text-sm font-bold text-white">Enter Master Key</h4>
-                                    <p className="text-[10px] text-white/50">Provided by AI Generator or Administrator (a)</p>
+                                    <p className="text-[10px] text-white/50">Provided by AI Generator or Admission Token</p>
                                 </div>
                                 <div className="relative">
                                     <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" size={16}/>
@@ -431,7 +439,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                             <div className="space-y-4 animate-scale-up p-4 bg-black/20 rounded-2xl border border-amber-500/30 text-center">
                                 <div className="text-center space-y-1">
                                     <h4 className="text-sm font-bold text-white">Verification Link Created</h4>
-                                    <p className="text-[10px] text-white/50 uppercase tracking-widest">Share or use for verification</p>
+                                    <p className="text-[10px] text-white/50 uppercase tracking-widest">Share for external verification</p>
                                 </div>
                                 
                                 <div className="p-3 bg-white/10 rounded-xl border border-white/5 break-all">
@@ -458,6 +466,11 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-4">
                            <span className="text-[10px] font-black uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full text-indigo-300">{isAdmin ? 'Lead Architect' : 'Identity Node'}</span>
                            <span className="text-[10px] font-mono text-slate-400">AI-ID: {user.studentId || username}</span>
+                           {user.isSuspicious && (
+                               <span className="flex items-center text-[9px] font-bold bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded border border-amber-500/40 uppercase tracking-wider animate-pulse">
+                                   <Search size={10} className="mr-1"/> Investigate
+                               </span>
+                           )}
                         </div>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-slate-400 max-w-lg mx-auto md:mx-0">
@@ -497,11 +510,11 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
               
               {/* MFA Card */}
               <div className="bg-white dark:bg-[#0f172a] p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-                  {/* Block Security Features if Intermediate issues exist (simulated by checking ban status, though banned users are usually logged out) */}
-                  {user.isBanned && (
+                  {/* Block Security Features if Suspicious or Banned */}
+                  {(user.isBanned || user.isSuspicious) && (
                       <div className="absolute inset-0 bg-red-500/10 backdrop-blur-[2px] z-20 flex items-center justify-center">
-                          <div className="bg-red-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center">
-                              <ShieldAlert size={14} className="mr-2"/> Security Blocked
+                          <div className="bg-red-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center shadow-xl">
+                              <ShieldAlert size={14} className="mr-2"/> Feature Locked
                           </div>
                       </div>
                   )}
@@ -541,7 +554,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
 
               {/* Password Card */}
               <div className="bg-white dark:bg-[#0f172a] p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-                  {user.isBanned && (
+                  {(user.isBanned || user.isSuspicious) && (
                       <div className="absolute inset-0 bg-red-500/10 backdrop-blur-[2px] z-20 flex items-center justify-center">
                           <Lock size={24} className="text-red-500"/>
                       </div>
@@ -644,7 +657,10 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
 
               {/* Danger Zone */}
               <div className="bg-red-50 dark:bg-red-950/10 p-6 rounded-2xl border border-red-100 dark:border-red-900/30">
-                  <h4 className="text-xs font-black text-red-400 uppercase tracking-widest mb-4">Danger Zone</h4>
+                  <div className="flex items-center mb-4 text-red-500">
+                      <ShieldAlert size={16} className="mr-2"/>
+                      <h4 className="text-xs font-black uppercase tracking-widest">Danger Zone</h4>
+                  </div>
                   
                   <div className="space-y-2">
                       <button onClick={onLogout} className="w-full flex items-center justify-between p-3 bg-white dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group">

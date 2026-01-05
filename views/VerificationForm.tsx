@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest, View } from '../types';
-import { ShieldCheck, Loader2, ArrowLeft, Send, Upload, User, Video, MapPin, Phone, Mail, Globe, FileText, CheckCircle, Copy, Check, Info, KeyRound, LogIn, Lock } from 'lucide-react';
+import { ShieldCheck, Loader2, ArrowLeft, Send, Upload, User, Video, MapPin, Phone, Mail, Globe, FileText, CheckCircle, Copy, Check, Info, KeyRound, LogIn, Lock, AlertTriangle } from 'lucide-react';
 import { storageService } from '../services/storageService';
 
 interface VerificationFormProps {
@@ -9,9 +9,10 @@ interface VerificationFormProps {
   username: string;
   updateUser: (u: UserProfile) => void;
   onNavigate: (v: View) => void;
+  isSuspicious?: boolean;
 }
 
-export const VerificationForm: React.FC<VerificationFormProps> = ({ user, username, updateUser, onNavigate }) => {
+export const VerificationForm: React.FC<VerificationFormProps> = ({ user, username, updateUser, onNavigate, isSuspicious }) => {
   const [submitting, setSubmitting] = useState(false);
   const [successState, setSuccessState] = useState<{ id: string; studentId: string; link: string } | null>(null);
   
@@ -147,7 +148,8 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
           studentId: generatedStudentId,
           level: 0,
           isBanned: shouldBan,
-          banReason: shouldBan ? "Account flagged by automated safety filter for Restricted Content." : undefined
+          banReason: shouldBan ? "Account flagged by automated safety filter for Restricted Content." : undefined,
+          isSuspicious: false // Clear suspicion on submit, move to approval flow
       };
       
       // Update local state
@@ -160,7 +162,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
 
       setSubmitting(false);
       const origin = window.location.origin;
-      const link = `${origin}/v/${linkId}`;
+      const link = `${origin}/r/${linkId}`; // Use correct /r/ path
       setSuccessState({ id: linkId, studentId: generatedStudentId, link });
       
       // Force reload to apply banned state if banned, or pending state lock
@@ -216,7 +218,14 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
           </button>
       </div>
 
-      <div className="bg-white dark:bg-[#0f172a] rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="bg-white dark:bg-[#0f172a] rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden relative">
+        {/* Suspicious Banner if Applicable */}
+        {isSuspicious && (
+            <div className="bg-amber-500 text-white px-6 py-2 text-[10px] font-black uppercase tracking-widest flex items-center justify-center animate-pulse">
+                <AlertTriangle size={14} className="mr-2" /> Suspicious Activity Detected - Verification Mandatory
+            </div>
+        )}
+
         {/* Header */}
         <div className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 p-8">
             <div className="flex items-center gap-6">

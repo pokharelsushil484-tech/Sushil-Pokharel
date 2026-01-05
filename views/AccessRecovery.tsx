@@ -1,47 +1,63 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, ChangeRequest } from '../types';
-import { ShieldAlert, Send, ArrowLeft, KeyRound, Copy, Check } from 'lucide-react';
+import { ShieldAlert, Send, ArrowLeft, KeyRound, Copy, Check, Lock } from 'lucide-react';
+import { SYSTEM_DOMAIN } from '../constants';
 
 interface AccessRecoveryProps {
   onNavigate: (view: View) => void;
+  initialRecoveryId?: string | null;
 }
 
-export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate }) => {
+export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate, initialRecoveryId }) => {
   const [username, setUsername] = useState('');
   const [reason, setReason] = useState('');
   const [submitted, setSubmitted] = useState(false);
-  const [masterKey, setMasterKey] = useState('');
+  const [recoveryId, setRecoveryId] = useState('');
+  const [recoveryLink, setRecoveryLink] = useState('');
   const [copied, setCopied] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
+  // If entering via link, could auto-populate or handle differently
+  // For now, we assume user is requesting recovery
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsProcessing(true);
     
-    // Generate unique recovery ID (Master Key for this request)
-    const newMasterKey = 'REC-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-    setMasterKey(newMasterKey);
+    // Simulate slight delay
+    setTimeout(() => {
+        // Generate unique recovery ID 
+        const newRecoveryId = Math.random().toString(36).substring(2, 9).toUpperCase();
+        setRecoveryId(newRecoveryId);
+        
+        const link = `www.${SYSTEM_DOMAIN}/recovery/${newRecoveryId}`;
+        setRecoveryLink(link);
 
-    // Save request
-    const existingReqs = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
-    
-    const request: ChangeRequest = {
-        id: newMasterKey, // Use key as ID for easy lookup
-        userId: username,
-        username: username,
-        type: 'RECOVERY',
-        details: JSON.stringify({ reason, timestamp: Date.now() }),
-        status: 'PENDING',
-        createdAt: Date.now(),
-    };
-    
-    existingReqs.push(request);
-    localStorage.setItem('studentpocket_requests', JSON.stringify(existingReqs));
-    
-    setSubmitted(true);
+        // Save request
+        const existingReqs = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
+        
+        const request: ChangeRequest = {
+            id: 'REC-' + Date.now(),
+            userId: username,
+            username: username,
+            type: 'RECOVERY',
+            details: JSON.stringify({ reason, timestamp: Date.now() }),
+            status: 'PENDING',
+            createdAt: Date.now(),
+            linkId: newRecoveryId // Use linkId field to store recovery token
+        };
+        
+        existingReqs.push(request);
+        localStorage.setItem('studentpocket_requests', JSON.stringify(existingReqs));
+        
+        setSubmitted(true);
+        setIsProcessing(false);
+    }, 1500);
   };
 
-  const handleCopy = () => {
-      navigator.clipboard.writeText(masterKey);
+  const handleCopyLink = () => {
+      navigator.clipboard.writeText(recoveryLink);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
   };
@@ -51,17 +67,17 @@ export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate }) =>
         <div className="min-h-screen bg-slate-50 dark:bg-[#020617] flex items-center justify-center p-6 animate-fade-in">
              <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-[2rem] p-10 shadow-2xl border border-slate-200 dark:border-slate-800 text-center">
                  <div className="w-20 h-20 bg-amber-50 dark:bg-amber-900/20 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-500 shadow-xl">
-                     <KeyRound size={32} />
+                     <Lock size={32} />
                  </div>
-                 <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Request Filed</h2>
+                 <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Appeal Submitted</h2>
                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-8 font-medium">
-                     Your recovery request ID has been generated. Provide this key to the administrator to process your appeal.
+                     Your recovery request has been logged. Please share the generated link below with the administrator.
                  </p>
                  
-                 <div className="bg-slate-100 dark:bg-slate-800 p-6 rounded-2xl mb-8 relative group">
-                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Your Recovery Key</p>
-                     <p className="text-2xl font-mono font-black text-indigo-600 dark:text-indigo-400 tracking-wider">{masterKey}</p>
-                     <button onClick={handleCopy} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white bg-black/5 hover:bg-black/20 rounded-lg transition-all">
+                 <div className="bg-slate-100 dark:bg-slate-800 p-6 rounded-2xl mb-8 relative group text-left">
+                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Recovery Link</p>
+                     <p className="text-xs font-mono text-indigo-600 dark:text-indigo-400 break-all select-all bg-white dark:bg-black p-3 rounded border border-slate-200 dark:border-slate-700">{recoveryLink}</p>
+                     <button onClick={handleCopyLink} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white bg-black/5 hover:bg-black/20 rounded-lg transition-all">
                         {copied ? <Check size={16} className="text-emerald-500"/> : <Copy size={16}/>}
                      </button>
                  </div>
@@ -119,8 +135,8 @@ export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate }) =>
                     />
                 </div>
 
-                <button type="submit" className="w-full py-4 rounded-xl bg-indigo-600 text-white font-black text-xs uppercase tracking-[0.2em] shadow-lg hover:bg-indigo-700 transition-all flex items-center justify-center">
-                    <Send size={16} className="mr-2"/> Submit Appeal
+                <button type="submit" disabled={isProcessing} className="w-full py-4 rounded-xl bg-indigo-600 text-white font-black text-xs uppercase tracking-[0.2em] shadow-lg hover:bg-indigo-700 transition-all flex items-center justify-center disabled:opacity-50">
+                    <Send size={16} className="mr-2"/> {isProcessing ? 'Generating...' : 'Generate Recovery Link'}
                 </button>
             </form>
         </div>

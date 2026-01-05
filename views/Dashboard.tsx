@@ -65,11 +65,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                 
                 localStorage.setItem('studentpocket_requests', JSON.stringify(requests));
                 
-                const details = JSON.parse(requests[myRequestIndex].details);
-                const origin = window.location.origin;
-                const link = `${origin}/v/${newLinkId}`;
+                let details = {};
+                try {
+                     details = JSON.parse(requests[myRequestIndex].details);
+                } catch(e) {}
                 
-                setNewLinkState({ link, email: details.email });
+                const email = (details as any).email || user.email || 'N/A';
+                
+                // Use /r/ for verification links
+                const link = `www.${SYSTEM_DOMAIN}/r/${newLinkId}`;
+                
+                setNewLinkState({ link, email });
                 setCurrentLinkId(newLinkId);
             } else {
                 alert("No pending request found to resend.");
@@ -148,7 +154,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
               <div>
                  <p className="font-bold text-amber-700 dark:text-amber-400 text-xs uppercase tracking-wide">Pending Review</p>
                  <p className="text-xs text-amber-600/70 mt-1">Admin is reviewing your identity.</p>
-                 {currentLinkId && <p className="text-[10px] text-amber-500/60 font-mono mt-1">Link ID: {currentLinkId}</p>}
+                 {currentLinkId && <p className="text-[10px] text-amber-500/60 font-mono mt-1">Ref: {currentLinkId}</p>}
               </div>
            </div>
            
@@ -163,7 +169,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                     onClick={handleResendLink}
                     disabled={resending}
                     className="flex items-center px-3 py-2 bg-white dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-amber-100 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors shadow-sm"
-                    title="Generate a new secure link if previous one was lost"
+                    title="Regenerate secure link"
                 >
                     {resending ? <Loader2 size={14} className="animate-spin"/> : <RefreshCw size={14}/>}
                 </button>

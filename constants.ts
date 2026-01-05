@@ -1,11 +1,11 @@
 
 import { UserProfile } from './types';
 
-export const APP_VERSION = "25.4.2-SECURE"; 
+export const APP_VERSION = "25.4.4-SECURE"; 
 export const ADMIN_USERNAME = "admin"; 
 export const ADMIN_SECRET = "a"; 
 export const CREATOR_NAME = "Sushil Pokharel";
-export const SYSTEM_DOMAIN = "socialpokeralpha000.com.np";
+export const SYSTEM_DOMAIN = "sushilpokhrel00.com.np";
 
 const now = new Date();
 export const SYSTEM_UPGRADE_TOKEN = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -15,7 +15,9 @@ export const MIN_PASSWORD_LENGTH = 8;
 
 export const APP_NAME = "StudentPocket";
 export const WATERMARK = "© StudentPocket Hub | Authored by Sushil Pokharel";
-export const ADMIN_EMAIL = "admin@socialpokeralpha000.com.np";
+export const ADMIN_EMAIL = "pokharelsushil242@gmail.com";
+export const ADMIN_PHONE = "9765226385";
+export const ADMIN_EDUCATION = "BBS";
 export const COPYRIGHT_NOTICE = "SECURE PROTOCOL: Developed by Sushil Pokharel. Legal Entity: Sushil Tech.";
 
 export const DEFAULT_USER: UserProfile = {
@@ -23,6 +25,7 @@ export const DEFAULT_USER: UserProfile = {
   email: "",
   phone: "",
   isVerified: false,
+  isSuspicious: false,
   level: 0,
   verificationStatus: 'NONE',
   acceptedTermsVersion: SYSTEM_UPGRADE_TOKEN,

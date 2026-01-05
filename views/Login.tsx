@@ -1,8 +1,7 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, Info, X, ShieldCheck, Globe, Camera, ArrowLeft, Check, Key, HelpCircle, AlertTriangle } from 'lucide-react';
-import { ADMIN_USERNAME, ADMIN_SECRET, COPYRIGHT_NOTICE, MIN_PASSWORD_LENGTH, SYSTEM_DOMAIN, DEFAULT_USER, SYSTEM_UPGRADE_TOKEN } from '../constants';
+import { ADMIN_USERNAME, ADMIN_SECRET, ADMIN_EMAIL, COPYRIGHT_NOTICE, MIN_PASSWORD_LENGTH, SYSTEM_DOMAIN, DEFAULT_USER, SYSTEM_UPGRADE_TOKEN, CREATOR_NAME } from '../constants';
 import { storageService } from '../services/storageService';
 import { View } from '../types';
 
@@ -141,13 +140,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
 
     const cleanInput = loginInput.trim();
     
-    // Admin Override
+    // Admin Override - Immunity Logic
     if (cleanInput === ADMIN_USERNAME && password === ADMIN_SECRET) {
       const usersStr = localStorage.getItem('studentpocket_users');
       const users = usersStr ? JSON.parse(usersStr) : {};
       
       if (!users[ADMIN_USERNAME]) {
-         users[ADMIN_USERNAME] = { password: ADMIN_SECRET, email: 'admin@system.local', name: 'System Architect', verified: true };
+         users[ADMIN_USERNAME] = { password: ADMIN_SECRET, email: ADMIN_EMAIL, name: CREATOR_NAME, verified: true };
          localStorage.setItem('studentpocket_users', JSON.stringify(users));
       }
       setIsProcessing(false);
@@ -167,9 +166,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         // Iterate to find student ID match (Simulated async lookup)
         let found = false;
         for (const key of Object.keys(users)) {
-             // We need to check the actual profile data for Student ID, 
-             // but for login speed we might rely on a cached map or just auth data if studentID was stored there.
-             // Since studentID is in IndexedDB, we do a quick scan.
              const data = await storageService.getData(`architect_data_${key}`);
              if (data && data.user && data.user.studentId === cleanInput) {
                  userData = users[key];
@@ -189,7 +185,14 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
     // Verify Password
     const storedPassword = typeof userData === 'string' ? userData : userData.password;
     if (storedPassword === password) {
-       // Check for Ban Status before allowing snap
+       // Check for Ban Status before allowing snap (Admin is immune)
+       if (foundUsername === ADMIN_USERNAME) {
+           setLoginInput(foundUsername);
+           setIsProcessing(false);
+           setView('IDENTITY_SNAP');
+           return;
+       }
+
        const data = await storageService.getData(`architect_data_${foundUsername}`);
        if (data && data.user && data.user.isBanned) {
            setError("Access Denied: Account Suspended. Use Admission Key login.");
@@ -240,18 +243,31 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
               const stored = await storageService.getData(dataKey);
               
               if (stored && stored.user) {
+                  // Admin cannot be suspended, so no admission logic needed for admin
+                  if (targetUsername === ADMIN_USERNAME) {
+                      setLoginInput(ADMIN_USERNAME);
+                      setView('IDENTITY_SNAP');
+                      setIsProcessing(false);
+                      return;
+                  }
+
                   if (stored.user.admissionKey === admissionKey) {
                       // Valid Key! Unban if banned and proceed
+                      // IMPORTANT: Set to FORM_PENDING to force re-verification
                       if (stored.user.isBanned) {
                           stored.user.isBanned = false;
                           stored.user.banReason = undefined;
-                          stored.user.admissionKey = undefined; // Consume key
+                          // stored.user.admissionKey = undefined; // KEEP KEY as Master Key
+                          stored.user.isVerified = false;
+                          stored.user.isSuspicious = true; // Mark suspicious until re-verified
+                          stored.user.verificationStatus = 'FORM_PENDING'; // Force Form
+                          
                           await storageService.setData(dataKey, stored);
                           
                           await storageService.logActivity({
                               actor: targetUsername,
                               actionType: 'SECURITY',
-                              description: 'Account Recovered via Admission Key'
+                              description: 'Account Unlocked via Admission Key. Re-verification required.'
                           });
                       }
                       setLoginInput(targetUsername); // Ensure next step uses username
@@ -487,6 +503,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                   <div className="text-center">
                       <h3 className="text-white font-bold text-lg mb-2">Admission Key Login</h3>
                       <p className="text-xs text-slate-400">Use the key provided by the administration to regain access.</p>
+                      <div className="mt-2 flex items-center justify-center text-amber-400 text-[10px] font-bold uppercase tracking-wide">
+                        <AlertTriangle size={12} className="mr-1" /> Verification Required
+                      </div>
                   </div>
                   
                   <div className="space-y-4">
@@ -520,7 +539,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                       disabled={isProcessing} 
                       className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg transition-all flex items-center justify-center group"
                     >
-                      {isProcessing ? <Loader2 className="animate-spin" size={16}/> : 'Unlock & Login'}
+                      {isProcessing ? <Loader2 className="animate-spin" size={16}/> : 'Unlock & Start Verification'}
                     </button>
                     <button 
                       type="button"
