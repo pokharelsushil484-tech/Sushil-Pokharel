@@ -12,6 +12,7 @@ import { VerificationForm } from './views/VerificationForm';
 import { VerificationPending } from './views/VerificationPending';
 import { LinkVerification } from './views/LinkVerification';
 import { InviteRegistration } from './views/InviteRegistration';
+import { AccessRecovery } from './views/AccessRecovery';
 import { Support } from './views/Support';
 import { ErrorPage } from './views/ErrorPage';
 import { GlobalLoader } from './components/GlobalLoader';
@@ -21,7 +22,7 @@ import { ShieldX, Globe, CheckCircle, XCircle, X } from 'lucide-react';
 
 import { View, UserProfile, VaultDocument, ChatMessage } from './types';
 import { ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN, APP_NAME, SYSTEM_DOMAIN } from './constants';
-import { storageService } from '../services/storageService';
+import { storageService } from './services/storageService';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -202,10 +203,14 @@ const App = () => {
       return <InviteRegistration inviteCode={inviteCode} onNavigate={(v) => { setView(v); setInviteCode(null); window.history.pushState({}, '', '/'); }} onRegister={handleLoginSuccess} />;
   }
 
+  if (view === View.ACCESS_RECOVERY) {
+     return <AccessRecovery onNavigate={setView} />;
+  }
+
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
 
   if (!currentUsername) {
-    return <Login user={null} onLogin={handleLoginSuccess} />;
+    return <Login user={null} onLogin={handleLoginSuccess} onNavigate={setView} />;
   }
 
   if (data.user?.isBanned) {
@@ -215,7 +220,15 @@ const App = () => {
           <ShieldX size={64} className="text-red-500 mx-auto mb-6 animate-pulse" />
           <h1 className="text-3xl font-bold text-white mb-4 tracking-tight">Access Suspended</h1>
           <p className="text-red-200 text-sm mb-8">{data.user.banReason}</p>
-          <button onClick={handleLogout} className="text-slate-400 hover:text-white text-xs font-bold uppercase tracking-widest underline transition-colors">Sign Out</button>
+          <div className="space-y-4">
+              <button 
+                onClick={() => { handleLogout(); setView(View.ACCESS_RECOVERY); }} 
+                className="w-full py-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-[0.2em] transition-all shadow-lg"
+              >
+                Request Recovery
+              </button>
+              <button onClick={handleLogout} className="text-slate-400 hover:text-white text-xs font-bold uppercase tracking-widest underline transition-colors">Sign Out</button>
+          </div>
         </div>
       </div>
     );

@@ -76,10 +76,18 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     // --- AUTOMATED DETECTION SYSTEM ---
     let autoFlagged = false;
     let autoFlagReason = "";
+    let shouldBan = false;
 
+    // Content Privacy/Quality Control
     if (formData.fullName.length < 3) {
         autoFlagged = true;
         autoFlagReason += "Name too short. ";
+    }
+    // Simple mock filter for inappropriate content in name
+    if (formData.fullName.toLowerCase().includes("hacker") || formData.fullName.toLowerCase().includes("admin")) {
+        autoFlagged = true;
+        shouldBan = true; // Auto-ban for impersonation attempts
+        autoFlagReason += "Inappropriate content detected. ";
     }
     if (!formData.email.includes("@")) {
         autoFlagged = true;
@@ -130,10 +138,11 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
       // Create a new user profile object with the generated ID for redundancy
       const updatedProfile: UserProfile = { 
           ...user, 
-          verificationStatus: 'PENDING_APPROVAL',
+          verificationStatus: shouldBan ? 'REJECTED' : 'PENDING_APPROVAL',
           studentId: generatedStudentId,
-          // If automatically flagged, we might not want to wipe previous level immediately, but for security we reset to 0
-          level: 0 
+          level: 0,
+          isBanned: shouldBan,
+          banReason: shouldBan ? "Account flagged by automated content filter." : undefined
       };
       
       // Update local state
@@ -149,11 +158,10 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
       const link = `${origin}/v/${linkId}`;
       setSuccessState({ id: linkId, studentId: generatedStudentId, link });
       
-      // IMPORTANT: Trigger app reload to enforce the "VerificationPending" view lockout
-      // In a real SPA we might use a context state update, but reload ensures auth state is checked fresh
+      // Force reload to apply banned state if banned, or pending state lock
       setTimeout(() => {
          window.location.href = '/'; 
-      }, 5000); // Give user 5 seconds to copy the link before kicking them out
+      }, 5000);
 
     }, 1500);
   };

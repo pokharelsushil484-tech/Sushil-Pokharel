@@ -1,18 +1,20 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { UserProfile } from '../types';
-import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, Info, X, ShieldCheck, Globe, Camera, ArrowLeft, Check } from 'lucide-react';
+import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, Info, X, ShieldCheck, Globe, Camera, ArrowLeft, Check, Key, HelpCircle } from 'lucide-react';
 import { ADMIN_USERNAME, ADMIN_SECRET, COPYRIGHT_NOTICE, MIN_PASSWORD_LENGTH, SYSTEM_DOMAIN, DEFAULT_USER, SYSTEM_UPGRADE_TOKEN } from '../constants';
 import { storageService } from '../services/storageService';
+import { View } from '../types';
 
 interface LoginProps {
   user: UserProfile | null;
   onLogin: (username: string) => void;
+  onNavigate?: (view: View) => void;
 }
 
-type AuthView = 'LOGIN' | 'REGISTER' | 'IDENTITY_SNAP' | 'FORGOT_PASSWORD';
+type AuthView = 'LOGIN' | 'REGISTER' | 'IDENTITY_SNAP' | 'FORGOT_PASSWORD' | 'ADMISSION_LOGIN';
 
-export const Login: React.FC<LoginProps> = ({ onLogin }) => {
+export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
   const [view, setView] = useState<AuthView>('LOGIN');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -20,6 +22,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [confirmEmail, setConfirmEmail] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
+  
+  // Admission Key State
+  const [admissionKey, setAdmissionKey] = useState('');
   
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -120,6 +125,40 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     } else {
       setError('Incorrect password.');
     }
+  };
+
+  const handleAdmissionLogin = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setError('');
+      
+      if (!username || !admissionKey) {
+          setError("Username and Key required.");
+          return;
+      }
+      
+      setIsProcessing(true);
+      
+      setTimeout(async () => {
+          const dataKey = `architect_data_${username}`;
+          const stored = await storageService.getData(dataKey);
+          
+          if (stored && stored.user) {
+              if (stored.user.admissionKey === admissionKey) {
+                  // Valid Key! Unban if banned and proceed
+                  if (stored.user.isBanned) {
+                      stored.user.isBanned = false;
+                      stored.user.banReason = undefined;
+                      await storageService.setData(dataKey, stored);
+                  }
+                  setView('IDENTITY_SNAP');
+              } else {
+                  setError("Invalid Admission Key.");
+              }
+          } else {
+              setError("User data not found.");
+          }
+          setIsProcessing(false);
+      }, 1500);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -273,8 +312,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
               </div>
               
-              <div className="flex justify-end">
-                  <button type="button" onClick={() => setView('FORGOT_PASSWORD')} className="text-xs text-slate-400 hover:text-indigo-400 transition-colors font-medium">
+              <div className="flex justify-between items-center">
+                  <button type="button" onClick={() => setView('ADMISSION_LOGIN')} className="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-wide">
+                      Use Admission Key
+                  </button>
+                  <button type="button" onClick={() => setView('FORGOT_PASSWORD')} className="text-[10px] text-slate-400 hover:text-white font-bold uppercase tracking-wide">
                       Forgot Password?
                   </button>
               </div>
@@ -297,7 +339,64 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   Create Account
                 </button>
               </div>
+              
+              <div className="pt-4 border-t border-white/5 flex justify-center">
+                   <button type="button" onClick={() => onNavigate && onNavigate(View.ACCESS_RECOVERY)} className="flex items-center text-xs text-slate-500 hover:text-white transition-colors font-medium">
+                       <HelpCircle size={14} className="mr-2" /> Recover Blocked Account
+                   </button>
+              </div>
             </form>
+          )}
+
+          {view === 'ADMISSION_LOGIN' && (
+              <form onSubmit={handleAdmissionLogin} className="space-y-6 animate-scale-up">
+                  <div className="text-center">
+                      <h3 className="text-white font-bold text-lg mb-2">Admission Key Login</h3>
+                      <p className="text-xs text-slate-400">Use the key provided by the administration to regain access.</p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="relative group">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                      <input 
+                        type="text" 
+                        value={username} 
+                        onChange={(e) => setUsername(e.target.value)} 
+                        className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl outline-none text-white font-medium placeholder:text-slate-600 focus:border-indigo-500/50 transition-all text-sm" 
+                        placeholder="Student ID / Username" 
+                      />
+                    </div>
+                    <div className="relative group">
+                      <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                      <input 
+                        type="text" 
+                        value={admissionKey} 
+                        onChange={(e) => setAdmissionKey(e.target.value)} 
+                        className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl outline-none text-white font-mono font-bold tracking-widest placeholder:text-slate-600 focus:border-indigo-500/50 transition-all text-sm" 
+                        placeholder="ADMISSION KEY" 
+                      />
+                    </div>
+                  </div>
+
+                  {error && <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs font-bold text-center uppercase tracking-wide">{error}</div>}
+
+                  <div className="space-y-3 pt-2">
+                    <button 
+                      type="submit" 
+                      disabled={isProcessing} 
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg transition-all flex items-center justify-center group"
+                    >
+                      {isProcessing ? <Loader2 className="animate-spin" size={16}/> : 'Unlock & Login'}
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setView('LOGIN')}
+                      className="w-full text-slate-400 hover:text-white py-2 text-xs font-bold uppercase tracking-widest transition-all"
+                    >
+                      Back to Standard Login
+                    </button>
+                  </div>
+              </form>
           )}
           
           {view === 'REGISTER' && (

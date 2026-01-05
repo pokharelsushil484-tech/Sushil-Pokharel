@@ -9,6 +9,7 @@ export enum View {
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
   VERIFY_LINK = 'VERIFY_LINK',
   INVITE_REGISTRATION = 'INVITE_REGISTRATION',
+  ACCESS_RECOVERY = 'ACCESS_RECOVERY',
   SUPPORT = 'SUPPORT',
   ERROR = 'ERROR'
 }
@@ -27,6 +28,7 @@ export interface UserProfile {
   verificationStatus: 'NONE' | 'FORM_PENDING' | 'PENDING_APPROVAL' | 'VERIFIED' | 'REJECTED';
   adminFeedback?: string; // Stores the email content/rejection reason
   rescueKey?: string; // Static master key for alternative verification
+  admissionKey?: string; // Key generated for banned user recovery
   acceptedTermsVersion?: string;
   studentId?: string; // Generated ID during verification
   storageLimitGB: number;
@@ -78,7 +80,7 @@ export interface ChangeRequest {
   id: string;
   userId: string;
   username: string;
-  type: 'VERIFICATION' | 'STORAGE';
+  type: 'VERIFICATION' | 'STORAGE' | 'RECOVERY';
   details: string; // Will store the JSON of the form answers
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: number;

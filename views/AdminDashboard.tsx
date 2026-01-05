@@ -9,7 +9,7 @@ import {
 import { storageService } from '../services/storageService';
 import { ADMIN_USERNAME } from '../constants';
 
-type AdminView = 'OVERVIEW' | 'USERS' | 'REQUESTS' | 'SUPPORT';
+type AdminView = 'OVERVIEW' | 'USERS' | 'REQUESTS' | 'RECOVERY' | 'SUPPORT';
 
 export const AdminDashboard: React.FC = () => {
   const [viewMode, setViewMode] = useState<AdminView>('OVERVIEW');
@@ -20,6 +20,7 @@ export const AdminDashboard: React.FC = () => {
   const [replyText, setReplyText] = useState('');
   const [masterKey, setMasterKey] = useState('');
   const [keyCountdown, setKeyCountdown] = useState(50);
+  const [generatedAdmissionKey, setGeneratedAdmissionKey] = useState<{user: string, key: string} | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -117,6 +118,26 @@ export const AdminDashboard: React.FC = () => {
       localStorage.setItem('studentpocket_requests', JSON.stringify(updatedReqs));
   };
 
+  const handleRecoveryRequest = async (req: ChangeRequest) => {
+      // Generate Admission Key
+      const key = 'ADM-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+      
+      const data = await storageService.getData(`architect_data_${req.username}`);
+      if (data && data.user) {
+          data.user.admissionKey = key;
+          // Note: We don't unban immediately, the login process with key handles it
+          await storageService.setData(`architect_data_${req.username}`, data);
+      }
+      
+      const updatedReqs = requests.map(r => 
+        r.id === req.id ? { ...r, status: 'APPROVED' } : r
+      );
+      setRequests(updatedReqs as ChangeRequest[]);
+      localStorage.setItem('studentpocket_requests', JSON.stringify(updatedReqs));
+      
+      setGeneratedAdmissionKey({ user: req.username, key: key });
+  };
+
   const handleChangeLevel = async (username: string, delta: number) => {
       const data = await storageService.getData(`architect_data_${username}`);
       if (data && data.user) {
@@ -196,7 +217,8 @@ export const AdminDashboard: React.FC = () => {
       if (selectedTicket?.id === id) setSelectedTicket(null);
   };
 
-  const pendingRequests = requests.filter(r => r.status === 'PENDING');
+  const pendingRequests = requests.filter(r => r.status === 'PENDING' && r.type === 'VERIFICATION');
+  const recoveryRequests = requests.filter(r => r.status === 'PENDING' && r.type === 'RECOVERY');
   const openTicketsCount = tickets.filter(t => t.status === 'OPEN').length;
 
   return (
@@ -208,11 +230,12 @@ export const AdminDashboard: React.FC = () => {
                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Administrative Console</p>
            </div>
            
-           <div className="flex bg-white/10 p-1 rounded-xl backdrop-blur-md">
+           <div className="flex flex-wrap gap-2 bg-white/10 p-1 rounded-xl backdrop-blur-md">
                {[
                    { id: 'OVERVIEW', icon: ShieldAlert, label: 'Ops' },
                    { id: 'USERS', icon: Users, label: 'Nodes' },
                    { id: 'REQUESTS', icon: ShieldCheck, label: 'Auth', badge: pendingRequests.length },
+                   { id: 'RECOVERY', icon: Key, label: 'Bans', badge: recoveryRequests.length },
                    { id: 'SUPPORT', icon: LifeBuoy, label: 'Tickets', badge: openTicketsCount }
                ].map(tab => (
                    <button
@@ -233,6 +256,21 @@ export const AdminDashboard: React.FC = () => {
                ))}
            </div>
        </div>
+
+       {generatedAdmissionKey && (
+           <div className="bg-emerald-500 text-white p-6 rounded-2xl shadow-lg flex flex-col md:flex-row justify-between items-center animate-scale-up">
+               <div>
+                   <h3 className="font-bold text-lg">Admission Key Generated</h3>
+                   <p className="text-xs opacity-90">User: {generatedAdmissionKey.user}</p>
+               </div>
+               <div className="flex items-center gap-4 mt-4 md:mt-0">
+                   <div className="bg-white/20 p-2 rounded-lg font-mono font-bold tracking-widest select-all">
+                       {generatedAdmissionKey.key}
+                   </div>
+                   <button onClick={() => setGeneratedAdmissionKey(null)} className="p-2 hover:bg-white/20 rounded-full"><XCircle size={20}/></button>
+               </div>
+           </div>
+       )}
 
        {viewMode === 'OVERVIEW' && (
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -285,6 +323,7 @@ export const AdminDashboard: React.FC = () => {
                                    <div className="flex items-center gap-2">
                                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">{user.name}</h4>
                                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${user.level > 1 ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>Level {user.level || 0}</span>
+                                       {user.isBanned && <span className="text-[9px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">BANNED</span>}
                                    </div>
                                    <p className="text-xs text-slate-500">{user.email}</p>
                                    <p className="text-[10px] text-slate-400 mt-0.5">ID: {user._username}</p>
@@ -315,7 +354,7 @@ export const AdminDashboard: React.FC = () => {
                {pendingRequests.length === 0 && (
                    <div className="text-center py-12 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
                        <CheckCircle size={32} className="mx-auto mb-2 opacity-50" />
-                       <p className="text-xs font-bold uppercase tracking-wider">No Pending Requests</p>
+                       <p className="text-xs font-bold uppercase tracking-wider">No Pending Verifications</p>
                    </div>
                )}
                {pendingRequests.map(req => (
@@ -334,6 +373,43 @@ export const AdminDashboard: React.FC = () => {
                        </div>
                    </div>
                ))}
+           </div>
+       )}
+
+       {viewMode === 'RECOVERY' && (
+           <div className="space-y-4">
+                {recoveryRequests.length === 0 && (
+                   <div className="text-center py-12 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                       <Key size={32} className="mx-auto mb-2 opacity-50" />
+                       <p className="text-xs font-bold uppercase tracking-wider">No Recovery Requests</p>
+                   </div>
+               )}
+               {recoveryRequests.map(req => {
+                   const details = JSON.parse(req.details || '{}');
+                   return (
+                       <div key={req.id} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-red-200 dark:border-red-900/50 shadow-sm flex flex-col gap-4">
+                           <div className="flex justify-between items-start">
+                               <div>
+                                   <div className="flex items-center gap-2 mb-1">
+                                       <h4 className="font-bold text-sm text-slate-900 dark:text-white">Account Recovery Appeal</h4>
+                                       <span className="bg-red-100 text-red-600 text-[9px] font-bold px-2 py-0.5 rounded-full">BANNED USER</span>
+                                   </div>
+                                   <p className="text-xs text-slate-500">User: {req.username} • ID: {req.id}</p>
+                                   <p className="text-xs text-slate-400 mt-1">Appeal Date: {new Date(req.createdAt).toLocaleString()}</p>
+                               </div>
+                           </div>
+                           <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs text-slate-700 dark:text-slate-300 italic">
+                               "{details.reason || 'No reason provided'}"
+                           </div>
+                           <button 
+                                onClick={() => handleRecoveryRequest(req)}
+                                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition-colors shadow-md flex items-center justify-center"
+                           >
+                               <Key size={14} className="mr-2"/> Generate Admission Key
+                           </button>
+                       </div>
+                   );
+               })}
            </div>
        )}
 
