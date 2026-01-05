@@ -111,7 +111,7 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                 <div className="bg-slate-800/50 p-6 rounded-2xl border border-white/5 mb-8">
                     <div className="flex items-center justify-center space-x-3 mb-4 text-emerald-400">
                         <Clock size={18} />
-                        <span className="text-xs font-black uppercase tracking-wider">Est. Time: 1 Minute</span>
+                        <span className="text-xs font-black uppercase tracking-wider">Est. Time: 30 Seconds</span>
                     </div>
                     <p className="text-[11px] text-slate-300 leading-relaxed">
                         Your data is currently undergoing a strict privacy review. During this time, access to the dashboard is <span className="text-white font-bold">BLOCKED</span> to prevent unauthorized data leakage.
