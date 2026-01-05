@@ -4,7 +4,7 @@ import { UserProfile, ChangeRequest, SupportTicket, TicketMessage } from '../typ
 import { 
   Users, ShieldCheck, LifeBuoy, Trash2, 
   CheckCircle, XCircle, RefreshCw, User, Lock, 
-  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award, Edit2, ArrowRight, Save, X, BadgeCheck, BadgeAlert, Skull, AlertTriangle, MessageCircle
+  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award, Edit2, ArrowRight, Save, X, BadgeCheck, BadgeAlert, Skull, AlertTriangle, MessageCircle, Ticket
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { ADMIN_USERNAME } from '../constants';
@@ -25,7 +25,7 @@ export const AdminDashboard: React.FC = () => {
   const [keyStatus, setKeyStatus] = useState<'ACTIVE' | 'COOLDOWN'>('ACTIVE');
   const [cooldownTime, setCooldownTime] = useState(0);
   
-  const [generatedAdmissionKey, setGeneratedAdmissionKey] = useState<{user: string, key: string} | null>(null);
+  const [generatedToken, setGeneratedToken] = useState<{user: string, token: string, type: 'RECOVERY' | 'VERIFICATION'} | null>(null);
   
   // Editing State
   const [editingUser, setEditingUser] = useState<string | null>(null);
@@ -169,6 +169,19 @@ export const AdminDashboard: React.FC = () => {
       setRequests(updatedReqs as ChangeRequest[]);
       localStorage.setItem('studentpocket_requests', JSON.stringify(updatedReqs));
   };
+
+  const handleGenerateToken = async (req: ChangeRequest) => {
+      // Generate Token (using same format as Admission Key for simplicity)
+      const token = 'TKN-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      
+      const data = await storageService.getData(`architect_data_${req.username}`);
+      if (data && data.user) {
+          data.user.admissionKey = token; // Store in admissionKey field
+          await storageService.setData(`architect_data_${req.username}`, data);
+      }
+      
+      setGeneratedToken({ user: req.username, token: token, type: req.type as any });
+  };
   
   const saveNameEdit = async (username: string) => {
       if (!editName.trim()) {
@@ -243,7 +256,7 @@ export const AdminDashboard: React.FC = () => {
 
   const handleRecoveryRequest = async (req: ChangeRequest) => {
       // Generate Admission Key
-      const key = 'ADM-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+      const key = 'ADM-' + Math.random().toString(36).substring(2, 8).toUpperCase();
       
       const data = await storageService.getData(`architect_data_${req.username}`);
       if (data && data.user) {
@@ -258,7 +271,7 @@ export const AdminDashboard: React.FC = () => {
       setRequests(updatedReqs as ChangeRequest[]);
       localStorage.setItem('studentpocket_requests', JSON.stringify(updatedReqs));
       
-      setGeneratedAdmissionKey({ user: req.username, key: key });
+      setGeneratedToken({ user: req.username, token: key, type: 'RECOVERY' });
   };
 
   const handleChangeLevel = async (username: string, delta: number) => {
@@ -428,18 +441,18 @@ export const AdminDashboard: React.FC = () => {
            </div>
        </div>
 
-       {generatedAdmissionKey && (
-           <div className="bg-emerald-500 text-white p-6 rounded-2xl shadow-lg flex flex-col md:flex-row justify-between items-center animate-scale-up">
+       {generatedToken && (
+           <div className="bg-emerald-500 text-white p-6 rounded-2xl shadow-lg flex flex-col md:flex-row justify-between items-center animate-scale-up border border-emerald-400">
                <div>
-                   <h3 className="font-bold text-lg">Admission Key Generated</h3>
-                   <p className="text-xs opacity-90">User: {generatedAdmissionKey.user}</p>
-                   <p className="text-[9px] uppercase tracking-widest mt-1">Provide this key to the user via Email</p>
+                   <h3 className="font-bold text-lg">{generatedToken.type === 'RECOVERY' ? 'Recovery Key' : 'Verification Token'} Generated</h3>
+                   <p className="text-xs opacity-90">User: {generatedToken.user}</p>
+                   <p className="text-[9px] uppercase tracking-widest mt-1">Provide this code to the user</p>
                </div>
                <div className="flex items-center gap-4 mt-4 md:mt-0">
-                   <div className="bg-white/20 p-2 rounded-lg font-mono font-bold tracking-widest select-all">
-                       {generatedAdmissionKey.key}
+                   <div className="bg-white/20 p-2 rounded-lg font-mono font-bold tracking-widest select-all text-xl">
+                       {generatedToken.token}
                    </div>
-                   <button onClick={() => setGeneratedAdmissionKey(null)} className="p-2 hover:bg-white/20 rounded-full"><XCircle size={20}/></button>
+                   <button onClick={() => setGeneratedToken(null)} className="p-2 hover:bg-white/20 rounded-full"><XCircle size={20}/></button>
                </div>
            </div>
        )}
@@ -504,7 +517,6 @@ export const AdminDashboard: React.FC = () => {
            </div>
        )}
 
-       {/* Other Views remain unchanged */}
        {viewMode === 'USERS' && (
            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
                <div className="space-y-2">
@@ -629,7 +641,6 @@ export const AdminDashboard: React.FC = () => {
                    const isDataChange = req.type === 'DATA_CHANGE' || req.type === 'NAME_CHANGE';
                    const details = isDataChange ? JSON.parse(req.details) : {};
                    
-                   // Check if user is marked suspicious
                    const requestUser = profiles.find(p => (p as any)._username === req.username);
                    const isSuspicious = requestUser?.badges?.includes('SUSPICIOUS') || requestUser?.isSuspicious;
 
@@ -671,7 +682,8 @@ export const AdminDashboard: React.FC = () => {
                        </div>
                        <div className="flex space-x-2">
                            <button onClick={() => handleVerifyRequest(req, false)} className="px-4 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold text-xs uppercase hover:bg-red-100 transition-colors">Reject</button>
-                           <button onClick={() => handleVerifyRequest(req, true)} className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold text-xs uppercase hover:bg-emerald-700 transition-colors">Approve & Verify</button>
+                           <button onClick={() => handleGenerateToken(req)} className="px-4 py-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase hover:bg-indigo-100 transition-colors" title="Generate verification code for user">Issue Key</button>
+                           <button onClick={() => handleVerifyRequest(req, true)} className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold text-xs uppercase hover:bg-emerald-700 transition-colors">Approve</button>
                        </div>
                    </div>
                )})}

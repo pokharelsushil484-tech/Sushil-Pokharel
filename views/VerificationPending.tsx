@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ShieldAlert, Clock, Lock, FileText, LogOut, KeyRound, ArrowRight, RefreshCw, ChevronLeft } from 'lucide-react';
+import { ShieldAlert, Clock, Lock, FileText, LogOut, KeyRound, ArrowRight, RefreshCw, ChevronLeft, Ticket } from 'lucide-react';
 import { APP_NAME } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -10,19 +10,19 @@ interface VerificationPendingProps {
 }
 
 export const VerificationPending: React.FC<VerificationPendingProps> = ({ studentId, onLogout }) => {
-  const [mode, setMode] = useState<'STATUS' | 'MASTER_KEY'>('STATUS');
-  const [masterKey, setMasterKey] = useState('');
+  const [mode, setMode] = useState<'STATUS' | 'MASTER_KEY' | 'TOKEN'>('STATUS');
+  const [inputKey, setInputKey] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleKeyUnlock = async (e: React.FormEvent) => {
+  const handleUnlock = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!masterKey.trim()) return;
+      if (!inputKey.trim()) return;
 
       setLoading(true);
       setError('');
 
-      const input = masterKey.trim().toUpperCase();
+      const input = inputKey.trim().toUpperCase();
       const username = localStorage.getItem('active_session_user');
 
       if (!username) {
@@ -31,23 +31,28 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
           return;
       }
 
-      // Check 1: System Keys (MS- or ADM-)
+      // 1. Check System Keys (MS- or ADM-)
       const isSystemValid = await storageService.validateSystemKey(input);
       
-      // Check 2: Personal Admission Key
+      // 2. Check Personal Admission Key / Verification Token
       const dataKey = `architect_data_${username}`;
       const stored = await storageService.getData(dataKey);
       const isPersonalValid = stored?.user?.admissionKey === input;
 
       if (isSystemValid || isPersonalValid) {
           if (stored && stored.user) {
-              // 1. Update User Profile
+              // Update User Profile
               stored.user.isVerified = true;
               stored.user.verificationStatus = 'VERIFIED';
               stored.user.isSuspicious = false;
-              stored.user.isBanned = false; // Just in case
-              stored.user.adminFeedback = "Identity Verified via Master Key Override.";
+              stored.user.isBanned = false;
+              stored.user.adminFeedback = isSystemValid ? "Verified via Master/ADM Key." : "Verified via Token.";
               
+              // Clear Key if it was one-time (Personal)
+              if (isPersonalValid) {
+                  // Optional: stored.user.admissionKey = undefined; 
+              }
+
               // Remove negative badges
               if (stored.user.badges) {
                   stored.user.badges = stored.user.badges.filter((b: string) => b !== 'SUSPICIOUS' && b !== 'DANGEROUS');
@@ -55,7 +60,7 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
               
               await storageService.setData(dataKey, stored);
 
-              // 2. Auto-Approve Pending Requests
+              // Update Requests
               const reqStr = localStorage.getItem('studentpocket_requests');
               if (reqStr) {
                   const requests = JSON.parse(reqStr);
@@ -65,7 +70,7 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                   localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
               }
 
-              // 3. Update Auth Registry (for login persistence)
+              // Update Auth Registry
               const usersStr = localStorage.getItem('studentpocket_users');
               if (usersStr) {
                   const users = JSON.parse(usersStr);
@@ -75,14 +80,13 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                   }
               }
 
-              // Reload to enter app
               window.location.reload();
           } else {
-               setError("User data corruption detected.");
+               setError("Data corruption error.");
                setLoading(false);
           }
       } else {
-          setError("Invalid Master or Admission Key.");
+          setError("Invalid Key or Token.");
           setLoading(false);
       }
   };
@@ -105,9 +109,9 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.2em] mb-8">System Security Scan Active</p>
 
                 <div className="bg-slate-800/50 p-6 rounded-2xl border border-white/5 mb-8">
-                    <div className="flex items-center justify-center space-x-3 mb-4 text-amber-400">
+                    <div className="flex items-center justify-center space-x-3 mb-4 text-emerald-400">
                         <Clock size={18} />
-                        <span className="text-xs font-black uppercase tracking-wider">Est. Time: 1 - 2 Hours</span>
+                        <span className="text-xs font-black uppercase tracking-wider">Est. Time: 1 - 2 Minutes</span>
                     </div>
                     <p className="text-[11px] text-slate-300 leading-relaxed">
                         Your data is currently undergoing a strict privacy review. During this time, access to the dashboard is <span className="text-white font-bold">BLOCKED</span> to prevent unauthorized data leakage.
@@ -126,12 +130,20 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                         <LogOut size={14} className="mr-2"/> Sign Out & Wait
                     </button>
                     
-                    <button 
-                        onClick={() => setMode('MASTER_KEY')}
-                        className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-widest flex items-center justify-center py-2"
-                    >
-                        <KeyRound size={12} className="mr-1"/> Use Master Key
-                    </button>
+                    <div className="grid grid-cols-2 gap-3">
+                        <button 
+                            onClick={() => { setMode('MASTER_KEY'); setInputKey(''); }}
+                            className="text-[10px] font-bold text-slate-500 hover:text-white uppercase tracking-widest flex items-center justify-center py-3 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"
+                        >
+                            <KeyRound size={12} className="mr-2"/> Master Key
+                        </button>
+                        <button 
+                            onClick={() => { setMode('TOKEN'); setInputKey(''); }}
+                            className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-widest flex items-center justify-center py-3 bg-indigo-500/10 rounded-xl hover:bg-indigo-500/20 transition-colors"
+                        >
+                            <Ticket size={12} className="mr-2"/> Use Token
+                        </button>
+                    </div>
                 </div>
             </>
         ) : (
@@ -140,25 +152,29 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                      <button onClick={() => setMode('STATUS')} className="text-slate-400 hover:text-white p-2 -ml-2">
                          <ChevronLeft size={20} />
                      </button>
-                     <h2 className="text-sm font-bold text-white uppercase tracking-widest">Administrative Override</h2>
+                     <h2 className="text-sm font-bold text-white uppercase tracking-widest">
+                        {mode === 'MASTER_KEY' ? 'Administrative Override' : 'Verification Token'}
+                     </h2>
                      <div className="w-8"></div>
                  </div>
 
                  <div className="w-20 h-20 mx-auto mb-6 bg-emerald-900/20 rounded-full flex items-center justify-center border border-emerald-500/30">
-                      <KeyRound size={32} className="text-emerald-500" />
+                      {mode === 'MASTER_KEY' ? <KeyRound size={32} className="text-emerald-500" /> : <Ticket size={32} className="text-emerald-500" />}
                  </div>
 
                  <p className="text-[10px] text-slate-400 font-medium mb-6 leading-relaxed">
-                     Enter a valid Master Key (MS-XXXX) or Administration Key (ADM-XXXX) to bypass the verification queue immediately.
+                     {mode === 'MASTER_KEY' 
+                        ? 'Enter a valid Master Key (MS-XXXX) or Administration Key (ADM-XXXX).' 
+                        : 'Enter the verification token received via email/link.'}
                  </p>
 
-                 <form onSubmit={handleKeyUnlock} className="space-y-4">
+                 <form onSubmit={handleUnlock} className="space-y-4">
                      <input 
                         type="text" 
-                        value={masterKey}
-                        onChange={(e) => setMasterKey(e.target.value)}
+                        value={inputKey}
+                        onChange={(e) => setInputKey(e.target.value)}
                         className="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl text-center text-white font-mono font-bold tracking-[0.2em] uppercase focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
-                        placeholder="ENTER KEY"
+                        placeholder={mode === 'MASTER_KEY' ? "MASTER KEY" : "ENTER TOKEN"}
                         autoFocus
                      />
                      
