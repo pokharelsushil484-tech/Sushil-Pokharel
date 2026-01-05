@@ -81,6 +81,7 @@ export interface ChangeRequest {
   createdAt: number;
   linkId?: string;
   previousLinkIds?: string[]; // History of link IDs to allow redirects
+  generatedStudentId?: string; // The ID generated during form submission
 }
 
 export enum TaskPriority {

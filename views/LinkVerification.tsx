@@ -12,6 +12,7 @@ interface LinkVerificationProps {
 }
 
 const LINK_EXPIRATION_MS = 60 * 1000; // 1 Minute Validity
+const MASTER_KEY_INTERVAL = 50000; // 50 seconds
 
 export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNavigate, currentUser }) => {
   const [request, setRequest] = useState<ChangeRequest | null>(null);
@@ -92,7 +93,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
       e.preventDefault();
       if (!request) return;
 
-      if (securityInput.trim() === request.username) {
+      if (securityInput.trim() === request.username || securityInput.trim() === request.generatedStudentId) {
           setIsUnlocked(true);
           setSecurityError('');
       } else {
@@ -105,52 +106,77 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
       setManualProcessing(true);
       setSecurityError('');
 
-      // 1. Validate ID
-      const dataKey = `architect_data_${manualId}`;
-      const stored = await storageService.getData(dataKey);
+      // 1. Validate ID - Check if it matches the request on this link OR if it's a known user
+      let targetUsername = '';
+      
+      // Try to match ID with requests
+      const reqStr = localStorage.getItem('studentpocket_requests');
+      if (reqStr) {
+          const requests: ChangeRequest[] = JSON.parse(reqStr);
+          const match = requests.find(r => r.generatedStudentId === manualId || r.username === manualId);
+          if (match) targetUsername = match.username;
+      }
 
-      if (!stored || !stored.user) {
+      if (!targetUsername) {
+           // Fallback to checking if user exists directly
+           const usersStr = localStorage.getItem('studentpocket_users');
+           const users = usersStr ? JSON.parse(usersStr) : {};
+           if (users[manualId]) targetUsername = manualId;
+      }
+
+      if (!targetUsername) {
           setSecurityError('Student ID not found in system.');
           setManualProcessing(false);
           return;
       }
 
-      // 2. Validate Code
-      const timeStep = 50000;
-      const seed = Math.floor(Date.now() / timeStep);
+      // 2. Validate Code - 50s Window Logic
+      const timeStep = MASTER_KEY_INTERVAL;
+      const now = Date.now();
+      const seed = Math.floor(now / timeStep);
       // Generate current Master Key based on same deterministic logic as Admin
       const currentMasterKey = Math.abs(Math.sin(seed + 1) * 1000000).toFixed(0).slice(0, 6).padEnd(6, '0');
       
-      const userRescueKey = stored.user.rescueKey;
+      // Allow for previous window grace period (optional, strict for now)
+      // const prevSeed = seed - 1;
+      // const prevMasterKey = Math.abs(Math.sin(prevSeed + 1) * 1000000).toFixed(0).slice(0, 6).padEnd(6, '0');
+
+      const dataKey = `architect_data_${targetUsername}`;
+      const stored = await storageService.getData(dataKey);
+      const userRescueKey = stored?.user?.rescueKey;
 
       const isValid = 
         manualCode === currentMasterKey || 
         (userRescueKey && manualCode === userRescueKey);
 
       if (!isValid) {
-          setSecurityError('Invalid Master Code. Check Admin Panel.');
+          setSecurityError('Invalid Master Code. Please check with Admin.');
           setManualProcessing(false);
           return;
       }
 
       // 3. Success - Verify User
-      stored.user.isVerified = true;
-      stored.user.verificationStatus = 'VERIFIED';
-      stored.user.adminFeedback = "Identity Verified via Master Key Override.";
-      // Clear rescue key after use if it was used
-      if (manualCode === userRescueKey) {
-          stored.user.rescueKey = undefined; 
+      if (stored && stored.user) {
+          stored.user.isVerified = true;
+          stored.user.verificationStatus = 'VERIFIED';
+          stored.user.adminFeedback = "Identity Verified via Master Key Override.";
+          // Clear rescue key after use if it was used
+          if (manualCode === userRescueKey) {
+              stored.user.rescueKey = undefined; 
+          }
+          await storageService.setData(dataKey, stored);
       }
       
-      await storageService.setData(dataKey, stored);
-      
       // Update requests
-      const reqStr = localStorage.getItem('studentpocket_requests');
       if (reqStr) {
           const requests: ChangeRequest[] = JSON.parse(reqStr);
           // Approve all pending for this user
-          const updatedRequests = requests.map(r => r.username === manualId ? { ...r, status: 'APPROVED' } : r);
+          const updatedRequests = requests.map(r => r.username === targetUsername ? { ...r, status: 'APPROVED' } : r);
           localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
+          
+           // Update local state if valid
+          const updatedReq = updatedRequests.find(r => r.id === request?.id);
+          if (updatedReq) setRequest(updatedReq as ChangeRequest);
       }
 
       setVerificationSuccess(true);
@@ -267,7 +293,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                 </div>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Master Override</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-                    Enter the dynamic Master Key from the Admin Console or your specific Rescue Key.
+                    Enter the dynamic Master Key provided by the Admin Console.
                 </p>
 
                 <form onSubmit={handleManualVerification} className="space-y-4">

@@ -72,9 +72,9 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     // Generate Secure Link ID
     const linkId = Math.random().toString(36).substring(7);
     
-    // Generate Student ID (if one doesn't exist in username context, create a new format)
-    // If username is "guest", we generate a formal ID. If username is already an ID format, we use it.
-    const generatedStudentId = username.includes('STU-') ? username : `STU-${Math.floor(1000 + Math.random() * 9000)}`;
+    // Generate Student ID
+    // If username is "guest" or generic, generate a formal ID. If username is already an ID format, use it or regenerate if requested.
+    const generatedStudentId = `STU-${Math.floor(100000 + Math.random() * 900000)}`;
 
     const finalDetails = {
         ...formData,
@@ -85,17 +85,10 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     };
     
     const existing = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
+    // Cancel old pending requests for this user
     const pendingIndex = existing.findIndex((r: any) => r.username === username && r.status === 'PENDING');
     
     let request: ChangeRequest;
-
-    // Use the generated ID as the primary key for the request if switching from guest
-    const targetUserId = generatedStudentId;
-
-    // We need to ensure the user data exists under this new ID if it's different
-    if (targetUserId !== username) {
-        // Migration simulation logic would go here, for now we assume the current session adapts
-    }
 
     if (pendingIndex !== -1) {
         request = existing[pendingIndex];
@@ -106,19 +99,19 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
              request.previousLinkIds.push(request.linkId);
         }
         request.linkId = linkId;
-        // Update username reference if we generated a new ID
-        request.username = targetUserId;
+        request.generatedStudentId = generatedStudentId; // Update ID
         existing[pendingIndex] = request;
     } else {
         request = {
             id: 'REQ-' + Date.now(),
-            userId: targetUserId,
-            username: targetUserId,
+            userId: username,
+            username: username,
             type: 'VERIFICATION',
             details: JSON.stringify(finalDetails),
             status: 'PENDING',
             createdAt: Date.now(),
-            linkId: linkId
+            linkId: linkId,
+            generatedStudentId: generatedStudentId
         };
         existing.push(request);
     }
@@ -133,7 +126,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
       const origin = window.location.origin;
       const link = `${origin}/v/${linkId}`;
       
-      setSuccessState({ link, email: formData.email, id: linkId, studentId: targetUserId });
+      setSuccessState({ link, email: formData.email, id: linkId, studentId: generatedStudentId });
     }, 1500);
   };
 
@@ -156,35 +149,45 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                     Generated Student ID
                  </div>
                  <div className="text-center mt-2">
-                     <p className="text-3xl font-black text-indigo-700 dark:text-indigo-400 tracking-widest font-mono">{successState.studentId}</p>
-                     <p className="text-[10px] text-slate-500 mt-2 font-medium">Please save this ID. It is required for Master Key verification.</p>
+                     <p className="text-4xl font-black text-indigo-700 dark:text-indigo-400 tracking-widest font-mono">{successState.studentId}</p>
+                     <p className="text-[10px] text-slate-500 mt-2 font-medium">Provide this ID to the Administrator to receive your Master Key.</p>
                  </div>
              </div>
              
              <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 mb-10 text-left">
                  <div className="flex items-center justify-between mb-2">
-                     <p className="text-[9px] font-bold text-slate-400 uppercase">Secure Link ID</p>
+                     <p className="text-[9px] font-bold text-slate-400 uppercase">Secure Link</p>
                      <div className="flex items-center space-x-2">
-                         <p className="text-xs font-mono font-bold text-slate-600 dark:text-slate-300">{successState.id}</p>
+                         <p className="text-xs font-mono font-bold text-slate-600 dark:text-slate-300 truncate max-w-[150px]">{successState.link}</p>
                          <button onClick={copyLink} className="p-1.5 bg-white dark:bg-slate-950 text-slate-400 hover:text-indigo-600 rounded-lg transition-colors border border-slate-200 dark:border-slate-700">
                             {copied ? <Check size={12}/> : <Copy size={12}/>}
                          </button>
                      </div>
                  </div>
+                 
                  <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30">
                      <KeyRound size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
                      <p className="text-[10px] text-amber-700 dark:text-amber-400 font-medium leading-relaxed">
-                         <b>Next Step:</b> Send your Student ID to the Administrator to receive the dynamic <b>Master Key</b> for final verification.
+                         <b>Next Step:</b> Contact Admin with your Student ID. They will provide a dynamic <b>Master Key</b>. Use the link below to enter it.
                      </p>
                  </div>
              </div>
 
-             <button 
-                onClick={() => onNavigate(View.DASHBOARD)}
-                className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-5 rounded-3xl font-black text-xs uppercase tracking-[0.3em] shadow-xl hover:scale-[1.02] transition-transform active:scale-95"
-             >
-                Return to Dashboard
-             </button>
+             <div className="space-y-3">
+                 <button 
+                    onClick={() => window.location.href = `/v/${successState.id}`}
+                    className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xs uppercase tracking-[0.3em] shadow-xl hover:scale-[1.02] transition-transform active:scale-95"
+                 >
+                    Enter Master Key
+                 </button>
+                 
+                 <button 
+                    onClick={() => onNavigate(View.DASHBOARD)}
+                    className="w-full bg-white dark:bg-slate-950 text-slate-500 py-4 rounded-3xl font-bold text-xs uppercase tracking-[0.2em] border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-colors"
+                 >
+                    Return to Dashboard
+                 </button>
+             </div>
         </div>
       </div>
     );

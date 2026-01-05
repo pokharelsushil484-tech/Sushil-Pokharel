@@ -25,10 +25,12 @@ export const AdminDashboard: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const MASTER_KEY_INTERVAL = 50000; // 50 seconds
+
   // Master Key ticker - 50 Second Rotation
   useEffect(() => {
     const updateMasterKey = () => {
-        const timeStep = 50000; // 50 seconds
+        const timeStep = MASTER_KEY_INTERVAL;
         const now = Date.now();
         const seed = Math.floor(now / timeStep);
         
@@ -367,7 +369,7 @@ export const AdminDashboard: React.FC = () => {
                            </div>
                            <div>
                                <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-1">Verification Request</h4>
-                               <p className="text-xs text-slate-500 font-mono">ID: {req.username}</p>
+                               <p className="text-xs text-slate-500 font-mono">ID: {req.generatedStudentId || req.username}</p>
                            </div>
                        </div>
                        <div className="flex space-x-3">
