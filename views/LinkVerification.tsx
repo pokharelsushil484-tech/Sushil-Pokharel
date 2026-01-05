@@ -152,7 +152,8 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
 
       const isValid = 
         manualCode === currentMasterKey || 
-        (userRescueKey && manualCode === userRescueKey);
+        (userRescueKey && manualCode === userRescueKey) ||
+        (await storageService.validateSystemKey(manualCode));
 
       if (!isValid) {
           setSecurityError('Invalid Master Code. Please check with Admin.');
@@ -347,7 +348,6 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                             onChange={(e) => setManualCode(e.target.value)}
                             className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-black text-lg text-center tracking-[0.5em] uppercase transition-all"
                             placeholder="CODE"
-                            maxLength={6}
                             required
                         />
                     </div>
