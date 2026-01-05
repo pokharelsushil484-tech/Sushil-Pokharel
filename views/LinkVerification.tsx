@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, View } from '../types';
-import { ShieldCheck, User, MapPin, Globe, Mail, Phone, Video, CheckCircle, XCircle, Home, Lock, RefreshCw, Search, LayoutGrid, ArrowRight, Eye, KeyRound, ArrowLeft, Clock, Camera, LogIn } from 'lucide-react';
+import { ShieldCheck, User, MapPin, Globe, Mail, Phone, Video, CheckCircle, XCircle, Home, Lock, RefreshCw, Search, LayoutGrid, ArrowRight, Eye, KeyRound, ArrowLeft, Clock, Camera, LogIn, Edit2 } from 'lucide-react';
 import { ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -162,6 +162,26 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
 
       // 3. Success - Verify User
       if (stored && stored.user) {
+          // If this was a Name Change request, apply it immediately upon master key override
+          if (reqStr) {
+               const requests: ChangeRequest[] = JSON.parse(reqStr);
+               const pendingNameReq = requests.find(r => r.username === targetUsername && r.type === 'NAME_CHANGE' && r.status === 'PENDING');
+               if (pendingNameReq) {
+                   const details = JSON.parse(pendingNameReq.details);
+                   stored.user.name = details.newName;
+                   
+                   // Update global users list
+                   const usersStr = localStorage.getItem('studentpocket_users');
+                   if (usersStr) {
+                      const users = JSON.parse(usersStr);
+                      if (users[targetUsername]) {
+                          users[targetUsername].name = details.newName;
+                          localStorage.setItem('studentpocket_users', JSON.stringify(users));
+                      }
+                   }
+               }
+          }
+
           stored.user.isVerified = true;
           stored.user.verificationStatus = 'VERIFIED';
           stored.user.adminFeedback = "Identity Verified via Master Key Override.";
@@ -187,7 +207,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
 
   const handleAction = async (action: 'APPROVE' | 'REJECT') => {
     if (!request || !isAdmin) return;
-    if (!window.confirm(`Are you sure you want to ${action} this identity?`)) return;
+    if (!window.confirm(`Are you sure you want to ${action} this request?`)) return;
 
     setActionProcessing(true);
     
@@ -197,12 +217,31 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
         const stored = await storageService.getData(dataKey);
         
         if (stored && stored.user) {
+            
+            if (action === 'APPROVE' && request.type === 'NAME_CHANGE') {
+                 const details = JSON.parse(request.details);
+                 stored.user.name = details.newName;
+                 
+                 // Update global users list
+                 const usersStr = localStorage.getItem('studentpocket_users');
+                 if (usersStr) {
+                    const users = JSON.parse(usersStr);
+                    if (users[request.username]) {
+                        users[request.username].name = details.newName;
+                        localStorage.setItem('studentpocket_users', JSON.stringify(users));
+                    }
+                 }
+            }
+
             stored.user.isVerified = action === 'APPROVE';
             stored.user.verificationStatus = action === 'APPROVE' ? 'VERIFIED' : 'REJECTED';
+            
             if (action === 'REJECT') {
-                stored.user.adminFeedback = "Identity verification failed. Information provided did not match records or was incomplete.";
+                stored.user.adminFeedback = "Request rejected by administrator.";
             } else {
-                stored.user.adminFeedback = "Identity Verified. Welcome to StudentPocket.";
+                stored.user.adminFeedback = request.type === 'NAME_CHANGE' 
+                    ? "Name Change Approved." 
+                    : "Identity Verified. Welcome to StudentPocket.";
             }
             await storageService.setData(dataKey, stored);
             
@@ -222,7 +261,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                 actor: ADMIN_USERNAME,
                 targetUser: request.username,
                 actionType: 'ADMIN',
-                description: `Link Verification ${action}: ${request.username}`,
+                description: `Request ${action}: ${request.type} for ${request.username}`,
                 metadata: JSON.stringify({ requestId: request.id, linkId })
             });
         }
@@ -265,7 +304,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                         <CheckCircle size={32} />
                     </div>
                     <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">Access Granted</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-8 font-medium">Your identity has been verified by the Master Key protocol.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-8 font-medium">Your request has been verified by the Master Key protocol.</p>
                     
                     <button onClick={() => window.location.href = '/'} className="w-full py-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black text-xs uppercase tracking-[0.2em] hover:scale-[1.02] transition-transform shadow-xl flex items-center justify-center">
                         <LogIn size={16} className="mr-2"/> Login Now
@@ -397,6 +436,8 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
       );
   }
 
+  const isNameChange = request.type === 'NAME_CHANGE';
+
   // UNLOCKED STATE UI
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#020617] py-12 px-4 sm:px-6 font-sans">
@@ -409,7 +450,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                     </div>
                     <div>
                         <h1 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">StudentPocket</h1>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Identity Data Node</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{isNameChange ? 'Profile Update' : 'Identity Data Node'}</p>
                     </div>
                 </div>
                 {currentUser ? (
@@ -431,14 +472,18 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                 
                 <div className="p-8 md:p-12">
                     <div className="flex flex-col md:flex-row items-start gap-10">
-                        {/* Avatar Column */}
+                        {/* Avatar / Icon Column */}
                         <div className="flex-shrink-0 mx-auto md:mx-0 flex flex-col items-center">
                             <div className="w-32 h-32 rounded-[2rem] bg-slate-50 dark:bg-slate-950 p-2 shadow-inner border border-slate-100 dark:border-slate-800">
-                                <div className="w-full h-full rounded-[1.6rem] overflow-hidden bg-white dark:bg-slate-800 relative">
-                                    {details._profileImage ? (
-                                        <img src={details._profileImage} alt="Profile" className="w-full h-full object-cover" />
+                                <div className="w-full h-full rounded-[1.6rem] overflow-hidden bg-white dark:bg-slate-800 relative flex items-center justify-center">
+                                    {isNameChange ? (
+                                        <Edit2 size={32} className="text-blue-500 opacity-50" />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-slate-300"><img src="/logo.svg" alt="Profile" className="w-full h-full object-contain p-4 opacity-20" /></div>
+                                        details._profileImage ? (
+                                            <img src={details._profileImage} alt="Profile" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <img src="/logo.svg" alt="Profile" className="w-full h-full object-contain p-4 opacity-20" />
+                                        )
                                     )}
                                 </div>
                             </div>
@@ -458,43 +503,62 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
 
                         {/* Info Column */}
                         <div className="flex-1 w-full space-y-8">
-                            <div className="text-center md:text-left">
-                                <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter mb-2">{details.fullName || 'Unknown Student'}</h2>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center md:justify-start">
-                                    <Globe size={14} className="mr-2 text-indigo-500" /> {details.country || 'No Country'}
-                                </p>
-                            </div>
+                            {isNameChange ? (
+                                <div className="text-center md:text-left space-y-4">
+                                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Profile Name Update</h2>
+                                     <div className="p-6 bg-slate-50 dark:bg-slate-950/50 rounded-3xl border border-slate-100 dark:border-slate-800 flex items-center justify-center gap-6">
+                                         <div className="text-center">
+                                             <p className="text-[10px] font-bold text-slate-400 uppercase">Current</p>
+                                             <p className="text-lg font-bold text-slate-500 line-through">{details.oldName}</p>
+                                         </div>
+                                         <ArrowRight className="text-indigo-500" />
+                                         <div className="text-center">
+                                             <p className="text-[10px] font-bold text-slate-400 uppercase">New</p>
+                                             <p className="text-xl font-black text-indigo-600 dark:text-indigo-400">{details.newName}</p>
+                                         </div>
+                                     </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="text-center md:text-left">
+                                        <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter mb-2">{details.fullName || 'Unknown Student'}</h2>
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center md:justify-start">
+                                            <Globe size={14} className="mr-2 text-indigo-500" /> {details.country || 'No Country'}
+                                        </p>
+                                    </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center space-x-4">
-                                    <div className="p-2 bg-white dark:bg-slate-900 rounded-xl text-indigo-500 shadow-sm"><Mail size={16}/></div>
-                                    <div className="overflow-hidden">
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Email</p>
-                                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate font-mono">{details.email}</p>
-                                    </div>
-                                </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center space-x-4">
+                                            <div className="p-2 bg-white dark:bg-slate-900 rounded-xl text-indigo-500 shadow-sm"><Mail size={16}/></div>
+                                            <div className="overflow-hidden">
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Email</p>
+                                                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate font-mono">{details.email}</p>
+                                            </div>
+                                        </div>
 
-                                <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center space-x-4">
-                                    <div className="p-2 bg-white dark:bg-slate-900 rounded-xl text-indigo-500 shadow-sm"><Phone size={16}/></div>
-                                    <div>
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Phone</p>
-                                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">{details.phone}</p>
+                                        <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center space-x-4">
+                                            <div className="p-2 bg-white dark:bg-slate-900 rounded-xl text-indigo-500 shadow-sm"><Phone size={16}/></div>
+                                            <div>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Phone</p>
+                                                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">{details.phone}</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-                            
-                            <div className="p-6 bg-slate-50 dark:bg-slate-950/50 rounded-3xl border border-slate-100 dark:border-slate-800 space-y-4">
-                                <div>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center"><MapPin size={12} className="mr-1.5"/> Permanent Address</p>
-                                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed pl-4 border-l-2 border-indigo-200 dark:border-indigo-900">{details.permAddress}</p>
-                                </div>
-                                {details.tempAddress && (
-                                    <div>
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center"><MapPin size={12} className="mr-1.5"/> Temporary Address</p>
-                                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed pl-4 border-l-2 border-slate-200 dark:border-slate-700">{details.tempAddress}</p>
+                                    
+                                    <div className="p-6 bg-slate-50 dark:bg-slate-950/50 rounded-3xl border border-slate-100 dark:border-slate-800 space-y-4">
+                                        <div>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center"><MapPin size={12} className="mr-1.5"/> Permanent Address</p>
+                                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed pl-4 border-l-2 border-indigo-200 dark:border-indigo-900">{details.permAddress}</p>
+                                        </div>
+                                        {details.tempAddress && (
+                                            <div>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center"><MapPin size={12} className="mr-1.5"/> Temporary Address</p>
+                                                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed pl-4 border-l-2 border-slate-200 dark:border-slate-700">{details.tempAddress}</p>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -520,7 +584,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                                 className="flex-1 md:flex-none px-6 py-3 rounded-xl bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 hover:shadow-emerald-500/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transform active:scale-95"
                             >
                                 {actionProcessing ? <RefreshCw size={16} className="animate-spin mr-2"/> : <CheckCircle size={16} className="mr-2"/>} 
-                                Approve Identity
+                                Approve {isNameChange ? 'Change' : 'Identity'}
                             </button>
                         </div>
                     </div>

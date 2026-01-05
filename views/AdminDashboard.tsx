@@ -4,7 +4,7 @@ import { UserProfile, ChangeRequest, SupportTicket, TicketMessage } from '../typ
 import { 
   Users, ShieldCheck, LifeBuoy, Trash2, 
   CheckCircle, XCircle, RefreshCw, User, Lock, 
-  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award
+  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award, Edit2, ArrowRight
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { ADMIN_USERNAME } from '../constants';
@@ -101,14 +101,37 @@ export const AdminDashboard: React.FC = () => {
   const handleVerifyRequest = async (req: ChangeRequest, approve: boolean) => {
       const data = await storageService.getData(`architect_data_${req.username}`);
       if (data && data.user) {
+          
+          if (req.type === 'NAME_CHANGE' && approve) {
+              const details = JSON.parse(req.details);
+              data.user.name = details.newName;
+          }
+
           data.user.isVerified = approve;
           data.user.verificationStatus = approve ? 'VERIFIED' : 'REJECTED';
-          data.user.level = approve ? 2 : 0; // Set to Verified Level (2) or Reset to Guest (0)
+          // Maintain level for Name Change, set for new Verification
+          if (req.type === 'VERIFICATION') {
+              data.user.level = approve ? 2 : 0; 
+          }
+          
           data.user.adminFeedback = approve 
-            ? "Identity Verified by Administration. Level Increased." 
-            : "Verification rejected. Please ensure details match your ID.";
+            ? (req.type === 'NAME_CHANGE' ? "Name Change Approved." : "Identity Verified by Administration. Level Increased.") 
+            : "Request rejected by administrator.";
           
           await storageService.setData(`architect_data_${req.username}`, data);
+          
+          // Update global users list if name changed
+          if (req.type === 'NAME_CHANGE' && approve) {
+               const details = JSON.parse(req.details);
+               const usersStr = localStorage.getItem('studentpocket_users');
+               if (usersStr) {
+                  const users = JSON.parse(usersStr);
+                  if (users[req.username]) {
+                      users[req.username].name = details.newName;
+                      localStorage.setItem('studentpocket_users', JSON.stringify(users));
+                  }
+               }
+          }
       }
 
       const updatedReqs = requests.map(r => 
@@ -217,7 +240,7 @@ export const AdminDashboard: React.FC = () => {
       if (selectedTicket?.id === id) setSelectedTicket(null);
   };
 
-  const pendingRequests = requests.filter(r => r.status === 'PENDING' && r.type === 'VERIFICATION');
+  const pendingRequests = requests.filter(r => r.status === 'PENDING' && (r.type === 'VERIFICATION' || r.type === 'NAME_CHANGE'));
   const recoveryRequests = requests.filter(r => r.status === 'PENDING' && r.type === 'RECOVERY');
   const openTicketsCount = tickets.filter(t => t.status === 'OPEN').length;
 
@@ -357,22 +380,39 @@ export const AdminDashboard: React.FC = () => {
                        <p className="text-xs font-bold uppercase tracking-wider">No Pending Verifications</p>
                    </div>
                )}
-               {pendingRequests.map(req => (
+               {pendingRequests.map(req => {
+                   const isNameChange = req.type === 'NAME_CHANGE';
+                   const details = isNameChange ? JSON.parse(req.details) : {};
+                   
+                   return (
                    <div key={req.id} className={`bg-white dark:bg-slate-900 p-6 rounded-2xl border ${req.autoFlagged ? 'border-red-500/50 dark:border-red-500/50' : 'border-slate-200 dark:border-slate-800'} shadow-sm flex flex-col md:flex-row justify-between items-center gap-4`}>
                        <div>
                            <div className="flex items-center gap-2 mb-1">
-                               <h4 className="font-bold text-sm text-slate-900 dark:text-white">Verification Request</h4>
+                               {isNameChange ? <Edit2 size={16} className="text-blue-500"/> : <ShieldCheck size={16} className="text-emerald-500"/>}
+                               <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                                   {isNameChange ? 'Profile Name Change' : 'Verification Request'}
+                               </h4>
                                {req.autoFlagged && <span className="bg-red-100 text-red-600 text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center"><ShieldAlert size={10} className="mr-1"/> Unverified Data Detected</span>}
                            </div>
-                           <p className="text-xs text-slate-500 font-mono">Ref: {req.generatedStudentId || 'N/A'} • User: {req.username}</p>
+                           
+                           {isNameChange ? (
+                               <p className="text-xs text-slate-500">
+                                   <span className="line-through opacity-50">{details.oldName}</span> 
+                                   <ArrowRight size={10} className="inline mx-1"/> 
+                                   <span className="font-bold text-indigo-600 dark:text-indigo-400">{details.newName}</span>
+                               </p>
+                           ) : (
+                               <p className="text-xs text-slate-500 font-mono">Ref: {req.generatedStudentId || 'N/A'} • User: {req.username}</p>
+                           )}
+                           
                            {req.autoFlagReason && <p className="text-[10px] text-red-500 font-bold mt-1">System Flag: {req.autoFlagReason}</p>}
                        </div>
                        <div className="flex space-x-2">
                            <button onClick={() => handleVerifyRequest(req, false)} className="px-4 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold text-xs uppercase hover:bg-red-100 transition-colors">Reject</button>
-                           <button onClick={() => handleVerifyRequest(req, true)} className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold text-xs uppercase hover:bg-emerald-700 transition-colors">Approve & Level Up</button>
+                           <button onClick={() => handleVerifyRequest(req, true)} className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold text-xs uppercase hover:bg-emerald-700 transition-colors">Approve</button>
                        </div>
                    </div>
-               ))}
+               )})}
            </div>
        )}
 

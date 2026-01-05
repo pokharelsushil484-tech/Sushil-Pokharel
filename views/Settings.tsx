@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { UserProfile } from '../types';
-import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Gavel, ExternalLink, ShieldAlert, UserMinus, Key, Lock, Eye, EyeOff } from 'lucide-react';
+import { UserProfile, ChangeRequest } from '../types';
+import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Gavel, ExternalLink, ShieldAlert, UserMinus, Key, Lock, Eye, EyeOff, Edit3, Save, X } from 'lucide-react';
 import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, CREATOR_NAME, MIN_PASSWORD_LENGTH, DEFAULT_USER } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -18,6 +18,8 @@ interface SettingsProps {
 export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, username, darkMode, toggleDarkMode, updateUser }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [showTotpSetup, setShowTotpSetup] = useState(false);
+  
+  // Password Change State
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -26,6 +28,11 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
+
+  // Name Change State
+  const [showNameChange, setShowNameChange] = useState(false);
+  const [newName, setNewName] = useState(user.name);
+  const [nameError, setNameError] = useState('');
 
   const isAdmin = username === ADMIN_USERNAME;
 
@@ -125,6 +132,61 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       }
   };
 
+  const handleSubmitNameChange = async () => {
+    if (!newName.trim() || newName === user.name) {
+        setShowNameChange(false);
+        return;
+    }
+    
+    // 1. Content Safety Check
+    const lowerName = newName.toLowerCase();
+    if (lowerName.includes("admin") || lowerName.includes("hacker") || lowerName.includes("root") || lowerName.includes("system")) {
+        // Auto-ban!
+        const updatedProfile: UserProfile = {
+            ...user,
+            isBanned: true,
+            banReason: "Security Violation: Inappropriate Profile Name Detected."
+        };
+        await storageService.setData(`architect_data_${username}`, { ...await storageService.getData(`architect_data_${username}`), user: updatedProfile });
+        updateUser(updatedProfile);
+        
+        // Force logout/reload to hit banned screen
+        window.location.reload();
+        return;
+    }
+
+    // 2. Create Change Request
+    const linkId = Math.random().toString(36).substring(7);
+    const existingReqs = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
+    
+    const request: ChangeRequest = {
+        id: 'REQ-NAME-' + Date.now(),
+        userId: username,
+        username: username,
+        type: 'NAME_CHANGE',
+        details: JSON.stringify({ oldName: user.name, newName: newName }),
+        status: 'PENDING',
+        createdAt: Date.now(),
+        linkId: linkId
+    };
+    
+    existingReqs.push(request);
+    localStorage.setItem('studentpocket_requests', JSON.stringify(existingReqs));
+
+    // 3. Set user to pending verification to lock them out until approved
+    const pendingProfile: UserProfile = {
+        ...user,
+        verificationStatus: 'PENDING_APPROVAL',
+        adminFeedback: 'Profile Name Change Request Pending Approval.'
+    };
+    
+    await storageService.setData(`architect_data_${username}`, { ...await storageService.getData(`architect_data_${username}`), user: pendingProfile });
+    updateUser(pendingProfile);
+    
+    // Redirect to lock screen
+    window.location.href = '/';
+  };
+
   const handleSystemWipe = async () => {
       if (window.confirm("CRITICAL: Wipe all local data nodes permanently?")) {
           await storageService.logActivity({
@@ -196,7 +258,30 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                 )}
             </div>
             <div className="flex-1 text-center md:text-left">
-                <h2 className="text-4xl font-bold tracking-tight mb-2">{user.name}</h2>
+                <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
+                    {showNameChange ? (
+                        <div className="flex items-center gap-2 bg-white/10 p-1 rounded-lg">
+                            <input 
+                                type="text" 
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                                className="bg-transparent border-none outline-none text-white font-bold text-2xl w-full"
+                                autoFocus
+                            />
+                            <button onClick={handleSubmitNameChange} className="p-1 hover:bg-white/20 rounded"><Check size={20}/></button>
+                            <button onClick={() => { setShowNameChange(false); setNewName(user.name); }} className="p-1 hover:bg-white/20 rounded"><X size={20}/></button>
+                        </div>
+                    ) : (
+                        <div className="group flex items-center gap-3">
+                             <h2 className="text-4xl font-bold tracking-tight">{user.name}</h2>
+                             {!isAdmin && (
+                                 <button onClick={() => setShowNameChange(true)} className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-white/10 rounded-full">
+                                     <Edit3 size={16} className="text-slate-300" />
+                                 </button>
+                             )}
+                        </div>
+                    )}
+                </div>
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
                    <span className="text-[10px] font-black uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full text-indigo-300">{isAdmin ? 'Lead Architect' : 'Identity Node'}</span>
                    <span className="text-[10px] font-mono text-slate-400">ID: {username}</span>
