@@ -104,23 +104,38 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
       setManualProcessing(true);
       setSecurityError('');
 
-      // 1. Validate ID
+      const inputId = manualId.trim();
       let targetUsername = '';
+
+      // 1. Search in Requests (by Generated ID or Username)
       const reqStr = localStorage.getItem('studentpocket_requests');
       if (reqStr) {
           const requests: ChangeRequest[] = JSON.parse(reqStr);
-          const match = requests.find(r => r.generatedStudentId === manualId || r.username === manualId);
+          const match = requests.find(r => r.generatedStudentId === inputId || r.username === inputId);
           if (match) targetUsername = match.username;
       }
 
+      // 2. Search in Users (by Username, Email, or Name) if not found in requests
       if (!targetUsername) {
            const usersStr = localStorage.getItem('studentpocket_users');
            const users = usersStr ? JSON.parse(usersStr) : {};
-           if (users[manualId]) targetUsername = manualId;
+           
+           // Direct Username match
+           if (users[inputId]) {
+               targetUsername = inputId;
+           } else {
+               // Search by Email or Name
+               const foundUser = Object.keys(users).find(key => {
+                   const u = users[key];
+                   return (u.email && u.email.toLowerCase() === inputId.toLowerCase()) || 
+                          (u.name && u.name.toLowerCase() === inputId.toLowerCase());
+               });
+               if (foundUser) targetUsername = foundUser;
+           }
       }
 
       if (!targetUsername) {
-          setSecurityError('Student ID not found in system.');
+          setSecurityError('User not found. Try Username, Email, or Student ID.');
           setManualProcessing(false);
           return;
       }
@@ -281,7 +296,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                             value={manualId}
                             onChange={(e) => setManualId(e.target.value)}
                             className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all"
-                            placeholder="Student ID"
+                            placeholder="Student ID / Username / Email"
                             required
                         />
                     </div>

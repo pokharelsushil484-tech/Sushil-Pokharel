@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, Info, X, ShieldCheck, Globe, Camera, ArrowLeft, Check } from 'lucide-react';
-import { ADMIN_USERNAME, ADMIN_SECRET, COPYRIGHT_NOTICE, MIN_PASSWORD_LENGTH, SYSTEM_DOMAIN } from '../constants';
+import { ADMIN_USERNAME, ADMIN_SECRET, COPYRIGHT_NOTICE, MIN_PASSWORD_LENGTH, SYSTEM_DOMAIN, DEFAULT_USER, SYSTEM_UPGRADE_TOKEN } from '../constants';
 import { storageService } from '../services/storageService';
 
 interface LoginProps {
@@ -157,7 +157,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
 
     setIsProcessing(true);
-    setTimeout(() => {
+    
+    // Simulate Network Delay and Create Profile
+    setTimeout(async () => {
+        // 1. Save Auth Creds
         users[cleanUsername] = { 
             password, 
             email: cleanEmail, 
@@ -165,6 +168,20 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             verified: false
         };
         localStorage.setItem('studentpocket_users', JSON.stringify(users));
+
+        // 2. Initialize Data Profile (Important for "Valid User" check)
+        const newProfile: UserProfile = {
+            ...DEFAULT_USER,
+            name: name,
+            email: cleanEmail,
+            acceptedTermsVersion: SYSTEM_UPGRADE_TOKEN
+        };
+        
+        await storageService.setData(`architect_data_${cleanUsername}`, {
+            user: newProfile,
+            chatHistory: [],
+            vaultDocs: []
+        });
         
         setUsername(cleanUsername);
         setView('IDENTITY_SNAP');
@@ -309,6 +326,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <div className="pt-4 space-y-3">
                 <button type="submit" disabled={isProcessing || !isPasswordValid} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg">Register</button>
                 <button type="button" onClick={() => setView('LOGIN')} className="w-full text-slate-500 py-2 text-xs font-bold uppercase tracking-wide hover:text-white transition-colors">Cancel</button>
+                <p className="text-[9px] text-slate-500 text-center uppercase tracking-widest">Account data created locally.</p>
               </div>
             </form>
           )}

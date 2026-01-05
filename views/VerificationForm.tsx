@@ -104,8 +104,22 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
 
     localStorage.setItem('studentpocket_requests', JSON.stringify(existing));
 
-    setTimeout(() => {
-      updateUser({ ...user, verificationStatus: 'PENDING_APPROVAL' });
+    setTimeout(async () => {
+      // Create a new user profile object with the generated ID for redundancy
+      const updatedProfile: UserProfile = { 
+          ...user, 
+          verificationStatus: 'PENDING_APPROVAL',
+          studentId: generatedStudentId 
+      };
+      
+      // Update local state
+      updateUser(updatedProfile);
+      
+      // Update database persistence immediately
+      const dataKey = `architect_data_${username}`;
+      const stored = await storageService.getData(dataKey) || {};
+      await storageService.setData(dataKey, { ...stored, user: updatedProfile });
+
       setSubmitting(false);
       const origin = window.location.origin;
       const link = `${origin}/v/${linkId}`;

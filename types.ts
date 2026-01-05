@@ -27,6 +27,7 @@ export interface UserProfile {
   adminFeedback?: string; // Stores the email content/rejection reason
   rescueKey?: string; // Static master key for alternative verification
   acceptedTermsVersion?: string;
+  studentId?: string; // Generated ID during verification
   storageLimitGB: number;
   storageUsedBytes: number;
   totpEnabled: boolean;
