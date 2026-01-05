@@ -159,7 +159,7 @@ export const storageService = {
   /**
    * MASTER KEY / ADMISSION KEY / TOKEN ROTATION SYSTEM
    * Shared PIN logic: MS-[PIN], ADM-[PIN], TKN-[PIN]
-   * 1 Minute Active -> 1 Minute Deleted (Cooldown) -> Regenerate
+   * 30 Seconds Active -> 30 Seconds Deleted (Cooldown) -> Regenerate
    */
   async getSystemKeys(): Promise<SystemKeyState> {
     const db = await initDB();
@@ -168,7 +168,7 @@ export const storageService = {
         const store = transaction.objectStore(SYSTEM_STORE_NAME);
         const request = store.get('key_cycle_state');
 
-        const DURATION = 60 * 1000; // 1 Minute
+        const DURATION = 30 * 1000; // 30 Seconds ESD Time
 
         request.onsuccess = () => {
             let data = request.result;

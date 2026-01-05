@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Clock, Lock, FileText, LogOut, KeyRound, ArrowRight, RefreshCw, ChevronLeft, Ticket } from 'lucide-react';
 import { APP_NAME } from '../constants';
 import { storageService } from '../services/storageService';
@@ -14,6 +14,21 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
   const [inputKey, setInputKey] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(30);
+
+  // Real-time countdown effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+            // Optional: You could allow retry or key refresh here
+            return 30; // Loop or stay at 0 depending on desired UX. Looping for system rotation match.
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleUnlock = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -103,6 +118,9 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                 <div className="w-24 h-24 mx-auto mb-8 bg-slate-800 rounded-full flex items-center justify-center border-4 border-slate-900 relative">
                   <div className="absolute inset-0 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin"></div>
                   <ShieldAlert size={40} className="text-indigo-400" />
+                  <div className="absolute -bottom-2 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-500/50">
+                      {countdown}s
+                  </div>
                 </div>
 
                 <h1 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Verification In Progress</h1>
@@ -114,7 +132,7 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                         <span className="text-xs font-black uppercase tracking-wider">Est. Time: 30 Seconds</span>
                     </div>
                     <p className="text-[11px] text-slate-300 leading-relaxed">
-                        Your data is currently undergoing a strict privacy review. During this time, access to the dashboard is <span className="text-white font-bold">BLOCKED</span> to prevent unauthorized data leakage.
+                        Your data is currently undergoing a strict privacy review. During this time, access to the dashboard is <span className="text-white font-bold">BLOCKED</span>.
                     </p>
                     <div className="mt-4 pt-4 border-t border-white/5 flex flex-col items-center">
                         <span className="text-[9px] text-slate-500 uppercase tracking-widest mb-1">Reference ID</span>
@@ -155,7 +173,9 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                      <h2 className="text-sm font-bold text-white uppercase tracking-widest">
                         {mode === 'MASTER_KEY' ? 'Administrative Override' : 'Verification Token'}
                      </h2>
-                     <div className="w-8"></div>
+                     <div className="flex items-center text-[9px] font-mono text-amber-500">
+                         <Clock size={10} className="mr-1"/> {countdown}s
+                     </div>
                  </div>
 
                  <div className="w-20 h-20 mx-auto mb-6 bg-emerald-900/20 rounded-full flex items-center justify-center border border-emerald-500/30">

@@ -272,7 +272,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                       setLoginInput(targetUsername); 
                       setView('IDENTITY_SNAP');
                   } else {
-                      setError("Invalid or Expired Key (Keys rotate every minute).");
+                      setError("Invalid or Expired Key (Keys rotate every 30s).");
                   }
               } else {
                   setError("Profile data corruption.");
@@ -507,7 +507,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                       <h3 className="text-white font-bold text-lg mb-2">System Key Login</h3>
                       <p className="text-xs text-slate-400">Use 'MS-', 'ADM-', or 'TKN-' keys (Shared PIN).</p>
                       <div className="mt-2 flex items-center justify-center text-amber-400 text-[10px] font-bold uppercase tracking-wide">
-                        <AlertTriangle size={12} className="mr-1" /> Dynamic Key Rotation (60s)
+                        <AlertTriangle size={12} className="mr-1" /> Dynamic Key Rotation (30s)
                       </div>
                   </div>
                   
