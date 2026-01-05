@@ -19,7 +19,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
   const [isSyncing, setIsSyncing] = useState(false);
   const [showTotpSetup, setShowTotpSetup] = useState(false);
   
-  // Password Change State
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -29,7 +28,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
 
-  // Profile Edit State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [requestMode, setRequestMode] = useState<'NONE' | 'SELECT' | 'MASTER_KEY' | 'LINK_VIEW'>('NONE');
   const [editForm, setEditForm] = useState({
@@ -53,28 +51,18 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       const negativeTerms = ["hate", "kill", "die", "attack", "bomb", "stupid", "idiot", "violence", "blood", "death", "hack", "crack", "destroy", "bad", "evil", "enemy"];
       
       if (negativeTerms.some(term => lower.includes(term))) {
-          // IMMEDIATE FULL LOCKDOWN
-          const updatedProfile: UserProfile = {
-            ...user,
-            isBanned: true,
-            isSuspicious: true,
-            isVerified: false,
-            badges: [...(user.badges || []), 'DANGEROUS', 'SUSPICIOUS'],
-            banReason: "CRITICAL SECURITY STOP: Negative/Violent content detected. System Force Logout."
-          };
-          
-          await storageService.setData(`architect_data_${username}`, { 
-              ...await storageService.getData(`architect_data_${username}`), 
-              user: updatedProfile 
-          });
-          
-          await storageService.logActivity({
-            actor: username,
-            targetUser: username,
-            actionType: 'SECURITY',
-            description: `VIOLENCE DETECTED: Account Fully Blocked. Badges applied.`,
-            metadata: `Content: ${text}`
-          });
+          // IMMEDIATE CENTRALIZED LOCKDOWN
+          await storageService.enforceSecurityLockdown(
+              username, 
+              "CRITICAL SECURITY STOP: Negative/Violent content detected. System Force Logout.",
+              `Content: ${text}`
+          );
+
+          // Update local state to reflect ban immediately
+          const stored = await storageService.getData(`architect_data_${username}`);
+          if (stored && stored.user) {
+              updateUser(stored.user);
+          }
 
           // Force reload to trigger "App Removed" / Lock Screen
           window.location.reload();
@@ -161,7 +149,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       }
   };
 
-  // The 3 Option Logic
   const handleRequestSubmit = async (method: 'ADMIN' | 'MASTER' | 'LINK') => {
     // 1. Scan for Violence first
     const combinedData = `${editForm.name} ${editForm.education} ${editForm.email} ${editForm.phone}`;
@@ -172,11 +159,9 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
         return;
     }
 
-    // Prepare Request Object
     const linkId = Math.random().toString(36).substring(2, 9);
     const existingReqs = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
     
-    // Create change request for Admin visibility
     const request: ChangeRequest = {
         id: 'REQ-DATA-' + Date.now(),
         userId: username,
@@ -193,17 +178,14 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
     };
 
     if (method === 'LINK') {
-        // Use /r/ for Verification Links
         const url = `www.${SYSTEM_DOMAIN}/r/${linkId}`;
         setGeneratedLink(url);
         
-        // Save request but keep user in session for link view, don't lock yet
         existingReqs.push(request);
         localStorage.setItem('studentpocket_requests', JSON.stringify(existingReqs));
         
         setRequestMode('LINK_VIEW');
     } else {
-        // Admin Request - Lock Account to Pending
         existingReqs.push(request);
         localStorage.setItem('studentpocket_requests', JSON.stringify(existingReqs));
 
@@ -215,7 +197,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
         
         await storageService.setData(`architect_data_${username}`, { ...await storageService.getData(`architect_data_${username}`), user: pendingProfile });
         updateUser(pendingProfile);
-        window.location.href = '/'; // Force reload to trigger pending view
+        window.location.href = '/'; 
     }
   };
 
@@ -224,14 +206,11 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       
       const isAdminKey = inputKey === 'a' || inputKey === ADMIN_USERNAME; 
       
-      // Allow the specific admission key generated for this user
       const isPersonalKey = user.admissionKey && inputKey === user.admissionKey;
       
-      // Check the global system key
       const isSystemKey = await storageService.validateSystemKey(inputKey);
 
       if (isSystemKey || isAdminKey || isPersonalKey) {
-          // Success - Apply Changes Immediately
           const updatedProfile: UserProfile = {
               ...user,
               name: editForm.name,
@@ -239,13 +218,12 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
               phone: editForm.phone,
               education: editForm.education,
               adminFeedback: "Updated via Master Key Protocol.",
-              isSuspicious: false // Clear suspicion on master key update
+              isSuspicious: false 
           };
           
           await storageService.setData(`architect_data_${username}`, { ...await storageService.getData(`architect_data_${username}`), user: updatedProfile });
           updateUser(updatedProfile);
           
-          // Update Global Auth Store if name/email changed
           const usersStr = localStorage.getItem('studentpocket_users');
           if (usersStr) {
              const users = JSON.parse(usersStr);
@@ -363,12 +341,11 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                             </div>
                         )}
 
-                        {/* REQUEST MODE SELECTION - The 3 Options */}
+                        {/* REQUEST MODE SELECTION */}
                         {requestMode === 'SELECT' && (
                              <div className="space-y-3 animate-slide-left">
                                  <p className="text-[10px] text-white/70 uppercase tracking-widest text-center mb-2">Select Authentication Method</p>
                                  
-                                 {/* Option 1: Admin Request */}
                                  <button onClick={() => handleRequestSubmit('ADMIN')} className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors group">
                                      <div className="flex items-center">
                                          <div className="p-2 bg-indigo-500/20 rounded-lg mr-3 text-indigo-300"><Server size={16}/></div>
@@ -380,7 +357,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                                      <ShieldCheck size={14} className="text-white/30 group-hover:text-white"/>
                                  </button>
 
-                                 {/* Option 2: Master Key */}
                                  <button onClick={() => handleRequestSubmit('MASTER')} className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors group">
                                      <div className="flex items-center">
                                          <div className="p-2 bg-emerald-500/20 rounded-lg mr-3 text-emerald-300"><Key size={16}/></div>
@@ -392,7 +368,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                                      <Check size={14} className="text-white/30 group-hover:text-white"/>
                                  </button>
 
-                                 {/* Option 3: Verification Link */}
                                  <button onClick={() => handleRequestSubmit('LINK')} className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors group">
                                      <div className="flex items-center">
                                          <div className="p-2 bg-amber-500/20 rounded-lg mr-3 text-amber-300"><LinkIcon size={16}/></div>

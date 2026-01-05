@@ -1,5 +1,6 @@
 
-import { ActivityLog } from '../types';
+import { ActivityLog, UserProfile } from '../types';
+import { DEFAULT_USER } from '../constants';
 
 /**
  * Persistence Engine: IndexedDB Wrapper
@@ -47,6 +48,7 @@ const generateUUID = () => {
 };
 
 export interface SystemKeyState {
+    pin: string | null; // Shared 6-digit PIN
     msCode: string | null;
     admCode: string | null;
     status: 'ACTIVE' | 'COOLDOWN';
@@ -155,6 +157,7 @@ export const storageService = {
 
   /**
    * MASTER KEY / ADMISSION KEY ROTATION SYSTEM
+   * Shared PIN logic: MS-[PIN] and ADM-[PIN]
    * 1 Minute Active -> 1 Minute Deleted (Cooldown) -> Regenerate
    */
   async getSystemKeys(): Promise<SystemKeyState> {
@@ -170,13 +173,13 @@ export const storageService = {
             let data = request.result;
             const now = Date.now();
 
-            // Initial Generation
+            // Initial Generation or Regeneration
             if (!data) {
-                const msKey = 'MS-' + Math.floor(100000 + Math.random() * 900000);
-                const admKey = 'ADM-' + Math.floor(100000 + Math.random() * 900000);
+                const pin = Math.floor(100000 + Math.random() * 900000).toString();
                 data = { 
-                    msCode: msKey, 
-                    admCode: admKey, 
+                    pin: pin,
+                    msCode: `MS-${pin}`, 
+                    admCode: `ADM-${pin}`, 
                     status: 'ACTIVE', 
                     timerStart: now 
                 };
@@ -191,6 +194,7 @@ export const storageService = {
                 if (elapsed >= DURATION) {
                     // Switch to Cooldown (Delete Keys)
                     data.status = 'COOLDOWN';
+                    data.pin = null;
                     data.msCode = null;
                     data.admCode = null;
                     data.timerStart = now;
@@ -204,11 +208,11 @@ export const storageService = {
                 // Status is COOLDOWN
                 if (elapsed >= DURATION) {
                     // Regenerate Keys
-                    const msKey = 'MS-' + Math.floor(100000 + Math.random() * 900000);
-                    const admKey = 'ADM-' + Math.floor(100000 + Math.random() * 900000);
+                    const pin = Math.floor(100000 + Math.random() * 900000).toString();
                     data.status = 'ACTIVE';
-                    data.msCode = msKey;
-                    data.admCode = admKey;
+                    data.pin = pin;
+                    data.msCode = `MS-${pin}`;
+                    data.admCode = `ADM-${pin}`;
                     data.timerStart = now;
                     store.put(data, 'key_cycle_state');
                     resolve({ ...data, timerRemaining: Math.ceil(DURATION / 1000) });
@@ -228,8 +232,43 @@ export const storageService = {
   async validateSystemKey(input: string): Promise<boolean> {
       const state = await this.getSystemKeys();
       if (state.status === 'ACTIVE') {
+          // Input must match either MS or ADM format exactly
           return input === state.msCode || input === state.admCode;
       }
       return false;
+  },
+
+  /**
+   * SECURITY LOCKDOWN PROTOCOL
+   * Immediately bans user, revokes verification, adds badges, and logs event.
+   */
+  async enforceSecurityLockdown(username: string, reason: string, context: string): Promise<void> {
+      const dataKey = `architect_data_${username}`;
+      const storedData = await this.getData(dataKey);
+      
+      if (storedData && storedData.user) {
+          const updatedProfile: UserProfile = {
+            ...storedData.user,
+            isBanned: true,
+            isSuspicious: true,
+            isVerified: false,
+            // Apply Mandatory Badges
+            badges: Array.from(new Set([...(storedData.user.badges || []), 'DANGEROUS', 'SUSPICIOUS'])),
+            banReason: reason
+          };
+          
+          await this.setData(dataKey, { 
+              ...storedData, 
+              user: updatedProfile 
+          });
+          
+          await this.logActivity({
+            actor: username,
+            targetUser: username,
+            actionType: 'SECURITY',
+            description: 'CRITICAL SECURITY LOCKDOWN: Suspicious activity detected.',
+            metadata: `Context: ${context} | Reason: ${reason}`
+          });
+      }
   }
 };

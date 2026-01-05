@@ -1,7 +1,7 @@
 
 import { UserProfile } from './types';
 
-export const APP_VERSION = "25.4.4-SECURE"; 
+export const APP_VERSION = "25.4.5-SECURE"; 
 export const ADMIN_USERNAME = "admin"; 
 export const ADMIN_SECRET = "a"; 
 export const CREATOR_NAME = "Sushil Pokharel";

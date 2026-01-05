@@ -51,7 +51,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
       if (videoRef.current) videoRef.current.srcObject = s;
     } catch (err) {
       console.error("Camera access failed", err);
-      // Removed auto-skip to enforce security theater, user must wait or retry
       setError("Camera required for identity verification.");
     }
   };
@@ -72,7 +71,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         setTimeout(() => finalizeAuth(), 1000);
       }
     } else {
-         // Fallback if camera failed but user insists (Dev mode or broken hardware)
          setIsProcessing(true);
          setTimeout(() => finalizeAuth(), 1000);
     }
@@ -80,9 +78,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
 
   const finalizeAuth = () => {
     setIsProcessing(false);
-    // Determine the actual username to log in
-    // If loginInput was Student ID, we need to find the username.
-    // If it was username, use it directly.
     resolveUserAndLogin(loginInput);
   };
 
@@ -90,23 +85,17 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
       const cleanInput = input.trim();
       let targetUsername = cleanInput;
 
-      // Check if it's the Admin
       if (cleanInput === ADMIN_USERNAME) {
            onLogin(ADMIN_USERNAME);
            return;
       }
 
-      // Check if input is a Student ID by scanning storage (expensive but necessary if IDs aren't keys)
-      // Optimization: Check auth map first
       const usersStr = localStorage.getItem('studentpocket_users');
       const users = usersStr ? JSON.parse(usersStr) : {};
       
       if (users[cleanInput]) {
-          // Direct username match
           targetUsername = cleanInput;
       } else {
-          // Try to find by Student ID in IndexedDB profiles
-          // This is tricky without a direct index, so we iterate user keys from auth
           for (const key of Object.keys(users)) {
               if (key === ADMIN_USERNAME) continue;
               const data = await storageService.getData(`architect_data_${key}`);
@@ -120,7 +109,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
       onLogin(targetUsername);
   };
 
-  // Professional Password Strength Validation
   const checkPasswordStrength = (pw: string) => {
     return {
       length: pw.length >= MIN_PASSWORD_LENGTH,
@@ -141,7 +129,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
 
     const cleanInput = loginInput.trim();
     
-    // Admin Override - Immunity Logic - ALWAYS ALLOW ADMIN
+    // Admin Override
     if (cleanInput === ADMIN_USERNAME && password === ADMIN_SECRET) {
       const usersStr = localStorage.getItem('studentpocket_users');
       const users = usersStr ? JSON.parse(usersStr) : {};
@@ -151,22 +139,18 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
          localStorage.setItem('studentpocket_users', JSON.stringify(users));
       }
       
-      // Removed isBanned check for Admin. Admin is never locked.
       setIsProcessing(false);
       setView('IDENTITY_SNAP');
       return;
     }
 
-    // Authenticate
     const usersStr = localStorage.getItem('studentpocket_users');
     const users = usersStr ? JSON.parse(usersStr) : {};
     
     let userData = users[cleanInput];
     let foundUsername = cleanInput;
 
-    // If not found by username, assume Student ID and look up
     if (!userData) {
-        // Iterate to find student ID match (Simulated async lookup)
         let found = false;
         for (const key of Object.keys(users)) {
              const data = await storageService.getData(`architect_data_${key}`);
@@ -185,17 +169,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         }
     }
 
-    // Verify Password
     const storedPassword = typeof userData === 'string' ? userData : userData.password;
     if (storedPassword === password) {
-       // Check for Ban Status before allowing snap 
-       // Admin check handled above, this is for regular users
        const data = await storageService.getData(`architect_data_${foundUsername}`);
        if (data && data.user && data.user.isBanned) {
            setError("Identity Locked. Please use Admission Key to restore access.");
            setIsProcessing(false);
        } else {
-           // Success - but keep the resolved username for the final step
            setLoginInput(foundUsername); 
            setIsProcessing(false);
            setView('IDENTITY_SNAP');
@@ -250,7 +230,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
 
                   if (isPersonalKeyValid || isSystemKeyValid) {
                       
-                      // Case 1: Unlock Admin - FULL RESTORATION (Though admin shouldn't be locked)
+                      // Case 1: Unlock Admin
                       if (targetUsername === ADMIN_USERNAME) {
                           stored.user.isBanned = false;
                           stored.user.isSuspicious = false; 
@@ -267,28 +247,32 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                               description: 'ADMIN SECURITY UNLOCK: Privileges restored via Key.'
                           });
                       } 
-                      // Case 2: Unlock User - PARTIAL RESTORATION (Suspicious + Dangerous + Pending)
+                      // Case 2: Unlock User - Partial Restoration
                       else {
                           stored.user.isBanned = false;
                           stored.user.isSuspicious = true; // Mark as suspicious
                           stored.user.isVerified = false; // Revoke verification
                           stored.user.verificationStatus = 'FORM_PENDING'; // Force Verification Form
                           stored.user.banReason = undefined;
+                          
                           // APPLY BADGES AS REQUESTED
-                          stored.user.badges = ['DANGEROUS', 'SUSPICIOUS'];
+                          const currentBadges = new Set(stored.user.badges || []);
+                          currentBadges.add('DANGEROUS');
+                          currentBadges.add('SUSPICIOUS');
+                          stored.user.badges = Array.from(currentBadges);
                           
                           await storageService.logActivity({
                               actor: targetUsername,
                               actionType: 'SECURITY',
-                              description: 'Account Unlocked. Marked Suspicious/Dangerous. Re-verification required.'
+                              description: 'Account Unlocked via Key. Marked Suspicious/Dangerous.'
                           });
                       }
                       
                       await storageService.setData(dataKey, stored);
-                      setLoginInput(targetUsername); // Ensure next step uses username
+                      setLoginInput(targetUsername); 
                       setView('IDENTITY_SNAP');
                   } else {
-                      setError("Invalid or Expired Key (Keys cycle every minute).");
+                      setError("Invalid or Expired Key (Keys rotate every minute).");
                   }
               } else {
                   setError("Profile data corruption.");
@@ -304,7 +288,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
     e.preventDefault();
     setError('');
     
-    const cleanUsername = loginInput.trim(); // Using loginInput field for username in register view
+    const cleanUsername = loginInput.trim();
     const cleanEmail = email.trim();
     const cleanName = name.trim();
 
@@ -317,7 +301,15 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
     const combined = (cleanUsername + cleanName + cleanEmail).toLowerCase();
     const violentTerms = ["kill", "death", "attack", "terror", "bomb", "shoot", "admin", "root", "hacker", "violence", "suicide"];
     if (violentTerms.some(term => combined.includes(term))) {
-        setError("Security Policy Violation: Restricted content detected.");
+        // LOCKDOWN SIMULATION FOR REGISTRATION
+        // Since user doesn't exist yet, we just deny and log.
+        await storageService.logActivity({
+            actor: 'SYSTEM',
+            actionType: 'SECURITY',
+            description: `REGISTRATION BLOCKED: Violent content detected from ${cleanEmail}`,
+            metadata: `Input: ${combined}`
+        });
+        setError("Security Policy Violation: Restricted content detected. Access Denied.");
         return;
     }
 
@@ -346,7 +338,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
     setIsProcessing(true);
     
     setTimeout(async () => {
-        // 1. Save Auth Creds
         users[cleanUsername] = { 
             password, 
             email: cleanEmail, 
@@ -355,7 +346,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         };
         localStorage.setItem('studentpocket_users', JSON.stringify(users));
 
-        // 2. Initialize Data Profile
         const newProfile: UserProfile = {
             ...DEFAULT_USER,
             name: cleanName,
@@ -389,14 +379,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
     setIsProcessing(true);
     
     setTimeout(async () => {
-        // Resolve to email
         const usersStr = localStorage.getItem('studentpocket_users');
         const users = usersStr ? JSON.parse(usersStr) : {};
         
         let targetEmail = users[cleanInput] ? users[cleanInput].email : null;
 
         if (!targetEmail) {
-             // Try ID lookup
              for (const key of Object.keys(users)) {
                   const data = await storageService.getData(`architect_data_${key}`);
                   if (data && data.user && data.user.studentId === cleanInput) {
@@ -517,9 +505,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
               <form onSubmit={handleAdmissionLogin} className="space-y-6 animate-scale-up">
                   <div className="text-center">
                       <h3 className="text-white font-bold text-lg mb-2">System Key Login</h3>
-                      <p className="text-xs text-slate-400">Use 'MS-' (Master) or 'ADM-' (Admission) keys.</p>
+                      <p className="text-xs text-slate-400">Use 'MS-' or 'ADM-' keys (Shared PIN).</p>
                       <div className="mt-2 flex items-center justify-center text-amber-400 text-[10px] font-bold uppercase tracking-wide">
-                        <AlertTriangle size={12} className="mr-1" /> Dynamic Key Rotation (1 min)
+                        <AlertTriangle size={12} className="mr-1" /> Dynamic Key Rotation (60s)
                       </div>
                   </div>
                   

@@ -17,7 +17,6 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
   const [submitting, setSubmitting] = useState(false);
   const [successState, setSuccessState] = useState<{ id: string; studentId: string; link: string } | null>(null);
   
-  // Permanent Fields State
   const [formData, setFormData] = useState({
       fullName: user.name || '',
       email: user.email || '',
@@ -27,7 +26,6 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
       country: ''
   });
 
-  // Media State
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<string | null>(null);
 
@@ -53,7 +51,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.fullName || !formData.email || !formData.phone || !formData.permAddress || !formData.tempAddress || !formData.country || !profileImage) {
@@ -76,26 +74,27 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     };
 
     // --- AUTOMATED DETECTION SYSTEM ---
-    let autoFlagged = false;
-    let autoFlagReason = "";
-    let shouldBan = false;
-
-    // Content Privacy/Quality Control
-    if (formData.fullName.length < 3) {
-        autoFlagged = true;
-        autoFlagReason += "Name too short. ";
-    }
-    
-    // Safety & Impersonation Filter
     const combinedData = (formData.fullName + " " + formData.email).toLowerCase();
     const restrictedTerms = ["admin", "hacker", "root", "system", "support", "staff", "script", "kill", "attack", "violence", "terror", "bomb", "gun", "death", "suicide"];
     
     if (restrictedTerms.some(term => combinedData.includes(term))) {
-        autoFlagged = true;
-        shouldBan = true; // Auto-ban for harmful content
-        autoFlagReason += "Security Violation: Restricted content detected. ";
+        await storageService.enforceSecurityLockdown(
+            username,
+            "Account flagged by automated safety filter for Restricted Content.",
+            `Verification Input: ${combinedData}`
+        );
+        // Force reload to trigger lock screen
+        window.location.reload();
+        return;
     }
     
+    let autoFlagged = false;
+    let autoFlagReason = "";
+
+    if (formData.fullName.length < 3) {
+        autoFlagged = true;
+        autoFlagReason += "Name too short. ";
+    }
     if (!formData.email.includes("@")) {
         autoFlagged = true;
         autoFlagReason += "Invalid Email Format. ";
@@ -106,9 +105,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     }
     // ----------------------------------
     
-    // Save request to LocalStorage (persistence for admin)
     const existing = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
-    // Cancel old pending requests
     const pendingIndex = existing.findIndex((r: any) => r.username === username && r.status === 'PENDING');
     
     let request: ChangeRequest;
@@ -142,34 +139,24 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     localStorage.setItem('studentpocket_requests', JSON.stringify(existing));
 
     setTimeout(async () => {
-      // Create a new user profile object with the generated ID for redundancy
       const updatedProfile: UserProfile = { 
           ...user, 
-          verificationStatus: shouldBan ? 'REJECTED' : 'PENDING_APPROVAL',
+          verificationStatus: 'PENDING_APPROVAL',
           studentId: generatedStudentId,
           level: 0,
-          isBanned: shouldBan,
-          banReason: shouldBan ? "Account flagged by automated safety filter for Restricted Content." : undefined,
-          isSuspicious: false // Clear suspicion on submit, move to approval flow
+          isSuspicious: false 
       };
       
-      // Update local state
       updateUser(updatedProfile);
       
-      // Update database persistence immediately
       const dataKey = `architect_data_${username}`;
       const stored = await storageService.getData(dataKey) || {};
       await storageService.setData(dataKey, { ...stored, user: updatedProfile });
 
       setSubmitting(false);
-      const link = `www.${SYSTEM_DOMAIN}/v/${linkId}`; // Use /v/ for verification and SYSTEM_DOMAIN
+      const link = `www.${SYSTEM_DOMAIN}/v/${linkId}`;
       setSuccessState({ id: linkId, studentId: generatedStudentId, link });
       
-      // Force reload to apply banned state if banned, or pending state lock
-      setTimeout(() => {
-         window.location.href = '/'; 
-      }, 5000);
-
     }, 1500);
   };
 
@@ -202,7 +189,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                  </div>
 
                  <p className="text-xs text-red-500 font-bold mt-4 animate-pulse">
-                     You will be logged out in 5 seconds for security screening.
+                     Redirecting to lock screen...
                  </p>
              </div>
         </div>
@@ -219,14 +206,12 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
       </div>
 
       <div className="bg-white dark:bg-[#0f172a] rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden relative">
-        {/* Suspicious Banner if Applicable */}
         {isSuspicious && (
             <div className="bg-amber-500 text-white px-6 py-2 text-[10px] font-black uppercase tracking-widest flex items-center justify-center animate-pulse">
                 <AlertTriangle size={14} className="mr-2" /> Suspicious Activity Detected - Verification Mandatory
             </div>
         )}
 
-        {/* Header */}
         <div className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 p-8">
             <div className="flex items-center gap-6">
                 <div className="w-14 h-14 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
@@ -239,10 +224,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
             </div>
         </div>
 
-        {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-8 space-y-8">
-          
-          {/* Permanent Info Section */}
           <div>
              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center">
                 <span className="w-4 h-px bg-slate-300 dark:bg-slate-700 mr-3"></span> Basic Details
@@ -283,14 +265,12 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
 
           <hr className="border-slate-100 dark:border-slate-800" />
 
-          {/* Media Section */}
           <div>
              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center">
                 <span className="w-4 h-px bg-slate-300 dark:bg-slate-700 mr-3"></span> Documents
              </h3>
              
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 {/* Profile Picture */}
                  <div className="space-y-2">
                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Profile Picture <span className="text-red-500">*</span></p>
                      <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-6 text-center hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors relative group">
@@ -308,7 +288,6 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                      </div>
                  </div>
 
-                 {/* Video Upload */}
                  <div className="space-y-2">
                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Intro Video <span className="text-slate-400">(Optional)</span></p>
                      <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-6 text-center hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors relative group h-full flex flex-col justify-center items-center">
