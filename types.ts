@@ -9,7 +9,8 @@ export enum View {
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
   VERIFY_LINK = 'VERIFY_LINK',
   INVITE_REGISTRATION = 'INVITE_REGISTRATION',
-  SUPPORT = 'SUPPORT'
+  SUPPORT = 'SUPPORT',
+  ERROR = 'ERROR'
 }
 
 export interface UserProfile {

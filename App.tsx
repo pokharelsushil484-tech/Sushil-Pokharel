@@ -12,13 +12,14 @@ import { VerificationForm } from './views/VerificationForm';
 import { LinkVerification } from './views/LinkVerification';
 import { InviteRegistration } from './views/InviteRegistration';
 import { Support } from './views/Support';
+import { ErrorPage } from './views/ErrorPage';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { TermsModal } from './components/TermsModal';
-import { ShieldX, Globe, Terminal, CheckCircle, XCircle, X } from 'lucide-react';
+import { ShieldX, Globe, CheckCircle, XCircle, X } from 'lucide-react';
 
 import { View, UserProfile, VaultDocument, ChatMessage } from './types';
-import { ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN, APP_NAME, ADMIN_EMAIL, SYSTEM_DOMAIN } from './constants';
+import { ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN, APP_NAME, SYSTEM_DOMAIN } from './constants';
 import { storageService } from './services/storageService';
 
 const App = () => {
@@ -125,7 +126,7 @@ const App = () => {
           setIsLoading(false);
         }
       } else {
-        setIsLoading(false);
+          setIsLoading(false);
       }
     };
     if (view !== View.VERIFY_LINK && view !== View.INVITE_REGISTRATION) {
@@ -248,7 +249,8 @@ const App = () => {
       case View.VERIFICATION_FORM: return <VerificationForm user={data.user} username={currentUsername!} updateUser={u => setData(prev => ({...prev, user: u}))} onNavigate={setView} />;
       case View.SETTINGS: return <Settings user={data.user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={handleLogout} username={currentUsername} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={u => setData(prev => ({...prev, user: u}))} />;
       case View.SUPPORT: return <Support username={currentUsername} />;
-      case View.ADMIN_DASHBOARD: return currentUsername === ADMIN_USERNAME ? <AdminDashboard /> : null;
+      case View.ADMIN_DASHBOARD: return currentUsername === ADMIN_USERNAME ? <AdminDashboard /> : <ErrorPage type="404" title="Access Denied" message="You do not have permission to view this page." />;
+      case View.ERROR: return <ErrorPage type="404" title="Page Not Found" message="The command you entered does not map to a valid module." />;
       default: return <Dashboard user={data.user} username={currentUsername} onNavigate={setView} />;
     }
   };
@@ -314,6 +316,7 @@ const App = () => {
             isAdmin={currentUsername === ADMIN_USERNAME} 
             isVerified={data.user?.isVerified || false}
             username={currentUsername || undefined} 
+            onLogout={handleLogout}
         />
       )}
     </div>

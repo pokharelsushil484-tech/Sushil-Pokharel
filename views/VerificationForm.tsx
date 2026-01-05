@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest, View } from '../types';
-import { ShieldCheck, Loader2, ArrowLeft, Send, Upload, User, Video, MapPin, Phone, Mail, Globe, FileText, CheckCircle, Copy, Check, Info, KeyRound } from 'lucide-react';
+import { ShieldCheck, Loader2, ArrowLeft, Send, Upload, User, Video, MapPin, Phone, Mail, Globe, FileText, CheckCircle, Copy, Check, Info, KeyRound, LogIn } from 'lucide-react';
+import { storageService } from '../services/storageService';
 
 interface VerificationFormProps {
   user: UserProfile;
@@ -12,8 +13,10 @@ interface VerificationFormProps {
 
 export const VerificationForm: React.FC<VerificationFormProps> = ({ user, username, updateUser, onNavigate }) => {
   const [submitting, setSubmitting] = useState(false);
-  const [successState, setSuccessState] = useState<{ link: string; email: string; id: string; studentId: string } | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [successState, setSuccessState] = useState<{ id: string; studentId: string } | null>(null);
+  const [masterKeyInput, setMasterKeyInput] = useState('');
+  const [verifyingKey, setVerifyingKey] = useState(false);
+  const [keyError, setKeyError] = useState('');
   
   // Permanent Fields State
   const [formData, setFormData] = useState({
@@ -51,14 +54,6 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     }
   };
 
-  const copyLink = () => {
-      if (successState?.link) {
-          navigator.clipboard.writeText(successState.link);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-      }
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -73,7 +68,6 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     const linkId = Math.random().toString(36).substring(7);
     
     // Generate Student ID
-    // If username is "guest" or generic, generate a formal ID. If username is already an ID format, use it or regenerate if requested.
     const generatedStudentId = `STU-${Math.floor(100000 + Math.random() * 900000)}`;
 
     const finalDetails = {
@@ -94,10 +88,6 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
         request = existing[pendingIndex];
         request.details = JSON.stringify(finalDetails);
         request.createdAt = Date.now();
-        if (request.linkId) {
-             if (!request.previousLinkIds) request.previousLinkIds = [];
-             request.previousLinkIds.push(request.linkId);
-        }
         request.linkId = linkId;
         request.generatedStudentId = generatedStudentId; // Update ID
         existing[pendingIndex] = request;
@@ -119,15 +109,58 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     localStorage.setItem('studentpocket_requests', JSON.stringify(existing));
 
     setTimeout(() => {
-      // Update local user state
+      // Update local user state partially, final update on master key
       updateUser({ ...user, verificationStatus: 'PENDING_APPROVAL' });
       setSubmitting(false);
-      
-      const origin = window.location.origin;
-      const link = `${origin}/v/${linkId}`;
-      
-      setSuccessState({ link, email: formData.email, id: linkId, studentId: generatedStudentId });
+      setSuccessState({ id: linkId, studentId: generatedStudentId });
     }, 1500);
+  };
+
+  const verifyMasterKey = async () => {
+      if (!masterKeyInput) return;
+      setVerifyingKey(true);
+      setKeyError('');
+
+      // 50s Window Logic (Same as Admin)
+      const MASTER_KEY_INTERVAL = 50000;
+      const now = Date.now();
+      const seed = Math.floor(now / MASTER_KEY_INTERVAL);
+      const currentMasterKey = Math.abs(Math.sin(seed + 1) * 1000000).toFixed(0).slice(0, 6).padEnd(6, '0');
+      const prevSeed = seed - 1;
+      const prevMasterKey = Math.abs(Math.sin(prevSeed + 1) * 1000000).toFixed(0).slice(0, 6).padEnd(6, '0');
+
+      // Check Rescue Key
+      const dataKey = `architect_data_${username}`;
+      const stored = await storageService.getData(dataKey);
+      const userRescueKey = stored?.user?.rescueKey;
+
+      if (masterKeyInput === currentMasterKey || masterKeyInput === prevMasterKey || masterKeyInput === userRescueKey) {
+          // Success!
+          setTimeout(async () => {
+               if (stored && stored.user) {
+                   stored.user.isVerified = true;
+                   stored.user.verificationStatus = 'VERIFIED';
+                   stored.user.adminFeedback = "Identity Verified via Master Key.";
+                   if (masterKeyInput === userRescueKey) stored.user.rescueKey = undefined;
+                   await storageService.setData(dataKey, stored);
+                   updateUser(stored.user); // Update parent state
+               }
+               // Clean up request
+               const reqStr = localStorage.getItem('studentpocket_requests');
+               if (reqStr) {
+                   const requests: ChangeRequest[] = JSON.parse(reqStr);
+                   const updatedRequests = requests.map(r => r.username === username ? { ...r, status: 'APPROVED' } : r);
+                   localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
+               }
+               
+               setVerifyingKey(false);
+               // Redirect to Dashboard
+               onNavigate(View.DASHBOARD);
+          }, 1000);
+      } else {
+          setVerifyingKey(false);
+          setKeyError('Invalid Master Key. Please check with Admin.');
+      }
   };
 
   if (successState) {
@@ -155,37 +188,34 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
              </div>
              
              <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 mb-10 text-left">
-                 <div className="flex items-center justify-between mb-2">
-                     <p className="text-[9px] font-bold text-slate-400 uppercase">Secure Link</p>
-                     <div className="flex items-center space-x-2">
-                         <p className="text-xs font-mono font-bold text-slate-600 dark:text-slate-300 truncate max-w-[150px]">{successState.link}</p>
-                         <button onClick={copyLink} className="p-1.5 bg-white dark:bg-slate-950 text-slate-400 hover:text-indigo-600 rounded-lg transition-colors border border-slate-200 dark:border-slate-700">
-                            {copied ? <Check size={12}/> : <Copy size={12}/>}
-                         </button>
-                     </div>
-                 </div>
-                 
-                 <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30">
+                 <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 mb-6">
                      <KeyRound size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
                      <p className="text-[10px] text-amber-700 dark:text-amber-400 font-medium leading-relaxed">
-                         <b>Next Step:</b> Contact Admin with your Student ID. They will provide a dynamic <b>Master Key</b>. Use the link below to enter it.
+                         <b>Verification Required:</b> Enter the Master Key provided by the admin below to finalize your account setup.
                      </p>
+                 </div>
+
+                 <div className="space-y-4">
+                     <input 
+                        type="text" 
+                        value={masterKeyInput} 
+                        onChange={(e) => setMasterKeyInput(e.target.value)}
+                        placeholder="ENTER MASTER KEY"
+                        className="w-full text-center py-4 bg-white dark:bg-slate-950 border-2 border-indigo-100 dark:border-slate-700 rounded-2xl outline-none text-xl font-black tracking-[0.5em] uppercase focus:border-indigo-500 transition-all dark:text-white"
+                        maxLength={6}
+                     />
+                     {keyError && <p className="text-[10px] font-bold text-red-500 text-center uppercase tracking-widest animate-pulse">{keyError}</p>}
                  </div>
              </div>
 
              <div className="space-y-3">
                  <button 
-                    onClick={() => window.location.href = `/v/${successState.id}`}
-                    className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xs uppercase tracking-[0.3em] shadow-xl hover:scale-[1.02] transition-transform active:scale-95"
+                    onClick={verifyMasterKey}
+                    disabled={verifyingKey || !masterKeyInput}
+                    className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xs uppercase tracking-[0.3em] shadow-xl hover:scale-[1.02] transition-transform active:scale-95 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                  >
-                    Enter Master Key
-                 </button>
-                 
-                 <button 
-                    onClick={() => onNavigate(View.DASHBOARD)}
-                    className="w-full bg-white dark:bg-slate-950 text-slate-500 py-4 rounded-3xl font-bold text-xs uppercase tracking-[0.2em] border border-slate-200 dark:border-slate-800 hover:text-indigo-600 transition-colors"
-                 >
-                    Return to Dashboard
+                    {verifyingKey ? <Loader2 className="animate-spin mr-2" size={16}/> : <LogIn className="mr-2" size={16}/>}
+                    {verifyingKey ? 'Verifying...' : 'Login'}
                  </button>
              </div>
         </div>

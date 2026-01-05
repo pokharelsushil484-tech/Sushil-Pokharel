@@ -2,13 +2,14 @@
 import {GoogleGenAI, Type} from "@google/genai";
 import { UserProfile, VerificationQuestion } from "../types";
 
-// Moved client initialization inside functions to prevent "process is not defined" crash during app boot.
-
 export const generateVerificationForm = async (profile: UserProfile): Promise<VerificationQuestion[]> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) throw new Error("API Key missing");
+
+    const ai = new GoogleGenAI({ apiKey: apiKey });
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.5-flash',
       contents: `Generate a professional identity verification questionnaire for a student pocket app. 
       The student's name is ${profile.name} and they study ${profile.education || 'General Studies'}.
       Create 4 targeted questions to verify they are a legitimate student and will use the storage responsibly.`,
@@ -34,27 +35,33 @@ export const generateVerificationForm = async (profile: UserProfile): Promise<Ve
     return jsonStr ? JSON.parse(jsonStr) : [];
   } catch (error) {
     console.error("Form Generation Error:", error);
+    // Fallback if AI fails
     return [
       { id: '1', question: "What is your primary academic goal?", type: 'text' },
-      { id: '2', question: "How will you utilize the encrypted storage?", type: 'text' }
+      { id: '2', question: "How will you utilize the encrypted storage?", type: 'text' },
+      { id: '3', question: "Verify your institution name.", type: 'text' },
+      { id: '4', question: "Do you agree to the acceptable use policy?", type: 'choice', options: ["Yes", "No"] }
     ];
   }
 };
 
 export const chatWithAI = async (message: string): Promise<string> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) return "AI Service Configuration Error: API Key not found.";
+
+    const ai = new GoogleGenAI({ apiKey: apiKey });
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.5-flash',
       contents: message,
       config: {
-        systemInstruction: "You are a professional AI data assistant inside StudentPocket, a file infrastructure app for Sushil Pokharel. Help the user manage files and understand security protocols."
+        systemInstruction: "You are a professional AI data assistant inside StudentPocket, a file infrastructure app for Sushil Pokharel. Help the user manage files and understand security protocols. Be concise and helpful."
       }
     });
     return response.text || "Interface error. Please retry signal.";
   } catch (error) {
     console.error("AI Chat Error:", error);
-    return "Network sync failed.";
+    return "Network sync failed. Please check your connection.";
   }
 };
 
@@ -63,9 +70,12 @@ export const chatWithAI = async (message: string): Promise<string> => {
  */
 export const generateStudyPlan = async (subject: string, hours: string): Promise<string> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) return "Configuration Error.";
+
+    const ai = new GoogleGenAI({ apiKey: apiKey });
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.5-flash',
       contents: `Generate a study plan for ${subject} with an available time budget of ${hours} hours. Provide a tactical breakdown.`,
       config: {
         systemInstruction: "You are a strategic academic assistant. Provide high-density, actionable study breakdowns."
@@ -83,9 +93,12 @@ export const generateStudyPlan = async (subject: string, hours: string): Promise
  */
 export const summarizeNote = async (content: string): Promise<string> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) return "Configuration Error.";
+
+    const ai = new GoogleGenAI({ apiKey: apiKey });
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.5-flash',
       contents: `Summarize the following technical/academic note concisely: ${content}`,
       config: {
         systemInstruction: "You are a precise summarization utility. Focus on core concepts and key takeaways."

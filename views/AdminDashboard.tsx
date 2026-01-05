@@ -35,7 +35,6 @@ export const AdminDashboard: React.FC = () => {
         const seed = Math.floor(now / timeStep);
         
         // Deterministic generation based on time window
-        // Math.sin(seed) creates a deterministic pseudo-random number
         const rawCode = Math.abs(Math.sin(seed + 1) * 1000000).toFixed(0); 
         const code = rawCode.slice(0, 6).padEnd(6, '0'); // Ensure 6 digits
         
@@ -66,19 +65,18 @@ export const AdminDashboard: React.FC = () => {
 
   const loadData = async () => {
     try {
-        // Load Users from LocalStorage (Auth)
+        // Load Users
         const usersStr = localStorage.getItem('studentpocket_users');
         const usersObj = usersStr ? JSON.parse(usersStr) : {};
         setUsers(usersObj);
 
-        // Load Profiles (from Architect Data nodes) - simulating fetch
+        // Load Profiles
         const loadedProfiles: UserProfile[] = [];
         for (const username of Object.keys(usersObj)) {
             if (username === ADMIN_USERNAME) continue;
             try {
                 const data = await storageService.getData(`architect_data_${username}`);
                 if (data && data.user) {
-                     // Attach username for context since it's the key
                      loadedProfiles.push({ ...data.user, _username: username } as any);
                 }
             } catch (e) { console.error("Error loading profile", username); }
@@ -93,7 +91,7 @@ export const AdminDashboard: React.FC = () => {
         const ticketStr = localStorage.getItem('studentpocket_tickets');
         if (ticketStr) {
             const allTickets: SupportTicket[] = JSON.parse(ticketStr);
-            // Ensure tickets have messages before setting state to prevent render crashes
+            // Show ALL tickets to admin
             const validTickets = allTickets.filter(t => t && Array.isArray(t.messages) && t.messages.length > 0);
             setTickets(validTickets.sort((a, b) => b.updatedAt - a.updatedAt));
             
@@ -161,7 +159,7 @@ export const AdminDashboard: React.FC = () => {
 
       const message: TicketMessage = {
           id: Date.now().toString(),
-          sender: ADMIN_USERNAME, // 'Admin' or specific admin name
+          sender: ADMIN_USERNAME, 
           text: replyText,
           timestamp: Date.now(),
           isAdmin: true
@@ -190,6 +188,8 @@ export const AdminDashboard: React.FC = () => {
 
   const closeTicket = () => {
       if (!selectedTicket) return;
+      if (!window.confirm("Close this ticket?")) return;
+      
       const updatedTickets = tickets.map(t => 
           t.id === selectedTicket.id ? { ...t, status: 'CLOSED' as const, updatedAt: Date.now() } : t
       );
