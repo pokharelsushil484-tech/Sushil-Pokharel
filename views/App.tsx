@@ -18,7 +18,7 @@ import { ErrorPage } from './views/ErrorPage';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { TermsModal } from './components/TermsModal';
-import { ShieldX, Globe, CheckCircle, XCircle, X } from 'lucide-react';
+import { ShieldX, Globe, CheckCircle, XCircle, X, KeyRound, Lock } from 'lucide-react';
 
 import { View, UserProfile, VaultDocument, ChatMessage } from './types';
 import { ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN, APP_NAME, SYSTEM_DOMAIN, CREATOR_NAME } from './constants';
@@ -236,21 +236,39 @@ const App = () => {
     return <Login user={null} onLogin={handleLoginSuccess} onNavigate={setView} />;
   }
 
-  if (data.user?.isBanned) {
+  // GLOBAL LOCK SCREEN (Admin is immune)
+  if (data.user?.isBanned && currentUsername !== ADMIN_USERNAME) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-        <div className="bg-red-950/20 p-16 rounded-[2rem] border border-red-500/30 shadow-2xl max-w-lg w-full">
-          <ShieldX size={64} className="text-red-500 mx-auto mb-6 animate-pulse" />
-          <h1 className="text-3xl font-bold text-white mb-4 tracking-tight">Access Suspended</h1>
-          <p className="text-red-200 text-sm mb-8">{data.user.banReason}</p>
+      <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-6 text-center animate-fade-in relative overflow-hidden">
+        {/* Warning Background */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-red-900/20 via-slate-950 to-slate-950 pointer-events-none"></div>
+        
+        <div className="bg-slate-900/90 backdrop-blur-2xl p-16 rounded-[3rem] border border-red-500/20 shadow-2xl max-w-lg w-full relative z-10">
+          
+          <div className="w-24 h-24 mx-auto mb-8 bg-red-500/10 rounded-full flex items-center justify-center border-4 border-red-500/20 shadow-[0_0_30px_rgba(239,68,68,0.2)] animate-pulse">
+              <ShieldX size={48} className="text-red-500" />
+          </div>
+
+          <h1 className="text-3xl font-black text-white mb-2 tracking-tight uppercase">
+             Access Suspended
+          </h1>
+          
+          <div className="mb-8 space-y-2">
+               <p className="text-xs font-bold text-red-400 uppercase tracking-[0.2em]">Security Violation Detected</p>
+               {data.user.banReason && <p className="text-sm text-slate-400 font-medium px-4 py-2 bg-slate-950/50 rounded-lg inline-block border border-white/5">{data.user.banReason}</p>}
+          </div>
+
           <div className="space-y-4">
+              <button onClick={handleLogout} className="w-full py-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black text-xs uppercase tracking-[0.2em] transition-all shadow-lg border border-slate-700">
+                 Sign Out
+              </button>
+              
               <button 
                 onClick={() => { handleLogout(); setView(View.ACCESS_RECOVERY); }} 
-                className="w-full py-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-[0.2em] transition-all shadow-lg"
+                className="w-full py-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-[0.2em] transition-all shadow-lg flex items-center justify-center"
               >
-                Request Recovery
+                <Lock size={16} className="mr-2"/> Request Recovery
               </button>
-              <button onClick={handleLogout} className="text-slate-400 hover:text-white text-xs font-bold uppercase tracking-widest underline transition-colors">Sign Out</button>
           </div>
         </div>
       </div>
@@ -281,8 +299,8 @@ const App = () => {
       />
     );
     
-    // STRICT SECURITY GATE: Block access if pending verification
-    if (data.user.verificationStatus === 'PENDING_APPROVAL' && view !== View.SUPPORT) {
+    // STRICT SECURITY GATE: Block access if pending verification (Admin bypasses)
+    if (data.user.verificationStatus === 'PENDING_APPROVAL' && view !== View.SUPPORT && currentUsername !== ADMIN_USERNAME) {
         return <VerificationPending studentId={data.user.studentId} onLogout={handleLogout} />;
     }
     
@@ -324,7 +342,7 @@ const App = () => {
           </div>
       )}
 
-      {(!isLoading || data.user) && data.user?.verificationStatus !== 'PENDING_APPROVAL' && (
+      {(!isLoading || data.user) && (data.user?.verificationStatus !== 'PENDING_APPROVAL' || currentUsername === ADMIN_USERNAME) && (
         <div className="md:ml-20 lg:ml-64 transition-all animate-fade-in min-h-screen flex flex-col">
           <header className="bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800 h-16 flex items-center justify-between px-6 sticky top-0 z-40">
              <div className="flex items-center space-x-3">
@@ -353,12 +371,12 @@ const App = () => {
         </div>
       )}
       
-      {/* If pending, render content directly (which is the VerificationPending component) without wrapper */}
-      {data.user && data.user.verificationStatus === 'PENDING_APPROVAL' && (
+      {/* If pending and not admin, render content directly (which is the VerificationPending component) without wrapper */}
+      {data.user && data.user.verificationStatus === 'PENDING_APPROVAL' && currentUsername !== ADMIN_USERNAME && (
          <main className="w-full h-full">{renderContent()}</main>
       )}
       
-      {data.user && !isLoading && data.user.verificationStatus !== 'PENDING_APPROVAL' && (
+      {data.user && !isLoading && (data.user.verificationStatus !== 'PENDING_APPROVAL' || currentUsername === ADMIN_USERNAME) && (
         <Navigation 
             currentView={view} 
             setView={setView} 

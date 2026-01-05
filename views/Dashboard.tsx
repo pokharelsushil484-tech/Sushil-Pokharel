@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, View, ChangeRequest } from '../types';
-import { ShieldCheck, HardDrive, ArrowRight, Loader2, Sparkles, Lock, Database, Mail, XCircle, FileText, ChevronDown, ChevronUp, RefreshCw, CheckCircle, Copy, Award, BadgeCheck } from 'lucide-react';
+import { ShieldCheck, HardDrive, ArrowRight, Loader2, Sparkles, Lock, Database, Mail, XCircle, FileText, ChevronDown, ChevronUp, RefreshCw, CheckCircle, Copy, Award, BadgeCheck, Bell } from 'lucide-react';
 import { CREATOR_NAME, ADMIN_USERNAME, SYSTEM_DOMAIN } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -95,7 +95,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
   };
 
   const getVerificationUI = () => {
-    if (user.isVerified || isAdmin) return null;
+    if (user.isVerified || isAdmin) {
+        // Show Admin Feedback for Verified Users if exists
+        if (user.adminFeedback && user.adminFeedback !== "Identity Verified by Administration. Level Increased." && user.adminFeedback !== "Profile Update Approved." && user.adminFeedback !== "Identity Verified via Master Key Override.") {
+            return (
+                 <div className="bg-indigo-50 dark:bg-indigo-900/10 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 mb-6 flex flex-col md:flex-row items-start gap-4">
+                     <div className="flex items-start space-x-3 w-full">
+                         <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg text-indigo-600 mt-1">
+                             <Bell size={20} />
+                         </div>
+                         <div className="flex-1">
+                             <p className="font-bold text-indigo-700 dark:text-indigo-400 text-xs uppercase tracking-wide">System Notification</p>
+                             <p className="text-sm text-slate-700 dark:text-slate-300 mt-1 whitespace-pre-line">{user.adminFeedback}</p>
+                         </div>
+                     </div>
+                 </div>
+            );
+        }
+        return null;
+    }
     
     if (user.verificationStatus === 'REJECTED') {
         return (
@@ -146,34 +164,47 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
 
     if (user.verificationStatus === 'PENDING_APPROVAL') {
       return (
-        <div className="bg-amber-50 dark:bg-amber-900/10 p-5 rounded-2xl border border-amber-100 dark:border-amber-900/30 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
-           <div className="flex items-center space-x-3">
-              <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg text-amber-600">
-                <Loader2 className="animate-spin" size={20} />
-              </div>
-              <div>
-                 <p className="font-bold text-amber-700 dark:text-amber-400 text-xs uppercase tracking-wide">Pending Review</p>
-                 <p className="text-xs text-amber-600/70 mt-1">Admin is reviewing your identity.</p>
-                 {currentLinkId && <p className="text-[10px] text-amber-500/60 font-mono mt-1">Ref: {currentLinkId}</p>}
-              </div>
-           </div>
-           
-           <div className="flex flex-row items-center gap-2">
-               <button 
-                   onClick={handleCheckStatus}
-                   className="px-4 py-2 bg-white dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-amber-100 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors shadow-sm"
-               >
-                   Check Status
-               </button>
-               <button 
-                    onClick={handleResendLink}
-                    disabled={resending}
-                    className="flex items-center px-3 py-2 bg-white dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-amber-100 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors shadow-sm"
-                    title="Regenerate secure link"
+        <div className="space-y-4 mb-6">
+            <div className="bg-amber-50 dark:bg-amber-900/10 p-5 rounded-2xl border border-amber-100 dark:border-amber-900/30 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center space-x-3">
+                <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg text-amber-600">
+                    <Loader2 className="animate-spin" size={20} />
+                </div>
+                <div>
+                    <p className="font-bold text-amber-700 dark:text-amber-400 text-xs uppercase tracking-wide">Pending Review</p>
+                    <p className="text-xs text-amber-600/70 mt-1">Admin is reviewing your identity.</p>
+                    {currentLinkId && <p className="text-[10px] text-amber-500/60 font-mono mt-1">Ref: {currentLinkId}</p>}
+                </div>
+            </div>
+            
+            <div className="flex flex-row items-center gap-2">
+                <button 
+                    onClick={handleCheckStatus}
+                    className="px-4 py-2 bg-white dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-amber-100 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors shadow-sm"
                 >
-                    {resending ? <Loader2 size={14} className="animate-spin"/> : <RefreshCw size={14}/>}
+                    Check Status
                 </button>
-           </div>
+                <button 
+                        onClick={handleResendLink}
+                        disabled={resending}
+                        className="flex items-center px-3 py-2 bg-white dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-amber-100 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors shadow-sm"
+                        title="Regenerate secure link"
+                    >
+                        {resending ? <Loader2 size={14} className="animate-spin"/> : <RefreshCw size={14}/>}
+                    </button>
+            </div>
+            </div>
+            
+            {/* Show Feedback/Comments during pending state if available */}
+            {user.adminFeedback && (
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex items-start gap-3">
+                    <Mail size={16} className="text-slate-400 mt-0.5" />
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Admin Message</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">{user.adminFeedback}</p>
+                    </div>
+                </div>
+            )}
         </div>
       );
     }

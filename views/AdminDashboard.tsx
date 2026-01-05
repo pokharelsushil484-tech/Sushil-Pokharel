@@ -4,7 +4,7 @@ import { UserProfile, ChangeRequest, SupportTicket, TicketMessage } from '../typ
 import { 
   Users, ShieldCheck, LifeBuoy, Trash2, 
   CheckCircle, XCircle, RefreshCw, User, Lock, 
-  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award, Edit2, ArrowRight, Save, X, BadgeCheck
+  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award, Edit2, ArrowRight, Save, X, BadgeCheck, BadgeAlert
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { ADMIN_USERNAME } from '../constants';
@@ -29,6 +29,10 @@ export const AdminDashboard: React.FC = () => {
   // Editing State
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  
+  // Messaging State
+  const [messagingUser, setMessagingUser] = useState<string | null>(null);
+  const [adminComment, setAdminComment] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -135,6 +139,12 @@ export const AdminDashboard: React.FC = () => {
 
           data.user.isVerified = approve;
           data.user.verificationStatus = approve ? 'VERIFIED' : 'REJECTED';
+          
+          // Clear suspicious flag if approved
+          if (approve) {
+              data.user.isSuspicious = false;
+          }
+
           // Maintain level for Data Change, set for new Verification
           if (req.type === 'VERIFICATION') {
               data.user.level = approve ? 2 : 0; 
@@ -183,6 +193,23 @@ export const AdminDashboard: React.FC = () => {
       loadData();
   };
 
+  const saveAdminComment = async (username: string) => {
+      if (!adminComment.trim()) {
+          setMessagingUser(null);
+          return;
+      }
+      
+      const data = await storageService.getData(`architect_data_${username}`);
+      if (data && data.user) {
+          data.user.adminFeedback = adminComment;
+          await storageService.setData(`architect_data_${username}`, data);
+      }
+      
+      setMessagingUser(null);
+      setAdminComment('');
+      loadData();
+  };
+
   const handleRecoveryRequest = async (req: ChangeRequest) => {
       // Generate Admission Key
       const key = 'ADM-' + Math.random().toString(36).substring(2, 10).toUpperCase();
@@ -191,6 +218,7 @@ export const AdminDashboard: React.FC = () => {
       if (data && data.user) {
           data.user.admissionKey = key;
           // Note: We don't unban immediately, the login process with key handles it
+          // The login process will set isSuspicious to true upon using this key
           await storageService.setData(`architect_data_${req.username}`, data);
       }
       
@@ -393,56 +421,86 @@ export const AdminDashboard: React.FC = () => {
            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
                <div className="space-y-2">
                    {profiles.map((user: any, i) => (
-                       <div key={i} className="flex justify-between items-center p-4 border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                           <div className="flex items-center space-x-4 flex-1">
-                               <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-400">
-                                   <User size={20} />
-                               </div>
-                               <div className="flex-1">
-                                   <div className="flex items-center gap-2">
-                                       {editingUser === user._username ? (
-                                           <div className="flex items-center gap-1">
-                                               <input 
-                                                    type="text" 
-                                                    value={editName}
-                                                    onChange={(e) => setEditName(e.target.value)}
-                                                    className="px-2 py-1 text-sm bg-white dark:bg-black border border-slate-300 rounded"
-                                                    autoFocus
-                                               />
-                                               <button onClick={() => saveNameEdit(user._username)} className="text-green-500 hover:text-green-600"><Save size={16}/></button>
-                                               <button onClick={() => setEditingUser(null)} className="text-red-500 hover:text-red-600"><X size={16}/></button>
-                                           </div>
-                                       ) : (
-                                           <>
-                                               <h4 className="font-bold text-sm text-slate-900 dark:text-white">{user.name}</h4>
-                                               <button onClick={() => { setEditingUser(user._username); setEditName(user.name); }} className="text-slate-400 hover:text-indigo-500"><Edit2 size={12}/></button>
-                                           </>
-                                       )}
-                                       {user.isVerified && <BadgeCheck size={14} className="text-blue-500 fill-white dark:fill-slate-900" />}
-                                       <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${user.level > 1 ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>Level {user.level || 0}</span>
-                                       {user.isBanned && <span className="text-[9px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">BANNED</span>}
-                                   </div>
-                                   <p className="text-xs text-slate-500">{user.email}</p>
-                                   <div className="flex items-center gap-2">
-                                       <p className="text-[10px] text-slate-400 mt-0.5">ID: {user._username}</p>
-                                       {user.studentId && <p className="text-[10px] text-indigo-400 mt-0.5 font-bold">SID: {user.studentId}</p>}
-                                   </div>
-                               </div>
-                           </div>
-                           <div className="flex items-center space-x-2">
-                                <div className="flex flex-col items-center mr-2">
-                                    <button onClick={() => handleChangeLevel(user._username, 1)} className="p-1 text-slate-400 hover:text-emerald-500"><ChevronUp size={14} /></button>
-                                    <span className="text-[9px] font-bold text-slate-500">LVL</span>
-                                    <button onClick={() => handleChangeLevel(user._username, -1)} className="p-1 text-slate-400 hover:text-red-500"><ChevronDown size={14} /></button>
+                       <div key={i} className="flex flex-col gap-2 p-4 border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                           <div className="flex justify-between items-center">
+                                <div className="flex items-center space-x-4 flex-1">
+                                    <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-400">
+                                        <User size={20} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2">
+                                            {editingUser === user._username ? (
+                                                <div className="flex items-center gap-1">
+                                                    <input 
+                                                            type="text" 
+                                                            value={editName}
+                                                            onChange={(e) => setEditName(e.target.value)}
+                                                            className="px-2 py-1 text-sm bg-white dark:bg-black border border-slate-300 rounded"
+                                                            autoFocus
+                                                    />
+                                                    <button onClick={() => saveNameEdit(user._username)} className="text-green-500 hover:text-green-600"><Save size={16}/></button>
+                                                    <button onClick={() => setEditingUser(null)} className="text-red-500 hover:text-red-600"><X size={16}/></button>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">{user.name}</h4>
+                                                    <button onClick={() => { setEditingUser(user._username); setEditName(user.name); }} className="text-slate-400 hover:text-indigo-500"><Edit2 size={12}/></button>
+                                                </>
+                                            )}
+                                            {user.isVerified && <BadgeCheck size={14} className="text-blue-500 fill-white dark:fill-slate-900" />}
+                                            {user.isSuspicious && (
+                                                    <span className="flex items-center px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[9px] font-bold uppercase tracking-widest rounded border border-amber-200 dark:border-amber-800">
+                                                        <BadgeAlert size={10} className="mr-1"/> Suspicious
+                                                    </span>
+                                            )}
+                                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${user.level > 1 ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>Level {user.level || 0}</span>
+                                            {user.isBanned && <span className="text-[9px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">BANNED</span>}
+                                        </div>
+                                        <p className="text-xs text-slate-500">{user.email}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-[10px] text-slate-400 mt-0.5">ID: {user._username}</p>
+                                            {user.studentId && <p className="text-[10px] text-indigo-400 mt-0.5 font-bold">SID: {user.studentId}</p>}
+                                        </div>
+                                    </div>
                                 </div>
-                                <button 
-                                        onClick={() => handleBanUser(user._username)} 
-                                        className="p-2 text-slate-300 hover:text-red-500 transition-colors bg-slate-50 dark:bg-slate-800 rounded-lg"
-                                        title="Suspend User"
-                                >
-                                    <Lock size={16} />
-                                </button>
+                                <div className="flex items-center space-x-2">
+                                        <button 
+                                            onClick={() => { setMessagingUser(user._username); setAdminComment(user.adminFeedback || ''); }}
+                                            className="p-2 text-slate-400 hover:text-indigo-500 bg-slate-50 dark:bg-slate-800 rounded-lg transition-colors"
+                                            title="Message User"
+                                        >
+                                            <MessageSquare size={16}/>
+                                        </button>
+                                        <div className="flex flex-col items-center mr-2">
+                                            <button onClick={() => handleChangeLevel(user._username, 1)} className="p-1 text-slate-400 hover:text-emerald-500"><ChevronUp size={14} /></button>
+                                            <span className="text-[9px] font-bold text-slate-500">LVL</span>
+                                            <button onClick={() => handleChangeLevel(user._username, -1)} className="p-1 text-slate-400 hover:text-red-500"><ChevronDown size={14} /></button>
+                                        </div>
+                                        <button 
+                                                onClick={() => handleBanUser(user._username)} 
+                                                className="p-2 text-slate-300 hover:text-red-500 transition-colors bg-slate-50 dark:bg-slate-800 rounded-lg"
+                                                title="Suspend User"
+                                        >
+                                            <Lock size={16} />
+                                        </button>
+                                </div>
                            </div>
+                           
+                           {/* Message Input Inline */}
+                           {messagingUser === user._username && (
+                               <div className="bg-slate-100 dark:bg-slate-950 p-3 rounded-xl flex gap-2 animate-fade-in mt-1">
+                                   <input 
+                                        type="text" 
+                                        value={adminComment} 
+                                        onChange={(e) => setAdminComment(e.target.value)}
+                                        placeholder="Add admin comment/feedback..."
+                                        className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs outline-none"
+                                        autoFocus
+                                   />
+                                   <button onClick={() => saveAdminComment(user._username)} className="bg-indigo-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors">Save</button>
+                                   <button onClick={() => setMessagingUser(null)} className="text-slate-400 hover:text-red-500"><X size={16}/></button>
+                               </div>
+                           )}
                        </div>
                    ))}
                </div>
@@ -461,8 +519,12 @@ export const AdminDashboard: React.FC = () => {
                    const isDataChange = req.type === 'DATA_CHANGE' || req.type === 'NAME_CHANGE';
                    const details = isDataChange ? JSON.parse(req.details) : {};
                    
+                   // Check if user is marked suspicious
+                   const requestUser = profiles.find(p => (p as any)._username === req.username);
+                   const isSuspicious = requestUser?.isSuspicious;
+
                    return (
-                   <div key={req.id} className={`bg-white dark:bg-slate-900 p-6 rounded-2xl border ${req.autoFlagged ? 'border-red-500/50 dark:border-red-500/50' : 'border-slate-200 dark:border-slate-800'} shadow-sm flex flex-col md:flex-row justify-between items-center gap-4`}>
+                   <div key={req.id} className={`bg-white dark:bg-slate-900 p-6 rounded-2xl border ${isSuspicious || req.autoFlagged ? 'border-amber-500/50 dark:border-amber-500/50' : 'border-slate-200 dark:border-slate-800'} shadow-sm flex flex-col md:flex-row justify-between items-center gap-4`}>
                        <div>
                            <div className="flex items-center gap-2 mb-1">
                                {isDataChange ? <Edit2 size={16} className="text-blue-500"/> : <ShieldCheck size={16} className="text-emerald-500"/>}
@@ -470,6 +532,7 @@ export const AdminDashboard: React.FC = () => {
                                    {isDataChange ? 'Profile Update Request' : 'Verification Request'}
                                </h4>
                                {req.autoFlagged && <span className="bg-red-100 text-red-600 text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center"><ShieldAlert size={10} className="mr-1"/> Unverified Data Detected</span>}
+                               {isSuspicious && <span className="bg-amber-100 text-amber-600 text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center"><BadgeAlert size={10} className="mr-1"/> Suspicious Account</span>}
                            </div>
                            
                            {isDataChange ? (
@@ -498,7 +561,7 @@ export const AdminDashboard: React.FC = () => {
                        </div>
                        <div className="flex space-x-2">
                            <button onClick={() => handleVerifyRequest(req, false)} className="px-4 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold text-xs uppercase hover:bg-red-100 transition-colors">Reject</button>
-                           <button onClick={() => handleVerifyRequest(req, true)} className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold text-xs uppercase hover:bg-emerald-700 transition-colors">Approve</button>
+                           <button onClick={() => handleVerifyRequest(req, true)} className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold text-xs uppercase hover:bg-emerald-700 transition-colors">Approve & Verify</button>
                        </div>
                    </div>
                )})}
