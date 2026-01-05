@@ -225,7 +225,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                   // 1. Check user-specific generated key (Recovery Appeal)
                   const isPersonalKeyValid = stored.user.admissionKey === inputKey;
                   
-                  // 2. Check Rotating System Key (MS or ADM)
+                  // 2. Check Rotating System Key (MS or ADM or TKN)
                   const isSystemKeyValid = await storageService.validateSystemKey(inputKey);
 
                   if (isPersonalKeyValid || isSystemKeyValid) {
@@ -505,7 +505,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
               <form onSubmit={handleAdmissionLogin} className="space-y-6 animate-scale-up">
                   <div className="text-center">
                       <h3 className="text-white font-bold text-lg mb-2">System Key Login</h3>
-                      <p className="text-xs text-slate-400">Use 'MS-' or 'ADM-' keys (Shared PIN).</p>
+                      <p className="text-xs text-slate-400">Use 'MS-', 'ADM-', or 'TKN-' keys (Shared PIN).</p>
                       <div className="mt-2 flex items-center justify-center text-amber-400 text-[10px] font-bold uppercase tracking-wide">
                         <AlertTriangle size={12} className="mr-1" /> Dynamic Key Rotation (60s)
                       </div>
@@ -529,7 +529,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                         value={admissionKey} 
                         onChange={(e) => setAdmissionKey(e.target.value)} 
                         className="w-full pl-12 pr-4 py-4 bg-white/5 border border-emerald-500/30 rounded-xl outline-none text-white font-mono font-bold tracking-widest placeholder:text-slate-600 focus:border-emerald-500 transition-all text-sm uppercase" 
-                        placeholder="KEY (MS- / ADM-)" 
+                        placeholder="KEY (MS-/ADM-/TKN-)" 
                       />
                     </div>
                   </div>

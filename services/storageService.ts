@@ -174,8 +174,8 @@ export const storageService = {
             let data = request.result;
             const now = Date.now();
 
-            // Initial Generation or Regeneration
-            if (!data) {
+            // Initial Generation or Regeneration or Migration
+            if (!data || !data.tknCode) {
                 const pin = Math.floor(100000 + Math.random() * 900000).toString();
                 data = { 
                     pin: pin,

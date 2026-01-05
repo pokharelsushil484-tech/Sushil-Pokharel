@@ -31,7 +31,7 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
           return;
       }
 
-      // 1. Check System Keys (MS- or ADM-)
+      // 1. Check System Keys (MS-, ADM-, or TKN-)
       const isSystemValid = await storageService.validateSystemKey(input);
       
       // 2. Check Personal Admission Key / Verification Token
@@ -46,7 +46,7 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
               stored.user.verificationStatus = 'VERIFIED';
               stored.user.isSuspicious = false;
               stored.user.isBanned = false;
-              stored.user.adminFeedback = isSystemValid ? "Verified via Master/ADM Key." : "Verified via Token.";
+              stored.user.adminFeedback = isSystemValid ? "Verified via System Key." : "Verified via Token.";
               
               // Clear Key if it was one-time (Personal)
               if (isPersonalValid) {
@@ -164,7 +164,7 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
 
                  <p className="text-[10px] text-slate-400 font-medium mb-6 leading-relaxed">
                      {mode === 'MASTER_KEY' 
-                        ? 'Enter a valid Master Key (MS-XXXX) or Administration Key (ADM-XXXX).' 
+                        ? 'Enter a valid Master Key (MS-), Admission Key (ADM-), or Master Token (TKN-).' 
                         : 'Enter the verification token received via email/link.'}
                  </p>
 
@@ -174,7 +174,7 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                         value={inputKey}
                         onChange={(e) => setInputKey(e.target.value)}
                         className="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl text-center text-white font-mono font-bold tracking-[0.2em] uppercase focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
-                        placeholder={mode === 'MASTER_KEY' ? "MASTER KEY" : "ENTER TOKEN"}
+                        placeholder={mode === 'MASTER_KEY' ? "MASTER KEY / TOKEN" : "ENTER TOKEN"}
                         autoFocus
                      />
                      
