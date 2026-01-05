@@ -22,6 +22,7 @@ export const AdminDashboard: React.FC = () => {
   // Admission Key State
   const [msKey, setMsKey] = useState<string | null>(null);
   const [admKey, setAdmKey] = useState<string | null>(null);
+  const [tknKey, setTknKey] = useState<string | null>(null);
   const [keyStatus, setKeyStatus] = useState<'ACTIVE' | 'COOLDOWN'>('ACTIVE');
   const [cooldownTime, setCooldownTime] = useState(0);
   
@@ -43,6 +44,7 @@ export const AdminDashboard: React.FC = () => {
         const state = await storageService.getSystemKeys();
         setMsKey(state.msCode);
         setAdmKey(state.admCode);
+        setTknKey(state.tknCode);
         setKeyStatus(state.status);
         setCooldownTime(state.timerRemaining);
     };
@@ -480,6 +482,10 @@ export const AdminDashboard: React.FC = () => {
                             <div className="bg-black/30 p-2 rounded-lg">
                                 <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Admission Key</p>
                                 <h3 className="text-2xl font-black font-mono tracking-wider text-blue-400 select-all">{admKey}</h3>
+                            </div>
+                            <div className="bg-black/30 p-2 rounded-lg">
+                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Master Token</p>
+                                <h3 className="text-2xl font-black font-mono tracking-wider text-purple-400 select-all">{tknKey}</h3>
                             </div>
                           </div>
                        ) : (

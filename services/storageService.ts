@@ -51,6 +51,7 @@ export interface SystemKeyState {
     pin: string | null; // Shared 6-digit PIN
     msCode: string | null;
     admCode: string | null;
+    tknCode: string | null; // Master Token
     status: 'ACTIVE' | 'COOLDOWN';
     timerStart: number;
     timerRemaining: number;
@@ -156,8 +157,8 @@ export const storageService = {
   },
 
   /**
-   * MASTER KEY / ADMISSION KEY ROTATION SYSTEM
-   * Shared PIN logic: MS-[PIN] and ADM-[PIN]
+   * MASTER KEY / ADMISSION KEY / TOKEN ROTATION SYSTEM
+   * Shared PIN logic: MS-[PIN], ADM-[PIN], TKN-[PIN]
    * 1 Minute Active -> 1 Minute Deleted (Cooldown) -> Regenerate
    */
   async getSystemKeys(): Promise<SystemKeyState> {
@@ -179,7 +180,8 @@ export const storageService = {
                 data = { 
                     pin: pin,
                     msCode: `MS-${pin}`, 
-                    admCode: `ADM-${pin}`, 
+                    admCode: `ADM-${pin}`,
+                    tknCode: `TKN-${pin}`,
                     status: 'ACTIVE', 
                     timerStart: now 
                 };
@@ -197,6 +199,7 @@ export const storageService = {
                     data.pin = null;
                     data.msCode = null;
                     data.admCode = null;
+                    data.tknCode = null;
                     data.timerStart = now;
                     store.put(data, 'key_cycle_state');
                     resolve({ ...data, timerRemaining: Math.ceil(DURATION / 1000) });
@@ -213,6 +216,7 @@ export const storageService = {
                     data.pin = pin;
                     data.msCode = `MS-${pin}`;
                     data.admCode = `ADM-${pin}`;
+                    data.tknCode = `TKN-${pin}`;
                     data.timerStart = now;
                     store.put(data, 'key_cycle_state');
                     resolve({ ...data, timerRemaining: Math.ceil(DURATION / 1000) });
@@ -232,8 +236,8 @@ export const storageService = {
   async validateSystemKey(input: string): Promise<boolean> {
       const state = await this.getSystemKeys();
       if (state.status === 'ACTIVE') {
-          // Input must match either MS or ADM format exactly
-          return input === state.msCode || input === state.admCode;
+          // Input must match MS, ADM, or TKN format exactly
+          return input === state.msCode || input === state.admCode || input === state.tknCode;
       }
       return false;
   },
