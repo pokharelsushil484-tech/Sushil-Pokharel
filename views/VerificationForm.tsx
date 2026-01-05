@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { UserProfile, ChangeRequest, View } from '../types';
 import { ShieldCheck, Loader2, ArrowLeft, Send, Upload, User, Video, MapPin, Phone, Mail, Globe, FileText, CheckCircle, Copy, Check, Info, KeyRound, LogIn, Lock, AlertTriangle } from 'lucide-react';
 import { storageService } from '../services/storageService';
+import { SYSTEM_DOMAIN } from '../constants';
 
 interface VerificationFormProps {
   user: UserProfile;
@@ -161,8 +162,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
       await storageService.setData(dataKey, { ...stored, user: updatedProfile });
 
       setSubmitting(false);
-      const origin = window.location.origin;
-      const link = `${origin}/r/${linkId}`; // Use correct /r/ path
+      const link = `www.${SYSTEM_DOMAIN}/v/${linkId}`; // Use /v/ for verification and SYSTEM_DOMAIN
       setSuccessState({ id: linkId, studentId: generatedStudentId, link });
       
       // Force reload to apply banned state if banned, or pending state lock

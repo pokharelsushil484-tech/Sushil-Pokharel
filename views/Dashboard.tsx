@@ -72,8 +72,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                 
                 const email = (details as any).email || user.email || 'N/A';
                 
-                // Use /r/ for verification links
-                const link = `www.${SYSTEM_DOMAIN}/r/${newLinkId}`;
+                // Use /v/ for verification links
+                const link = `www.${SYSTEM_DOMAIN}/v/${newLinkId}`;
                 
                 setNewLinkState({ link, email });
                 setCurrentLinkId(newLinkId);

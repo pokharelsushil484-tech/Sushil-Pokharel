@@ -18,7 +18,7 @@ import { ErrorPage } from './views/ErrorPage';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { TermsModal } from './components/TermsModal';
-import { ShieldX, Globe, CheckCircle, XCircle, X, RefreshCw, AlertTriangle, Search } from 'lucide-react';
+import { ShieldX, Globe, CheckCircle, XCircle, X } from 'lucide-react';
 
 import { View, UserProfile, VaultDocument, ChatMessage } from './types';
 import { ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN, APP_NAME, SYSTEM_DOMAIN, CREATOR_NAME } from './constants';
@@ -35,7 +35,6 @@ const App = () => {
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [recoveryId, setRecoveryId] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
-  const [systemUpdateAvailable, setSystemUpdateAvailable] = useState(false);
   
   const initialData = {
     user: null as UserProfile | null,
@@ -44,20 +43,6 @@ const App = () => {
   };
 
   const [data, setData] = useState(initialData);
-
-  // Simulated Update Check
-  useEffect(() => {
-      const checkUpdate = () => {
-          // Simulate a random update availability after some time
-          const randomChance = Math.random();
-          if (randomChance > 0.8) {
-              setSystemUpdateAvailable(true);
-          }
-      };
-      
-      const timer = setTimeout(checkUpdate, 10000); // Check after 10s
-      return () => clearTimeout(timer);
-  }, []);
 
   // Verification Polling Logic
   useEffect(() => {
@@ -92,8 +77,8 @@ const App = () => {
   useEffect(() => {
     const path = window.location.pathname;
     
-    // Check for verification link: /r/{id}
-    const verifyMatch = path.match(/^\/r\/([a-zA-Z0-9]+)\/?$/i);
+    // Check for verification link: /v/{id}
+    const verifyMatch = path.match(/^\/v\/([a-zA-Z0-9]+)\/?$/i);
     if (verifyMatch) {
         setVerifyLinkId(verifyMatch[1]);
         setView(View.VERIFY_LINK);
@@ -101,10 +86,11 @@ const App = () => {
         setIsLoading(false);
         return;
     }
-    // Backward compatibility for /v/ links
-    const oldVerifyMatch = path.match(/^\/v\/([a-zA-Z0-9]+)\/?$/i);
-    if (oldVerifyMatch) {
-        setVerifyLinkId(oldVerifyMatch[1]);
+
+    // Check for request link: /r/{id}
+    const requestMatch = path.match(/^\/r\/([a-zA-Z0-9]+)\/?$/i);
+    if (requestMatch) {
+        setVerifyLinkId(requestMatch[1]); // Reuse LinkVerification for requests
         setView(View.VERIFY_LINK);
         setShowSplash(false); 
         setIsLoading(false);
@@ -193,10 +179,10 @@ const App = () => {
     setCurrentUsername(username);
     
     // Clear special modes if active
-    if (inviteCode || recoveryId || verifyLinkId) {
+    if (inviteCode || verifyLinkId || recoveryId) {
         setInviteCode(null);
-        setRecoveryId(null);
         setVerifyLinkId(null);
+        setRecoveryId(null);
         // Clean URL without refresh
         window.history.pushState({}, '', '/');
     }
@@ -241,7 +227,6 @@ const App = () => {
   }
 
   if (view === View.ACCESS_RECOVERY) {
-     // Pass recoveryId if present from URL
      return <AccessRecovery onNavigate={(v) => { setView(v); setRecoveryId(null); window.history.pushState({}, '', '/'); }} initialRecoveryId={recoveryId} />;
   }
 
@@ -251,46 +236,21 @@ const App = () => {
     return <Login user={null} onLogin={handleLoginSuccess} onNavigate={setView} />;
   }
 
-  // FORCE BLOCK ON VIOLENCE
   if (data.user?.isBanned) {
-    const isViolence = data.user.banReason?.includes("VIOLENCE") || data.user.banReason?.includes("CRITICAL SECURITY");
-    
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center animate-fade-in relative overflow-hidden">
-        {/* Urgent Pulse Background for Violence */}
-        {isViolence && <div className="absolute inset-0 bg-red-900/20 animate-pulse pointer-events-none"></div>}
-
-        <div className="bg-red-950/20 p-16 rounded-[2rem] border border-red-500/30 shadow-2xl max-w-lg w-full relative z-10 backdrop-blur-xl">
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+        <div className="bg-red-950/20 p-16 rounded-[2rem] border border-red-500/30 shadow-2xl max-w-lg w-full">
           <ShieldX size={64} className="text-red-500 mx-auto mb-6 animate-pulse" />
-          <h1 className="text-3xl font-black text-white mb-4 tracking-tighter uppercase">
-              {isViolence ? 'Critical Security Stop' : 'Access Suspended'}
-          </h1>
-          
-          <div className="bg-red-900/40 p-4 rounded-xl border border-red-500/30 mb-8">
-              <div className="flex items-center justify-center text-red-200 text-sm font-bold uppercase tracking-widest mb-2">
-                  <AlertTriangle size={16} className="mr-2" /> Reason
-              </div>
-              <p className="text-white text-xs font-mono">{data.user.banReason}</p>
-          </div>
-
-          <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest mb-8">
-              System Access Revoked. All Features Blocked.
-          </p>
-
+          <h1 className="text-3xl font-bold text-white mb-4 tracking-tight">Access Suspended</h1>
+          <p className="text-red-200 text-sm mb-8">{data.user.banReason}</p>
           <div className="space-y-4">
               <button 
                 onClick={() => { handleLogout(); setView(View.ACCESS_RECOVERY); }} 
                 className="w-full py-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-[0.2em] transition-all shadow-lg"
               >
-                Appeal / Request Recovery
+                Request Recovery
               </button>
-              
-              <button 
-                  onClick={handleLogout} 
-                  className={`w-full py-4 rounded-xl text-white font-bold text-xs uppercase tracking-[0.2em] transition-all border border-white/10 ${isViolence ? 'bg-red-600 hover:bg-red-700 shadow-xl' : 'hover:bg-white/5'}`}
-              >
-                  Force Logout
-              </button>
+              <button onClick={handleLogout} className="text-slate-400 hover:text-white text-xs font-bold uppercase tracking-widest underline transition-colors">Sign Out</button>
           </div>
         </div>
       </div>
@@ -321,15 +281,9 @@ const App = () => {
       />
     );
     
-    // FORCE VERIFICATION FORM IF STATUS IS FORM_PENDING
-    // This happens after Admission Key usage
-    if (data.user.verificationStatus === 'FORM_PENDING') {
-        return <VerificationForm user={data.user} username={currentUsername!} updateUser={u => setData(prev => ({...prev, user: u}))} onNavigate={setView} isSuspicious={true} />;
-    }
-
     // STRICT SECURITY GATE: Block access if pending verification
     if (data.user.verificationStatus === 'PENDING_APPROVAL' && view !== View.SUPPORT) {
-        return <VerificationPending studentId={data.user.studentId} onLogout={handleLogout} isSuspicious={data.user.isSuspicious} />;
+        return <VerificationPending studentId={data.user.studentId} onLogout={handleLogout} />;
     }
     
     switch (view) {
@@ -370,23 +324,7 @@ const App = () => {
           </div>
       )}
 
-      {/* System Update Toast */}
-      {systemUpdateAvailable && (
-          <div className="fixed bottom-24 right-6 z-[200] animate-slide-up">
-              <div className="bg-indigo-600 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-4">
-                  <RefreshCw className="animate-spin" size={20} />
-                  <div>
-                      <p className="font-bold text-xs uppercase tracking-wider">System Update Ready</p>
-                      <p className="text-[10px] opacity-80">New features available</p>
-                  </div>
-                  <button onClick={() => window.location.reload()} className="bg-white text-indigo-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-indigo-50">
-                      Please reload
-                  </button>
-              </div>
-          </div>
-      )}
-
-      {(!isLoading || data.user) && data.user?.verificationStatus !== 'PENDING_APPROVAL' && data.user?.verificationStatus !== 'FORM_PENDING' && (
+      {(!isLoading || data.user) && data.user?.verificationStatus !== 'PENDING_APPROVAL' && (
         <div className="md:ml-20 lg:ml-64 transition-all animate-fade-in min-h-screen flex flex-col">
           <header className="bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800 h-16 flex items-center justify-between px-6 sticky top-0 z-40">
              <div className="flex items-center space-x-3">
@@ -396,19 +334,11 @@ const App = () => {
                 <div className="flex flex-col">
                   <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest leading-none mb-0.5">StudentPocket</span>
                   <div className="flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    <span>Pack by {CREATOR_NAME}</span>
+                    <span>{SYSTEM_DOMAIN}</span>
                   </div>
                 </div>
              </div>
              <div className="flex items-center space-x-3">
-                {/* Suspicious Warning Indicator */}
-                {data.user?.isSuspicious && (
-                   <div className="flex items-center text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 animate-pulse">
-                      <Search size={14} className="mr-2" />
-                      <span className="text-[9px] font-bold uppercase tracking-widest">Verification Required</span>
-                   </div>
-                )}
-                
                 <div className="text-right hidden sm:block">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Session Active</p>
                     <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{currentUsername}</p>
@@ -423,12 +353,12 @@ const App = () => {
         </div>
       )}
       
-      {/* If pending/form needed, render content directly without wrapper */}
-      {data.user && (data.user.verificationStatus === 'PENDING_APPROVAL' || data.user.verificationStatus === 'FORM_PENDING') && (
+      {/* If pending, render content directly (which is the VerificationPending component) without wrapper */}
+      {data.user && data.user.verificationStatus === 'PENDING_APPROVAL' && (
          <main className="w-full h-full">{renderContent()}</main>
       )}
       
-      {data.user && !isLoading && data.user.verificationStatus !== 'PENDING_APPROVAL' && data.user.verificationStatus !== 'FORM_PENDING' && (
+      {data.user && !isLoading && data.user.verificationStatus !== 'PENDING_APPROVAL' && (
         <Navigation 
             currentView={view} 
             setView={setView} 
