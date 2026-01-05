@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { UserProfile } from '../types';
-import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, Info, X, ShieldCheck, Globe, Camera, ArrowLeft, Check, Key, HelpCircle } from 'lucide-react';
+import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, Info, X, ShieldCheck, Globe, Camera, ArrowLeft, Check, Key, HelpCircle, AlertTriangle } from 'lucide-react';
 import { ADMIN_USERNAME, ADMIN_SECRET, COPYRIGHT_NOTICE, MIN_PASSWORD_LENGTH, SYSTEM_DOMAIN, DEFAULT_USER, SYSTEM_UPGRADE_TOKEN } from '../constants';
 import { storageService } from '../services/storageService';
 import { View } from '../types';
@@ -16,7 +16,7 @@ type AuthView = 'LOGIN' | 'REGISTER' | 'IDENTITY_SNAP' | 'FORGOT_PASSWORD' | 'AD
 
 export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
   const [view, setView] = useState<AuthView>('LOGIN');
-  const [username, setUsername] = useState('');
+  const [loginInput, setLoginInput] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [confirmEmail, setConfirmEmail] = useState('');
@@ -51,8 +51,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
       if (videoRef.current) videoRef.current.srcObject = s;
     } catch (err) {
       console.error("Camera access failed", err);
-      setError("Camera unavailable. Skipping biometric check.");
-      setTimeout(() => finalizeAuth(), 1500);
+      // Removed auto-skip to enforce security theater, user must wait or retry
+      setError("Camera required for identity verification.");
     }
   };
 
@@ -71,12 +71,53 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         setIsProcessing(true);
         setTimeout(() => finalizeAuth(), 1000);
       }
+    } else {
+         // Fallback if camera failed but user insists (Dev mode or broken hardware)
+         setIsProcessing(true);
+         setTimeout(() => finalizeAuth(), 1000);
     }
   };
 
   const finalizeAuth = () => {
     setIsProcessing(false);
-    onLogin(username);
+    // Determine the actual username to log in
+    // If loginInput was Student ID, we need to find the username.
+    // If it was username, use it directly.
+    resolveUserAndLogin(loginInput);
+  };
+
+  const resolveUserAndLogin = async (input: string) => {
+      const cleanInput = input.trim();
+      let targetUsername = cleanInput;
+
+      // Check if it's the Admin
+      if (cleanInput === ADMIN_USERNAME) {
+           onLogin(ADMIN_USERNAME);
+           return;
+      }
+
+      // Check if input is a Student ID by scanning storage (expensive but necessary if IDs aren't keys)
+      // Optimization: Check auth map first
+      const usersStr = localStorage.getItem('studentpocket_users');
+      const users = usersStr ? JSON.parse(usersStr) : {};
+      
+      if (users[cleanInput]) {
+          // Direct username match
+          targetUsername = cleanInput;
+      } else {
+          // Try to find by Student ID in IndexedDB profiles
+          // This is tricky without a direct index, so we iterate user keys from auth
+          for (const key of Object.keys(users)) {
+              if (key === ADMIN_USERNAME) continue;
+              const data = await storageService.getData(`architect_data_${key}`);
+              if (data && data.user && data.user.studentId === cleanInput) {
+                  targetUsername = key;
+                  break;
+              }
+          }
+      }
+      
+      onLogin(targetUsername);
   };
 
   // Professional Password Strength Validation
@@ -96,9 +137,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const cleanUsername = username.trim();
+    setIsProcessing(true);
+
+    const cleanInput = loginInput.trim();
     
-    if (cleanUsername === ADMIN_USERNAME && password === ADMIN_SECRET) {
+    // Admin Override
+    if (cleanInput === ADMIN_USERNAME && password === ADMIN_SECRET) {
       const usersStr = localStorage.getItem('studentpocket_users');
       const users = usersStr ? JSON.parse(usersStr) : {};
       
@@ -106,24 +150,59 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
          users[ADMIN_USERNAME] = { password: ADMIN_SECRET, email: 'admin@system.local', name: 'System Architect', verified: true };
          localStorage.setItem('studentpocket_users', JSON.stringify(users));
       }
+      setIsProcessing(false);
       setView('IDENTITY_SNAP');
       return;
     }
 
+    // Authenticate
     const usersStr = localStorage.getItem('studentpocket_users');
     const users = usersStr ? JSON.parse(usersStr) : {};
-    const userData = users[cleanUsername];
+    
+    let userData = users[cleanInput];
+    let foundUsername = cleanInput;
 
-    if (!userData) { 
-      setError('ID not found.'); 
-      return; 
+    // If not found by username, assume Student ID and look up
+    if (!userData) {
+        // Iterate to find student ID match (Simulated async lookup)
+        let found = false;
+        for (const key of Object.keys(users)) {
+             // We need to check the actual profile data for Student ID, 
+             // but for login speed we might rely on a cached map or just auth data if studentID was stored there.
+             // Since studentID is in IndexedDB, we do a quick scan.
+             const data = await storageService.getData(`architect_data_${key}`);
+             if (data && data.user && data.user.studentId === cleanInput) {
+                 userData = users[key];
+                 foundUsername = key;
+                 found = true;
+                 break;
+             }
+        }
+        
+        if (!found) {
+            setError('Student ID or Username not found.');
+            setIsProcessing(false);
+            return;
+        }
     }
 
+    // Verify Password
     const storedPassword = typeof userData === 'string' ? userData : userData.password;
     if (storedPassword === password) {
-      setView('IDENTITY_SNAP');
+       // Check for Ban Status before allowing snap
+       const data = await storageService.getData(`architect_data_${foundUsername}`);
+       if (data && data.user && data.user.isBanned) {
+           setError("Access Denied: Account Suspended. Use Admission Key login.");
+           setIsProcessing(false);
+       } else {
+           // Success - but keep the resolved username for the final step
+           setLoginInput(foundUsername); 
+           setIsProcessing(false);
+           setView('IDENTITY_SNAP');
+       }
     } else {
-      setError('Incorrect password.');
+      setError('Incorrect Credentials.');
+      setIsProcessing(false);
     }
   };
 
@@ -131,31 +210,60 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
       e.preventDefault();
       setError('');
       
-      if (!username || !admissionKey) {
-          setError("Username and Key required.");
+      if (!loginInput || !admissionKey) {
+          setError("Student ID/Username and Key required.");
           return;
       }
       
       setIsProcessing(true);
       
+      const cleanInput = loginInput.trim();
+
       setTimeout(async () => {
-          const dataKey = `architect_data_${username}`;
-          const stored = await storageService.getData(dataKey);
+          // Resolve User
+          const usersStr = localStorage.getItem('studentpocket_users');
+          const users = usersStr ? JSON.parse(usersStr) : {};
+          let targetUsername = users[cleanInput] ? cleanInput : null;
           
-          if (stored && stored.user) {
-              if (stored.user.admissionKey === admissionKey) {
-                  // Valid Key! Unban if banned and proceed
-                  if (stored.user.isBanned) {
-                      stored.user.isBanned = false;
-                      stored.user.banReason = undefined;
-                      await storageService.setData(dataKey, stored);
+          if (!targetUsername) {
+              for (const key of Object.keys(users)) {
+                  const data = await storageService.getData(`architect_data_${key}`);
+                  if (data && data.user && data.user.studentId === cleanInput) {
+                      targetUsername = key;
+                      break;
                   }
-                  setView('IDENTITY_SNAP');
+              }
+          }
+
+          if (targetUsername) {
+              const dataKey = `architect_data_${targetUsername}`;
+              const stored = await storageService.getData(dataKey);
+              
+              if (stored && stored.user) {
+                  if (stored.user.admissionKey === admissionKey) {
+                      // Valid Key! Unban if banned and proceed
+                      if (stored.user.isBanned) {
+                          stored.user.isBanned = false;
+                          stored.user.banReason = undefined;
+                          stored.user.admissionKey = undefined; // Consume key
+                          await storageService.setData(dataKey, stored);
+                          
+                          await storageService.logActivity({
+                              actor: targetUsername,
+                              actionType: 'SECURITY',
+                              description: 'Account Recovered via Admission Key'
+                          });
+                      }
+                      setLoginInput(targetUsername); // Ensure next step uses username
+                      setView('IDENTITY_SNAP');
+                  } else {
+                      setError("Invalid Admission Key.");
+                  }
               } else {
-                  setError("Invalid Admission Key.");
+                  setError("Profile data corruption.");
               }
           } else {
-              setError("User data not found.");
+              setError("User Identity not found.");
           }
           setIsProcessing(false);
       }, 1500);
@@ -165,15 +273,24 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
     e.preventDefault();
     setError('');
     
-    const cleanUsername = username.trim();
+    const cleanUsername = loginInput.trim(); // Using loginInput field for username in register view
     const cleanEmail = email.trim();
-    const cleanConfirmEmail = confirmEmail.trim();
+    const cleanName = name.trim();
 
-    if (!cleanUsername || !password || !confirmPassword || !cleanEmail || !cleanConfirmEmail || !name) { 
+    if (!cleanUsername || !password || !confirmPassword || !cleanEmail || !cleanName) { 
       setError('All fields are required.'); 
       return; 
     }
-    if (cleanEmail !== cleanConfirmEmail) {
+    
+    // Content Safety Check
+    const combined = (cleanUsername + cleanName + cleanEmail).toLowerCase();
+    const violentTerms = ["kill", "death", "attack", "terror", "bomb", "shoot", "admin", "root", "hacker", "violence", "suicide"];
+    if (violentTerms.some(term => combined.includes(term))) {
+        setError("Security Policy Violation: Restricted content detected.");
+        return;
+    }
+
+    if (email !== confirmEmail) {
       setError('Emails do not match.');
       return;
     }
@@ -197,21 +314,20 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
 
     setIsProcessing(true);
     
-    // Simulate Network Delay and Create Profile
     setTimeout(async () => {
         // 1. Save Auth Creds
         users[cleanUsername] = { 
             password, 
             email: cleanEmail, 
-            name, 
+            name: cleanName, 
             verified: false
         };
         localStorage.setItem('studentpocket_users', JSON.stringify(users));
 
-        // 2. Initialize Data Profile (Important for "Valid User" check)
+        // 2. Initialize Data Profile
         const newProfile: UserProfile = {
             ...DEFAULT_USER,
-            name: name,
+            name: cleanName,
             email: cleanEmail,
             acceptedTermsVersion: SYSTEM_UPGRADE_TOKEN
         };
@@ -222,7 +338,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
             vaultDocs: []
         });
         
-        setUsername(cleanUsername);
+        setLoginInput(cleanUsername);
         setView('IDENTITY_SNAP');
         setIsProcessing(false);
     }, 1500);
@@ -233,23 +349,36 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
     setError('');
     setSuccess('');
 
-    const cleanUsername = username.trim();
-    if (!cleanUsername) {
-        setError("Please enter your username.");
+    const cleanInput = loginInput.trim();
+    if (!cleanInput) {
+        setError("Enter Username or Student ID.");
         return;
     }
 
     setIsProcessing(true);
     
-    setTimeout(() => {
+    setTimeout(async () => {
+        // Resolve to email
         const usersStr = localStorage.getItem('studentpocket_users');
         const users = usersStr ? JSON.parse(usersStr) : {};
-        const userData = users[cleanUsername];
+        
+        let targetEmail = users[cleanInput] ? users[cleanInput].email : null;
 
-        if (userData) {
-            setSuccess(`Password reset link sent to ${userData.email || 'your email'}.`);
+        if (!targetEmail) {
+             // Try ID lookup
+             for (const key of Object.keys(users)) {
+                  const data = await storageService.getData(`architect_data_${key}`);
+                  if (data && data.user && data.user.studentId === cleanInput) {
+                      targetEmail = data.user.email;
+                      break;
+                  }
+             }
+        }
+
+        if (targetEmail) {
+            setSuccess(`Recovery protocol initiated for ${targetEmail}. Check your secure inbox.`);
         } else {
-            setError("Username not found.");
+            setError("Identity not found in registry.");
         }
         setIsProcessing(false);
     }, 1500);
@@ -291,8 +420,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-500 transition-colors" size={18} />
                   <input 
                     type="text" 
-                    value={username} 
-                    onChange={(e) => setUsername(e.target.value)} 
+                    value={loginInput} 
+                    onChange={(e) => setLoginInput(e.target.value)} 
                     className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl outline-none text-white font-medium placeholder:text-slate-600 focus:border-indigo-500/50 transition-all text-sm" 
                     placeholder="Student ID / Username" 
                   />
@@ -313,23 +442,28 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
               </div>
               
               <div className="flex justify-between items-center">
-                  <button type="button" onClick={() => setView('ADMISSION_LOGIN')} className="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-wide">
-                      Use Admission Key
+                  <button type="button" onClick={() => setView('ADMISSION_LOGIN')} className="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-wide flex items-center">
+                      <Key size={12} className="mr-1"/> Use Admission Key
                   </button>
                   <button type="button" onClick={() => setView('FORGOT_PASSWORD')} className="text-[10px] text-slate-400 hover:text-white font-bold uppercase tracking-wide">
                       Forgot Password?
                   </button>
               </div>
 
-              {error && <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs font-bold text-center uppercase tracking-wide">{error}</div>}
+              {error && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-3">
+                      <AlertTriangle size={16} className="text-red-500 shrink-0"/>
+                      <span className="text-red-400 text-xs font-bold">{error}</span>
+                  </div>
+              )}
 
               <div className="space-y-3 pt-2">
                 <button 
                   type="submit" 
                   disabled={isProcessing} 
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg transition-all flex items-center justify-center group"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg transition-all flex items-center justify-center group disabled:opacity-50"
                 >
-                  Sign In <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={16} />
+                  {isProcessing ? <Loader2 className="animate-spin" size={18}/> : <>Sign In <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={16} /></>}
                 </button>
                 <button 
                   type="button"
@@ -360,19 +494,19 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-500 transition-colors" size={18} />
                       <input 
                         type="text" 
-                        value={username} 
-                        onChange={(e) => setUsername(e.target.value)} 
+                        value={loginInput} 
+                        onChange={(e) => setLoginInput(e.target.value)} 
                         className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl outline-none text-white font-medium placeholder:text-slate-600 focus:border-indigo-500/50 transition-all text-sm" 
                         placeholder="Student ID / Username" 
                       />
                     </div>
                     <div className="relative group">
-                      <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                      <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 group-focus-within:text-emerald-400 transition-colors" size={18} />
                       <input 
                         type="text" 
                         value={admissionKey} 
                         onChange={(e) => setAdmissionKey(e.target.value)} 
-                        className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl outline-none text-white font-mono font-bold tracking-widest placeholder:text-slate-600 focus:border-indigo-500/50 transition-all text-sm" 
+                        className="w-full pl-12 pr-4 py-4 bg-white/5 border border-emerald-500/30 rounded-xl outline-none text-white font-mono font-bold tracking-widest placeholder:text-slate-600 focus:border-emerald-500 transition-all text-sm uppercase" 
                         placeholder="ADMISSION KEY" 
                       />
                     </div>
@@ -402,7 +536,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
           {view === 'REGISTER' && (
             <form onSubmit={handleRegister} className="space-y-4 animate-scale-up">
               <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl outline-none text-white text-sm" placeholder="Full Name" />
-              <input type="text" value={username} onChange={e => setUsername(e.target.value)} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl outline-none text-white text-sm" placeholder="Choose Username" />
+              <input type="text" value={loginInput} onChange={e => setLoginInput(e.target.value)} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl outline-none text-white text-sm" placeholder="Choose Username" />
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl outline-none text-white text-sm" placeholder="Email Address" />
               <input type="email" value={confirmEmail} onChange={e => setConfirmEmail(e.target.value)} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl outline-none text-white text-sm" placeholder="Confirm Email" />
               
@@ -434,15 +568,15 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
              <form onSubmit={handleForgotPassword} className="space-y-6 animate-scale-up">
                 <div className="text-center">
                     <h3 className="text-white font-bold text-lg mb-2">Reset Password</h3>
-                    <p className="text-xs text-slate-400">Enter your username to receive reset instructions.</p>
+                    <p className="text-xs text-slate-400">Enter your ID to receive reset instructions.</p>
                 </div>
 
                 <div className="relative group">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-500 transition-colors" size={18} />
                   <input 
                     type="text" 
-                    value={username} 
-                    onChange={(e) => setUsername(e.target.value)} 
+                    value={loginInput} 
+                    onChange={(e) => setLoginInput(e.target.value)} 
                     className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl outline-none text-white font-medium placeholder:text-slate-600 focus:border-indigo-500/50 transition-all text-sm" 
                     placeholder="Student ID / Username" 
                   />

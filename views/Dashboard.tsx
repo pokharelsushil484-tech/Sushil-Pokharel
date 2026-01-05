@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, View, ChangeRequest } from '../types';
-import { ShieldCheck, HardDrive, ArrowRight, Loader2, Sparkles, Lock, Database, Mail, XCircle, FileText, ChevronDown, ChevronUp, RefreshCw, CheckCircle, Copy, Award } from 'lucide-react';
+import { ShieldCheck, HardDrive, ArrowRight, Loader2, Sparkles, Lock, Database, Mail, XCircle, FileText, ChevronDown, ChevronUp, RefreshCw, CheckCircle, Copy, Award, BadgeCheck } from 'lucide-react';
 import { CREATOR_NAME, ADMIN_USERNAME, SYSTEM_DOMAIN } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -245,9 +245,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                         {user.isVerified || isAdmin ? 'System Active' : 'Access Limited'}
                     </span>
                   </div>
-                  <h1 className="text-2xl md:text-4xl font-bold mb-1 tracking-tight">
-                    {user.name || 'Student'}
-                  </h1>
+                  <div className="flex items-center gap-2 mb-1">
+                      <h1 className="text-2xl md:text-4xl font-bold tracking-tight">
+                        {user.name || 'Student'}
+                      </h1>
+                      {user.isVerified && <BadgeCheck size={24} className="text-blue-500 fill-white dark:fill-slate-900" />}
+                  </div>
                   <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">ID: {username}</p>
               </div>
           </div>

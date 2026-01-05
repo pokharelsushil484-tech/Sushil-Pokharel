@@ -83,12 +83,17 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
         autoFlagged = true;
         autoFlagReason += "Name too short. ";
     }
-    // Simple mock filter for inappropriate content in name
-    if (formData.fullName.toLowerCase().includes("hacker") || formData.fullName.toLowerCase().includes("admin")) {
+    
+    // Safety & Impersonation Filter
+    const combinedData = (formData.fullName + " " + formData.email).toLowerCase();
+    const restrictedTerms = ["admin", "hacker", "root", "system", "support", "staff", "script", "kill", "attack", "violence", "terror", "bomb", "gun", "death", "suicide"];
+    
+    if (restrictedTerms.some(term => combinedData.includes(term))) {
         autoFlagged = true;
-        shouldBan = true; // Auto-ban for impersonation attempts
-        autoFlagReason += "Inappropriate content detected. ";
+        shouldBan = true; // Auto-ban for harmful content
+        autoFlagReason += "Security Violation: Restricted content detected. ";
     }
+    
     if (!formData.email.includes("@")) {
         autoFlagged = true;
         autoFlagReason += "Invalid Email Format. ";
@@ -142,7 +147,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
           studentId: generatedStudentId,
           level: 0,
           isBanned: shouldBan,
-          banReason: shouldBan ? "Account flagged by automated content filter." : undefined
+          banReason: shouldBan ? "Account flagged by automated safety filter for Restricted Content." : undefined
       };
       
       // Update local state

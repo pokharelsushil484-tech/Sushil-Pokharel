@@ -4,7 +4,7 @@ import { UserProfile, ChangeRequest, SupportTicket, TicketMessage } from '../typ
 import { 
   Users, ShieldCheck, LifeBuoy, Trash2, 
   CheckCircle, XCircle, RefreshCw, User, Lock, 
-  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award, Edit2, ArrowRight
+  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award, Edit2, ArrowRight, Save, X, BadgeCheck
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { ADMIN_USERNAME } from '../constants';
@@ -21,6 +21,10 @@ export const AdminDashboard: React.FC = () => {
   const [masterKey, setMasterKey] = useState('');
   const [keyCountdown, setKeyCountdown] = useState(50);
   const [generatedAdmissionKey, setGeneratedAdmissionKey] = useState<{user: string, key: string} | null>(null);
+  
+  // Editing State
+  const [editingUser, setEditingUser] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -121,6 +125,21 @@ export const AdminDashboard: React.FC = () => {
                   }
                }
           }
+          
+          if (req.type === 'NAME_CHANGE' && approve) {
+               const details = JSON.parse(req.details);
+               data.user.name = details.newName;
+               
+               // Update global users list
+               const usersStr = localStorage.getItem('studentpocket_users');
+               if (usersStr) {
+                  const users = JSON.parse(usersStr);
+                  if (users[req.username]) {
+                      users[req.username].name = details.newName;
+                      localStorage.setItem('studentpocket_users', JSON.stringify(users));
+                  }
+               }
+          }
 
           data.user.isVerified = approve;
           data.user.verificationStatus = approve ? 'VERIFIED' : 'REJECTED';
@@ -130,7 +149,7 @@ export const AdminDashboard: React.FC = () => {
           }
           
           data.user.adminFeedback = approve 
-            ? (req.type === 'DATA_CHANGE' ? "Profile Update Approved." : "Identity Verified by Administration. Level Increased.") 
+            ? (req.type === 'DATA_CHANGE' ? "Profile Update Approved." : req.type === 'NAME_CHANGE' ? "Name Change Approved." : "Identity Verified by Administration. Level Increased.") 
             : "Request rejected by administrator.";
           
           await storageService.setData(`architect_data_${req.username}`, data);
@@ -141,6 +160,35 @@ export const AdminDashboard: React.FC = () => {
       );
       setRequests(updatedReqs as ChangeRequest[]);
       localStorage.setItem('studentpocket_requests', JSON.stringify(updatedReqs));
+  };
+  
+  const saveNameEdit = async (username: string) => {
+      if (!editName.trim()) {
+          setEditingUser(null);
+          return;
+      }
+
+      // Update in DB
+      const data = await storageService.getData(`architect_data_${username}`);
+      if (data && data.user) {
+          data.user.name = editName;
+          data.user.adminFeedback = "Name updated by Administrator.";
+          await storageService.setData(`architect_data_${username}`, data);
+      }
+      
+      // Update in Auth
+      const usersStr = localStorage.getItem('studentpocket_users');
+      if (usersStr) {
+          const users = JSON.parse(usersStr);
+          if (users[username]) {
+              users[username].name = editName;
+              localStorage.setItem('studentpocket_users', JSON.stringify(users));
+          }
+      }
+      
+      setEditingUser(null);
+      setEditName('');
+      loadData();
   };
 
   const handleRecoveryRequest = async (req: ChangeRequest) => {
@@ -340,18 +388,39 @@ export const AdminDashboard: React.FC = () => {
                <div className="space-y-2">
                    {profiles.map((user: any, i) => (
                        <div key={i} className="flex justify-between items-center p-4 border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                           <div className="flex items-center space-x-4">
+                           <div className="flex items-center space-x-4 flex-1">
                                <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-400">
                                    <User size={20} />
                                </div>
-                               <div>
+                               <div className="flex-1">
                                    <div className="flex items-center gap-2">
-                                       <h4 className="font-bold text-sm text-slate-900 dark:text-white">{user.name}</h4>
+                                       {editingUser === user._username ? (
+                                           <div className="flex items-center gap-1">
+                                               <input 
+                                                    type="text" 
+                                                    value={editName}
+                                                    onChange={(e) => setEditName(e.target.value)}
+                                                    className="px-2 py-1 text-sm bg-white dark:bg-black border border-slate-300 rounded"
+                                                    autoFocus
+                                               />
+                                               <button onClick={() => saveNameEdit(user._username)} className="text-green-500 hover:text-green-600"><Save size={16}/></button>
+                                               <button onClick={() => setEditingUser(null)} className="text-red-500 hover:text-red-600"><X size={16}/></button>
+                                           </div>
+                                       ) : (
+                                           <>
+                                               <h4 className="font-bold text-sm text-slate-900 dark:text-white">{user.name}</h4>
+                                               <button onClick={() => { setEditingUser(user._username); setEditName(user.name); }} className="text-slate-400 hover:text-indigo-500"><Edit2 size={12}/></button>
+                                           </>
+                                       )}
+                                       {user.isVerified && <BadgeCheck size={14} className="text-blue-500 fill-white dark:fill-slate-900" />}
                                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${user.level > 1 ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>Level {user.level || 0}</span>
                                        {user.isBanned && <span className="text-[9px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">BANNED</span>}
                                    </div>
                                    <p className="text-xs text-slate-500">{user.email}</p>
-                                   <p className="text-[10px] text-slate-400 mt-0.5">ID: {user._username}</p>
+                                   <div className="flex items-center gap-2">
+                                       <p className="text-[10px] text-slate-400 mt-0.5">ID: {user._username}</p>
+                                       {user.studentId && <p className="text-[10px] text-indigo-400 mt-0.5 font-bold">SID: {user.studentId}</p>}
+                                   </div>
                                </div>
                            </div>
                            <div className="flex items-center space-x-2">
@@ -399,14 +468,20 @@ export const AdminDashboard: React.FC = () => {
                            
                            {isDataChange ? (
                                <div className="text-xs text-slate-500 mt-2 space-y-1">
-                                   {details.old.name !== details.new.name && (
-                                       <p><span className="font-bold text-slate-400">Name:</span> <span className="line-through opacity-50">{details.old.name}</span> <ArrowRight size={10} className="inline mx-1"/> <span className="font-bold text-indigo-600 dark:text-indigo-400">{details.new.name}</span></p>
-                                   )}
-                                   {details.old.email !== details.new.email && (
-                                       <p><span className="font-bold text-slate-400">Email:</span> <span className="line-through opacity-50">{details.old.email}</span> <ArrowRight size={10} className="inline mx-1"/> <span className="font-bold text-indigo-600 dark:text-indigo-400">{details.new.email}</span></p>
-                                   )}
-                                   {details.old.education !== details.new.education && (
-                                       <p><span className="font-bold text-slate-400">Education:</span> <span className="line-through opacity-50">{details.old.education}</span> <ArrowRight size={10} className="inline mx-1"/> <span className="font-bold text-indigo-600 dark:text-indigo-400">{details.new.education}</span></p>
+                                   {req.type === 'NAME_CHANGE' ? (
+                                       <p><span className="font-bold text-slate-400">Name:</span> <span className="line-through opacity-50">{details.oldName}</span> <ArrowRight size={10} className="inline mx-1"/> <span className="font-bold text-indigo-600 dark:text-indigo-400">{details.newName}</span></p>
+                                   ) : (
+                                       <>
+                                           {details.old.name !== details.new.name && (
+                                               <p><span className="font-bold text-slate-400">Name:</span> <span className="line-through opacity-50">{details.old.name}</span> <ArrowRight size={10} className="inline mx-1"/> <span className="font-bold text-indigo-600 dark:text-indigo-400">{details.new.name}</span></p>
+                                           )}
+                                           {details.old.email !== details.new.email && (
+                                               <p><span className="font-bold text-slate-400">Email:</span> <span className="line-through opacity-50">{details.old.email}</span> <ArrowRight size={10} className="inline mx-1"/> <span className="font-bold text-indigo-600 dark:text-indigo-400">{details.new.email}</span></p>
+                                           )}
+                                           {details.old.education !== details.new.education && (
+                                               <p><span className="font-bold text-slate-400">Education:</span> <span className="line-through opacity-50">{details.old.education}</span> <ArrowRight size={10} className="inline mx-1"/> <span className="font-bold text-indigo-600 dark:text-indigo-400">{details.new.education}</span></p>
+                                           )}
+                                       </>
                                    )}
                                </div>
                            ) : (

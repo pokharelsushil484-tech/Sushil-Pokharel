@@ -141,14 +141,14 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
   const handleProfileUpdate = async () => {
     // 1. Content Safety Check (Privacy & Rules)
     const combinedData = `${editForm.name} ${editForm.education} ${editForm.email}`.toLowerCase();
-    const bannedTerms = ["admin", "hacker", "root", "system", "support", "staff", "script"];
+    const bannedTerms = ["admin", "hacker", "root", "system", "support", "staff", "script", "kill", "attack", "violence", "terror", "bomb", "gun", "death", "suicide"];
     
     if (bannedTerms.some(term => combinedData.includes(term))) {
         // Auto-ban!
         const updatedProfile: UserProfile = {
             ...user,
             isBanned: true,
-            banReason: "Security Violation: Restricted Data Detected in Profile Update."
+            banReason: "Security Violation: Harmful or Restricted Content Detected in Profile."
         };
         await storageService.setData(`architect_data_${username}`, { ...await storageService.getData(`architect_data_${username}`), user: updatedProfile });
         updateUser(updatedProfile);
