@@ -21,7 +21,7 @@ import { TermsModal } from './components/TermsModal';
 import { ShieldX, Globe, CheckCircle, XCircle, X, RefreshCw, AlertTriangle } from 'lucide-react';
 
 import { View, UserProfile, VaultDocument, ChatMessage } from './types';
-import { ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN, APP_NAME, SYSTEM_DOMAIN } from './constants';
+import { ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN, APP_NAME, SYSTEM_DOMAIN, CREATOR_NAME } from './constants';
 import { storageService } from './services/storageService';
 
 const App = () => {
@@ -315,7 +315,7 @@ const App = () => {
     switch (view) {
       case View.DASHBOARD: return <Dashboard user={data.user} username={currentUsername} onNavigate={setView} />;
       case View.FILE_HUB: return <Vault user={data.user} documents={data.vaultDocs} saveDocuments={docs => setData(prev => ({...prev, vaultDocs: docs}))} updateUser={u => setData(prev => ({...prev, user: u}))} onNavigate={setView} />;
-      case View.AI_CHAT: return <AIChat chatHistory={data.chatHistory} setChatHistory={msgs => setData(prev => ({...prev, chatHistory: msgs}))} isVerified={data.user.isVerified} />;
+      case View.AI_CHAT: return <AIChat chatHistory={data.chatHistory} setChatHistory={msgs => setData(prev => ({...prev, chatHistory: msgs}))} isVerified={data.user.isVerified} username={currentUsername || undefined} />;
       case View.VERIFICATION_FORM: return <VerificationForm user={data.user} username={currentUsername!} updateUser={u => setData(prev => ({...prev, user: u}))} onNavigate={setView} />;
       case View.SETTINGS: return <Settings user={data.user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={handleLogout} username={currentUsername} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={u => setData(prev => ({...prev, user: u}))} />;
       case View.SUPPORT: return <Support username={currentUsername} />;
@@ -360,7 +360,7 @@ const App = () => {
                       <p className="text-[10px] opacity-80">New features available</p>
                   </div>
                   <button onClick={() => window.location.reload()} className="bg-white text-indigo-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-indigo-50">
-                      Reload
+                      Please reload
                   </button>
               </div>
           </div>
@@ -376,7 +376,7 @@ const App = () => {
                 <div className="flex flex-col">
                   <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest leading-none mb-0.5">StudentPocket</span>
                   <div className="flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    <span>{SYSTEM_DOMAIN}</span>
+                    <span>Pack by {CREATOR_NAME}</span>
                   </div>
                 </div>
              </div>

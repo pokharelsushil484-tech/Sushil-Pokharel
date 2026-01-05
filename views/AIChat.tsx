@@ -1,16 +1,18 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, Trash2, Loader2, MessageCircle, Lock } from 'lucide-react';
-import { ChatMessage } from '../types';
+import { ChatMessage, UserProfile } from '../types';
 import { chatWithAI } from '../services/geminiService';
+import { storageService } from '../services/storageService';
 
 interface AIChatProps {
   chatHistory: ChatMessage[];
   setChatHistory: (messages: ChatMessage[]) => void;
   isVerified?: boolean;
+  username?: string; // Added to handle banning
 }
 
-export const AIChat: React.FC<AIChatProps> = ({ chatHistory, setChatHistory, isVerified }) => {
+export const AIChat: React.FC<AIChatProps> = ({ chatHistory, setChatHistory, isVerified, username }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -40,9 +42,53 @@ export const AIChat: React.FC<AIChatProps> = ({ chatHistory, setChatHistory, isV
       );
   }
 
+  // --- SECURITY & VIOLENCE DETECTION ---
+  const detectViolations = async (text: string) => {
+      if (!username) return false;
+
+      const lower = text.toLowerCase();
+      // Bad / Negative / Violent Keywords list matching Settings.tsx
+      const negativeTerms = ["hate", "kill", "die", "attack", "bomb", "stupid", "idiot", "violence", "blood", "death", "hack", "crack", "destroy", "bad", "evil", "enemy", "suicide", "terror"];
+      
+      if (negativeTerms.some(term => lower.includes(term))) {
+          // IMMEDIATE BLOCK LOGIC
+          const dataKey = `architect_data_${username}`;
+          const storedData = await storageService.getData(dataKey);
+          
+          if (storedData && storedData.user) {
+              const updatedProfile: UserProfile = {
+                ...storedData.user,
+                isBanned: true,
+                banReason: "CRITICAL SECURITY STOP: Unwanted/Violent content detected in AI Channel. System Force Logout."
+              };
+              
+              await storageService.setData(dataKey, { 
+                  ...storedData, 
+                  user: updatedProfile 
+              });
+              
+              await storageService.logActivity({
+                actor: username,
+                targetUser: username,
+                actionType: 'SECURITY',
+                description: `VIOLENCE DETECTED (AI Chat): Account Blocked.`,
+                metadata: `Content: ${text}`
+              });
+
+              // Force reload to trigger "App Removed" / Lock Screen
+              window.location.reload();
+              return true;
+          }
+      }
+      return false;
+  };
+
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input.trim() || isLoading) return;
+
+    // Security Check
+    if (await detectViolations(input)) return;
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
