@@ -25,9 +25,11 @@ export interface UserProfile {
   banReason?: string;
   isVerified: boolean;
   isSuspicious?: boolean; // Flag for accounts recovered via Admission Key needing re-verification
+  badges?: string[]; // 'SUSPICIOUS', 'DANGEROUS', 'VERIFIED'
   level: number; // 0=Guest, 1=Basic, 2=Verified, 3=Elite
   verificationStatus: 'NONE' | 'FORM_PENDING' | 'PENDING_APPROVAL' | 'VERIFIED' | 'REJECTED';
   adminFeedback?: string; // Stores the email content/rejection reason
+  adminComments?: string[]; // Array of comments/bugs from admin
   rescueKey?: string; // Static master key for alternative verification
   admissionKey?: string; // Key generated for banned user recovery (Acts as Master Key)
   acceptedTermsVersion?: string;
