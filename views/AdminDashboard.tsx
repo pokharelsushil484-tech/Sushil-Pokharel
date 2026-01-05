@@ -18,8 +18,12 @@ export const AdminDashboard: React.FC = () => {
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [replyText, setReplyText] = useState('');
-  const [masterKey, setMasterKey] = useState('');
-  const [keyCountdown, setKeyCountdown] = useState(50);
+  
+  // Admission Key State
+  const [admissionKey, setAdmissionKey] = useState<string | null>(null);
+  const [keyStatus, setKeyStatus] = useState<'ACTIVE' | 'COOLDOWN'>('ACTIVE');
+  const [cooldownTime, setCooldownTime] = useState(0);
+  
   const [generatedAdmissionKey, setGeneratedAdmissionKey] = useState<{user: string, key: string} | null>(null);
   
   // Editing State
@@ -28,29 +32,17 @@ export const AdminDashboard: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const MASTER_KEY_INTERVAL = 50000; // 50 seconds
-
-  // Master Key ticker - 50 Second Rotation
+  // Poll for Admission Key Status
   useEffect(() => {
-    const updateMasterKey = () => {
-        const timeStep = MASTER_KEY_INTERVAL;
-        const now = Date.now();
-        const seed = Math.floor(now / timeStep);
-        
-        // Deterministic generation based on time window
-        const rawCode = Math.abs(Math.sin(seed + 1) * 1000000).toFixed(0); 
-        const code = rawCode.slice(0, 6).padEnd(6, '0'); // Ensure 6 digits
-        
-        setMasterKey(code);
-        
-        // Calculate remaining seconds
-        const nextTick = (seed + 1) * timeStep;
-        const remaining = Math.ceil((nextTick - now) / 1000);
-        setKeyCountdown(remaining);
+    const checkKey = async () => {
+        const state = await storageService.getAdmissionKeyState();
+        setAdmissionKey(state.code);
+        setKeyStatus(state.status);
+        setCooldownTime(state.cooldownRemaining);
     };
-
-    updateMasterKey(); // Initial call
-    const interval = setInterval(updateMasterKey, 1000); // Check every second to update countdown
+    
+    checkKey();
+    const interval = setInterval(checkKey, 1000); // Check every second
     return () => clearInterval(interval);
   }, []);
 
@@ -347,22 +339,35 @@ export const AdminDashboard: React.FC = () => {
 
        {viewMode === 'OVERVIEW' && (
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-               {/* Master Key Widget */}
+               {/* Admission Key Widget */}
                <div className="bg-slate-800 text-white p-6 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden group col-span-1 md:col-span-2">
                    <div className="flex justify-between items-start mb-2">
                        <div className="flex items-center space-x-2">
                            <Key size={18} className="text-emerald-400" />
-                           <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Master Key Generator</span>
+                           <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Master Admission Key</span>
                        </div>
-                       <div className="text-[10px] font-mono text-slate-500 bg-black/40 px-2 py-0.5 rounded">
-                           Expires: {keyCountdown}s
+                       <div className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${keyStatus === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                           {keyStatus}
                        </div>
                    </div>
-                   <div className="text-center py-2">
-                       <h3 className="text-5xl font-black font-mono tracking-[0.2em] animate-pulse text-emerald-400">{masterKey || '...'}</h3>
-                       <p className="text-[10px] text-slate-500 mt-2 uppercase">Provide to students for manual verification</p>
+                   <div className="text-center py-2 relative">
+                       {keyStatus === 'ACTIVE' ? (
+                          <>
+                            <h3 className="text-4xl md:text-5xl font-black font-mono tracking-[0.1em] text-emerald-400 select-all">{admissionKey}</h3>
+                            <p className="text-[9px] text-slate-500 mt-2 uppercase">Provide for manual verification</p>
+                          </>
+                       ) : (
+                          <>
+                            <h3 className="text-4xl md:text-5xl font-black font-mono tracking-widest text-amber-500 animate-pulse">
+                                {String(Math.floor(cooldownTime / 60)).padStart(2, '0')}:{String(cooldownTime % 60).padStart(2, '0')}
+                            </h3>
+                            <p className="text-[9px] text-slate-500 mt-2 uppercase">Regenerating in...</p>
+                          </>
+                       )}
                    </div>
-                   <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all duration-1000 linear" style={{width: `${(keyCountdown / 50) * 100}%`}}></div>
+                   {keyStatus === 'COOLDOWN' && (
+                        <div className="absolute bottom-0 left-0 h-1 bg-amber-500 transition-all duration-1000 linear" style={{width: `${(cooldownTime / 60) * 100}%`}}></div>
+                   )}
                </div>
 
                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -383,6 +388,7 @@ export const AdminDashboard: React.FC = () => {
            </div>
        )}
 
+       {/* Other Views remain unchanged */}
        {viewMode === 'USERS' && (
            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
                <div className="space-y-2">

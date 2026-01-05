@@ -231,7 +231,10 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
       // Allow the specific admission key generated for this user to act as a master key
       const isAdmissionKey = user.admissionKey && masterKeyInput === user.admissionKey;
       
-      if (masterKeyInput === currentMasterKey || isAdminKey || isAdmissionKey) {
+      // Also check the global admission key
+      const isGlobalKey = await storageService.consumeAdmissionKey(masterKeyInput);
+
+      if (masterKeyInput === currentMasterKey || isAdminKey || isAdmissionKey || isGlobalKey) {
           // Success - Apply Changes Immediately
           const updatedProfile: UserProfile = {
               ...user,

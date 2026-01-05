@@ -9,7 +9,8 @@ import { ActivityLog } from '../types';
 const DB_NAME = 'StudentPocketDB';
 const STORE_NAME = 'user_data';
 const LOGS_STORE_NAME = 'activity_logs';
-const DB_VERSION = 2; // Incremented for logs store
+const SYSTEM_STORE_NAME = 'system_config'; // New store for global keys
+const DB_VERSION = 3; // Incremented for system store
 
 const initDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -23,6 +24,9 @@ const initDB = (): Promise<IDBDatabase> => {
       if (!db.objectStoreNames.contains(LOGS_STORE_NAME)) {
         const logStore = db.createObjectStore(LOGS_STORE_NAME, { keyPath: 'id' });
         logStore.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+      if (!db.objectStoreNames.contains(SYSTEM_STORE_NAME)) {
+        db.createObjectStore(SYSTEM_STORE_NAME);
       }
     };
 
@@ -138,6 +142,78 @@ export const storageService = {
         }
       };
       request.onerror = () => reject(request.error);
+    });
+  },
+
+  /**
+   * ADMISSION KEY SYSTEM
+   * Handles lifecycle: Generate -> Use -> Delete -> Wait 1 min -> Generate
+   */
+  async getAdmissionKeyState(): Promise<{ code: string | null, status: 'ACTIVE' | 'COOLDOWN', cooldownRemaining: number }> {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(SYSTEM_STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(SYSTEM_STORE_NAME);
+        const request = store.get('global_admission_key');
+
+        request.onsuccess = () => {
+            let data = request.result;
+            const now = Date.now();
+
+            // Initialize if empty
+            if (!data) {
+                const newCode = 'ADM-' + Math.floor(100000 + Math.random() * 900000);
+                data = { code: newCode, status: 'ACTIVE', cooldownStart: 0 };
+                store.put(data, 'global_admission_key');
+                resolve({ code: newCode, status: 'ACTIVE', cooldownRemaining: 0 });
+                return;
+            }
+
+            // Check if in cooldown
+            if (data.status === 'COOLDOWN') {
+                const elapsed = now - data.cooldownStart;
+                const COOLDOWN_PERIOD = 60 * 1000; // 1 Minute
+
+                if (elapsed >= COOLDOWN_PERIOD) {
+                    // Regenerate
+                    const newCode = 'ADM-' + Math.floor(100000 + Math.random() * 900000);
+                    data = { code: newCode, status: 'ACTIVE', cooldownStart: 0 };
+                    store.put(data, 'global_admission_key');
+                    resolve({ code: newCode, status: 'ACTIVE', cooldownRemaining: 0 });
+                } else {
+                    // Still in cooldown
+                    resolve({ code: null, status: 'COOLDOWN', cooldownRemaining: Math.ceil((COOLDOWN_PERIOD - elapsed) / 1000) });
+                }
+            } else {
+                // Active
+                resolve({ code: data.code, status: 'ACTIVE', cooldownRemaining: 0 });
+            }
+        };
+        request.onerror = () => reject(request.error);
+    });
+  },
+
+  async consumeAdmissionKey(inputCode: string): Promise<boolean> {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(SYSTEM_STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(SYSTEM_STORE_NAME);
+        const request = store.get('global_admission_key');
+
+        request.onsuccess = () => {
+            const data = request.result;
+            if (data && data.status === 'ACTIVE' && data.code === inputCode) {
+                // CONSUME: Set to Cooldown
+                data.status = 'COOLDOWN';
+                data.code = null;
+                data.cooldownStart = Date.now();
+                store.put(data, 'global_admission_key');
+                resolve(true);
+            } else {
+                resolve(false);
+            }
+        };
+        request.onerror = () => reject(request.error);
     });
   }
 };

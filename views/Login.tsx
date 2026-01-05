@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, Info, X, ShieldCheck, Globe, Camera, ArrowLeft, Check, Key, HelpCircle, AlertTriangle } from 'lucide-react';
@@ -251,13 +252,22 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                       return;
                   }
 
-                  if (stored.user.admissionKey === admissionKey) {
+                  // Check Key Validation
+                  // 1. Check user-specific generated key
+                  const isPersonalKeyValid = stored.user.admissionKey === admissionKey;
+                  
+                  // 2. Check global system key
+                  let isGlobalKeyValid = false;
+                  if (!isPersonalKeyValid) {
+                      isGlobalKeyValid = await storageService.consumeAdmissionKey(admissionKey);
+                  }
+
+                  if (isPersonalKeyValid || isGlobalKeyValid) {
                       // Valid Key! Unban if banned and proceed
                       // IMPORTANT: Set to FORM_PENDING to force re-verification
                       if (stored.user.isBanned) {
                           stored.user.isBanned = false;
                           stored.user.banReason = undefined;
-                          // stored.user.admissionKey = undefined; // KEEP KEY as Master Key
                           stored.user.isVerified = false;
                           stored.user.isSuspicious = true; // Mark suspicious until re-verified
                           stored.user.verificationStatus = 'FORM_PENDING'; // Force Form
@@ -273,7 +283,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                       setLoginInput(targetUsername); // Ensure next step uses username
                       setView('IDENTITY_SNAP');
                   } else {
-                      setError("Invalid Admission Key.");
+                      setError("Invalid Admission Key or Key Expired.");
                   }
               } else {
                   setError("Profile data corruption.");
@@ -412,7 +422,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
   return (
     <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden font-sans">
       <div className="absolute inset-0 opacity-10 pointer-events-none">
-        <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-500/10 via-transparent to-transparent"></div>
+        <div className="absolute top-0 right-0 w-2/3 h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-500/10 via-transparent to-transparent"></div>
         <div className="grid grid-cols-12 h-full w-full opacity-5">
            {Array.from({length: 144}).map((_, i) => <div key={i} className="border-[0.5px] border-white/10"></div>)}
         </div>
