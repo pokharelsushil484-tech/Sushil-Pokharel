@@ -23,6 +23,7 @@ export const DEFAULT_USER: UserProfile = {
   email: "",
   phone: "",
   isVerified: false,
+  level: 0,
   verificationStatus: 'NONE',
   acceptedTermsVersion: SYSTEM_UPGRADE_TOKEN,
   storageLimitGB: DEFAULT_STORAGE_LIMIT_GB,

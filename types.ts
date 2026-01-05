@@ -23,6 +23,7 @@ export interface UserProfile {
   isBanned?: boolean;
   banReason?: string;
   isVerified: boolean;
+  level: number; // 0=Guest, 1=Basic, 2=Verified, 3=Elite
   verificationStatus: 'NONE' | 'FORM_PENDING' | 'PENDING_APPROVAL' | 'VERIFIED' | 'REJECTED';
   adminFeedback?: string; // Stores the email content/rejection reason
   rescueKey?: string; // Static master key for alternative verification
@@ -84,6 +85,8 @@ export interface ChangeRequest {
   linkId?: string;
   previousLinkIds?: string[]; // History of link IDs to allow redirects
   generatedStudentId?: string; // The ID generated during form submission
+  autoFlagged?: boolean; // System detected potential issues
+  autoFlagReason?: string;
 }
 
 export enum TaskPriority {

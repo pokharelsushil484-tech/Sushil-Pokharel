@@ -9,6 +9,7 @@ import { AdminDashboard } from './views/AdminDashboard';
 import { AIChat } from './views/AIChat';
 import { Vault } from './views/Vault';
 import { VerificationForm } from './views/VerificationForm';
+import { VerificationPending } from './views/VerificationPending';
 import { LinkVerification } from './views/LinkVerification';
 import { InviteRegistration } from './views/InviteRegistration';
 import { Support } from './views/Support';
@@ -20,7 +21,7 @@ import { ShieldX, Globe, CheckCircle, XCircle, X } from 'lucide-react';
 
 import { View, UserProfile, VaultDocument, ChatMessage } from './types';
 import { ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN, APP_NAME, SYSTEM_DOMAIN } from './constants';
-import { storageService } from './services/storageService';
+import { storageService } from '../services/storageService';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -107,6 +108,7 @@ const App = () => {
             if (currentUsername === ADMIN_USERNAME && !stored.user.isVerified) {
                stored.user.isVerified = true;
                stored.user.verificationStatus = 'VERIFIED';
+               stored.user.level = 3; // Max level for admin
                await storageService.setData(`architect_data_${currentUsername}`, stored);
             }
             setData(stored);
@@ -229,7 +231,8 @@ const App = () => {
           const profile = {
              ...p,
              isVerified: isPowerUser ? true : p.isVerified,
-             verificationStatus: isPowerUser ? 'VERIFIED' : p.verificationStatus
+             verificationStatus: isPowerUser ? 'VERIFIED' : p.verificationStatus,
+             level: isPowerUser ? 3 : 0
           };
           setData(prev => ({...prev, user: profile}));
           // If admin, go to admin dashboard
@@ -241,6 +244,11 @@ const App = () => {
         }} 
       />
     );
+    
+    // STRICT SECURITY GATE: Block access if pending verification
+    if (data.user.verificationStatus === 'PENDING_APPROVAL' && view !== View.SUPPORT) {
+        return <VerificationPending studentId={data.user.studentId} onLogout={handleLogout} />;
+    }
     
     switch (view) {
       case View.DASHBOARD: return <Dashboard user={data.user} username={currentUsername} onNavigate={setView} />;
@@ -280,7 +288,7 @@ const App = () => {
           </div>
       )}
 
-      {(!isLoading || data.user) && (
+      {(!isLoading || data.user) && data.user?.verificationStatus !== 'PENDING_APPROVAL' && (
         <div className="md:ml-20 lg:ml-64 transition-all animate-fade-in min-h-screen flex flex-col">
           <header className="bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800 h-16 flex items-center justify-between px-6 sticky top-0 z-40">
              <div className="flex items-center space-x-3">
@@ -309,7 +317,12 @@ const App = () => {
         </div>
       )}
       
-      {data.user && !isLoading && (
+      {/* If pending, render content directly (which is the VerificationPending component) without wrapper */}
+      {data.user && data.user.verificationStatus === 'PENDING_APPROVAL' && (
+         <main className="w-full h-full">{renderContent()}</main>
+      )}
+      
+      {data.user && !isLoading && data.user.verificationStatus !== 'PENDING_APPROVAL' && (
         <Navigation 
             currentView={view} 
             setView={setView} 

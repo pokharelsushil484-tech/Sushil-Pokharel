@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, View, ChangeRequest } from '../types';
-import { ShieldCheck, HardDrive, ArrowRight, Loader2, Sparkles, Lock, Database, Mail, XCircle, FileText, ChevronDown, ChevronUp, RefreshCw, CheckCircle, Copy } from 'lucide-react';
+import { ShieldCheck, HardDrive, ArrowRight, Loader2, Sparkles, Lock, Database, Mail, XCircle, FileText, ChevronDown, ChevronUp, RefreshCw, CheckCircle, Copy, Award } from 'lucide-react';
 import { CREATOR_NAME, ADMIN_USERNAME, SYSTEM_DOMAIN } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -184,7 +184,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
             </div>
             <div>
                <p className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-tight">Access Control</p>
-               <p className="text-[10px] text-indigo-600 font-medium uppercase tracking-widest mt-0.5">Verification Required</p>
+               <p className="text-[10px] text-indigo-600 font-medium uppercase tracking-widest mt-0.5">Verification Required for Level Up</p>
             </div>
          </div>
          <div className="flex items-center text-[10px] font-bold uppercase tracking-widest bg-white dark:bg-indigo-900/40 text-indigo-600 px-5 py-2.5 rounded-xl border border-indigo-100 dark:border-indigo-800 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
@@ -311,14 +311,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
 
           <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between h-32">
                <div className="flex justify-between items-start">
-                  <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-amber-500">
-                    <Lock size={18} />
+                  <div className={`p-2 rounded-lg ${user.level > 0 ? 'bg-amber-100 text-amber-600' : 'bg-slate-50 text-slate-500'} dark:bg-slate-800`}>
+                    <Award size={18} />
                   </div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Access Level</span>
               </div>
               <div>
-                  <p className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{isAdmin ? 'Admin' : user.isVerified ? 'Verified' : 'Guest'}</p>
-                  <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mt-1">Level {isAdmin ? 'MAX' : user.isVerified ? '1' : '0'}</p>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Level {user.level}</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{isAdmin ? 'Admin' : user.level === 0 ? 'Guest' : user.level === 1 ? 'Student' : user.level === 2 ? 'Verified' : 'Elite'}</p>
               </div>
           </div>
       </div>

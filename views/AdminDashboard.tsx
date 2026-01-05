@@ -4,7 +4,7 @@ import { UserProfile, ChangeRequest, SupportTicket, TicketMessage } from '../typ
 import { 
   Users, ShieldCheck, LifeBuoy, Trash2, 
   CheckCircle, XCircle, RefreshCw, User, Lock, 
-  ShieldAlert, MessageSquare, Send, Key 
+  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { ADMIN_USERNAME } from '../constants';
@@ -102,8 +102,9 @@ export const AdminDashboard: React.FC = () => {
       if (data && data.user) {
           data.user.isVerified = approve;
           data.user.verificationStatus = approve ? 'VERIFIED' : 'REJECTED';
+          data.user.level = approve ? 2 : 0; // Set to Verified Level (2) or Reset to Guest (0)
           data.user.adminFeedback = approve 
-            ? "Identity Verified by Administration." 
+            ? "Identity Verified by Administration. Level Increased." 
             : "Verification rejected. Please ensure details match your ID.";
           
           await storageService.setData(`architect_data_${req.username}`, data);
@@ -114,6 +115,20 @@ export const AdminDashboard: React.FC = () => {
       );
       setRequests(updatedReqs as ChangeRequest[]);
       localStorage.setItem('studentpocket_requests', JSON.stringify(updatedReqs));
+  };
+
+  const handleChangeLevel = async (username: string, delta: number) => {
+      const data = await storageService.getData(`architect_data_${username}`);
+      if (data && data.user) {
+          const newLevel = Math.max(0, Math.min(3, (data.user.level || 0) + delta));
+          data.user.level = newLevel;
+          if (newLevel > 0) {
+              data.user.isVerified = true;
+              data.user.verificationStatus = 'VERIFIED';
+          }
+          await storageService.setData(`architect_data_${username}`, data);
+          loadData();
+      }
   };
 
   const handleBanUser = async (username: string) => {
@@ -267,18 +282,28 @@ export const AdminDashboard: React.FC = () => {
                                    <User size={20} />
                                </div>
                                <div>
-                                   <h4 className="font-bold text-sm text-slate-900 dark:text-white">{user.name}</h4>
+                                   <div className="flex items-center gap-2">
+                                       <h4 className="font-bold text-sm text-slate-900 dark:text-white">{user.name}</h4>
+                                       <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${user.level > 1 ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>Level {user.level || 0}</span>
+                                   </div>
                                    <p className="text-xs text-slate-500">{user.email}</p>
                                    <p className="text-[10px] text-slate-400 mt-0.5">ID: {user._username}</p>
                                </div>
                            </div>
-                           <button 
-                                onClick={() => handleBanUser(user._username)} 
-                                className="p-2 text-slate-300 hover:text-red-500 transition-colors"
-                                title="Suspend User"
-                           >
-                               <Lock size={16} />
-                           </button>
+                           <div className="flex items-center space-x-2">
+                                <div className="flex flex-col items-center mr-2">
+                                    <button onClick={() => handleChangeLevel(user._username, 1)} className="p-1 text-slate-400 hover:text-emerald-500"><ChevronUp size={14} /></button>
+                                    <span className="text-[9px] font-bold text-slate-500">LVL</span>
+                                    <button onClick={() => handleChangeLevel(user._username, -1)} className="p-1 text-slate-400 hover:text-red-500"><ChevronDown size={14} /></button>
+                                </div>
+                                <button 
+                                        onClick={() => handleBanUser(user._username)} 
+                                        className="p-2 text-slate-300 hover:text-red-500 transition-colors bg-slate-50 dark:bg-slate-800 rounded-lg"
+                                        title="Suspend User"
+                                >
+                                    <Lock size={16} />
+                                </button>
+                           </div>
                        </div>
                    ))}
                </div>
@@ -294,14 +319,18 @@ export const AdminDashboard: React.FC = () => {
                    </div>
                )}
                {pendingRequests.map(req => (
-                   <div key={req.id} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                   <div key={req.id} className={`bg-white dark:bg-slate-900 p-6 rounded-2xl border ${req.autoFlagged ? 'border-red-500/50 dark:border-red-500/50' : 'border-slate-200 dark:border-slate-800'} shadow-sm flex flex-col md:flex-row justify-between items-center gap-4`}>
                        <div>
-                           <h4 className="font-bold text-sm text-slate-900 dark:text-white">Verification Request</h4>
-                           <p className="text-xs text-slate-500 font-mono mt-1">Ref: {req.generatedStudentId || 'N/A'} • User: {req.username}</p>
+                           <div className="flex items-center gap-2 mb-1">
+                               <h4 className="font-bold text-sm text-slate-900 dark:text-white">Verification Request</h4>
+                               {req.autoFlagged && <span className="bg-red-100 text-red-600 text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center"><ShieldAlert size={10} className="mr-1"/> Unverified Data Detected</span>}
+                           </div>
+                           <p className="text-xs text-slate-500 font-mono">Ref: {req.generatedStudentId || 'N/A'} • User: {req.username}</p>
+                           {req.autoFlagReason && <p className="text-[10px] text-red-500 font-bold mt-1">System Flag: {req.autoFlagReason}</p>}
                        </div>
                        <div className="flex space-x-2">
                            <button onClick={() => handleVerifyRequest(req, false)} className="px-4 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold text-xs uppercase hover:bg-red-100 transition-colors">Reject</button>
-                           <button onClick={() => handleVerifyRequest(req, true)} className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold text-xs uppercase hover:bg-emerald-700 transition-colors">Approve</button>
+                           <button onClick={() => handleVerifyRequest(req, true)} className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold text-xs uppercase hover:bg-emerald-700 transition-colors">Approve & Level Up</button>
                        </div>
                    </div>
                ))}
