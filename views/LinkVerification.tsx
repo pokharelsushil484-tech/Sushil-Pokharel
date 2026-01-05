@@ -11,7 +11,7 @@ interface LinkVerificationProps {
   currentUser: string | null;
 }
 
-const LINK_EXPIRATION_MS = 15 * 60 * 1000; // 15 Minutes Validity
+const LINK_EXPIRATION_MS = 60 * 1000; // 1 Minute Validity
 
 export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNavigate, currentUser }) => {
   const [request, setRequest] = useState<ChangeRequest | null>(null);
@@ -115,16 +115,15 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
       }
 
       // 2. Validate Code
-      const currentMasterKey = Math.floor(Date.now() / 1000).toString().slice(-6); // Current second match
-      const prevMasterKey = Math.floor((Date.now() - 1000) / 1000).toString().slice(-6); // 1 sec tolerance
-      const nextMasterKey = Math.floor((Date.now() + 1000) / 1000).toString().slice(-6); // 1 sec tolerance
+      const timeStep = 50000;
+      const seed = Math.floor(Date.now() / timeStep);
+      // Generate current Master Key based on same deterministic logic as Admin
+      const currentMasterKey = Math.abs(Math.sin(seed + 1) * 1000000).toFixed(0).slice(0, 6).padEnd(6, '0');
       
       const userRescueKey = stored.user.rescueKey;
 
       const isValid = 
         manualCode === currentMasterKey || 
-        manualCode === prevMasterKey || 
-        manualCode === nextMasterKey ||
         (userRescueKey && manualCode === userRescueKey);
 
       if (!isValid) {

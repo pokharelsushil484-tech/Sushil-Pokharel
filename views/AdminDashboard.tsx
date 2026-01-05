@@ -21,18 +21,32 @@ export const AdminDashboard: React.FC = () => {
   const [replyText, setReplyText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [masterKey, setMasterKey] = useState('');
+  const [keyCountdown, setKeyCountdown] = useState(50);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Master Key ticker
+  // Master Key ticker - 50 Second Rotation
   useEffect(() => {
     const updateMasterKey = () => {
-        // Simple time-based OTP algorithm simulation: Last 6 digits of timestamp / 1000 floor
-        const code = Math.floor(Date.now() / 1000).toString().slice(-6);
+        const timeStep = 50000; // 50 seconds
+        const now = Date.now();
+        const seed = Math.floor(now / timeStep);
+        
+        // Deterministic generation based on time window
+        // Math.sin(seed) creates a deterministic pseudo-random number
+        const rawCode = Math.abs(Math.sin(seed + 1) * 1000000).toFixed(0); 
+        const code = rawCode.slice(0, 6).padEnd(6, '0'); // Ensure 6 digits
+        
         setMasterKey(code);
+        
+        // Calculate remaining seconds
+        const nextTick = (seed + 1) * timeStep;
+        const remaining = Math.ceil((nextTick - now) / 1000);
+        setKeyCountdown(remaining);
     };
-    updateMasterKey();
-    const interval = setInterval(updateMasterKey, 1000);
+
+    updateMasterKey(); // Initial call
+    const interval = setInterval(updateMasterKey, 1000); // Check every second to update countdown
     return () => clearInterval(interval);
   }, []);
 
@@ -249,16 +263,23 @@ export const AdminDashboard: React.FC = () => {
                {/* Master Key Widget */}
                <div className="bg-slate-900 text-white p-8 rounded-[2.5rem] border border-slate-800 shadow-xl relative overflow-hidden group">
                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-                   <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-emerald-400 mb-4">
-                       <Key size={24} />
+                   <div className="flex justify-between items-start mb-4">
+                       <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-emerald-400">
+                           <Key size={24} />
+                       </div>
+                       <div className="text-[10px] font-bold text-slate-500 bg-black/30 px-2 py-1 rounded-lg tabular-nums">
+                           {keyCountdown}s
+                       </div>
                    </div>
                    <div className="flex items-end justify-between">
                        <div>
                            <h3 className="text-4xl font-black font-mono tracking-widest animate-pulse">{masterKey || '...'}</h3>
                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-2">Live Master Key</p>
                        </div>
-                       <Clock size={20} className="text-slate-600 animate-spin-slow" />
+                       <div className={`w-2 h-2 rounded-full ${keyCountdown < 10 ? 'bg-red-500 animate-ping' : 'bg-emerald-500'}`}></div>
                    </div>
+                   {/* Progress Bar */}
+                   <div className="absolute bottom-0 left-0 h-1 bg-emerald-500/50 transition-all duration-1000 linear" style={{width: `${(keyCountdown / 50) * 100}%`}}></div>
                </div>
 
                <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
