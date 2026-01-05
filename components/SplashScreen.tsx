@@ -9,7 +9,8 @@ interface SplashScreenProps {
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   React.useEffect(() => {
-    const timer = setTimeout(onFinish, 2500);
+    // Increased duration to 4.5 seconds as requested
+    const timer = setTimeout(onFinish, 4500);
     return () => clearTimeout(timer);
   }, [onFinish]);
 
@@ -18,7 +19,8 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
       <div className="flex flex-col items-center animate-scale-up text-center">
         {/* Custom Spiral Line Loader */}
         <div className="mb-12 relative w-32 h-32">
-           <svg className="w-full h-full animate-spiral text-indigo-600" viewBox="0 0 100 100">
+           {/* Added rotation to the upper loader elements */}
+           <svg className="w-full h-full text-indigo-600 animate-[spin_3s_linear_infinite]" viewBox="0 0 100 100">
              <circle 
                 cx="50" 
                 cy="50" 
@@ -63,7 +65,8 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         </p>
 
         <div className="w-64 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
-            <div className="h-full bg-indigo-600 rounded-full w-1/2 animate-[loading_2s_infinite]"></div>
+            {/* Slowed down loading bar animation to match longer duration */}
+            <div className="h-full bg-indigo-600 rounded-full w-1/2 animate-[loading_3s_infinite]"></div>
         </div>
       </div>
 
