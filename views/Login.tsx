@@ -266,18 +266,20 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                               description: 'ADMIN SECURITY UNLOCK: Full privileges restored.'
                           });
                       } 
-                      // Case 2: Unlock User - PARTIAL RESTORATION (Suspicious + Pending)
+                      // Case 2: Unlock User - PARTIAL RESTORATION (Suspicious + Dangerous + Pending)
                       else {
                           stored.user.isBanned = false;
-                          stored.user.isSuspicious = true; // Mark as suspicious (Badge added)
+                          stored.user.isSuspicious = true; // Mark as suspicious
                           stored.user.isVerified = false; // Revoke verification
                           stored.user.verificationStatus = 'FORM_PENDING'; // Force Verification Form
                           stored.user.banReason = undefined;
+                          // APPLY BADGES AS REQUESTED
+                          stored.user.badges = ['DANGEROUS', 'SUSPICIOUS'];
                           
                           await storageService.logActivity({
                               actor: targetUsername,
                               actionType: 'SECURITY',
-                              description: 'Account Unlocked. Marked Suspicious. Re-verification required.'
+                              description: 'Account Unlocked. Marked Suspicious/Dangerous. Re-verification required.'
                           });
                       }
                       
@@ -514,7 +516,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
               <form onSubmit={handleAdmissionLogin} className="space-y-6 animate-scale-up">
                   <div className="text-center">
                       <h3 className="text-white font-bold text-lg mb-2">Admission Key Login</h3>
-                      <p className="text-xs text-slate-400">Use the key provided by the administration to regain access.</p>
+                      <p className="text-xs text-slate-400">Use the key provided by the administrator to restore access.</p>
                       <div className="mt-2 flex items-center justify-center text-amber-400 text-[10px] font-bold uppercase tracking-wide">
                         <AlertTriangle size={12} className="mr-1" /> Security Protocol
                       </div>

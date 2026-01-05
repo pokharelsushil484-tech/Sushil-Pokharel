@@ -4,7 +4,7 @@ import { UserProfile, ChangeRequest, SupportTicket, TicketMessage } from '../typ
 import { 
   Users, ShieldCheck, LifeBuoy, Trash2, 
   CheckCircle, XCircle, RefreshCw, User, Lock, 
-  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award, Edit2, ArrowRight, Save, X, BadgeCheck, BadgeAlert
+  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award, Edit2, ArrowRight, Save, X, BadgeCheck, BadgeAlert, Skull, AlertTriangle, MessageCircle
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { ADMIN_USERNAME } from '../constants';
@@ -140,9 +140,14 @@ export const AdminDashboard: React.FC = () => {
           data.user.isVerified = approve;
           data.user.verificationStatus = approve ? 'VERIFIED' : 'REJECTED';
           
-          // Clear suspicious flag if approved
+          // Clear suspicious flags if approved and grant Blue Tick badge
           if (approve) {
               data.user.isSuspicious = false;
+              // Remove negative badges, add verified
+              const currentBadges = data.user.badges || [];
+              const cleanBadges = currentBadges.filter(b => b !== 'SUSPICIOUS' && b !== 'DANGEROUS');
+              if (!cleanBadges.includes('VERIFIED')) cleanBadges.push('VERIFIED');
+              data.user.badges = cleanBadges;
           }
 
           // Maintain level for Data Change, set for new Verification
@@ -151,7 +156,7 @@ export const AdminDashboard: React.FC = () => {
           }
           
           data.user.adminFeedback = approve 
-            ? (req.type === 'DATA_CHANGE' ? "Profile Update Approved." : req.type === 'NAME_CHANGE' ? "Name Change Approved." : "Identity Verified by Administration. Level Increased.") 
+            ? (req.type === 'DATA_CHANGE' ? "Profile Update Approved." : req.type === 'NAME_CHANGE' ? "Name Change Approved." : "Identity Verified by Administration. Active User.") 
             : "Request rejected by administrator.";
           
           await storageService.setData(`architect_data_${req.username}`, data);
@@ -201,13 +206,38 @@ export const AdminDashboard: React.FC = () => {
       
       const data = await storageService.getData(`architect_data_${username}`);
       if (data && data.user) {
-          data.user.adminFeedback = adminComment;
+          // Append comment to list
+          const comments = data.user.adminComments || [];
+          comments.unshift(adminComment); // Newest first
+          data.user.adminComments = comments;
+          data.user.adminFeedback = adminComment; // Set as feedback too for alerts
           await storageService.setData(`architect_data_${username}`, data);
       }
       
       setMessagingUser(null);
       setAdminComment('');
       loadData();
+  };
+  
+  const toggleBadge = async (username: string, badge: string) => {
+       const data = await storageService.getData(`architect_data_${username}`);
+       if (data && data.user) {
+           let badges = data.user.badges || [];
+           if (badges.includes(badge)) {
+               badges = badges.filter(b => b !== badge);
+           } else {
+               badges.push(badge);
+               // If marking suspicious/dangerous, remove verified
+               if (badge === 'SUSPICIOUS' || badge === 'DANGEROUS') {
+                   badges = badges.filter(b => b !== 'VERIFIED');
+                   data.user.isVerified = false;
+                   data.user.isSuspicious = true;
+               }
+           }
+           data.user.badges = badges;
+           await storageService.setData(`architect_data_${username}`, data);
+           loadData();
+       }
   };
 
   const handleRecoveryRequest = async (req: ChangeRequest) => {
@@ -218,7 +248,6 @@ export const AdminDashboard: React.FC = () => {
       if (data && data.user) {
           data.user.admissionKey = key;
           // Note: We don't unban immediately, the login process with key handles it
-          // The login process will set isSuspicious to true upon using this key
           await storageService.setData(`architect_data_${req.username}`, data);
       }
       
@@ -251,6 +280,12 @@ export const AdminDashboard: React.FC = () => {
       if (data && data.user) {
           data.user.isBanned = true;
           data.user.banReason = "Account suspended by Administrator.";
+          
+          // Add Dangerous Badge
+          const badges = data.user.badges || [];
+          if (!badges.includes('DANGEROUS')) badges.push('DANGEROUS');
+          data.user.badges = badges.filter(b => b !== 'VERIFIED');
+          
           await storageService.setData(`architect_data_${username}`, data);
           loadData();
       }
@@ -355,6 +390,7 @@ export const AdminDashboard: React.FC = () => {
                <div>
                    <h3 className="font-bold text-lg">Admission Key Generated</h3>
                    <p className="text-xs opacity-90">User: {generatedAdmissionKey.user}</p>
+                   <p className="text-[9px] uppercase tracking-widest mt-1">Provide this key to the user via Email</p>
                </div>
                <div className="flex items-center gap-4 mt-4 md:mt-0">
                    <div className="bg-white/20 p-2 rounded-lg font-mono font-bold tracking-widest select-all">
@@ -447,12 +483,20 @@ export const AdminDashboard: React.FC = () => {
                                                     <button onClick={() => { setEditingUser(user._username); setEditName(user.name); }} className="text-slate-400 hover:text-indigo-500"><Edit2 size={12}/></button>
                                                 </>
                                             )}
-                                            {user.isVerified && <BadgeCheck size={14} className="text-blue-500 fill-white dark:fill-slate-900" />}
-                                            {user.isSuspicious && (
-                                                    <span className="flex items-center px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[9px] font-bold uppercase tracking-widest rounded border border-amber-200 dark:border-amber-800">
-                                                        <BadgeAlert size={10} className="mr-1"/> Suspicious
-                                                    </span>
+                                            
+                                            {/* Badges Display */}
+                                            {user.badges?.includes('VERIFIED') && <BadgeCheck size={14} className="text-blue-500 fill-white dark:fill-slate-900" />}
+                                            {user.badges?.includes('SUSPICIOUS') && (
+                                                <span className="flex items-center px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[9px] font-bold uppercase tracking-widest rounded border border-amber-200 dark:border-amber-800">
+                                                    <BadgeAlert size={10} className="mr-1"/> Suspicious
+                                                </span>
                                             )}
+                                            {user.badges?.includes('DANGEROUS') && (
+                                                <span className="flex items-center px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[9px] font-bold uppercase tracking-widest rounded border border-red-200 dark:border-red-800">
+                                                    <Skull size={10} className="mr-1"/> Dangerous
+                                                </span>
+                                            )}
+                                            
                                             <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${user.level > 1 ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>Level {user.level || 0}</span>
                                             {user.isBanned && <span className="text-[9px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">BANNED</span>}
                                         </div>
@@ -465,11 +509,18 @@ export const AdminDashboard: React.FC = () => {
                                 </div>
                                 <div className="flex items-center space-x-2">
                                         <button 
-                                            onClick={() => { setMessagingUser(user._username); setAdminComment(user.adminFeedback || ''); }}
+                                            onClick={() => toggleBadge(user._username, 'SUSPICIOUS')}
+                                            className={`p-2 rounded-lg transition-colors ${user.badges?.includes('SUSPICIOUS') ? 'bg-amber-500 text-white' : 'bg-slate-50 text-slate-400 hover:text-amber-500'}`}
+                                            title="Mark Suspicious"
+                                        >
+                                            <AlertTriangle size={16}/>
+                                        </button>
+                                        <button 
+                                            onClick={() => { setMessagingUser(user._username); setAdminComment(''); }}
                                             className="p-2 text-slate-400 hover:text-indigo-500 bg-slate-50 dark:bg-slate-800 rounded-lg transition-colors"
                                             title="Message User"
                                         >
-                                            <MessageSquare size={16}/>
+                                            <MessageCircle size={16}/>
                                         </button>
                                         <div className="flex flex-col items-center mr-2">
                                             <button onClick={() => handleChangeLevel(user._username, 1)} className="p-1 text-slate-400 hover:text-emerald-500"><ChevronUp size={14} /></button>
@@ -493,13 +544,13 @@ export const AdminDashboard: React.FC = () => {
                                         type="text" 
                                         value={adminComment} 
                                         onChange={(e) => setAdminComment(e.target.value)}
-                                        placeholder="Add admin comment/feedback..."
+                                        placeholder="Send admin comment/feedback..."
                                         className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs outline-none"
                                         autoFocus
                                    />
-                                   <button onClick={() => saveAdminComment(user._username)} className="bg-indigo-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors">Save</button>
+                                   <button onClick={() => saveAdminComment(user._username)} className="bg-indigo-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors">Send</button>
                                    <button onClick={() => setMessagingUser(null)} className="text-slate-400 hover:text-red-500"><X size={16}/></button>
-                               </div>
+                                </div>
                            )}
                        </div>
                    ))}
@@ -521,7 +572,7 @@ export const AdminDashboard: React.FC = () => {
                    
                    // Check if user is marked suspicious
                    const requestUser = profiles.find(p => (p as any)._username === req.username);
-                   const isSuspicious = requestUser?.isSuspicious;
+                   const isSuspicious = requestUser?.badges?.includes('SUSPICIOUS') || requestUser?.isSuspicious;
 
                    return (
                    <div key={req.id} className={`bg-white dark:bg-slate-900 p-6 rounded-2xl border ${isSuspicious || req.autoFlagged ? 'border-amber-500/50 dark:border-amber-500/50' : 'border-slate-200 dark:border-slate-800'} shadow-sm flex flex-col md:flex-row justify-between items-center gap-4`}>

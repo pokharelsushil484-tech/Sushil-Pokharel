@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, ChangeRequest } from '../types';
-import { ShieldAlert, Send, ArrowLeft, KeyRound, Copy, Check, Lock } from 'lucide-react';
-import { SYSTEM_DOMAIN } from '../constants';
+import { ShieldAlert, Send, ArrowLeft, KeyRound, Copy, Check, Lock, Mail } from 'lucide-react';
+import { SYSTEM_DOMAIN, ADMIN_EMAIL } from '../constants';
 
 interface AccessRecoveryProps {
   onNavigate: (view: View) => void;
@@ -18,14 +18,10 @@ export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate, init
   const [copied, setCopied] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // If entering via link, could auto-populate or handle differently
-  // For now, we assume user is requesting recovery
-  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
     
-    // Simulate slight delay
     setTimeout(() => {
         // Generate unique recovery ID 
         const newRecoveryId = Math.random().toString(36).substring(2, 9).toUpperCase();
@@ -45,7 +41,7 @@ export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate, init
             details: JSON.stringify({ reason, timestamp: Date.now() }),
             status: 'PENDING',
             createdAt: Date.now(),
-            linkId: newRecoveryId // Use linkId field to store recovery token
+            linkId: newRecoveryId 
         };
         
         existingReqs.push(request);
@@ -64,26 +60,39 @@ export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate, init
 
   if (submitted) {
       return (
-        <div className="min-h-screen bg-slate-50 dark:bg-[#020617] flex items-center justify-center p-6 animate-fade-in">
-             <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-[2rem] p-10 shadow-2xl border border-slate-200 dark:border-slate-800 text-center">
-                 <div className="w-20 h-20 bg-amber-50 dark:bg-amber-900/20 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-500 shadow-xl">
-                     <Lock size={32} />
+        <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-6 animate-fade-in relative overflow-hidden">
+             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-900/10 via-slate-950 to-slate-950 pointer-events-none"></div>
+
+             <div className="relative z-10 w-full max-w-lg text-center">
+                 <div className="w-24 h-24 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-amber-500/20 shadow-[0_0_40px_rgba(245,158,11,0.1)] animate-scale-up">
+                     <Lock size={40} className="text-amber-500" />
                  </div>
-                 <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Appeal Submitted</h2>
-                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-8 font-medium">
-                     Your recovery request has been logged. Please share the generated link below with the administrator.
+                 
+                 <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-tight">Request Logged</h2>
+                 <p className="text-sm text-slate-400 mb-10 font-medium leading-relaxed max-w-sm mx-auto">
+                     Your appeal has been generated. You must now contact the administrator to receive your unlocking keys.
                  </p>
                  
-                 <div className="bg-slate-100 dark:bg-slate-800 p-6 rounded-2xl mb-8 relative group text-left">
-                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Recovery Link</p>
-                     <p className="text-xs font-mono text-indigo-600 dark:text-indigo-400 break-all select-all bg-white dark:bg-black p-3 rounded border border-slate-200 dark:border-slate-700">{recoveryLink}</p>
-                     <button onClick={handleCopyLink} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white bg-black/5 hover:bg-black/20 rounded-lg transition-all">
-                        {copied ? <Check size={16} className="text-emerald-500"/> : <Copy size={16}/>}
-                     </button>
+                 <div className="bg-slate-900/50 p-8 rounded-[2rem] border border-white/5 mb-8 backdrop-blur-md">
+                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4">Step 1: Copy Link</p>
+                     <div className="flex items-center gap-3 mb-6">
+                        <div className="flex-1 bg-black/40 p-4 rounded-xl border border-white/10 font-mono text-sm text-indigo-400 select-all truncate">
+                            {recoveryLink}
+                        </div>
+                        <button onClick={handleCopyLink} className="p-4 bg-white/5 hover:bg-white/10 rounded-xl transition-all border border-white/10 text-white">
+                            {copied ? <Check size={20} className="text-emerald-500"/> : <Copy size={20}/>}
+                        </button>
+                     </div>
+
+                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4">Step 2: Send to Admin</p>
+                     <a href={`mailto:${ADMIN_EMAIL}?subject=Unlock Request for ${username}&body=Recovery Link: ${recoveryLink}`} 
+                        className="w-full py-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-[0.2em] transition-all shadow-lg flex items-center justify-center group">
+                        <Mail size={16} className="mr-3 group-hover:scale-110 transition-transform"/> Email Administrator
+                     </a>
                  </div>
 
-                 <button onClick={() => window.location.href = '/'} className="w-full py-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black text-xs uppercase tracking-[0.2em] shadow-lg hover:scale-[1.02] transition-transform">
-                     Return to Login
+                 <button onClick={() => window.location.href = '/'} className="text-slate-500 hover:text-white font-bold text-[10px] uppercase tracking-[0.2em] transition-colors">
+                     Back to Login
                  </button>
              </div>
         </div>
@@ -91,54 +100,58 @@ export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate, init
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#020617] flex items-center justify-center p-6 animate-fade-in">
-        <div className="max-w-lg w-full bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div className="bg-slate-50 dark:bg-slate-900/50 p-8 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                <div>
-                    <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Access Recovery</h1>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Submit Appeal Form</p>
-                </div>
-                <button onClick={() => window.location.href = '/'} className="p-2 bg-white dark:bg-slate-800 rounded-xl hover:bg-slate-100 transition-colors border border-slate-200 dark:border-slate-700">
-                    <ArrowLeft size={20} className="text-slate-400"/>
+    <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-6 animate-fade-in relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/10 via-slate-950 to-slate-950 pointer-events-none"></div>
+
+        <div className="relative z-10 w-full max-w-lg">
+            <div className="mb-8 flex items-center justify-between">
+                <button onClick={() => window.location.href = '/'} className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-colors text-white">
+                    <ArrowLeft size={20}/>
                 </button>
+                <div className="text-right">
+                    <h1 className="text-xl font-black text-white tracking-tight uppercase">Access Recovery</h1>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Security Appeal Protocol</p>
+                </div>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-8 space-y-6">
-                <div className="p-4 bg-red-50 dark:bg-red-900/10 rounded-2xl border border-red-100 dark:border-red-900/30 flex items-start gap-4">
-                    <ShieldAlert className="text-red-500 shrink-0" size={20} />
-                    <p className="text-xs text-red-600 dark:text-red-400 leading-relaxed font-medium">
-                        Your account is currently locked due to security protocols. Please provide a valid reason for reactivation.
-                    </p>
-                </div>
+            <div className="bg-slate-900/50 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-2xl">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="p-4 bg-red-500/10 rounded-2xl border border-red-500/20 flex items-start gap-4">
+                        <ShieldAlert className="text-red-500 shrink-0 mt-0.5" size={20} />
+                        <p className="text-xs text-red-200 leading-relaxed font-medium">
+                            Your account is locked. Submitting this form does not guarantee access. You must verify your identity with the admin.
+                        </p>
+                    </div>
 
-                <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Username / Student ID</label>
-                    <input 
-                        type="text" 
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        className="w-full p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none font-bold text-sm focus:border-indigo-500 transition-all dark:text-white"
-                        placeholder="Enter your ID"
-                        required
-                    />
-                </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Student ID / Username</label>
+                        <input 
+                            type="text" 
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            className="w-full p-5 bg-black/40 border border-white/10 rounded-2xl outline-none font-bold text-sm focus:border-indigo-500 transition-all text-white placeholder:text-slate-600"
+                            placeholder="Enter Identity"
+                            required
+                        />
+                    </div>
 
-                <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Apology / Explanation</label>
-                    <textarea 
-                        value={reason}
-                        onChange={(e) => setReason(e.target.value)}
-                        rows={4}
-                        className="w-full p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none font-medium text-sm focus:border-indigo-500 transition-all resize-none dark:text-white"
-                        placeholder="Please explain the situation..."
-                        required
-                    />
-                </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Reason for Appeal</label>
+                        <textarea 
+                            value={reason}
+                            onChange={(e) => setReason(e.target.value)}
+                            rows={4}
+                            className="w-full p-5 bg-black/40 border border-white/10 rounded-2xl outline-none font-medium text-sm focus:border-indigo-500 transition-all resize-none text-white placeholder:text-slate-600"
+                            placeholder="Why should the admin unlock your account?"
+                            required
+                        />
+                    </div>
 
-                <button type="submit" disabled={isProcessing} className="w-full py-4 rounded-xl bg-indigo-600 text-white font-black text-xs uppercase tracking-[0.2em] shadow-lg hover:bg-indigo-700 transition-all flex items-center justify-center disabled:opacity-50">
-                    <Send size={16} className="mr-2"/> {isProcessing ? 'Generating...' : 'Generate Recovery Link'}
-                </button>
-            </form>
+                    <button type="submit" disabled={isProcessing} className="w-full py-5 rounded-2xl bg-indigo-600 text-white font-black text-xs uppercase tracking-[0.2em] shadow-lg hover:bg-indigo-700 transition-all flex items-center justify-center disabled:opacity-50">
+                        <Send size={16} className="mr-3"/> {isProcessing ? 'Processing...' : 'Generate Request'}
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
   );
