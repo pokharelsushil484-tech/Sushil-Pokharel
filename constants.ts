@@ -5,7 +5,7 @@ export const APP_VERSION = "25.4.4-SECURE";
 export const ADMIN_USERNAME = "admin"; 
 export const ADMIN_SECRET = "a"; 
 export const CREATOR_NAME = "Sushil Pokharel";
-export const SYSTEM_DOMAIN = "sushilpokhrel00.com.np";
+export const SYSTEM_DOMAIN = "sushilpokharel00.com.np";
 
 const now = new Date();
 export const SYSTEM_UPGRADE_TOKEN = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;

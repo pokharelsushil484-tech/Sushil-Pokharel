@@ -100,8 +100,8 @@ const App = () => {
     // Check for recovery link: /recovery/{id}
     const recoveryMatch = path.match(/^\/recovery\/([a-zA-Z0-9]+)\/?$/i);
     if (recoveryMatch) {
-        setRecoveryId(recoveryMatch[1]);
-        setView(View.ACCESS_RECOVERY);
+        setVerifyLinkId(recoveryMatch[1]); // Route recovery links to verification view to see status
+        setView(View.VERIFY_LINK);
         setShowSplash(false);
         setIsLoading(false);
         return;
@@ -227,7 +227,7 @@ const App = () => {
   }
 
   if (view === View.ACCESS_RECOVERY) {
-     return <AccessRecovery onNavigate={(v) => { setView(v); setRecoveryId(null); window.history.pushState({}, '', '/'); }} initialRecoveryId={recoveryId} />;
+     return <AccessRecovery onNavigate={(v) => { setView(v); window.history.pushState({}, '', '/'); }} />;
   }
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
