@@ -30,10 +30,14 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
       setCommand('');
       
       if (cmd === 'admin') {
-        setView(View.ADMIN_DASHBOARD);
+        if (isAdmin) setView(View.ADMIN_DASHBOARD);
+        else setView(View.ERROR); // Or access denied
       } else if (cmd === 'login') {
         onLogout();
+      } else if (cmd === 'dashboard' || cmd === 'home') {
+        setView(View.DASHBOARD);
       } else {
+        // Trigger Error Page for invalid commands
         setView(View.ERROR);
       }
     }
@@ -45,7 +49,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
       <div className="hidden md:flex flex-col w-20 lg:w-64 bg-white dark:bg-[#0f172a] border-r border-slate-100 dark:border-slate-800 h-full fixed left-0 top-0 z-[110] transition-all duration-300">
         
         {/* Brand Logo */}
-        <div className="p-6 flex items-center space-x-3 h-24 border-b border-slate-50 dark:border-slate-800/50">
+        <div className="p-6 flex items-center space-x-3 h-20 border-b border-slate-50 dark:border-slate-800/50">
            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
               <img src="/logo.svg" className="w-4 h-4 object-contain filter brightness-0 invert" alt="Logo" />
            </div>
@@ -53,7 +57,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
         </div>
 
         {/* Main Navigation */}
-        <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto no-scrollbar">
+        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto no-scrollbar">
           {navItems.map((item) => {
             const isActive = currentView === item.view;
             const disabled = !isVerified && !isAdmin && item.view !== View.DASHBOARD && item.view !== View.SUPPORT;
@@ -62,23 +66,22 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
               <button
                 key={item.view}
                 onClick={() => !disabled && setView(item.view)}
-                className={`group flex items-center w-full p-3.5 rounded-2xl transition-all duration-200 relative ${
+                className={`group flex items-center w-full p-3 rounded-xl transition-all duration-200 relative ${
                   disabled ? 'opacity-40 cursor-not-allowed' :
-                  isActive ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-indigo-600'
+                  isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-indigo-600'
                 }`}
               >
                 <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-white' : ''}`} strokeWidth={2} />
-                <span className={`hidden lg:block ml-4 text-[11px] font-bold uppercase tracking-[0.15em] ${isActive ? 'text-white' : ''}`}>{item.label}</span>
+                <span className={`hidden lg:block ml-3 text-[11px] font-bold uppercase tracking-[0.15em] ${isActive ? 'text-white' : ''}`}>{item.label}</span>
                 
                 {disabled && <Lock size={12} className="absolute right-4 text-slate-300 hidden lg:block" />}
-                {isActive && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white/20 rounded-l-full hidden lg:block"></div>}
               </button>
             );
           })}
         </nav>
 
         {/* Command Input Area */}
-        <div className="px-4 pb-2 hidden lg:block">
+        <div className="px-4 pb-4 hidden lg:block">
             <div className="relative group">
                 <Terminal size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                 <input 
@@ -86,17 +89,18 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
                     value={command}
                     onChange={(e) => setCommand(e.target.value)}
                     onKeyDown={handleCommand}
-                    placeholder="System Jump..."
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-[10px] font-mono text-slate-600 dark:text-slate-300 outline-none focus:border-indigo-500 transition-all uppercase placeholder:text-slate-400"
+                    placeholder="COMMAND MODE..."
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-3 pl-9 pr-3 text-[10px] font-mono text-slate-600 dark:text-slate-300 outline-none focus:border-indigo-500 transition-all uppercase placeholder:text-slate-400"
                 />
             </div>
+            <p className="text-[9px] text-slate-300 mt-2 text-center">Enter 'admin' or 'login'</p>
         </div>
 
         {/* Bottom Profile Section */}
-        <div className="p-4 border-t border-slate-50 dark:border-slate-800/50">
+        <div className="p-3 border-t border-slate-50 dark:border-slate-800/50">
             <button
                 onClick={() => setView(View.SETTINGS)}
-                className={`w-full flex items-center p-3 rounded-2xl transition-all border ${
+                className={`w-full flex items-center p-2 rounded-xl transition-all border ${
                     currentView === View.SETTINGS 
                     ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700' 
                     : 'bg-white dark:bg-transparent border-transparent hover:border-slate-100 dark:hover:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30'
@@ -109,7 +113,6 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
                     <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-wider truncate">{username || 'User'}</p>
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide truncate">{isAdmin ? 'Administrator' : 'Student Identity'}</p>
                 </div>
-                {currentView === View.SETTINGS && <div className="ml-auto w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse hidden lg:block"></div>}
             </button>
         </div>
       </div>

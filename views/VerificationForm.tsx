@@ -13,10 +13,7 @@ interface VerificationFormProps {
 
 export const VerificationForm: React.FC<VerificationFormProps> = ({ user, username, updateUser, onNavigate }) => {
   const [submitting, setSubmitting] = useState(false);
-  const [successState, setSuccessState] = useState<{ id: string; studentId: string } | null>(null);
-  const [masterKeyInput, setMasterKeyInput] = useState('');
-  const [verifyingKey, setVerifyingKey] = useState(false);
-  const [keyError, setKeyError] = useState('');
+  const [successState, setSuccessState] = useState<{ id: string; studentId: string; link: string } | null>(null);
   
   // Permanent Fields State
   const [formData, setFormData] = useState({
@@ -64,10 +61,8 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     
     setSubmitting(true);
     
-    // Generate Secure Link ID
+    // Generate Secure Link ID & Student ID
     const linkId = Math.random().toString(36).substring(7);
-    
-    // Generate Student ID
     const generatedStudentId = `STU-${Math.floor(100000 + Math.random() * 900000)}`;
 
     const finalDetails = {
@@ -78,8 +73,9 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
         _submissionTime: new Date().toISOString()
     };
     
+    // Save request to LocalStorage (persistence for admin)
     const existing = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
-    // Cancel old pending requests for this user
+    // Cancel old pending requests
     const pendingIndex = existing.findIndex((r: any) => r.username === username && r.status === 'PENDING');
     
     let request: ChangeRequest;
@@ -89,7 +85,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
         request.details = JSON.stringify(finalDetails);
         request.createdAt = Date.now();
         request.linkId = linkId;
-        request.generatedStudentId = generatedStudentId; // Update ID
+        request.generatedStudentId = generatedStudentId;
         existing[pendingIndex] = request;
     } else {
         request = {
@@ -109,113 +105,60 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     localStorage.setItem('studentpocket_requests', JSON.stringify(existing));
 
     setTimeout(() => {
-      // Update local user state partially, final update on master key
       updateUser({ ...user, verificationStatus: 'PENDING_APPROVAL' });
       setSubmitting(false);
-      setSuccessState({ id: linkId, studentId: generatedStudentId });
+      const origin = window.location.origin;
+      const link = `${origin}/v/${linkId}`;
+      setSuccessState({ id: linkId, studentId: generatedStudentId, link });
     }, 1500);
-  };
-
-  const verifyMasterKey = async () => {
-      if (!masterKeyInput) return;
-      setVerifyingKey(true);
-      setKeyError('');
-
-      // 50s Window Logic (Same as Admin)
-      const MASTER_KEY_INTERVAL = 50000;
-      const now = Date.now();
-      const seed = Math.floor(now / MASTER_KEY_INTERVAL);
-      const currentMasterKey = Math.abs(Math.sin(seed + 1) * 1000000).toFixed(0).slice(0, 6).padEnd(6, '0');
-      const prevSeed = seed - 1;
-      const prevMasterKey = Math.abs(Math.sin(prevSeed + 1) * 1000000).toFixed(0).slice(0, 6).padEnd(6, '0');
-
-      // Check Rescue Key
-      const dataKey = `architect_data_${username}`;
-      const stored = await storageService.getData(dataKey);
-      const userRescueKey = stored?.user?.rescueKey;
-
-      if (masterKeyInput === currentMasterKey || masterKeyInput === prevMasterKey || masterKeyInput === userRescueKey) {
-          // Success!
-          setTimeout(async () => {
-               if (stored && stored.user) {
-                   stored.user.isVerified = true;
-                   stored.user.verificationStatus = 'VERIFIED';
-                   stored.user.adminFeedback = "Identity Verified via Master Key.";
-                   if (masterKeyInput === userRescueKey) stored.user.rescueKey = undefined;
-                   await storageService.setData(dataKey, stored);
-                   updateUser(stored.user); // Update parent state
-               }
-               // Clean up request
-               const reqStr = localStorage.getItem('studentpocket_requests');
-               if (reqStr) {
-                   const requests: ChangeRequest[] = JSON.parse(reqStr);
-                   const updatedRequests = requests.map(r => r.username === username ? { ...r, status: 'APPROVED' } : r);
-                   localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
-               }
-               
-               setVerifyingKey(false);
-               // Redirect to Dashboard
-               onNavigate(View.DASHBOARD);
-          }, 1000);
-      } else {
-          setVerifyingKey(false);
-          setKeyError('Invalid Master Key. Please check with Admin.');
-      }
   };
 
   if (successState) {
     return (
       <div className="max-w-xl mx-auto animate-fade-in pt-12 pb-24 px-4">
-        <div className="bg-white dark:bg-[#0f172a] rounded-[3rem] p-10 shadow-2xl border border-indigo-100 dark:border-indigo-900/30 text-center relative overflow-hidden">
-             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-             <div className="absolute top-0 left-0 w-full h-1.5 bg-indigo-600"></div>
+        <div className="bg-white dark:bg-[#0f172a] rounded-3xl p-8 shadow-2xl border border-indigo-100 dark:border-indigo-900/30 text-center relative overflow-hidden">
              
-             <div className="w-24 h-24 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-500 shadow-xl shadow-emerald-500/10 animate-scale-up">
-                 <CheckCircle size={48} strokeWidth={3} />
+             <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-500 shadow-xl shadow-emerald-500/10 animate-scale-up">
+                 <CheckCircle size={40} strokeWidth={3} />
              </div>
              
-             <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-2">Request Processed</h2>
-             <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.3em] mb-8">Identity Node Created</p>
+             <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-1">Request Generated</h2>
+             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">Identity Node Created</p>
              
-             <div className="bg-indigo-50 dark:bg-slate-900/50 p-8 rounded-[2rem] border border-indigo-200 dark:border-slate-800 mb-8 relative group text-left">
-                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
-                    Generated Student ID
+             <div className="bg-indigo-50 dark:bg-slate-900/50 p-6 rounded-2xl border border-indigo-200 dark:border-slate-800 mb-8 relative group text-left">
+                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">
+                    Your Student ID
                  </div>
                  <div className="text-center mt-2">
-                     <p className="text-4xl font-black text-indigo-700 dark:text-indigo-400 tracking-widest font-mono">{successState.studentId}</p>
-                     <p className="text-[10px] text-slate-500 mt-2 font-medium">Provide this ID to the Administrator to receive your Master Key.</p>
+                     <p className="text-3xl font-black text-indigo-700 dark:text-indigo-400 tracking-widest font-mono">{successState.studentId}</p>
+                     <p className="text-[10px] text-slate-500 mt-2 font-medium">Save this ID. You will need it if you use the Master Key.</p>
                  </div>
              </div>
              
-             <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 mb-10 text-left">
-                 <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 mb-6">
-                     <KeyRound size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
-                     <p className="text-[10px] text-amber-700 dark:text-amber-400 font-medium leading-relaxed">
-                         <b>Verification Required:</b> Enter the Master Key provided by the admin below to finalize your account setup.
-                     </p>
+             <div className="space-y-4">
+                 <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-left">
+                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Option 1: Direct Link</p>
+                     <p className="text-xs font-mono text-indigo-600 dark:text-indigo-400 mb-2 truncate bg-white dark:bg-black p-2 rounded border border-slate-100 dark:border-slate-800 select-all">{successState.link}</p>
+                     <button 
+                        onClick={() => window.location.href = `/v/${successState.id}`}
+                        className="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center justify-center"
+                     >
+                        Verify via Link
+                     </button>
                  </div>
 
-                 <div className="space-y-4">
-                     <input 
-                        type="text" 
-                        value={masterKeyInput} 
-                        onChange={(e) => setMasterKeyInput(e.target.value)}
-                        placeholder="ENTER MASTER KEY"
-                        className="w-full text-center py-4 bg-white dark:bg-slate-950 border-2 border-indigo-100 dark:border-slate-700 rounded-2xl outline-none text-xl font-black tracking-[0.5em] uppercase focus:border-indigo-500 transition-all dark:text-white"
-                        maxLength={6}
-                     />
-                     {keyError && <p className="text-[10px] font-bold text-red-500 text-center uppercase tracking-widest animate-pulse">{keyError}</p>}
+                 <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800 text-left">
+                    <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-2">Option 2: Master Key</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
+                        If the link fails, enter the <b>Master Key</b> provided by your Administrator along with your Student ID on the verification page.
+                    </p>
                  </div>
-             </div>
 
-             <div className="space-y-3">
                  <button 
-                    onClick={verifyMasterKey}
-                    disabled={verifyingKey || !masterKeyInput}
-                    className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xs uppercase tracking-[0.3em] shadow-xl hover:scale-[1.02] transition-transform active:scale-95 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => onNavigate(View.DASHBOARD)}
+                    className="text-slate-400 hover:text-slate-600 font-bold text-xs uppercase tracking-widest mt-4"
                  >
-                    {verifyingKey ? <Loader2 className="animate-spin mr-2" size={16}/> : <LogIn className="mr-2" size={16}/>}
-                    {verifyingKey ? 'Verifying...' : 'Login'}
+                    Return to Dashboard
                  </button>
              </div>
         </div>
@@ -227,80 +170,62 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     <div className="max-w-4xl mx-auto animate-fade-in pb-24">
       <div className="flex items-center justify-between mb-8">
           <button onClick={() => onNavigate(View.DASHBOARD)} className="flex items-center text-slate-500 hover:text-indigo-600 font-bold text-xs uppercase tracking-widest transition-colors">
-            <ArrowLeft size={16} className="mr-2" /> Return to Dashboard
+            <ArrowLeft size={16} className="mr-2" /> Cancel
           </button>
       </div>
 
-      <div className="bg-white dark:bg-[#0f172a] rounded-[2rem] shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="bg-white dark:bg-[#0f172a] rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         {/* Header */}
-        <div className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 p-8 md:p-10">
+        <div className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 p-8">
             <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
-                   <ShieldCheck size={32} />
+                <div className="w-14 h-14 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
+                   <ShieldCheck size={28} />
                 </div>
                 <div>
-                   <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Identity Verification</h2>
-                   <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-2">Official Student Submission Portal</p>
+                   <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Identity Verification</h2>
+                   <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-1">Official Student Submission</p>
                 </div>
             </div>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-8 md:p-12 space-y-10">
+        <form onSubmit={handleSubmit} className="p-8 space-y-8">
           
           {/* Permanent Info Section */}
           <div>
              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center">
-                <span className="w-6 h-px bg-slate-300 dark:bg-slate-700 mr-3"></span> Permanent Information
+                <span className="w-4 h-px bg-slate-300 dark:bg-slate-700 mr-3"></span> Basic Details
              </h3>
              
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                 <div className="space-y-2">
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Full Name</label>
-                    <div className="relative group">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input name="fullName" value={formData.fullName} onChange={handleInputChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all dark:text-white" placeholder="Legal Name" required />
-                    </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Full Name</label>
+                    <input name="fullName" value={formData.fullName} onChange={handleInputChange} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all dark:text-white" placeholder="Legal Name" required />
                  </div>
                  
-                 <div className="space-y-2">
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Email Address</label>
-                    <div className="relative group">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input name="email" type="email" value={formData.email} onChange={handleInputChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all dark:text-white" placeholder="Student Email" required />
-                    </div>
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Email Address</label>
+                    <input name="email" type="email" value={formData.email} onChange={handleInputChange} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all dark:text-white" placeholder="Student Email" required />
                  </div>
 
-                 <div className="space-y-2">
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Phone Number</label>
-                    <div className="relative group">
-                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input name="phone" type="tel" value={formData.phone} onChange={handleInputChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all dark:text-white" placeholder="Contact Number" required />
-                    </div>
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Phone Number</label>
+                    <input name="phone" type="tel" value={formData.phone} onChange={handleInputChange} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all dark:text-white" placeholder="Contact Number" required />
                  </div>
 
-                 <div className="space-y-2">
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Country</label>
-                    <div className="relative group">
-                        <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input name="country" value={formData.country} onChange={handleInputChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all dark:text-white" placeholder="Country of Residence" required />
-                    </div>
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Country</label>
+                    <input name="country" value={formData.country} onChange={handleInputChange} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all dark:text-white" placeholder="Country of Residence" required />
                  </div>
 
-                 <div className="space-y-2 md:col-span-2">
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Permanent Address</label>
-                    <div className="relative group">
-                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input name="permAddress" value={formData.permAddress} onChange={handleInputChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all dark:text-white" placeholder="Full Permanent Address" required />
-                    </div>
+                 <div className="space-y-1 md:col-span-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Permanent Address</label>
+                    <input name="permAddress" value={formData.permAddress} onChange={handleInputChange} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all dark:text-white" placeholder="Full Permanent Address" required />
                  </div>
 
-                 <div className="space-y-2 md:col-span-2">
-                    <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Temporary Address</label>
-                    <div className="relative group">
-                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input name="tempAddress" value={formData.tempAddress} onChange={handleInputChange} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all dark:text-white" placeholder="Current / Temporary Address" required />
-                    </div>
+                 <div className="space-y-1 md:col-span-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Temporary Address</label>
+                    <input name="tempAddress" value={formData.tempAddress} onChange={handleInputChange} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all dark:text-white" placeholder="Current / Temporary Address" required />
                  </div>
              </div>
           </div>
@@ -310,21 +235,21 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
           {/* Media Section */}
           <div>
              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center">
-                <span className="w-6 h-px bg-slate-300 dark:bg-slate-700 mr-3"></span> Media Uploads
+                <span className="w-4 h-px bg-slate-300 dark:bg-slate-700 mr-3"></span> Documents
              </h3>
              
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  {/* Profile Picture */}
-                 <div className="space-y-4">
-                     <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Profile Picture <span className="text-red-500">*</span></p>
+                 <div className="space-y-2">
+                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Profile Picture <span className="text-red-500">*</span></p>
                      <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-6 text-center hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors relative group">
                          {profileImage ? (
-                             <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-white shadow-lg">
+                             <div className="relative w-24 h-24 mx-auto rounded-full overflow-hidden border-2 border-white shadow-lg">
                                  <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
                              </div>
                          ) : (
-                             <div className="w-32 h-32 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 overflow-hidden p-6">
-                                 <img src="/logo.svg" alt="Default" className="w-full h-full object-contain opacity-50" />
+                             <div className="w-24 h-24 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-2 overflow-hidden p-6">
+                                 <User size={32} />
                              </div>
                          )}
                          <p className="text-xs font-medium text-slate-600 dark:text-slate-300 mt-2">{profileImage ? 'Click to Change' : 'Upload Photo'}</p>
@@ -333,18 +258,18 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                  </div>
 
                  {/* Video Upload */}
-                 <div className="space-y-4">
-                     <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Introduction Video <span className="text-slate-400">(Optional)</span></p>
+                 <div className="space-y-2">
+                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Intro Video <span className="text-slate-400">(Optional)</span></p>
                      <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-6 text-center hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors relative group h-full flex flex-col justify-center items-center">
                          {videoFile ? (
                              <div className="flex items-center justify-center text-emerald-600">
                                  <FileText size={32} className="mr-2"/>
-                                 <span className="font-bold text-sm">Video Selected</span>
+                                 <span className="font-bold text-sm">Selected</span>
                              </div>
                          ) : (
                              <>
-                                <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
-                                     <Video size={24} />
+                                <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-2">
+                                     <Video size={20} />
                                 </div>
                                 <p className="text-xs font-medium text-slate-600 dark:text-slate-300">Upload Video</p>
                              </>
@@ -355,18 +280,15 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
              </div>
           </div>
 
-          <div className="pt-6">
+          <div className="pt-4">
             <button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-sm uppercase tracking-widest shadow-xl shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center"
+                className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-sm uppercase tracking-widest shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center"
             >
                 {submitting ? <Loader2 className="animate-spin mr-2" size={18} /> : <Send className="mr-2" size={18} />}
-                {submitting ? 'Generating Identity...' : 'Submit & Generate ID'}
+                {submitting ? 'Generating...' : 'Submit & Generate ID'}
             </button>
-            <p className="text-center text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-4">
-                Secure 2-Step Verification Protocol
-            </p>
           </div>
         </form>
       </div>

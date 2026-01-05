@@ -32,7 +32,6 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
   const [manualId, setManualId] = useState('');
   const [manualCode, setManualCode] = useState('');
   const [manualProcessing, setManualProcessing] = useState(false);
-  const [manualFaceScan, setManualFaceScan] = useState(false);
   const [verificationSuccess, setVerificationSuccess] = useState(false);
 
   const isAdmin = currentUser === ADMIN_USERNAME;
@@ -70,7 +69,6 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
             const expiredMatch = requests.find(r => r.previousLinkIds && r.previousLinkIds.includes(linkId));
             if (expiredMatch && expiredMatch.linkId) {
                 setRedirecting(true);
-                // In a real app, you might not auto-redirect for security, but for UX here:
                 window.location.replace(`/v/${expiredMatch.linkId}`);
                 return;
             }
@@ -97,7 +95,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
           setIsUnlocked(true);
           setSecurityError('');
       } else {
-          setSecurityError('Incorrect Student ID. Access Denied.');
+          setSecurityError('Incorrect Student ID.');
       }
   };
 
@@ -106,10 +104,8 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
       setManualProcessing(true);
       setSecurityError('');
 
-      // 1. Validate ID - Check if it matches the request on this link OR if it's a known user
+      // 1. Validate ID
       let targetUsername = '';
-      
-      // Try to match ID with requests
       const reqStr = localStorage.getItem('studentpocket_requests');
       if (reqStr) {
           const requests: ChangeRequest[] = JSON.parse(reqStr);
@@ -118,7 +114,6 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
       }
 
       if (!targetUsername) {
-           // Fallback to checking if user exists directly
            const usersStr = localStorage.getItem('studentpocket_users');
            const users = usersStr ? JSON.parse(usersStr) : {};
            if (users[manualId]) targetUsername = manualId;
@@ -134,13 +129,8 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
       const timeStep = MASTER_KEY_INTERVAL;
       const now = Date.now();
       const seed = Math.floor(now / timeStep);
-      // Generate current Master Key based on same deterministic logic as Admin
       const currentMasterKey = Math.abs(Math.sin(seed + 1) * 1000000).toFixed(0).slice(0, 6).padEnd(6, '0');
       
-      // Allow for previous window grace period (optional, strict for now)
-      // const prevSeed = seed - 1;
-      // const prevMasterKey = Math.abs(Math.sin(prevSeed + 1) * 1000000).toFixed(0).slice(0, 6).padEnd(6, '0');
-
       const dataKey = `architect_data_${targetUsername}`;
       const stored = await storageService.getData(dataKey);
       const userRescueKey = stored?.user?.rescueKey;
@@ -160,7 +150,6 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
           stored.user.isVerified = true;
           stored.user.verificationStatus = 'VERIFIED';
           stored.user.adminFeedback = "Identity Verified via Master Key Override.";
-          // Clear rescue key after use if it was used
           if (manualCode === userRescueKey) {
               stored.user.rescueKey = undefined; 
           }
@@ -170,11 +159,9 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
       // Update requests
       if (reqStr) {
           const requests: ChangeRequest[] = JSON.parse(reqStr);
-          // Approve all pending for this user
           const updatedRequests = requests.map(r => r.username === targetUsername ? { ...r, status: 'APPROVED' } : r);
           localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
           
-           // Update local state if valid
           const updatedReq = updatedRequests.find(r => r.id === request?.id);
           if (updatedReq) setRequest(updatedReq as ChangeRequest);
       }
@@ -183,17 +170,8 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
       setManualProcessing(false);
   };
 
-  const simulateFaceScan = () => {
-      setManualFaceScan(true);
-      setTimeout(() => {
-          setManualFaceScan(false);
-          alert("Face Verification Simulated: Match Found. (In production this would call biometric API). Please use Master Code if this fails.");
-      }, 2000);
-  };
-
   const handleAction = async (action: 'APPROVE' | 'REJECT') => {
     if (!request || !isAdmin) return;
-    
     if (!window.confirm(`Are you sure you want to ${action} this identity?`)) return;
 
     setActionProcessing(true);
@@ -232,8 +210,6 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                 description: `Link Verification ${action}: ${request.username}`,
                 metadata: JSON.stringify({ requestId: request.id, linkId })
             });
-        } else {
-            alert("Error: User data node not found.");
         }
 
         setActionProcessing(false);
@@ -245,7 +221,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
         <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#020617]">
           <div className="flex flex-col items-center space-y-4">
              <RefreshCw className="w-10 h-10 text-indigo-600 animate-spin" />
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Redirecting to latest version...</p>
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Redirecting...</p>
           </div>
       </div>
       );
@@ -257,6 +233,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
           <div className="flex flex-col items-center space-y-4">
              <div className="w-10 h-10 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Authenticating Secure Link...</p>
+             <button onClick={() => setShowManualVerify(true)} className="text-xs text-indigo-500 hover:underline mt-4">Takes too long? Try manual verification</button>
           </div>
       </div>
     );
@@ -293,7 +270,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                 </div>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Master Override</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-                    Enter the dynamic Master Key provided by the Admin Console.
+                    Enter the dynamic Master Key provided by the Admin.
                 </p>
 
                 <form onSubmit={handleManualVerification} className="space-y-4">
@@ -327,13 +304,6 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                         {manualProcessing ? <RefreshCw className="animate-spin" size={16}/> : 'Verify Identity'}
                     </button>
                 </form>
-                
-                <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800">
-                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Biometric Option</p>
-                     <button onClick={simulateFaceScan} disabled={manualFaceScan} className="w-full py-3 rounded-xl border-2 border-slate-100 dark:border-slate-800 text-slate-500 hover:text-indigo-600 hover:border-indigo-100 font-bold text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center">
-                        {manualFaceScan ? <RefreshCw className="animate-spin mr-2" size={14}/> : <Camera className="mr-2" size={16}/>} Scan Face
-                    </button>
-                </div>
             </div>
         </div>
       );
@@ -400,6 +370,12 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                     <button type="submit" className="w-full py-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black text-[10px] uppercase tracking-[0.2em] hover:scale-[1.02] transition-transform shadow-xl">
                         Unlock Data
                     </button>
+
+                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800 mt-4">
+                         <button type="button" onClick={() => setShowManualVerify(true)} className="text-xs text-indigo-500 hover:text-indigo-600 font-bold">
+                             Verify with another option
+                         </button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -432,7 +408,6 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
 
             {/* Main Card */}
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden relative transition-all duration-500">
-                {/* Status Indicator Bar */}
                 <div className={`absolute top-0 left-0 w-full h-1.5 ${
                     request.status === 'APPROVED' ? 'bg-emerald-500' :
                     request.status === 'REJECTED' ? 'bg-red-500' :
@@ -443,7 +418,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                     <div className="flex flex-col md:flex-row items-start gap-10">
                         {/* Avatar Column */}
                         <div className="flex-shrink-0 mx-auto md:mx-0 flex flex-col items-center">
-                            <div className="w-40 h-40 rounded-[2rem] bg-slate-50 dark:bg-slate-950 p-2 shadow-inner border border-slate-100 dark:border-slate-800">
+                            <div className="w-32 h-32 rounded-[2rem] bg-slate-50 dark:bg-slate-950 p-2 shadow-inner border border-slate-100 dark:border-slate-800">
                                 <div className="w-full h-full rounded-[1.6rem] overflow-hidden bg-white dark:bg-slate-800 relative">
                                     {details._profileImage ? (
                                         <img src={details._profileImage} alt="Profile" className="w-full h-full object-cover" />
@@ -469,23 +444,23 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                         {/* Info Column */}
                         <div className="flex-1 w-full space-y-8">
                             <div className="text-center md:text-left">
-                                <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter mb-2">{details.fullName || 'Unknown Student'}</h2>
+                                <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter mb-2">{details.fullName || 'Unknown Student'}</h2>
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center md:justify-start">
                                     <Globe size={14} className="mr-2 text-indigo-500" /> {details.country || 'No Country'}
                                 </p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="p-5 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center space-x-4">
-                                    <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl text-indigo-500 shadow-sm"><Mail size={16}/></div>
+                                <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center space-x-4">
+                                    <div className="p-2 bg-white dark:bg-slate-900 rounded-xl text-indigo-500 shadow-sm"><Mail size={16}/></div>
                                     <div className="overflow-hidden">
                                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Email</p>
                                         <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate font-mono">{details.email}</p>
                                     </div>
                                 </div>
 
-                                <div className="p-5 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center space-x-4">
-                                    <div className="p-2.5 bg-white dark:bg-slate-900 rounded-xl text-indigo-500 shadow-sm"><Phone size={16}/></div>
+                                <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center space-x-4">
+                                    <div className="p-2 bg-white dark:bg-slate-900 rounded-xl text-indigo-500 shadow-sm"><Phone size={16}/></div>
                                     <div>
                                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Phone</p>
                                         <p className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">{details.phone}</p>
@@ -505,18 +480,6 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                                     </div>
                                 )}
                             </div>
-
-                            {details._videoFile && (
-                                 <div className="p-4 bg-indigo-50 dark:bg-indigo-900/10 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 flex items-center justify-between">
-                                     <div className="flex items-center space-x-3">
-                                        <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg text-indigo-600 dark:text-indigo-400">
-                                            <Video size={16} />
-                                        </div>
-                                        <span className="text-xs font-bold text-indigo-900 dark:text-indigo-200">Video Introduction</span>
-                                     </div>
-                                     <span className="text-[10px] font-black uppercase text-indigo-400 dark:text-indigo-500 tracking-widest">Attached</span>
-                                 </div>
-                            )}
                         </div>
                     </div>
                 </div>
@@ -532,27 +495,19 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                             <button 
                                 onClick={() => handleAction('REJECT')}
                                 disabled={actionProcessing || request.status !== 'PENDING'}
-                                className="flex-1 md:flex-none px-8 py-4 rounded-2xl bg-white/5 text-red-400 border border-white/10 font-bold text-xs uppercase tracking-widest hover:bg-white/10 hover:text-red-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
+                                className="flex-1 md:flex-none px-6 py-3 rounded-xl bg-white/5 text-red-400 border border-white/10 font-bold text-xs uppercase tracking-widest hover:bg-white/10 hover:text-red-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
                             >
                                 <XCircle size={16} className="mr-2"/> Reject
                             </button>
                             <button 
                                 onClick={() => handleAction('APPROVE')}
                                 disabled={actionProcessing || request.status !== 'PENDING'}
-                                className="flex-1 md:flex-none px-8 py-4 rounded-2xl bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 hover:shadow-emerald-500/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transform active:scale-95"
+                                className="flex-1 md:flex-none px-6 py-3 rounded-xl bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 hover:shadow-emerald-500/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transform active:scale-95"
                             >
                                 {actionProcessing ? <RefreshCw size={16} className="animate-spin mr-2"/> : <CheckCircle size={16} className="mr-2"/>} 
                                 Approve Identity
                             </button>
                         </div>
-                    </div>
-                )}
-                
-                {/* Footer for non-admins */}
-                {!isAdmin && (
-                    <div className="bg-slate-50 dark:bg-slate-950 p-6 flex justify-between items-center text-[10px] text-slate-400 font-mono border-t border-slate-100 dark:border-slate-800">
-                        <span>SECURE LINK ID: {linkId}</span>
-                        <span>{new Date(request.createdAt).toLocaleDateString()}</span>
                     </div>
                 )}
             </div>
