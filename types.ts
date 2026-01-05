@@ -24,6 +24,7 @@ export interface UserProfile {
   isVerified: boolean;
   verificationStatus: 'NONE' | 'FORM_PENDING' | 'PENDING_APPROVAL' | 'VERIFIED' | 'REJECTED';
   adminFeedback?: string; // Stores the email content/rejection reason
+  rescueKey?: string; // Static master key for alternative verification
   acceptedTermsVersion?: string;
   storageLimitGB: number;
   storageUsedBytes: number;

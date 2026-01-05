@@ -4,7 +4,7 @@ import { UserProfile, ChangeRequest, SupportTicket, TicketMessage } from '../typ
 import { 
   Users, ShieldCheck, LifeBuoy, Search, Trash2, 
   CheckCircle, XCircle, RefreshCw, User, Lock, 
-  ShieldAlert, MessageSquare, Send, Clock, Filter 
+  ShieldAlert, MessageSquare, Send, Clock, Filter, Key 
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { ADMIN_USERNAME } from '../constants';
@@ -20,8 +20,21 @@ export const AdminDashboard: React.FC = () => {
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [replyText, setReplyText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [masterKey, setMasterKey] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Master Key ticker
+  useEffect(() => {
+    const updateMasterKey = () => {
+        // Simple time-based OTP algorithm simulation: Last 6 digits of timestamp / 1000 floor
+        const code = Math.floor(Date.now() / 1000).toString().slice(-6);
+        setMasterKey(code);
+    };
+    updateMasterKey();
+    const interval = setInterval(updateMasterKey, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -48,7 +61,10 @@ export const AdminDashboard: React.FC = () => {
             if (username === ADMIN_USERNAME) continue;
             try {
                 const data = await storageService.getData(`architect_data_${username}`);
-                if (data && data.user) loadedProfiles.push(data.user);
+                if (data && data.user) {
+                     // Attach username for context since it's the key
+                     loadedProfiles.push({ ...data.user, _username: username } as any);
+                }
             } catch (e) { console.error("Error loading profile", username); }
         }
         setProfiles(loadedProfiles);
@@ -106,6 +122,19 @@ export const AdminDashboard: React.FC = () => {
           data.user.banReason = "Account suspended by Administrator.";
           await storageService.setData(`architect_data_${username}`, data);
           loadData();
+      }
+  };
+
+  const generateRescueKey = async (username: string) => {
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      if(window.confirm(`Generate ONE-TIME Master Key for ${username}?\n\nCode: ${code}`)) {
+          const data = await storageService.getData(`architect_data_${username}`);
+          if (data && data.user) {
+              data.user.rescueKey = code;
+              await storageService.setData(`architect_data_${username}`, data);
+              alert(`Key Generated: ${code}\nSend this to the user for manual verification.`);
+              loadData();
+          }
       }
   };
 
@@ -216,6 +245,22 @@ export const AdminDashboard: React.FC = () => {
                    <h3 className="text-3xl font-black text-slate-900 dark:text-white">{profiles.length}</h3>
                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Active Nodes</p>
                </div>
+               
+               {/* Master Key Widget */}
+               <div className="bg-slate-900 text-white p-8 rounded-[2.5rem] border border-slate-800 shadow-xl relative overflow-hidden group">
+                   <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                   <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-emerald-400 mb-4">
+                       <Key size={24} />
+                   </div>
+                   <div className="flex items-end justify-between">
+                       <div>
+                           <h3 className="text-4xl font-black font-mono tracking-widest animate-pulse">{masterKey || '...'}</h3>
+                           <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-2">Live Master Key</p>
+                       </div>
+                       <Clock size={20} className="text-slate-600 animate-spin-slow" />
+                   </div>
+               </div>
+
                <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
                    <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-2xl flex items-center justify-center text-amber-600 mb-4">
                        <ShieldCheck size={24} />
@@ -246,7 +291,7 @@ export const AdminDashboard: React.FC = () => {
                    />
                </div>
                <div className="space-y-4">
-                   {filteredUsers.map((user, i) => (
+                   {filteredUsers.map((user: any, i) => (
                        <div key={i} className="flex justify-between items-center p-6 border border-slate-100 dark:border-slate-800 rounded-[2rem] hover:bg-slate-50 dark:hover:bg-slate-950/50 transition-colors">
                            <div className="flex items-center space-x-4">
                                <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -255,14 +300,24 @@ export const AdminDashboard: React.FC = () => {
                                <div>
                                    <h4 className="font-bold text-slate-900 dark:text-white">{user.name}</h4>
                                    <p className="text-xs text-slate-500">{user.email}</p>
+                                   {user.rescueKey && <p className="text-[9px] text-indigo-500 font-bold uppercase tracking-wider mt-1">Key: {user.rescueKey}</p>}
                                </div>
                            </div>
                            <div className="flex items-center space-x-3">
                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${user.isVerified ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
                                    {user.isVerified ? 'Verified' : 'Guest'}
                                </span>
+                               
                                <button 
-                                    onClick={() => handleBanUser(user.email.split('@')[0])} // Heuristic, better if we stored username in profile
+                                    onClick={() => generateRescueKey(user._username)} 
+                                    className="p-2 text-slate-300 hover:text-indigo-500 transition-colors"
+                                    title="Generate Rescue Key"
+                               >
+                                   <Key size={18} />
+                               </button>
+
+                               <button 
+                                    onClick={() => handleBanUser(user._username || user.email.split('@')[0])} 
                                     className="p-2 text-slate-300 hover:text-red-500 transition-colors"
                                     title="Ban User"
                                >

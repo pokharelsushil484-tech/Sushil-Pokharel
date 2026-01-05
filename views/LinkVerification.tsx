@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, View } from '../types';
-import { ShieldCheck, User, MapPin, Globe, Mail, Phone, Video, CheckCircle, XCircle, Home, Lock, RefreshCw, Search, LayoutGrid, ArrowRight, Eye, KeyRound, ArrowLeft, Clock } from 'lucide-react';
+import { ShieldCheck, User, MapPin, Globe, Mail, Phone, Video, CheckCircle, XCircle, Home, Lock, RefreshCw, Search, LayoutGrid, ArrowRight, Eye, KeyRound, ArrowLeft, Clock, Camera } from 'lucide-react';
 import { ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -25,6 +25,13 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [securityInput, setSecurityInput] = useState('');
   const [securityError, setSecurityError] = useState('');
+
+  // Manual Verification State
+  const [showManualVerify, setShowManualVerify] = useState(false);
+  const [manualId, setManualId] = useState('');
+  const [manualCode, setManualCode] = useState('');
+  const [manualProcessing, setManualProcessing] = useState(false);
+  const [manualFaceScan, setManualFaceScan] = useState(false);
 
   const isAdmin = currentUser === ADMIN_USERNAME;
 
@@ -90,6 +97,72 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
       } else {
           setSecurityError('Incorrect Student ID. Access Denied.');
       }
+  };
+
+  const handleManualVerification = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setManualProcessing(true);
+      setSecurityError('');
+
+      // 1. Validate ID
+      const dataKey = `architect_data_${manualId}`;
+      const stored = await storageService.getData(dataKey);
+
+      if (!stored || !stored.user) {
+          setSecurityError('Student ID not found in system.');
+          setManualProcessing(false);
+          return;
+      }
+
+      // 2. Validate Code
+      const currentMasterKey = Math.floor(Date.now() / 1000).toString().slice(-6); // Current second match
+      const prevMasterKey = Math.floor((Date.now() - 1000) / 1000).toString().slice(-6); // 1 sec tolerance
+      const nextMasterKey = Math.floor((Date.now() + 1000) / 1000).toString().slice(-6); // 1 sec tolerance
+      
+      const userRescueKey = stored.user.rescueKey;
+
+      const isValid = 
+        manualCode === currentMasterKey || 
+        manualCode === prevMasterKey || 
+        manualCode === nextMasterKey ||
+        (userRescueKey && manualCode === userRescueKey);
+
+      if (!isValid) {
+          setSecurityError('Invalid Master Code. Check Admin Panel.');
+          setManualProcessing(false);
+          return;
+      }
+
+      // 3. Success - Verify User
+      stored.user.isVerified = true;
+      stored.user.verificationStatus = 'VERIFIED';
+      stored.user.adminFeedback = "Identity Verified via Master Key Override.";
+      // Clear rescue key after use if it was used
+      if (manualCode === userRescueKey) {
+          stored.user.rescueKey = undefined; 
+      }
+      
+      await storageService.setData(dataKey, stored);
+      
+      // Update requests
+      const reqStr = localStorage.getItem('studentpocket_requests');
+      if (reqStr) {
+          const requests: ChangeRequest[] = JSON.parse(reqStr);
+          // Approve all pending for this user
+          const updatedRequests = requests.map(r => r.username === manualId ? { ...r, status: 'APPROVED' } : r);
+          localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
+      }
+
+      alert("Verification Successful! Redirecting...");
+      window.location.href = '/';
+  };
+
+  const simulateFaceScan = () => {
+      setManualFaceScan(true);
+      setTimeout(() => {
+          setManualFaceScan(false);
+          alert("Face Verification Simulated: Match Found. (In production this would call biometric API). Please use Master Code if this fails.");
+      }, 2000);
   };
 
   const handleAction = async (action: 'APPROVE' | 'REJECT') => {
@@ -163,39 +236,85 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
     );
   }
 
-  if (expired) {
+  // MANUAL VERIFICATION UI (Alternative Option)
+  if (showManualVerify) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-[#020617] p-6">
+            <div className="text-center max-w-md w-full bg-white dark:bg-slate-900 p-12 rounded-[2rem] shadow-2xl border border-slate-100 dark:border-slate-800 animate-fade-in relative overflow-hidden">
+                <button onClick={() => setShowManualVerify(false)} className="absolute top-6 left-6 text-slate-400 hover:text-indigo-600 transition-colors"><ArrowLeft size={20}/></button>
+                
+                <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl flex items-center justify-center mx-auto mb-6 text-indigo-600 shadow-inner">
+                    <KeyRound size={28} />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Master Override</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+                    Enter the dynamic Master Key from the Admin Console or your specific Rescue Key.
+                </p>
+
+                <form onSubmit={handleManualVerification} className="space-y-4">
+                     <div className="relative">
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <input 
+                            type="text" 
+                            value={manualId}
+                            onChange={(e) => setManualId(e.target.value)}
+                            className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-medium text-sm transition-all"
+                            placeholder="Student ID"
+                            required
+                        />
+                    </div>
+                    <div className="relative">
+                        <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <input 
+                            type="text" 
+                            value={manualCode}
+                            onChange={(e) => setManualCode(e.target.value)}
+                            className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-indigo-500 outline-none font-black text-lg text-center tracking-[0.5em] uppercase transition-all"
+                            placeholder="CODE"
+                            maxLength={6}
+                            required
+                        />
+                    </div>
+
+                    {securityError && <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest animate-pulse">{securityError}</p>}
+                    
+                    <button type="submit" disabled={manualProcessing} className="w-full py-4 rounded-xl bg-indigo-600 text-white font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-indigo-700 transition-all flex items-center justify-center shadow-lg disabled:opacity-50">
+                        {manualProcessing ? <RefreshCw className="animate-spin" size={16}/> : 'Verify Identity'}
+                    </button>
+                </form>
+                
+                <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800">
+                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Biometric Option</p>
+                     <button onClick={simulateFaceScan} disabled={manualFaceScan} className="w-full py-3 rounded-xl border-2 border-slate-100 dark:border-slate-800 text-slate-500 hover:text-indigo-600 hover:border-indigo-100 font-bold text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center">
+                        {manualFaceScan ? <RefreshCw className="animate-spin mr-2" size={14}/> : <Camera className="mr-2" size={16}/>} Scan Face
+                    </button>
+                </div>
+            </div>
+        </div>
+      );
+  }
+
+  // EXPIRED OR INVALID LINK UI
+  if (expired || notFound || !request) {
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-[#020617] p-6">
             <div className="text-center max-w-md w-full bg-white dark:bg-slate-900 p-12 rounded-[2rem] shadow-2xl shadow-slate-200 dark:shadow-none border border-slate-100 dark:border-slate-800">
                 <div className="w-16 h-16 bg-amber-50 dark:bg-amber-900/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-amber-500 shadow-inner">
-                    <Clock size={28} />
+                    {expired ? <Clock size={28} /> : <Search size={28} />}
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Link Expired</h2>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{expired ? 'Link Expired' : 'Link Invalid'}</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-                    This verification link has expired for security reasons. Please generate a new one from your dashboard.
+                    {expired ? 'This verification link has expired for security reasons.' : 'This verification link does not exist or has been removed.'}
                 </p>
-                <button onClick={() => window.location.href = '/'} className="w-full py-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-[10px] uppercase tracking-[0.2em] hover:opacity-90 transition-opacity flex items-center justify-center shadow-lg">
-                    <Home size={14} className="mr-2"/> Return Home
-                </button>
-            </div>
-        </div>
-    );
-  }
-
-  if (notFound || !request) {
-    return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-[#020617] p-6">
-            <div className="text-center max-w-md w-full bg-white dark:bg-slate-900 p-12 rounded-[2rem] shadow-2xl shadow-slate-200 dark:shadow-none border border-slate-100 dark:border-slate-800">
-                <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-6 text-slate-400 shadow-inner">
-                    <Search size={28} />
+                
+                <div className="space-y-3">
+                    <button onClick={() => setShowManualVerify(true)} className="w-full py-4 rounded-xl bg-indigo-600 text-white font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-indigo-700 transition-all flex items-center justify-center shadow-lg">
+                        <KeyRound size={14} className="mr-2"/> Use Master Key
+                    </button>
+                    <button onClick={() => window.location.href = '/'} className="w-full py-4 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center">
+                        <Home size={14} className="mr-2"/> Return Home
+                    </button>
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Link Invalid</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-                    This verification link does not exist or has been removed.
-                </p>
-                <button onClick={() => window.location.href = '/'} className="w-full py-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-[10px] uppercase tracking-[0.2em] hover:opacity-90 transition-opacity flex items-center justify-center shadow-lg">
-                    <Home size={14} className="mr-2"/> Return Home
-                </button>
             </div>
         </div>
     );
@@ -205,7 +324,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
   let details: any = {};
   try { details = JSON.parse(request.details); } catch(e) { details = {}; }
 
-  // LOCKED STATE UI
+  // LOCKED STATE UI (Valid link, but requires ID to view)
   if (!isUnlocked) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-[#020617] p-6">
