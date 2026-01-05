@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, Info, X, ShieldCheck, Globe, Camera, ArrowLeft, Check, Key, HelpCircle, AlertTriangle } from 'lucide-react';
-import { ADMIN_USERNAME, ADMIN_SECRET, ADMIN_EMAIL, COPYRIGHT_NOTICE, MIN_PASSWORD_LENGTH, SYSTEM_DOMAIN, DEFAULT_USER, SYSTEM_UPGRADE_TOKEN, CREATOR_NAME, ADMIN_ADMISSION_KEY } from '../constants';
+import { ADMIN_USERNAME, ADMIN_SECRET, ADMIN_EMAIL, COPYRIGHT_NOTICE, MIN_PASSWORD_LENGTH, SYSTEM_DOMAIN, DEFAULT_USER, SYSTEM_UPGRADE_TOKEN, CREATOR_NAME, ADMIN_ADMISSION_KEY, BACKUP_ADMISSION_KEY } from '../constants';
 import { storageService } from '../services/storageService';
 import { View } from '../types';
 
@@ -218,6 +218,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
       setIsProcessing(true);
       
       const cleanInput = loginInput.trim();
+      // NORMALIZE KEY TO UPPERCASE TO PREVENT CASE SENSITIVITY ISSUES
+      const inputKey = admissionKey.trim().toUpperCase();
 
       setTimeout(async () => {
           // Resolve User
@@ -242,15 +244,15 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
               if (stored && stored.user) {
                   // Check Key Validation
                   // 1. Check user-specific generated key (Recovery Appeal)
-                  const isPersonalKeyValid = stored.user.admissionKey === admissionKey;
+                  const isPersonalKeyValid = stored.user.admissionKey === inputKey;
                   
-                  // 2. Check Static Admin Mission Key
-                  const isMasterKey = admissionKey === ADMIN_ADMISSION_KEY;
+                  // 2. Check Static Admin Mission Keys
+                  const isMasterKey = inputKey === ADMIN_ADMISSION_KEY || inputKey === BACKUP_ADMISSION_KEY;
                   
                   // 3. Check global system key (Master Override)
                   let isGlobalKeyValid = false;
                   if (!isPersonalKeyValid && !isMasterKey) {
-                      isGlobalKeyValid = await storageService.consumeAdmissionKey(admissionKey);
+                      isGlobalKeyValid = await storageService.consumeAdmissionKey(inputKey);
                   }
 
                   if (isPersonalKeyValid || isGlobalKeyValid || isMasterKey) {

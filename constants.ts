@@ -5,6 +5,7 @@ export const APP_VERSION = "25.4.4-SECURE";
 export const ADMIN_USERNAME = "admin"; 
 export const ADMIN_SECRET = "a"; 
 export const ADMIN_ADMISSION_KEY = "MISSION-CONTROL";
+export const BACKUP_ADMISSION_KEY = "SUSHIL-ACCESS";
 export const CREATOR_NAME = "Sushil Pokharel";
 export const SYSTEM_DOMAIN = "sushilpokharel00.com.np";
 
