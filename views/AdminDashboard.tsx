@@ -572,10 +572,10 @@ export const AdminDashboard: React.FC = () => {
                        )}
                    </div>
                    {keyStatus === 'COOLDOWN' && (
-                        <div className="absolute bottom-0 left-0 h-1 bg-amber-500 transition-all duration-1000 linear" style={{width: `${(cooldownTime / 30) * 100}%`}}></div>
+                        <div className="absolute bottom-0 left-0 h-1 bg-amber-500 transition-all duration-1000 linear" style={{width: `${(cooldownTime / 10) * 100}%`}}></div>
                    )}
                    {keyStatus === 'ACTIVE' && (
-                        <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all duration-1000 linear" style={{width: `${(cooldownTime / 30) * 100}%`}}></div>
+                        <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all duration-1000 linear" style={{width: `${(cooldownTime / 10) * 100}%`}}></div>
                    )}
                </div>
 
