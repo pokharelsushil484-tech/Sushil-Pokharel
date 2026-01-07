@@ -245,6 +245,7 @@ export const storageService = {
   /**
    * SECURITY LOCKDOWN PROTOCOL
    * Immediately bans user, revokes verification, adds badges, and logs event.
+   * Resets process from beginning.
    */
   async enforceSecurityLockdown(username: string, reason: string, context: string): Promise<void> {
       const dataKey = `architect_data_${username}`;
@@ -253,9 +254,11 @@ export const storageService = {
       if (storedData && storedData.user) {
           const updatedProfile: UserProfile = {
             ...storedData.user,
-            isBanned: true,
-            isSuspicious: true,
-            isVerified: false,
+            isBanned: true, // BAN
+            isSuspicious: true, // SUSPICIOUS
+            isVerified: false, // REVOKE VERIFICATION
+            verificationStatus: 'NONE', // RESET STATUS TO NONE
+            level: 0, // RESET LEVEL
             // Apply Mandatory Badges
             badges: Array.from(new Set([...(storedData.user.badges || []), 'DANGEROUS', 'SUSPICIOUS'])),
             banReason: reason
@@ -270,7 +273,7 @@ export const storageService = {
             actor: username,
             targetUser: username,
             actionType: 'SECURITY',
-            description: 'CRITICAL SECURITY LOCKDOWN: Suspicious activity detected.',
+            description: 'CRITICAL SECURITY LOCKDOWN: Protocol Reset Initiated.',
             metadata: `Context: ${context} | Reason: ${reason}`
           });
       }
