@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, Clock, Lock, FileText, LogOut, KeyRound, ArrowRight, RefreshCw, ChevronLeft, Ticket } from 'lucide-react';
+import { ShieldAlert, Clock, Lock, FileText, LogOut, KeyRound, ArrowRight, RefreshCw, ChevronLeft, Ticket, AlertTriangle } from 'lucide-react';
 import { APP_NAME } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -21,8 +21,7 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-            // Optional: You could allow retry or key refresh here
-            return 30; // Loop or stay at 0 depending on desired UX. Looping for system rotation match.
+            return 30; // Loop cycle
         }
         return prev - 1;
       });
@@ -124,16 +123,23 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                 </div>
 
                 <h1 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Verification In Progress</h1>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.2em] mb-8">System Security Scan Active</p>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.2em] mb-8">Scan Active</p>
 
                 <div className="bg-slate-800/50 p-6 rounded-2xl border border-white/5 mb-8">
                     <div className="flex items-center justify-center space-x-3 mb-4 text-emerald-400">
                         <Clock size={18} />
-                        <span className="text-xs font-black uppercase tracking-wider">Est. Time: 30 Seconds</span>
+                        <span className="text-xs font-black uppercase tracking-wider">
+                           Estimated Time: {countdown} Seconds
+                        </span>
                     </div>
-                    <p className="text-[11px] text-slate-300 leading-relaxed">
-                        Your data is currently undergoing a strict privacy review. During this time, access to the dashboard is <span className="text-white font-bold">BLOCKED</span>.
+                    <p className="text-[11px] text-slate-300 leading-relaxed font-medium">
+                        Data is currently ongoing and subject to strict review.
                     </p>
+                    {countdown <= 5 && (
+                        <p className="text-[10px] text-amber-400 font-bold uppercase tracking-widest mt-2 animate-pulse">
+                            Please prepare to enter code
+                        </p>
+                    )}
                     <div className="mt-4 pt-4 border-t border-white/5 flex flex-col items-center">
                         <span className="text-[9px] text-slate-500 uppercase tracking-widest mb-1">Reference ID</span>
                         <span className="font-mono text-lg text-white font-bold tracking-wider">{studentId || 'PENDING-ID'}</span>
@@ -166,7 +172,7 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
             </>
         ) : (
             <div className="animate-scale-up">
-                 <div className="flex items-center justify-between mb-6">
+                 <div className="flex items-center justify-between mb-4">
                      <button onClick={() => setMode('STATUS')} className="text-slate-400 hover:text-white p-2 -ml-2">
                          <ChevronLeft size={20} />
                      </button>
@@ -176,6 +182,11 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                      <div className="flex items-center text-[9px] font-mono text-amber-500">
                          <Clock size={10} className="mr-1"/> {countdown}s
                      </div>
+                 </div>
+                 
+                 <div className="bg-red-500/10 border border-red-500/50 p-3 rounded-xl mb-6 flex items-center justify-center animate-pulse">
+                     <AlertTriangle size={16} className="text-red-500 mr-2" />
+                     <span className="text-[10px] font-bold text-red-400 uppercase tracking-widest">This is the last chance.</span>
                  </div>
 
                  <div className="w-20 h-20 mx-auto mb-6 bg-emerald-900/20 rounded-full flex items-center justify-center border border-emerald-500/30">
