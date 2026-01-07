@@ -25,6 +25,8 @@ export const AdminDashboard: React.FC = () => {
   const [tknKey, setTknKey] = useState<string | null>(null);
   const [keyStatus, setKeyStatus] = useState<'ACTIVE' | 'COOLDOWN'>('ACTIVE');
   const [cooldownTime, setCooldownTime] = useState(0);
+  const [isEditingKeys, setIsEditingKeys] = useState(false);
+  const [manualKeys, setManualKeys] = useState({ ms: '', adm: '', tkn: '' });
   
   const [generatedToken, setGeneratedToken] = useState<{user: string, token: string, type: 'RECOVERY' | 'VERIFICATION'} | null>(null);
   
@@ -47,12 +49,21 @@ export const AdminDashboard: React.FC = () => {
         setTknKey(state.tknCode);
         setKeyStatus(state.status);
         setCooldownTime(state.timerRemaining);
+        
+        // Sync manual edit state if not currently editing
+        if (!isEditingKeys && state.msCode) {
+            setManualKeys({
+                ms: state.msCode,
+                adm: state.admCode || '',
+                tkn: state.tknCode || ''
+            });
+        }
     };
     
     checkKey();
     const interval = setInterval(checkKey, 1000); // Check every second
     return () => clearInterval(interval);
-  }, []);
+  }, [isEditingKeys]);
 
   useEffect(() => {
     loadData();
@@ -183,6 +194,18 @@ export const AdminDashboard: React.FC = () => {
       }
       
       setGeneratedToken({ user: req.username, token: token, type: req.type as any });
+  };
+
+  const handleSaveKeys = async () => {
+      if (!manualKeys.ms || !manualKeys.adm || !manualKeys.tkn) {
+          alert("All key fields must be filled.");
+          return;
+      }
+      
+      // Force update the system config with manual keys and reset timer
+      await storageService.setSystemKeys(manualKeys.ms, manualKeys.adm, manualKeys.tkn);
+      setIsEditingKeys(false);
+      alert("System Admission Codes Updated. Timer reset.");
   };
   
   const saveNameEdit = async (username: string) => {
@@ -466,35 +489,86 @@ export const AdminDashboard: React.FC = () => {
                    <div className="flex justify-between items-start mb-2">
                        <div className="flex items-center space-x-2">
                            <Key size={18} className="text-emerald-400" />
-                           <span className="text-xs font-bold uppercase tracking-widest text-slate-400">System Access Keys</span>
+                           <span className="text-xs font-bold uppercase tracking-widest text-slate-400">System Access Codes</span>
                        </div>
-                       <div className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${keyStatus === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                           {keyStatus}
+                       <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => setIsEditingKeys(!isEditingKeys)}
+                                className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded flex items-center transition-colors ${isEditingKeys ? 'bg-indigo-600 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}
+                            >
+                                <Edit2 size={10} className="mr-1"/> Edit
+                            </button>
+                            <div className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${keyStatus === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                                {keyStatus}
+                            </div>
                        </div>
                    </div>
                    <div className="text-center py-2 relative flex flex-col gap-2 justify-center h-full">
-                       {keyStatus === 'ACTIVE' ? (
-                          <div className="flex flex-col md:flex-row justify-center gap-4 items-center">
-                            <div className="bg-black/30 p-2 rounded-lg">
-                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Master Key</p>
-                                <h3 className="text-2xl font-black font-mono tracking-wider text-emerald-400 select-all">{msKey}</h3>
-                            </div>
-                            <div className="bg-black/30 p-2 rounded-lg">
-                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Admission Key</p>
-                                <h3 className="text-2xl font-black font-mono tracking-wider text-blue-400 select-all">{admKey}</h3>
-                            </div>
-                            <div className="bg-black/30 p-2 rounded-lg">
-                                <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Master Token</p>
-                                <h3 className="text-2xl font-black font-mono tracking-wider text-purple-400 select-all">{tknKey}</h3>
-                            </div>
-                          </div>
+                       {isEditingKeys ? (
+                           <div className="flex flex-col gap-2 animate-fade-in">
+                               <div className="grid grid-cols-3 gap-2">
+                                   <div>
+                                       <label className="text-[9px] text-slate-500 uppercase">Master Key</label>
+                                       <input 
+                                        type="text" 
+                                        value={manualKeys.ms} 
+                                        onChange={(e) => setManualKeys({...manualKeys, ms: e.target.value})}
+                                        className="w-full bg-black/40 border border-slate-600 rounded px-2 py-1 text-xs font-mono text-emerald-400 text-center"
+                                        placeholder="MS-XXXX"
+                                       />
+                                   </div>
+                                   <div>
+                                       <label className="text-[9px] text-slate-500 uppercase">ADM Key</label>
+                                       <input 
+                                        type="text" 
+                                        value={manualKeys.adm} 
+                                        onChange={(e) => setManualKeys({...manualKeys, adm: e.target.value})}
+                                        className="w-full bg-black/40 border border-slate-600 rounded px-2 py-1 text-xs font-mono text-blue-400 text-center"
+                                        placeholder="ADM-XXXX"
+                                       />
+                                   </div>
+                                   <div>
+                                       <label className="text-[9px] text-slate-500 uppercase">Master Token</label>
+                                       <input 
+                                        type="text" 
+                                        value={manualKeys.tkn} 
+                                        onChange={(e) => setManualKeys({...manualKeys, tkn: e.target.value})}
+                                        className="w-full bg-black/40 border border-slate-600 rounded px-2 py-1 text-xs font-mono text-purple-400 text-center"
+                                        placeholder="TKN-XXXX"
+                                       />
+                                   </div>
+                               </div>
+                               <button 
+                                onClick={handleSaveKeys}
+                                className="mt-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold uppercase py-1 rounded transition-colors"
+                               >
+                                   Save & Reset Cycle
+                               </button>
+                           </div>
                        ) : (
-                          <>
-                            <h3 className="text-4xl md:text-5xl font-black font-mono tracking-widest text-amber-500 animate-pulse">
-                                {String(Math.floor(cooldownTime / 60)).padStart(2, '0')}:{String(cooldownTime % 60).padStart(2, '0')}
-                            </h3>
-                            <p className="text-[9px] text-slate-500 mt-2 uppercase">Cycling Keys...</p>
-                          </>
+                           keyStatus === 'ACTIVE' ? (
+                              <div className="flex flex-col md:flex-row justify-center gap-4 items-center animate-fade-in">
+                                <div className="bg-black/30 p-2 rounded-lg min-w-[100px]">
+                                    <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Master</p>
+                                    <h3 className="text-xl font-black font-mono tracking-wider text-emerald-400 select-all">{msKey}</h3>
+                                </div>
+                                <div className="bg-black/30 p-2 rounded-lg min-w-[100px]">
+                                    <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1">ADM Key</p>
+                                    <h3 className="text-xl font-black font-mono tracking-wider text-blue-400 select-all">{admKey}</h3>
+                                </div>
+                                <div className="bg-black/30 p-2 rounded-lg min-w-[100px]">
+                                    <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Master Token</p>
+                                    <h3 className="text-xl font-black font-mono tracking-wider text-purple-400 select-all">{tknKey}</h3>
+                                </div>
+                              </div>
+                           ) : (
+                              <>
+                                <h3 className="text-4xl md:text-5xl font-black font-mono tracking-widest text-amber-500 animate-pulse">
+                                    {String(Math.floor(cooldownTime / 60)).padStart(2, '0')}:{String(cooldownTime % 60).padStart(2, '0')}
+                                </h3>
+                                <p className="text-[9px] text-slate-500 mt-2 uppercase">Cycling Keys...</p>
+                              </>
+                           )
                        )}
                    </div>
                    {keyStatus === 'COOLDOWN' && (

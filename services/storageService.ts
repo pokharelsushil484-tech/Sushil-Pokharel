@@ -231,6 +231,30 @@ export const storageService = {
   },
 
   /**
+   * Set specific system keys manually (Admin Override)
+   */
+  async setSystemKeys(ms: string, adm: string, tkn: string): Promise<void> {
+      const db = await initDB();
+      return new Promise((resolve, reject) => {
+          const transaction = db.transaction(SYSTEM_STORE_NAME, 'readwrite');
+          const store = transaction.objectStore(SYSTEM_STORE_NAME);
+          const now = Date.now();
+          
+          const data = {
+              pin: null, // Custom keys might not share a PIN
+              msCode: ms,
+              admCode: adm,
+              tknCode: tkn,
+              status: 'ACTIVE',
+              timerStart: now // Reset timer for full duration with new keys
+          };
+          
+          store.put(data, 'key_cycle_state');
+          resolve();
+      });
+  },
+
+  /**
    * Validate Input Key against current System Keys
    */
   async validateSystemKey(input: string): Promise<boolean> {

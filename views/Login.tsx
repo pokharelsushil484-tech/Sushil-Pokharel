@@ -225,7 +225,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                   // 1. Check user-specific generated key (Recovery Appeal)
                   const isPersonalKeyValid = stored.user.admissionKey === inputKey;
                   
-                  // 2. Check Rotating System Key (MS or ADM or TKN)
+                  // 2. Check Rotating System Keys (MS, ADM, TKN)
                   const isSystemKeyValid = await storageService.validateSystemKey(inputKey);
 
                   if (isPersonalKeyValid || isSystemKeyValid) {
@@ -272,7 +272,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                       setLoginInput(targetUsername); 
                       setView('IDENTITY_SNAP');
                   } else {
-                      setError("Invalid or Expired Key (Keys rotate every 30s).");
+                      setError("Invalid Key. Required: ADM / Master / Admission Key / Master Token.");
                   }
               } else {
                   setError("Profile data corruption.");
@@ -505,7 +505,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
               <form onSubmit={handleAdmissionLogin} className="space-y-6 animate-scale-up">
                   <div className="text-center">
                       <h3 className="text-white font-bold text-lg mb-2">System Key Login</h3>
-                      <p className="text-xs text-slate-400">Use 'MS-', 'ADM-', or 'TKN-' keys (Shared PIN).</p>
+                      <p className="text-xs text-slate-400">Accepted: ADM, Master, Admission Key, Master Token</p>
                       <div className="mt-2 flex items-center justify-center text-amber-400 text-[10px] font-bold uppercase tracking-wide">
                         <AlertTriangle size={12} className="mr-1" /> Dynamic Key Rotation (30s)
                       </div>

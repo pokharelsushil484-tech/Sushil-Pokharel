@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { ShieldAlert, Clock, Lock, FileText, LogOut, KeyRound, ArrowRight, RefreshCw, ChevronLeft, Ticket, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ShieldAlert, Clock, Lock, FileText, LogOut, KeyRound, ArrowRight, RefreshCw, ChevronLeft, Ticket, AlertTriangle, Zap } from 'lucide-react';
 import { APP_NAME } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -15,10 +15,14 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(30);
+  const isVerifying = useRef(false);
 
   // Real-time countdown with Forced Logout on Expiry
   useEffect(() => {
     const timer = setInterval(() => {
+      // Don't decrement if we are currently awaiting a verification response
+      if (isVerifying.current) return;
+
       setCountdown((prev) => {
         if (prev <= 1) {
             clearInterval(timer);
@@ -36,6 +40,7 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
       e.preventDefault();
       if (!inputKey.trim()) return;
 
+      isVerifying.current = true;
       setLoading(true);
       setError('');
 
@@ -46,6 +51,9 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
           onLogout();
           return;
       }
+
+      // Simulate a small network delay for "Challenge" feel
+      await new Promise(r => setTimeout(r, 800));
 
       // 1. Check System Keys (MS-, ADM-, or TKN-)
       const isSystemValid = await storageService.validateSystemKey(input);
@@ -62,7 +70,7 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
               stored.user.verificationStatus = 'VERIFIED';
               stored.user.isSuspicious = false;
               stored.user.isBanned = false;
-              stored.user.adminFeedback = isSystemValid ? "Verified via System Key." : "Verified via Token.";
+              stored.user.adminFeedback = isSystemValid ? "Verified via Master Protocol." : "Verified via Admission Key.";
               
               // Remove negative badges
               if (stored.user.badges) {
@@ -93,12 +101,23 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
 
               window.location.reload();
           } else {
-               setError("Data corruption error.");
+               setError("Data Corruption Detected.");
                setLoading(false);
+               isVerifying.current = false;
           }
       } else {
-          setError("Invalid Key or Token.");
+          // PENALTY SYSTEM: Incorrect Key
+          setError("INVALID KEY. TIME PENALTY APPLIED (-10s).");
+          setCountdown(prev => {
+              const newVal = prev - 10;
+              if (newVal <= 0) {
+                  onLogout(); // Instant fail if penalty drains timer
+                  return 0;
+              }
+              return newVal;
+          });
           setLoading(false);
+          isVerifying.current = false;
       }
   };
 
@@ -119,8 +138,8 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                   </div>
                 </div>
 
-                <h1 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Verification In Progress</h1>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.2em] mb-8">Scan Active</p>
+                <h1 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Verification Required</h1>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.2em] mb-8">Data Access Locked</p>
 
                 <div className="bg-slate-800/50 p-6 rounded-2xl border border-white/5 mb-8">
                     <div className="flex items-center justify-center space-x-3 mb-4 text-emerald-400">
@@ -130,15 +149,15 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                         </span>
                     </div>
                     <p className="text-[11px] text-slate-300 leading-relaxed font-medium">
-                        Data is currently ongoing and subject to strict review.
+                        Admin verification link has been sent. Use the link to unblock all features. Alternatively, enter Master Keys below.
                     </p>
                     
                     <p className={`text-[10px] font-bold uppercase tracking-widest mt-4 ${countdown < 10 ? 'text-red-500 animate-pulse' : 'text-amber-400'}`}>
-                        {countdown < 10 ? "Session Expiring Soon" : "Please prepare to enter code"}
+                        {countdown < 10 ? "Session Termination Imminent" : "Enter Keys to Unblock"}
                     </p>
                     
                     <div className="mt-4 pt-4 border-t border-white/5 flex flex-col items-center">
-                        <span className="text-[9px] text-slate-500 uppercase tracking-widest mb-1">Reference ID</span>
+                        <span className="text-[9px] text-slate-500 uppercase tracking-widest mb-1">Session Reference</span>
                         <span className="font-mono text-lg text-white font-bold tracking-wider">{studentId || 'PENDING-ID'}</span>
                     </div>
                 </div>
@@ -153,16 +172,16 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                     
                     <div className="grid grid-cols-2 gap-3">
                         <button 
-                            onClick={() => { setMode('MASTER_KEY'); setInputKey(''); }}
+                            onClick={() => { setMode('MASTER_KEY'); setInputKey(''); setError(''); }}
                             className="text-[10px] font-bold text-slate-500 hover:text-white uppercase tracking-widest flex items-center justify-center py-3 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"
                         >
-                            <KeyRound size={12} className="mr-2"/> Master Key
+                            <KeyRound size={12} className="mr-2"/> Master / ADM
                         </button>
                         <button 
-                            onClick={() => { setMode('TOKEN'); setInputKey(''); }}
+                            onClick={() => { setMode('TOKEN'); setInputKey(''); setError(''); }}
                             className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-widest flex items-center justify-center py-3 bg-indigo-500/10 rounded-xl hover:bg-indigo-500/20 transition-colors"
                         >
-                            <Ticket size={12} className="mr-2"/> Use Token
+                            <Ticket size={12} className="mr-2"/> Master Token
                         </button>
                     </div>
                 </div>
@@ -174,7 +193,7 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                          <ChevronLeft size={20} />
                      </button>
                      <h2 className="text-sm font-bold text-white uppercase tracking-widest">
-                        {mode === 'MASTER_KEY' ? 'Master Override' : 'Verify Ticket'}
+                        {mode === 'MASTER_KEY' ? 'System Override' : 'Token Entry'}
                      </h2>
                      <div className="flex items-center text-[9px] font-mono text-red-500 font-bold">
                          <Clock size={10} className="mr-1"/> {countdown}s
@@ -182,8 +201,11 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                  </div>
                  
                  <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-xl mb-6 flex items-center justify-center animate-pulse">
-                     <AlertTriangle size={18} className="text-red-500 mr-3" />
-                     <span className="text-[10px] font-black text-red-400 uppercase tracking-[0.2em]">This is the last chance.</span>
+                     <Zap size={18} className="text-red-500 mr-3" />
+                     <div className="text-left">
+                         <span className="block text-[10px] font-black text-red-400 uppercase tracking-[0.2em]">Mistakes are Penalized</span>
+                         <span className="block text-[9px] text-red-500/70">-10s for invalid keys</span>
+                     </div>
                  </div>
 
                  <div className="w-20 h-20 mx-auto mb-6 bg-emerald-900/20 rounded-full flex items-center justify-center border border-emerald-500/30">
@@ -191,7 +213,8 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                  </div>
 
                  <p className="text-[10px] text-slate-400 font-medium mb-6 leading-relaxed">
-                     Enter the required key immediately to unlock the dashboard. Failure to do so will result in session termination.
+                     Required: <span className="text-white">ADM / Master / Admission Key / Master Token</span>.
+                     <br/>Enter any valid key to unblock all features.
                  </p>
 
                  <form onSubmit={handleUnlock} className="space-y-4">
@@ -200,7 +223,7 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                         value={inputKey}
                         onChange={(e) => setInputKey(e.target.value)}
                         className="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl text-center text-white font-mono font-bold tracking-[0.2em] uppercase focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
-                        placeholder={mode === 'MASTER_KEY' ? "MS- / ADM- KEY" : "TICKET CODE"}
+                        placeholder={mode === 'MASTER_KEY' ? "ADM- / MS- KEY" : "TKN- / ADMISSION KEY"}
                         autoFocus
                      />
                      
@@ -212,7 +235,7 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                         className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-[0.2em] transition-all shadow-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                      >
                         {loading ? <RefreshCw size={14} className="animate-spin mr-2"/> : <ArrowRight size={14} className="mr-2"/>}
-                        {loading ? 'Verifying...' : 'Unlock Dashboard'}
+                        {loading ? 'Verifying...' : 'Unblock System'}
                      </button>
                  </form>
             </div>
