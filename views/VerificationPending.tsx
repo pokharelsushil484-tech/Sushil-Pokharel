@@ -1,15 +1,17 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ShieldAlert, Clock, Lock, FileText, LogOut, KeyRound, ArrowRight, RefreshCw, ChevronLeft, Ticket, AlertTriangle, Zap } from 'lucide-react';
+import { ShieldAlert, Clock, Lock, FileText, LogOut, KeyRound, ArrowRight, RefreshCw, ChevronLeft, Ticket, AlertTriangle, Zap, Trash2, LifeBuoy } from 'lucide-react';
 import { APP_NAME } from '../constants';
 import { storageService } from '../services/storageService';
+import { View } from '../types';
 
 interface VerificationPendingProps {
   studentId?: string;
   onLogout: () => void;
+  onNavigate?: (view: View) => void;
 }
 
-export const VerificationPending: React.FC<VerificationPendingProps> = ({ studentId, onLogout }) => {
+export const VerificationPending: React.FC<VerificationPendingProps> = ({ studentId, onLogout, onNavigate }) => {
   const [mode, setMode] = useState<'STATUS' | 'MASTER_KEY' | 'TOKEN'>('STATUS');
   const [inputKey, setInputKey] = useState('');
   const [error, setError] = useState('');
@@ -26,7 +28,7 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
       setCountdown((prev) => {
         if (prev <= 1) {
             clearInterval(timer);
-            // TIMER EXPIRED: Force Login
+            // TIMER EXPIRED: Force Logout to enforce penalty
             onLogout(); 
             return 0;
         }
@@ -121,6 +123,32 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
       }
   };
 
+  const handleCancelRequest = async () => {
+      if (!window.confirm("Are you sure you want to cancel this verification request? This will allow you to correct mistakes but you'll lose your place in the queue.")) return;
+      
+      const username = localStorage.getItem('active_session_user');
+      if (username) {
+          // 1. Reset User Profile Status
+          const dataKey = `architect_data_${username}`;
+          const stored = await storageService.getData(dataKey);
+          if (stored && stored.user) {
+              stored.user.verificationStatus = 'NONE';
+              stored.user.studentId = undefined; // Clear generated ID to restart
+              await storageService.setData(dataKey, stored);
+          }
+
+          // 2. Delete Request from Registry
+          const reqStr = localStorage.getItem('studentpocket_requests');
+          if (reqStr) {
+              let requests = JSON.parse(reqStr);
+              requests = requests.filter((r: any) => r.username !== username || r.status !== 'PENDING');
+              localStorage.setItem('studentpocket_requests', JSON.stringify(requests));
+          }
+          
+          window.location.reload();
+      }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
       {/* Background Pulse Effect */}
@@ -163,12 +191,21 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                 </div>
 
                 <div className="space-y-3">
-                     <button 
-                        onClick={onLogout}
-                        className="w-full py-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-[0.2em] transition-all shadow-lg flex items-center justify-center border border-slate-700"
-                    >
-                        <LogOut size={14} className="mr-2"/> Log Out
-                    </button>
+                     <div className="flex gap-2">
+                        <button 
+                            onClick={onLogout}
+                            className="flex-1 py-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-[0.2em] transition-all shadow-lg flex items-center justify-center border border-slate-700"
+                        >
+                            <LogOut size={14} className="mr-2"/> Log Out
+                        </button>
+                        <button 
+                            onClick={handleCancelRequest}
+                            className="w-12 py-4 rounded-xl bg-red-900/30 hover:bg-red-900/50 text-red-400 hover:text-red-200 border border-red-500/20 flex items-center justify-center transition-all"
+                            title="Cancel Request & Delete Entry"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                     </div>
                     
                     <div className="grid grid-cols-2 gap-3">
                         <button 
@@ -184,6 +221,15 @@ export const VerificationPending: React.FC<VerificationPendingProps> = ({ studen
                             <Ticket size={12} className="mr-2"/> Master Token
                         </button>
                     </div>
+
+                    {onNavigate && (
+                        <button 
+                            onClick={() => onNavigate(View.SUPPORT)}
+                            className="w-full py-3 mt-2 text-[10px] font-bold text-slate-400 hover:text-white uppercase tracking-widest flex items-center justify-center hover:bg-white/5 rounded-xl transition-colors"
+                        >
+                            <LifeBuoy size={14} className="mr-2" /> Contact Support
+                        </button>
+                    )}
                 </div>
             </>
         ) : (

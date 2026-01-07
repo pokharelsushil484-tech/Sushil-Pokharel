@@ -53,9 +53,11 @@ export const Notes: React.FC<NotesProps> = ({ notes, setNotes, isAdmin }) => {
 
   const softDeleteNote = (id: string, e: React.MouseEvent) => {
       e.stopPropagation();
-      // STRICTLY ONLY ADMIN CAN DELETE
-      if (!isAdmin) {
-          alert("Only Administrators can delete notes.");
+      
+      const note = notes.find(n => n.id === id);
+      // Allow deletion if Admin OR if the user is the author (assuming 'user' means current user here)
+      if (!isAdmin && note?.author !== 'user') {
+          alert("You can only delete your own notes.");
           return;
       }
 
@@ -240,17 +242,17 @@ export const Notes: React.FC<NotesProps> = ({ notes, setNotes, isAdmin }) => {
                      )
                  ) : (
                     <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                         {/* Only Admin can delete */}
-                         {isAdmin ? (
+                         {/* Allow deletion for admin or note owner */}
+                         {isAdmin || note.author === 'user' ? (
                             <button 
                                 onClick={(e) => softDeleteNote(note.id, e)} 
                                 className="bg-white p-1.5 rounded-full shadow-sm text-red-400 hover:text-red-600"
-                                title="Admin Delete"
+                                title="Delete Note"
                             >
                                 <Trash2 size={14} />
                             </button>
                          ) : (
-                             <div title="Users cannot delete notes" className="bg-gray-100 p-1 rounded-full">
+                             <div title="Cannot delete system notes" className="bg-gray-100 p-1 rounded-full">
                                 <Lock size={12} className="text-gray-400" />
                              </div>
                          )}

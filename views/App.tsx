@@ -77,8 +77,21 @@ const App = () => {
   useEffect(() => {
     const path = window.location.pathname;
     
-    // Check for verification link: /v/{id}
+    // Route Validation
+    const isRoot = path === '/';
     const verifyMatch = path.match(/^\/v\/([a-zA-Z0-9]+)\/?$/i);
+    const requestMatch = path.match(/^\/r\/([a-zA-Z0-9]+)\/?$/i);
+    const recoveryMatch = path.match(/^\/recovery\/([a-zA-Z0-9]+)\/?$/i);
+    const inviteMatch = path.match(/^\/register\/([a-zA-Z0-9]+)\/?$/i);
+
+    // 404 Handler for invalid routes
+    if (!isRoot && !verifyMatch && !requestMatch && !recoveryMatch && !inviteMatch) {
+        setView(View.ERROR);
+        setShowSplash(false);
+        setIsLoading(false);
+        return;
+    }
+    
     if (verifyMatch) {
         setVerifyLinkId(verifyMatch[1]);
         setView(View.VERIFY_LINK);
@@ -87,28 +100,22 @@ const App = () => {
         return;
     }
 
-    // Check for request link: /r/{id}
-    const requestMatch = path.match(/^\/r\/([a-zA-Z0-9]+)\/?$/i);
     if (requestMatch) {
-        setVerifyLinkId(requestMatch[1]); // Reuse LinkVerification for requests
+        setVerifyLinkId(requestMatch[1]); 
         setView(View.VERIFY_LINK);
         setShowSplash(false); 
         setIsLoading(false);
         return;
     }
 
-    // Check for recovery link: /recovery/{id}
-    const recoveryMatch = path.match(/^\/recovery\/([a-zA-Z0-9]+)\/?$/i);
     if (recoveryMatch) {
-        setVerifyLinkId(recoveryMatch[1]); // Route recovery links to verification view to see status
+        setVerifyLinkId(recoveryMatch[1]); 
         setView(View.VERIFY_LINK);
         setShowSplash(false);
         setIsLoading(false);
         return;
     }
 
-    // Check for registration invite link
-    const inviteMatch = path.match(/^\/register\/([a-zA-Z0-9]+)\/?$/i);
     if (inviteMatch) {
         setInviteCode(inviteMatch[1]);
         setView(View.INVITE_REGISTRATION);
@@ -138,14 +145,14 @@ const App = () => {
               setShowTerms(true);
             }
           } else {
-            if (view !== View.VERIFY_LINK && view !== View.INVITE_REGISTRATION && view !== View.ACCESS_RECOVERY) {
+            if (view !== View.VERIFY_LINK && view !== View.INVITE_REGISTRATION && view !== View.ACCESS_RECOVERY && view !== View.ERROR) {
                 setView(View.ONBOARDING);
             }
             setData(prev => ({ ...prev, user: null }));
           }
         } catch (err) {
           console.error("Critical Sync Failure", err);
-          if (view !== View.VERIFY_LINK && view !== View.INVITE_REGISTRATION && view !== View.ACCESS_RECOVERY) setView(View.ONBOARDING);
+          if (view !== View.VERIFY_LINK && view !== View.INVITE_REGISTRATION && view !== View.ACCESS_RECOVERY && view !== View.ERROR) setView(View.ONBOARDING);
         } finally {
           setIsLoading(false);
         }
@@ -153,7 +160,7 @@ const App = () => {
           setIsLoading(false);
       }
     };
-    if (view !== View.VERIFY_LINK && view !== View.INVITE_REGISTRATION && view !== View.ACCESS_RECOVERY) {
+    if (view !== View.VERIFY_LINK && view !== View.INVITE_REGISTRATION && view !== View.ACCESS_RECOVERY && view !== View.ERROR) {
         sync();
     }
   }, [currentUsername]);
@@ -217,6 +224,10 @@ const App = () => {
     setData(initialData);
     setView(View.DASHBOARD);
   };
+
+  if (view === View.ERROR) {
+      return <ErrorPage type="404" title="Page Not Found" message="The requested path could not be found." onAction={() => { window.location.href = '/'; }} actionLabel="Go Home" />;
+  }
 
   if (view === View.VERIFY_LINK && verifyLinkId) {
       return <LinkVerification linkId={verifyLinkId} onNavigate={(v) => { setView(v); setVerifyLinkId(null); window.history.pushState({}, '', '/'); }} currentUser={currentUsername} />;
@@ -301,7 +312,7 @@ const App = () => {
     
     // STRICT SECURITY GATE: Block access if pending verification (Admin bypasses)
     if (data.user.verificationStatus === 'PENDING_APPROVAL' && view !== View.SUPPORT && currentUsername !== ADMIN_USERNAME) {
-        return <VerificationPending studentId={data.user.studentId} onLogout={handleLogout} />;
+        return <VerificationPending studentId={data.user.studentId} onLogout={handleLogout} onNavigate={setView} />;
     }
     
     switch (view) {
