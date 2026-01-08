@@ -507,7 +507,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                       <h3 className="text-white font-bold text-lg mb-2">System Key Login</h3>
                       <p className="text-xs text-slate-400">Accepted: ADM, Master, Admission Key, Master Token</p>
                       <div className="mt-2 flex items-center justify-center text-amber-400 text-[10px] font-bold uppercase tracking-wide">
-                        <AlertTriangle size={12} className="mr-1" /> Dynamic Key Rotation (10s)
+                        <AlertTriangle size={12} className="mr-1" /> Dynamic Key Rotation (5m/1m)
                       </div>
                   </div>
                   

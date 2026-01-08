@@ -159,8 +159,7 @@ export const storageService = {
   /**
    * MASTER KEY / ADMISSION KEY / TOKEN ROTATION SYSTEM
    * Shared PIN logic: MS-[PIN], ADM-[PIN], TKN-[PIN]
-   * 10 Seconds Active -> 10 Seconds Deleted (Cooldown) -> Regenerate
-   * UPDATED: Reduced to 10s for high engagement
+   * 5 Minutes Active -> 1 Minute Deleted (Generation/Cooldown) -> Regenerate
    */
   async getSystemKeys(): Promise<SystemKeyState> {
     const db = await initDB();
@@ -169,14 +168,15 @@ export const storageService = {
         const store = transaction.objectStore(SYSTEM_STORE_NAME);
         const request = store.get('key_cycle_state');
 
-        const DURATION = 10 * 1000; // 10 Seconds - High Velocity Rotation
+        const ACTIVE_DURATION = 5 * 60 * 1000; // 5 Minutes
+        const COOLDOWN_DURATION = 1 * 60 * 1000; // 1 Minute
 
         request.onsuccess = () => {
             let data = request.result;
             const now = Date.now();
 
-            // Initial Generation or Regeneration or Migration
-            if (!data || !data.tknCode) {
+            // Initial Generation
+            if (!data) {
                 const pin = Math.floor(100000 + Math.random() * 900000).toString();
                 data = { 
                     pin: pin,
@@ -187,14 +187,14 @@ export const storageService = {
                     timerStart: now 
                 };
                 store.put(data, 'key_cycle_state');
-                resolve({ ...data, timerRemaining: Math.ceil(DURATION / 1000) });
+                resolve({ ...data, timerRemaining: Math.ceil(ACTIVE_DURATION / 1000) });
                 return;
             }
 
             const elapsed = now - data.timerStart;
 
             if (data.status === 'ACTIVE') {
-                if (elapsed >= DURATION) {
+                if (elapsed >= ACTIVE_DURATION) {
                     // Switch to Cooldown (Delete Keys)
                     data.status = 'COOLDOWN';
                     data.pin = null;
@@ -203,14 +203,14 @@ export const storageService = {
                     data.tknCode = null;
                     data.timerStart = now;
                     store.put(data, 'key_cycle_state');
-                    resolve({ ...data, timerRemaining: Math.ceil(DURATION / 1000) });
+                    resolve({ ...data, timerRemaining: Math.ceil(COOLDOWN_DURATION / 1000) });
                 } else {
                     // Still Active
-                    resolve({ ...data, timerRemaining: Math.ceil((DURATION - elapsed) / 1000) });
+                    resolve({ ...data, timerRemaining: Math.ceil((ACTIVE_DURATION - elapsed) / 1000) });
                 }
             } else {
                 // Status is COOLDOWN
-                if (elapsed >= DURATION) {
+                if (elapsed >= COOLDOWN_DURATION) {
                     // Regenerate Keys
                     const pin = Math.floor(100000 + Math.random() * 900000).toString();
                     data.status = 'ACTIVE';
@@ -220,10 +220,10 @@ export const storageService = {
                     data.tknCode = `TKN-${pin}`;
                     data.timerStart = now;
                     store.put(data, 'key_cycle_state');
-                    resolve({ ...data, timerRemaining: Math.ceil(DURATION / 1000) });
+                    resolve({ ...data, timerRemaining: Math.ceil(ACTIVE_DURATION / 1000) });
                 } else {
                      // Still in Cooldown
-                     resolve({ ...data, timerRemaining: Math.ceil((DURATION - elapsed) / 1000) });
+                     resolve({ ...data, timerRemaining: Math.ceil((COOLDOWN_DURATION - elapsed) / 1000) });
                 }
             }
         };
