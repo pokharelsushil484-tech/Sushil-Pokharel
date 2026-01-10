@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { UserProfile } from '../types';
-import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, Info, X, ShieldCheck, Globe, Camera, ArrowLeft, Check, Key, HelpCircle, AlertTriangle } from 'lucide-react';
+import { Lock, ArrowRight, User, Eye, EyeOff, Loader2, Info, X, ShieldCheck, Globe, Camera, ArrowLeft, Check, Key, HelpCircle, AlertTriangle, Download, Upload } from 'lucide-react';
 import { ADMIN_USERNAME, ADMIN_SECRET, ADMIN_EMAIL, COPYRIGHT_NOTICE, MIN_PASSWORD_LENGTH, SYSTEM_DOMAIN, DEFAULT_USER, SYSTEM_UPGRADE_TOKEN, CREATOR_NAME } from '../constants';
 import { storageService } from '../services/storageService';
 import { View } from '../types';
@@ -12,7 +12,7 @@ interface LoginProps {
   onNavigate?: (view: View) => void;
 }
 
-type AuthView = 'LOGIN' | 'REGISTER' | 'IDENTITY_SNAP' | 'FORGOT_PASSWORD' | 'ADMISSION_LOGIN';
+type AuthView = 'LOGIN' | 'REGISTER' | 'IDENTITY_SNAP' | 'FORGOT_PASSWORD' | 'ADMISSION_LOGIN' | 'IMPORT';
 
 export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
   const [view, setView] = useState<AuthView>('LOGIN');
@@ -25,6 +25,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
   
   // Admission Key State
   const [admissionKey, setAdmissionKey] = useState('');
+  
+  // Import State
+  const [importToken, setImportToken] = useState('');
   
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -402,6 +405,48 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
         setIsProcessing(false);
     }, 1500);
   };
+  
+  const handleImport = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setError('');
+      setSuccess('');
+      setIsProcessing(true);
+      
+      try {
+          const payload = JSON.parse(atob(importToken));
+          
+          if (!payload.username || !payload.auth || !payload.data) {
+              throw new Error("Invalid token structure");
+          }
+
+          // 1. Restore Auth
+          const usersStr = localStorage.getItem('studentpocket_users');
+          const users = usersStr ? JSON.parse(usersStr) : {};
+          users[payload.username] = payload.auth;
+          localStorage.setItem('studentpocket_users', JSON.stringify(users));
+          
+          // 2. Restore Data
+          await storageService.setData(`architect_data_${payload.username}`, payload.data);
+          
+          // 3. Log
+          await storageService.logActivity({
+             actor: payload.username,
+             actionType: 'SYSTEM',
+             description: `Identity Imported: ${payload.username}`,
+             metadata: 'Via Connection Token'
+          });
+
+          setSuccess("Identity imported successfully. Redirecting...");
+          setTimeout(() => {
+             setLoginInput(payload.username);
+             setView('LOGIN');
+             setIsProcessing(false);
+          }, 1500);
+      } catch (e) {
+          setError("Invalid or corrupted token.");
+          setIsProcessing(false);
+      }
+  };
 
   const PasswordRequirement = ({ met, label }: { met: boolean, label: string }) => (
     <div className={`flex items-center space-x-2 text-[10px] uppercase tracking-wider font-bold transition-colors ${met ? 'text-emerald-400' : 'text-slate-500'}`}>
@@ -484,13 +529,23 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                 >
                   {isProcessing ? <Loader2 className="animate-spin" size={18}/> : <>Sign In <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={16} /></>}
                 </button>
-                <button 
-                  type="button"
-                  onClick={() => setView('REGISTER')}
-                  className="w-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
-                >
-                  Create Account
-                </button>
+                <div className="flex gap-2">
+                    <button 
+                      type="button"
+                      onClick={() => setView('REGISTER')}
+                      className="flex-1 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
+                    >
+                      Create Account
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setView('IMPORT')}
+                      className="w-12 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white py-3 rounded-xl flex items-center justify-center transition-all"
+                      title="Import Identity"
+                    >
+                      <Download size={16} />
+                    </button>
+                </div>
               </div>
               
               <div className="pt-4 border-t border-white/5 flex justify-center">
@@ -550,6 +605,44 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
                       className="w-full text-slate-400 hover:text-white py-2 text-xs font-bold uppercase tracking-widest transition-all"
                     >
                       Back to Standard Login
+                    </button>
+                  </div>
+              </form>
+          )}
+
+          {view === 'IMPORT' && (
+              <form onSubmit={handleImport} className="space-y-6 animate-scale-up">
+                  <div className="text-center">
+                      <h3 className="text-white font-bold text-lg mb-2">Import Identity</h3>
+                      <p className="text-xs text-slate-400">Paste your Connection Token to restore your session.</p>
+                  </div>
+                  
+                  <div className="relative group">
+                      <textarea 
+                        value={importToken} 
+                        onChange={(e) => setImportToken(e.target.value)} 
+                        className="w-full p-4 bg-black/40 border border-white/10 rounded-xl outline-none text-indigo-400 font-mono text-[10px] placeholder:text-slate-600 focus:border-indigo-500 transition-all resize-none h-32" 
+                        placeholder="Paste Base64 Token here..." 
+                      />
+                  </div>
+
+                  {error && <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs font-bold text-center uppercase tracking-wide">{error}</div>}
+                  {success && <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400 text-xs font-bold text-center uppercase tracking-wide">{success}</div>}
+
+                  <div className="space-y-3 pt-2">
+                    <button 
+                      type="submit" 
+                      disabled={isProcessing || !importToken} 
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg transition-all flex items-center justify-center group disabled:opacity-50"
+                    >
+                      {isProcessing ? <Loader2 className="animate-spin" size={16}/> : <><Upload className="mr-2" size={16} /> Restore Identity</>}
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setView('LOGIN')}
+                      className="w-full text-slate-400 hover:text-white py-2 text-xs font-bold uppercase tracking-widest transition-all"
+                    >
+                      Cancel
                     </button>
                   </div>
               </form>

@@ -4,7 +4,7 @@ import { UserProfile, ChangeRequest, SupportTicket, TicketMessage } from '../typ
 import { 
   Users, ShieldCheck, LifeBuoy, Trash2, 
   CheckCircle, XCircle, RefreshCw, User, Lock, 
-  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award, Edit2, ArrowRight, Save, X, BadgeCheck, BadgeAlert, Skull, AlertTriangle, MessageCircle, Ticket, Plus, UserPlus
+  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award, Edit2, ArrowRight, Save, X, BadgeCheck, BadgeAlert, Skull, AlertTriangle, MessageCircle, Ticket, Plus, UserPlus, Download, Copy
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { ADMIN_USERNAME, DEFAULT_USER, SYSTEM_UPGRADE_TOKEN } from '../constants';
@@ -30,13 +30,12 @@ export const AdminDashboard: React.FC = () => {
   
   const [generatedToken, setGeneratedToken] = useState<{user: string, token: string, type: 'RECOVERY' | 'VERIFICATION'} | null>(null);
   
-  // Editing State
+  // User Management State
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
-  
-  // Creation State
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newUser, setNewUser] = useState({ username: '', password: '', name: '', email: '' });
+  const [exportToken, setExportToken] = useState<string | null>(null);
   
   // Messaging State
   const [messagingUser, setMessagingUser] = useState<string | null>(null);
@@ -118,43 +117,38 @@ export const AdminDashboard: React.FC = () => {
 
   const handleCreateUser = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!newUser.username || !newUser.password || !newUser.name || !newUser.email) {
-          alert("All fields are required.");
-          return;
-      }
+      if (!newUser.username || !newUser.password || !newUser.name) return;
 
-      const cleanUsername = newUser.username.trim();
       const usersStr = localStorage.getItem('studentpocket_users');
       const users = usersStr ? JSON.parse(usersStr) : {};
-
-      if (users[cleanUsername]) {
+      
+      if (users[newUser.username]) {
           alert("Username already exists.");
           return;
       }
 
       // 1. Create Auth Entry
-      users[cleanUsername] = {
+      users[newUser.username] = {
           password: newUser.password,
-          email: newUser.email.trim(),
-          name: newUser.name.trim(),
+          email: newUser.email,
+          name: newUser.name,
           verified: true
       };
       localStorage.setItem('studentpocket_users', JSON.stringify(users));
 
-      // 2. Initialize Profile in IndexedDB
+      // 2. Initialize Data
       const newProfile: UserProfile = {
           ...DEFAULT_USER,
-          name: newUser.name.trim(),
-          email: newUser.email.trim(),
+          name: newUser.name,
+          email: newUser.email,
           isVerified: true,
           verificationStatus: 'VERIFIED',
-          level: 1, // Start as Level 1 Student
+          level: 1,
           acceptedTermsVersion: SYSTEM_UPGRADE_TOKEN,
-          studentId: `STU-${Math.floor(100000 + Math.random() * 900000)}`,
-          adminFeedback: "Account provisioned by Administrator."
+          studentId: `STU-${Math.floor(100000 + Math.random() * 900000)}`
       };
 
-      await storageService.setData(`architect_data_${cleanUsername}`, {
+      await storageService.setData(`architect_data_${newUser.username}`, {
           user: newProfile,
           chatHistory: [],
           vaultDocs: []
@@ -163,7 +157,31 @@ export const AdminDashboard: React.FC = () => {
       setNewUser({ username: '', password: '', name: '', email: '' });
       setShowCreateModal(false);
       loadData();
-      alert(`User ${cleanUsername} created successfully.`);
+  };
+
+  const handleExportUser = async (username: string) => {
+      const usersStr = localStorage.getItem('studentpocket_users');
+      const users = usersStr ? JSON.parse(usersStr) : {};
+      const authData = users[username];
+      
+      const profileData = await storageService.getData(`architect_data_${username}`);
+      
+      if (authData && profileData) {
+          const payload = {
+              username,
+              auth: authData,
+              data: profileData
+          };
+          // Create Base64 Connection String
+          try {
+              const token = btoa(JSON.stringify(payload));
+              setExportToken(token);
+          } catch(e) {
+              alert("Export failed: Data too large for simple token.");
+          }
+      } else {
+          alert("User data incomplete.");
+      }
   };
 
   const handleVerifyRequest = async (req: ChangeRequest, approve: boolean) => {
@@ -536,6 +554,58 @@ export const AdminDashboard: React.FC = () => {
            </div>
        )}
 
+       {/* EXPORT TOKEN MODAL */}
+       {exportToken && (
+           <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+               <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-700 animate-scale-up">
+                   <div className="flex justify-between items-center mb-4">
+                       <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-widest">Identity Export Token</h3>
+                       <button onClick={() => setExportToken(null)}><X size={20} className="text-slate-400"/></button>
+                   </div>
+                   <p className="text-xs text-slate-500 mb-4">Use this token to import the user identity on another device.</p>
+                   
+                   <div className="bg-slate-100 dark:bg-black p-4 rounded-xl mb-4 max-h-40 overflow-y-auto break-all font-mono text-[10px] border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400">
+                       {exportToken}
+                   </div>
+                   
+                   <button onClick={() => navigator.clipboard.writeText(exportToken)} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase py-3 rounded-xl flex items-center justify-center">
+                       <Copy size={16} className="mr-2"/> Copy Token
+                   </button>
+               </div>
+           </div>
+       )}
+
+       {/* CREATE USER MODAL */}
+       {showCreateModal && (
+           <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+               <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-8 shadow-2xl border border-slate-200 dark:border-slate-700 animate-scale-up">
+                   <div className="flex justify-between items-center mb-6">
+                       <h3 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-tight">Provision Node</h3>
+                       <button onClick={() => setShowCreateModal(false)}><X size={20} className="text-slate-400 hover:text-red-500"/></button>
+                   </div>
+                   <form onSubmit={handleCreateUser} className="space-y-4">
+                       <div>
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Username</label>
+                           <input type="text" value={newUser.username} onChange={e => setNewUser({...newUser, username: e.target.value})} className="w-full mt-1 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-indigo-500 transition-all" placeholder="user_id" required />
+                       </div>
+                       <div>
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Full Name</label>
+                           <input type="text" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} className="w-full mt-1 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-indigo-500 transition-all" placeholder="Full Name" required />
+                       </div>
+                       <div>
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Email</label>
+                           <input type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} className="w-full mt-1 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-indigo-500 transition-all" placeholder="email@domain.com" />
+                       </div>
+                       <div>
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Password</label>
+                           <input type="text" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} className="w-full mt-1 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-indigo-500 transition-all font-mono" placeholder="Secret" required />
+                       </div>
+                       <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase py-4 rounded-xl shadow-lg mt-2">Initialize Node</button>
+                   </form>
+               </div>
+           </div>
+       )}
+
        {viewMode === 'OVERVIEW' && (
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                {/* Admission Key Widget */}
@@ -595,7 +665,7 @@ export const AdminDashboard: React.FC = () => {
                                <button 
                                 onClick={handleSaveKeys}
                                 className="mt-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold uppercase py-1 rounded transition-colors"
-                               >
+                                >
                                    Save & Reset Cycle
                                </button>
                            </div>
@@ -665,68 +735,6 @@ export const AdminDashboard: React.FC = () => {
                    </button>
                </div>
 
-               {/* Create User Modal */}
-               {showCreateModal && (
-                   <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                       <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-scale-up">
-                           <div className="flex justify-between items-center mb-6">
-                               <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-widest">Provision New User</h3>
-                               <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-red-500"><X size={20}/></button>
-                           </div>
-                           
-                           <form onSubmit={handleCreateUser} className="space-y-4">
-                               <div>
-                                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Username</label>
-                                   <input 
-                                    type="text" 
-                                    value={newUser.username} 
-                                    onChange={(e) => setNewUser({...newUser, username: e.target.value})}
-                                    className="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:border-indigo-500 transition-all"
-                                    placeholder="user_id"
-                                    required
-                                   />
-                               </div>
-                               <div>
-                                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Full Name</label>
-                                   <input 
-                                    type="text" 
-                                    value={newUser.name} 
-                                    onChange={(e) => setNewUser({...newUser, name: e.target.value})}
-                                    className="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:border-indigo-500 transition-all"
-                                    placeholder="Full Name"
-                                    required
-                                   />
-                               </div>
-                               <div>
-                                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Email</label>
-                                   <input 
-                                    type="email" 
-                                    value={newUser.email} 
-                                    onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                                    className="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:border-indigo-500 transition-all"
-                                    placeholder="user@example.com"
-                                    required
-                                   />
-                               </div>
-                               <div>
-                                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Password</label>
-                                   <input 
-                                    type="text" // Visible for admin creation
-                                    value={newUser.password} 
-                                    onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                                    className="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:border-indigo-500 transition-all font-mono"
-                                    placeholder="password123"
-                                    required
-                                   />
-                               </div>
-                               <button type="submit" className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-widest py-3 rounded-xl transition-colors shadow-lg">
-                                   Create User & Initialize
-                               </button>
-                           </form>
-                       </div>
-                   </div>
-               )}
-
                <div className="space-y-2">
                    {profiles.map((user: any, i) => (
                        <div key={i} className="flex flex-col gap-2 p-4 border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
@@ -780,6 +788,13 @@ export const AdminDashboard: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-center space-x-2">
+                                        <button 
+                                            onClick={() => handleExportUser(user._username)}
+                                            className="p-2 text-slate-400 hover:text-indigo-500 bg-slate-50 dark:bg-slate-800 rounded-lg transition-colors"
+                                            title="Export Identity Token"
+                                        >
+                                            <Download size={16}/>
+                                        </button>
                                         <button 
                                             onClick={() => toggleBadge(user._username, 'SUSPICIOUS')}
                                             className={`p-2 rounded-lg transition-colors ${user.badges?.includes('SUSPICIOUS') ? 'bg-amber-500 text-white' : 'bg-slate-50 text-slate-400 hover:text-amber-500'}`}
