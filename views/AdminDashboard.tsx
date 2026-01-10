@@ -4,10 +4,10 @@ import { UserProfile, ChangeRequest, SupportTicket, TicketMessage } from '../typ
 import { 
   Users, ShieldCheck, LifeBuoy, Trash2, 
   CheckCircle, XCircle, RefreshCw, User, Lock, 
-  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award, Edit2, ArrowRight, Save, X, BadgeCheck, BadgeAlert, Skull, AlertTriangle, MessageCircle, Ticket
+  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award, Edit2, ArrowRight, Save, X, BadgeCheck, BadgeAlert, Skull, AlertTriangle, MessageCircle, Ticket, Plus, UserPlus
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
-import { ADMIN_USERNAME } from '../constants';
+import { ADMIN_USERNAME, DEFAULT_USER, SYSTEM_UPGRADE_TOKEN } from '../constants';
 
 type AdminView = 'OVERVIEW' | 'USERS' | 'REQUESTS' | 'RECOVERY' | 'SUPPORT';
 
@@ -33,6 +33,10 @@ export const AdminDashboard: React.FC = () => {
   // Editing State
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  
+  // Creation State
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newUser, setNewUser] = useState({ username: '', password: '', name: '', email: '' });
   
   // Messaging State
   const [messagingUser, setMessagingUser] = useState<string | null>(null);
@@ -110,6 +114,56 @@ export const AdminDashboard: React.FC = () => {
     } catch (error) {
         console.error("Dashboard Sync Error:", error);
     }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newUser.username || !newUser.password || !newUser.name || !newUser.email) {
+          alert("All fields are required.");
+          return;
+      }
+
+      const cleanUsername = newUser.username.trim();
+      const usersStr = localStorage.getItem('studentpocket_users');
+      const users = usersStr ? JSON.parse(usersStr) : {};
+
+      if (users[cleanUsername]) {
+          alert("Username already exists.");
+          return;
+      }
+
+      // 1. Create Auth Entry
+      users[cleanUsername] = {
+          password: newUser.password,
+          email: newUser.email.trim(),
+          name: newUser.name.trim(),
+          verified: true
+      };
+      localStorage.setItem('studentpocket_users', JSON.stringify(users));
+
+      // 2. Initialize Profile in IndexedDB
+      const newProfile: UserProfile = {
+          ...DEFAULT_USER,
+          name: newUser.name.trim(),
+          email: newUser.email.trim(),
+          isVerified: true,
+          verificationStatus: 'VERIFIED',
+          level: 1, // Start as Level 1 Student
+          acceptedTermsVersion: SYSTEM_UPGRADE_TOKEN,
+          studentId: `STU-${Math.floor(100000 + Math.random() * 900000)}`,
+          adminFeedback: "Account provisioned by Administrator."
+      };
+
+      await storageService.setData(`architect_data_${cleanUsername}`, {
+          user: newProfile,
+          chatHistory: [],
+          vaultDocs: []
+      });
+
+      setNewUser({ username: '', password: '', name: '', email: '' });
+      setShowCreateModal(false);
+      loadData();
+      alert(`User ${cleanUsername} created successfully.`);
   };
 
   const handleVerifyRequest = async (req: ChangeRequest, approve: boolean) => {
@@ -599,6 +653,80 @@ export const AdminDashboard: React.FC = () => {
 
        {viewMode === 'USERS' && (
            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+               
+               {/* User Management Toolbar */}
+               <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100 dark:border-slate-800">
+                   <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Active Identities</h3>
+                   <button 
+                    onClick={() => setShowCreateModal(true)}
+                    className="flex items-center px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold uppercase tracking-wide transition-colors"
+                   >
+                       <UserPlus size={14} className="mr-2"/> Create Node
+                   </button>
+               </div>
+
+               {/* Create User Modal */}
+               {showCreateModal && (
+                   <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                       <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-scale-up">
+                           <div className="flex justify-between items-center mb-6">
+                               <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-widest">Provision New User</h3>
+                               <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-red-500"><X size={20}/></button>
+                           </div>
+                           
+                           <form onSubmit={handleCreateUser} className="space-y-4">
+                               <div>
+                                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Username</label>
+                                   <input 
+                                    type="text" 
+                                    value={newUser.username} 
+                                    onChange={(e) => setNewUser({...newUser, username: e.target.value})}
+                                    className="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:border-indigo-500 transition-all"
+                                    placeholder="user_id"
+                                    required
+                                   />
+                               </div>
+                               <div>
+                                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Full Name</label>
+                                   <input 
+                                    type="text" 
+                                    value={newUser.name} 
+                                    onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                                    className="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:border-indigo-500 transition-all"
+                                    placeholder="Full Name"
+                                    required
+                                   />
+                               </div>
+                               <div>
+                                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Email</label>
+                                   <input 
+                                    type="email" 
+                                    value={newUser.email} 
+                                    onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                                    className="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:border-indigo-500 transition-all"
+                                    placeholder="user@example.com"
+                                    required
+                                   />
+                               </div>
+                               <div>
+                                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Password</label>
+                                   <input 
+                                    type="text" // Visible for admin creation
+                                    value={newUser.password} 
+                                    onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                                    className="w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:border-indigo-500 transition-all font-mono"
+                                    placeholder="password123"
+                                    required
+                                   />
+                               </div>
+                               <button type="submit" className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-widest py-3 rounded-xl transition-colors shadow-lg">
+                                   Create User & Initialize
+                               </button>
+                           </form>
+                       </div>
+                   </div>
+               )}
+
                <div className="space-y-2">
                    {profiles.map((user: any, i) => (
                        <div key={i} className="flex flex-col gap-2 p-4 border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
