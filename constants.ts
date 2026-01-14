@@ -1,17 +1,16 @@
 
 import { UserProfile } from './types';
 
-export const APP_VERSION = "26.4.0-PORTFOLIO"; 
+export const APP_VERSION = "26.5.0-SUSHIL"; 
 export const CREATOR_NAME = "Sushil Pokharel";
-export const APP_NAME = "Sushil Pokharel | Portfolio";
+export const APP_NAME = "StudentPocket – By Sushil";
 export const STUDENT_IDENTITY = "Sushil Pokharel - Student";
 
 export const ADMIN_EMAIL = "support@sushilpokharel00.com.np";
 export const ADMIN_PHONE = "9765226385";
 export const COPYRIGHT_NOTICE = "© 2026 SUSHIL POKHAREL. ALL RIGHTS RESERVED.";
-export const PRECISION_WATERMARK = "Built by Sushil Pokharel";
+export const PRECISION_WATERMARK = "Built with Precision by Sushil Pokharel";
 
-// Adding missing constants required by the application to fix import errors in various files
 export const WATERMARK = PRECISION_WATERMARK;
 export const ADMIN_USERNAME = "admin";
 export const ADMIN_SECRET = "admin123";
