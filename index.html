@@ -11,10 +11,9 @@
         theme: {
           extend: {
             colors: {
-              background: '#020617',
+              background: '#0a0a0a',
               indigo: {
                 500: '#6366f1',
-                600: '#4f46e5',
               }
             },
             fontFamily: {
@@ -26,18 +25,16 @@
     </script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-      body { background-color: #020617; color: white; -webkit-font-smoothing: antialiased; }
-      @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-      .animate-fade-in { animation: fade-in 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-      @keyframes slide-up { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-      .animate-slide-up { animation: slide-up 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-      @keyframes scale-up { from { transform: scale(0.97); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-      .animate-scale-up { animation: scale-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-      @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
-      .animate-shake { animation: shake 0.3s ease-in-out infinite; }
-      ::-webkit-scrollbar { width: 4px; }
-      ::-webkit-scrollbar-track { background: #020617; }
-      ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+      body { background-color: #0a0a0a; color: white; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+      @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+      .animate-fade-in { animation: fade-in 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      @keyframes slide-up { from { transform: translateY(60px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+      .animate-slide-up { animation: slide-up 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      @keyframes scale-up { from { transform: scale(0.98); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+      .animate-scale-up { animation: scale-up 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      ::-webkit-scrollbar { width: 5px; }
+      ::-webkit-scrollbar-track { background: #0a0a0a; }
+      ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
     <script type="importmap">
 {
