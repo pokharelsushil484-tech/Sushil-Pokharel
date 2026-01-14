@@ -1,4 +1,3 @@
-
 import {GoogleGenAI, Type} from "@google/genai";
 import { UserProfile, VerificationQuestion } from "../types";
 
@@ -7,9 +6,10 @@ export const generateVerificationForm = async (profile: UserProfile): Promise<Ve
     const apiKey = process.env.API_KEY;
     if (!apiKey) throw new Error("API Key missing");
 
+    // Creating a fresh instance to ensure correct API key usage
     const ai = new GoogleGenAI({ apiKey: apiKey });
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: `Generate a professional identity verification questionnaire for a student pocket app. 
       The student's name is ${profile.name} and they study ${profile.education || 'General Studies'}.
       Create 4 targeted questions to verify they are a legitimate student and will use the storage responsibly.`,
@@ -31,6 +31,7 @@ export const generateVerificationForm = async (profile: UserProfile): Promise<Ve
       }
     });
     
+    // Using property access for text as per latest SDK guidelines
     const jsonStr = response.text?.trim();
     return jsonStr ? JSON.parse(jsonStr) : [];
   } catch (error) {
@@ -52,7 +53,7 @@ export const chatWithAI = async (message: string): Promise<string> => {
 
     const ai = new GoogleGenAI({ apiKey: apiKey });
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: message,
       config: {
         systemInstruction: "You are a professional AI data assistant inside StudentPocket, a file infrastructure app for Sushil Pokharel. Help the user manage files and understand security protocols. Be concise and helpful."
@@ -75,7 +76,7 @@ export const generateStudyPlan = async (subject: string, hours: string): Promise
 
     const ai = new GoogleGenAI({ apiKey: apiKey });
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-pro-preview',
       contents: `Generate a study plan for ${subject} with an available time budget of ${hours} hours. Provide a tactical breakdown.`,
       config: {
         systemInstruction: "You are a strategic academic assistant. Provide high-density, actionable study breakdowns."
@@ -98,7 +99,7 @@ export const summarizeNote = async (content: string): Promise<string> => {
 
     const ai = new GoogleGenAI({ apiKey: apiKey });
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: `Summarize the following technical/academic note concisely: ${content}`,
       config: {
         systemInstruction: "You are a precise summarization utility. Focus on core concepts and key takeaways."
