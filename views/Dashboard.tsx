@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserProfile, View } from '../types';
-import { GraduationCap, Sparkles, Database, Bot, Calendar, ArrowRight, Award, Briefcase, Code } from 'lucide-react';
+import { GraduationCap, Sparkles, Facebook, Mail, Phone, Bot, Calendar, ArrowRight, Award, Briefcase, Code, ExternalLink, Globe } from 'lucide-react';
 
 interface DashboardProps {
   user: UserProfile;
@@ -10,33 +10,47 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
   return (
-    <div className="space-y-8 animate-fade-in w-full max-w-5xl mx-auto">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 text-white shadow-2xl p-8 md:p-14">
-          <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-indigo-600/20 to-transparent pointer-events-none"></div>
-          <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl"></div>
+    <div className="space-y-12 animate-fade-in w-full max-w-5xl mx-auto pb-20">
+      {/* Portfolio Hero */}
+      <div className="relative overflow-hidden rounded-[3rem] bg-slate-900 text-white shadow-2xl p-10 md:p-20">
+          <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-indigo-600/10 to-transparent pointer-events-none"></div>
+          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-indigo-500/5 rounded-full blur-[100px]"></div>
           
-          <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-10">
-              <div className="text-center md:text-left">
-                  <div className="inline-flex items-center space-x-2 bg-white/10 px-3 py-1 rounded-full mb-6 border border-white/5">
-                    <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-                    </span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200">Available for Opportunities</span>
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-12">
+              <div className="text-center md:text-left flex-1">
+                  <div className="inline-flex items-center space-x-2 bg-indigo-500/20 px-4 py-1.5 rounded-full mb-8 border border-indigo-500/30">
+                    <Sparkles size={14} className="text-indigo-400" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-200">Sushil Pokharel - Student</span>
                   </div>
-                  <h1 className="text-4xl md:text-6xl font-black tracking-tighter mb-4 leading-none">
-                    Namaste, I'm <span className="text-indigo-400">Sushil</span>
+                  <h1 className="text-5xl md:text-8xl font-black tracking-tighter mb-6 leading-[0.85] uppercase">
+                    My<br/>Port<span className="text-indigo-500">folio</span>
                   </h1>
-                  <p className="text-lg text-slate-400 font-medium max-w-lg leading-relaxed">
-                    A dedicated business student bridging the gap between management and technology.
+                  <p className="text-xl text-slate-400 font-medium max-w-lg leading-relaxed mb-10">
+                    Bridging the gap between Business Management and Modern Technology. Specialist in Strategic Management and Digital Ethics.
                   </p>
+                  
+                  {/* Social Links Bar */}
+                  <div className="flex flex-wrap justify-center md:justify-start gap-4">
+                      <a href="https://www.facebook.com/Susilpokrel09" target="_blank" rel="noopener noreferrer" className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all text-white flex items-center gap-3">
+                          <Facebook size={20} />
+                          <span className="text-xs font-bold uppercase tracking-widest">Connect</span>
+                      </a>
+                      <a href="mailto:support@sushilpokharel00.com.np" className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all text-white flex items-center gap-3">
+                          <Mail size={20} />
+                          <span className="text-xs font-bold uppercase tracking-widest">Email</span>
+                      </a>
+                      <a href="tel:9765226385" className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all text-white flex items-center gap-3">
+                          <Phone size={20} />
+                          <span className="text-xs font-bold uppercase tracking-widest">9765226385</span>
+                      </a>
+                  </div>
               </div>
-              <div className="shrink-0">
-                  <div className="w-40 h-40 md:w-48 md:h-48 rounded-[3rem] border-4 border-white/10 p-2 shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
+              <div className="shrink-0 relative">
+                  <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full scale-75"></div>
+                  <div className="w-56 h-56 md:w-64 md:h-64 rounded-[4rem] border-8 border-white/5 p-3 shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-700 bg-slate-800">
                     <img 
                         src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=400&auto=format&fit=crop" 
-                        className="w-full h-full object-cover rounded-[2.2rem]" 
+                        className="w-full h-full object-cover rounded-[3rem] grayscale hover:grayscale-0 transition-all duration-700" 
                         alt="Sushil Pokharel" 
                     />
                   </div>
@@ -44,108 +58,62 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
           </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Quick Tools */}
-          <div onClick={() => onNavigate(View.AI_CHAT)} className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all cursor-pointer group">
-              <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Bot size={24} />
+      {/* Interest Clusters */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm relative group overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                  <Code size={120} />
               </div>
-              <h3 className="font-bold text-slate-900 dark:text-white mb-1">AI Assistant</h3>
-              <p className="text-xs text-slate-500">Smart academic research tool.</p>
+              <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl flex items-center justify-center mb-8">
+                  <Award size={32} />
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-4">Innovation First</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-8">
+                  Dedicated to researching AI strategies in management. Currently exploring market analytics and business automation trends.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                  {["Market Research", "AI Strategy", "Digital Assets"].map(tag => (
+                      <span key={tag} className="text-[9px] font-black uppercase tracking-widest bg-slate-50 dark:bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800 text-slate-500">{tag}</span>
+                  ))}
+              </div>
           </div>
 
-          <div onClick={() => onNavigate(View.VERIFY_LINK)} className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all cursor-pointer group">
-              <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Calendar size={24} />
+          <div className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm relative group overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                  <Globe size={120} />
               </div>
-              <h3 className="font-bold text-slate-900 dark:text-white mb-1">Study Planner</h3>
-              <p className="text-xs text-slate-500">Track BBS modules and goals.</p>
-          </div>
-
-          <div onClick={() => onNavigate(View.FILE_HUB)} className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all cursor-pointer group">
-              <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/30 text-amber-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Database size={24} />
+              <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-2xl flex items-center justify-center mb-8">
+                  <GraduationCap size={32} />
               </div>
-              <h3 className="font-bold text-slate-900 dark:text-white mb-1">Resource Hub</h3>
-              <p className="text-xs text-slate-500">Secure storage for academic files.</p>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-4">Academic Journey</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-8">
+                  Bachelor of Business Studies (BBS) Student with a solid foundation in Computer Science and Quantitative Analysis.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                  <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-500 text-white px-3 py-1.5 rounded-lg">BBS 2026</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest bg-slate-50 dark:bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800 text-slate-500">Grad 12 (CS)</span>
+              </div>
           </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Education Timeline */}
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
-              <div className="flex items-center space-x-3 mb-8">
-                  <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl">
-                      <GraduationCap size={24} />
-                  </div>
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Academic Profile</h2>
-              </div>
-
-              <div className="space-y-8 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
-                  <div className="relative pl-10">
-                      <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-indigo-600 border-4 border-white dark:border-slate-900 shadow-md"></div>
-                      <div className="flex justify-between items-start">
-                          <div>
-                              <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight">Bachelor of Business Studies</h3>
-                              <p className="text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-widest mt-1">Currently Running</p>
-                          </div>
-                          <span className="text-[10px] font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 px-2 py-1 rounded-md">BBS</span>
-                      </div>
-                      <p className="text-sm text-slate-500 mt-3 leading-relaxed">
-                          Focused on strategic management, financial analysis, and modern business logistics.
-                      </p>
-                  </div>
-
-                  <div className="relative pl-10 opacity-70">
-                      <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-slate-300 dark:bg-slate-700 border-4 border-white dark:border-slate-900"></div>
-                      <div className="flex justify-between items-start">
-                          <div>
-                              <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight">Grade 12</h3>
-                              <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Completed</p>
-                          </div>
-                          <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-1 rounded-md">CS</span>
-                      </div>
-                      <p className="text-sm text-slate-500 mt-3 leading-relaxed">
-                          Specialized in Computer Science. Core foundation in algorithmic thinking and programming.
-                      </p>
-                  </div>
-              </div>
-          </div>
-
-          {/* Interests & Expertise */}
-          <div className="space-y-6">
-              <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
-                  <div className="flex items-center space-x-3 mb-6">
-                      <div className="p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-600 rounded-xl">
-                          <Sparkles size={24} />
-                      </div>
-                      <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Core Interests</h2>
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                      {[
-                        { icon: Award, label: "Market Research" },
-                        { icon: Code, label: "Business Tech" },
-                        { icon: Briefcase, label: "Strategy" },
-                        { icon: Bot, label: "AI in Finance" }
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-center space-x-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
-                            <item.icon size={14} className="text-indigo-500" />
-                            <span>{item.label}</span>
-                        </div>
-                      ))}
-                  </div>
-              </div>
-
-              <div className="bg-indigo-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-indigo-200 dark:shadow-none flex items-center justify-between group cursor-pointer overflow-hidden">
-                  <div className="relative z-10">
-                      <h3 className="text-lg font-black uppercase tracking-widest mb-1">Get in Touch</h3>
-                      <p className="text-xs text-indigo-100 font-medium">Collaborate on research projects.</p>
-                  </div>
-                  <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm group-hover:translate-x-2 transition-transform">
-                      <ArrowRight size={24} />
-                  </div>
-              </div>
-          </div>
+      {/* Secondary Navigation CTA */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { icon: Bot, title: "AI Assistant", desc: "Technical Research Tool", view: View.AI_CHAT },
+            { icon: Calendar, title: "Study Planner", desc: "BBS Module Tracking", view: View.VERIFY_LINK },
+            { icon: Briefcase, title: "Identity Hub", desc: "Data & File Management", view: View.FILE_HUB }
+          ].map((tool, idx) => (
+            <div key={idx} onClick={() => onNavigate(tool.view)} className="p-8 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all cursor-pointer group">
+                <div className="w-12 h-12 bg-slate-50 dark:bg-slate-950 rounded-xl flex items-center justify-center mb-6 text-slate-400 group-hover:text-indigo-500 transition-colors">
+                    <tool.icon size={24} />
+                </div>
+                <h4 className="font-bold text-slate-900 dark:text-white mb-1 uppercase tracking-tight">{tool.title}</h4>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{tool.desc}</p>
+                <div className="mt-6 flex items-center text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-opacity">
+                    Open Node <ArrowRight size={14} className="ml-2" />
+                </div>
+            </div>
+          ))}
       </div>
     </div>
   );

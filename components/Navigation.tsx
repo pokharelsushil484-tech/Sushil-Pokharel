@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { Settings, MessageCircle, LayoutGrid, Database, LifeBuoy, Calendar } from 'lucide-react';
+import { Settings, MessageCircle, LayoutGrid, Database, LifeBuoy, Calendar, FileText } from 'lucide-react';
 import { View } from '../types';
 
 interface NavigationProps {
@@ -15,21 +16,21 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, us
   const navItems = [
     { view: View.DASHBOARD, icon: LayoutGrid, label: 'Portfolio' },
     { view: View.VERIFY_LINK, icon: Calendar, label: 'Planner' },
-    { view: View.FILE_HUB, icon: Database, label: 'Hub' },
-    { view: View.AI_CHAT, icon: MessageCircle, label: 'AI Coach' },
+    { view: View.FILE_HUB, icon: Database, label: 'Resources' },
+    { view: View.AI_CHAT, icon: MessageCircle, label: 'AI Strategy' },
     { view: View.SUPPORT, icon: LifeBuoy, label: 'Support' },
   ];
 
   return (
     <>
       {/* Desktop Sidebar */}
-      <div className="hidden md:flex flex-col w-20 lg:w-64 bg-white dark:bg-[#0f172a] border-r border-slate-100 dark:border-slate-800 h-full fixed left-0 top-0 z-[110] transition-all duration-300">
+      <div className="hidden md:flex flex-col w-20 lg:w-64 bg-white dark:bg-[#020617] border-r border-slate-100 dark:border-slate-800 h-full fixed left-0 top-0 z-[110] transition-all duration-300">
         
         <div className="p-6 flex items-center space-x-3 h-20 border-b border-slate-50 dark:border-slate-800/50">
            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
               <span className="font-black text-xs">SP</span>
            </div>
-           <span className="hidden lg:block text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-[0.2em]">Student<br/>Pocket</span>
+           <span className="hidden lg:block text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-[0.2em]">Sushil<br/>Portfolio</span>
         </div>
 
         <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto no-scrollbar">
@@ -63,8 +64,8 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, us
                     <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=100&auto=format&fit=crop" className="w-full h-full object-cover rounded-full" alt="Profile" />
                 </div>
                 <div className="hidden lg:block ml-3 text-left overflow-hidden">
-                    <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-wider truncate">{username || 'User'}</p>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide truncate">Student Identity</p>
+                    <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-wider truncate">{username || 'Sushil'}</p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide truncate">Portfolio Identity</p>
                 </div>
             </button>
         </div>

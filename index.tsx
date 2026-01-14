@@ -5,7 +5,7 @@ import {
   User, GraduationCap, Send, Menu, X, 
   Sparkles, Facebook, Mail, Search, 
   Phone, Shield, Cpu, Briefcase, Zap, 
-  FileText, ExternalLink, ArrowRight, CheckCircle
+  ExternalLink, ArrowRight, CheckCircle
 } from 'lucide-react';
 
 // --- Types ---
@@ -79,7 +79,7 @@ const ContactForm = ({ title }: { title: string }) => {
           <input required type="email" placeholder="Email" className="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-3 text-xs outline-none focus:border-white/40 transition-all" />
           <textarea required placeholder="Message" rows={4} className="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-3 text-xs outline-none focus:border-white/40 transition-all resize-none"></textarea>
           <button disabled={status === 'sending'} className="w-full bg-white text-black py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-zinc-200 transition-colors flex justify-center items-center gap-2">
-            {status === 'sending' ? 'Transmitting...' : <><Send size={14} /> Send Inquiry</>}
+            {status === 'sending' ? 'Transmitting...' : <><Send size={14} /> Send Message</>}
           </button>
         </form>
       )}
@@ -91,7 +91,7 @@ const Interests = () => (
   <section className="py-24 px-8 max-w-6xl mx-auto space-y-20">
     <div className="border-l-4 border-white pl-8 space-y-4">
       <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic">Interests &<br/>Innovation</h2>
-      <p className="text-zinc-500 text-xs font-bold uppercase tracking-[0.4em]">Exploring the intersection of Business and Tech</p>
+      <p className="text-zinc-500 text-xs font-bold uppercase tracking-[0.4em]">Bridging Business Studies with Modern Technology</p>
     </div>
 
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -99,17 +99,17 @@ const Interests = () => (
         { 
           icon: Sparkles, 
           title: "Artificial Intelligence", 
-          desc: "Deeply interested in how Generative AI can optimize business workflows. I research the application of LLMs in market forecasting and strategic management for non-IT corporations." 
+          desc: "Exploring how AI can optimize business workflows. I research the application of LLMs in market forecasting and strategic management for non-IT sectors." 
         },
         { 
           icon: Search, 
           title: "Tech Research", 
-          desc: "I actively monitor computer updates, focusing on new hardware releases and software efficiencies. Maintaining up-to-date digital literacy is my core priority." 
+          desc: "I actively monitor computer updates, focusing on new hardware releases and software breakthroughs. Maintaining digital literacy is my core priority." 
         },
         { 
           icon: Cpu, 
           title: "IT Integration", 
-          desc: "As a BBS student, I recognize that IT is the backbone of modern business. I focus on bridging technical gaps in the business world to ensure seamless digital transformation." 
+          desc: "As a BBS student, I recognize that IT is the backbone of modern business. I focus on bridging technical gaps to ensure seamless digital transformation." 
         }
       ].map((item, i) => (
         <div key={i} className="group p-10 bg-zinc-900/30 border border-white/5 rounded-[2.5rem] hover:bg-zinc-900/50 transition-all">
@@ -130,7 +130,7 @@ const Connect = () => (
       <div className="space-y-12">
         <div className="space-y-4">
           <h2 className="text-6xl font-black tracking-tighter uppercase">Connect</h2>
-          <p className="text-zinc-500 uppercase text-[10px] font-bold tracking-[0.5em]">Direct Channels & Social Infrastructure</p>
+          <p className="text-zinc-500 uppercase text-[10px] font-bold tracking-[0.5em]">Direct Channels & Social Media</p>
         </div>
 
         <div className="space-y-6">
@@ -151,14 +151,14 @@ const Connect = () => (
           <a href="https://www.facebook.com/Susilpokrel09" target="_blank" rel="noreferrer" className="flex items-center gap-6 group p-5 bg-zinc-950 border border-white/5 rounded-2xl hover:border-white/20 transition-all">
             <div className="p-3 bg-zinc-900 rounded-xl group-hover:text-blue-500 transition-colors"><Facebook size={24}/></div>
             <div>
-              <p className="text-[10px] font-black text-zinc-600 uppercase">Facebook Identity</p>
+              <p className="text-[10px] font-black text-zinc-600 uppercase">Facebook</p>
               <p className="text-sm font-bold">Susilpokrel09</p>
             </div>
           </a>
         </div>
       </div>
 
-      <ContactForm title="Let's Connect" />
+      <ContactForm title="Message Sushil" />
     </div>
   </section>
 );
@@ -172,10 +172,10 @@ const Terms = () => (
 
     <div className="space-y-10">
       {[
-        { title: "1. Portfolio Usage", text: "This application serves as a personal professional portfolio for Sushil Pokharel. Content here demonstrates academic and personal interests for recruitment and collaboration purposes." },
-        { title: "2. Intellectual Property", text: "The design, branding, and original text content of 'StudentPocket – By Sushil' are intellectual properties of Sushil Pokharel. Unauthorized reproduction is prohibited." },
-        { title: "3. Privacy & Communication", text: "Data submitted via contact forms is treated with strict confidentiality and used solely for direct communication with the author." },
-        { title: "4. External Resources", text: "Links to external platforms like Facebook are governed by their respective terms. We are not responsible for third-party content or privacy policies." }
+        { title: "1. Portfolio Purpose", text: "This app serves as a personal professional portfolio for Sushil Pokharel. It is intended to showcase academic achievements and professional interests to collaborators." },
+        { title: "2. Intellectual Property", text: "Branding and original content of 'StudentPocket – By Sushil' are the property of Sushil Pokharel. Reproducing designs or text without consent is prohibited." },
+        { title: "3. Privacy & Communication", text: "Data submitted via contact forms is kept confidential and used solely for direct communication between the visitor and the author." },
+        { title: "4. External Links", text: "Links to external platforms like Facebook are governed by their own policies. We are not responsible for third-party content." }
       ].map((term, i) => (
         <div key={i} className="space-y-3 p-8 border-l border-white/10 bg-zinc-900/10">
           <h3 className="text-xs font-black uppercase tracking-widest text-white">{term.title}</h3>
@@ -206,7 +206,7 @@ const App = () => {
                 <img 
                   src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=1000&auto=format&fit=crop" 
                   className="w-full h-full object-cover" 
-                  alt="Professional Portait"
+                  alt="Sushil Pokharel"
                 />
               </div>
               <div className="w-full md:w-1/2 flex flex-col justify-center p-12 md:p-24 space-y-10">
@@ -216,7 +216,7 @@ const App = () => {
                     My<br/>Port<br/>folio
                   </h1>
                   <p className="mt-10 text-zinc-500 text-xs font-bold uppercase tracking-[0.5em]">
-                    Sushil Pokharel • BBS 2026
+                    Sushil Pokharel • BBS Student 2026
                   </p>
                   <div className="mt-12 flex gap-4">
                     <button onClick={() => setView('interests')} className="flex items-center gap-3 text-xs font-black uppercase tracking-widest hover:text-zinc-400 transition-colors group">
@@ -227,23 +227,23 @@ const App = () => {
               </div>
             </div>
 
-            {/* Quick Stats */}
+            {/* Core Pillars */}
             <section className="py-20 px-8 border-y border-white/5">
               <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-16">
                 <div>
                   <Zap className="text-zinc-600 mb-6" size={32} />
-                  <h4 className="text-sm font-black uppercase tracking-widest mb-4 italic text-white">Innovation First</h4>
-                  <p className="text-zinc-500 text-xs leading-relaxed">Dedicated to understanding how AI can create efficient management structures in the BBS field.</p>
+                  <h4 className="text-sm font-black uppercase tracking-widest mb-4 italic text-white">Innovation</h4>
+                  <p className="text-zinc-500 text-xs leading-relaxed">Dedicated to understanding how AI can optimize management in the BBS field.</p>
                 </div>
                 <div>
                   <Briefcase className="text-zinc-600 mb-6" size={32} />
-                  <h4 className="text-sm font-black uppercase tracking-widest mb-4 italic text-white">Strategic Mindset</h4>
-                  <p className="text-zinc-500 text-xs leading-relaxed">Leveraging business principles with technical research to solve complex organizational problems.</p>
+                  <h4 className="text-sm font-black uppercase tracking-widest mb-4 italic text-white">BBS Mindset</h4>
+                  <p className="text-zinc-500 text-xs leading-relaxed">Leveraging business principles with technical research to solve modern problems.</p>
                 </div>
                 <div>
                   <Shield className="text-zinc-600 mb-6" size={32} />
-                  <h4 className="text-sm font-black uppercase tracking-widest mb-4 italic text-white">Secure Identity</h4>
-                  <p className="text-zinc-500 text-xs leading-relaxed">Advocating for data security and integrity in all digital business integrations.</p>
+                  <h4 className="text-sm font-black uppercase tracking-widest mb-4 italic text-white">Integrity</h4>
+                  <p className="text-zinc-500 text-xs leading-relaxed">Ensuring data security and ethical identity in all business-tech integrations.</p>
                 </div>
               </div>
             </section>
@@ -257,17 +257,17 @@ const App = () => {
               <div className="p-12 bg-zinc-900/50 rounded-[3rem] border border-white/10 flex flex-col justify-between h-80">
                 <GraduationCap size={40} className="text-indigo-400" />
                 <div>
-                  <span className="text-[10px] font-black uppercase tracking-widest bg-white text-black px-3 py-1 rounded-full">Enrolled</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest bg-white text-black px-3 py-1 rounded-full">Active</span>
                   <h3 className="text-2xl font-bold mt-4">Bachelor of Business Studies (BBS)</h3>
-                  <p className="text-zinc-500 text-sm mt-2 font-medium">Undergraduate pursuit in Strategic Management and Economics.</p>
+                  <p className="text-zinc-500 text-sm mt-2 font-medium">Focused on Strategic Management and Digital Economics.</p>
                 </div>
               </div>
               <div className="p-12 bg-zinc-900/20 rounded-[3rem] border border-white/5 flex flex-col justify-between h-80 opacity-60">
                 <Shield size={40} className="text-zinc-600" />
                 <div>
-                  <span className="text-[10px] font-black uppercase tracking-widest bg-zinc-800 text-zinc-400 px-3 py-1 rounded-full">Completed</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest bg-zinc-800 text-zinc-400 px-3 py-1 rounded-full">Graduate</span>
                   <h3 className="text-2xl font-bold mt-4 italic">Grade 12</h3>
-                  <p className="text-zinc-600 text-sm mt-2 font-medium">Foundation in Computer Science and Quantitative Methods.</p>
+                  <p className="text-zinc-600 text-sm mt-2 font-medium">Foundation in Commerce and Computer Applications.</p>
                 </div>
               </div>
             </div>
@@ -285,7 +285,7 @@ const App = () => {
             <div className="space-y-6">
               <h4 className="text-2xl font-black uppercase tracking-tight">Sushil Pokharel</h4>
               <p className="text-zinc-500 text-xs max-w-xs leading-relaxed uppercase tracking-widest font-bold">
-                StudentPocket – By Sushil.<br/>A Professional Data & Business Identity Hub.
+                StudentPocket – By Sushil.<br/>Academic Identity & Business Interests Hub.
               </p>
               <div className="flex gap-4">
                  {['portfolio', 'interests', 'terms'].map(v => (
@@ -293,7 +293,7 @@ const App = () => {
                  ))}
               </div>
             </div>
-            <ContactForm title="Let's Contact" />
+            <ContactForm title="Quick Contact" />
           </div>
           
           <div className="flex flex-col md:flex-row justify-between items-center pt-10 border-t border-white/5 gap-4">
@@ -301,7 +301,7 @@ const App = () => {
               &copy; 2026 SUSHIL POKHAREL
             </p>
             <p className="text-[9px] font-bold text-zinc-800 uppercase tracking-widest">
-              Built with Precision by Sushil Tech
+              Built by Sushil
             </p>
           </div>
         </div>

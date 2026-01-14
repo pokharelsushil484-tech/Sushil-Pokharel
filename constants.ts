@@ -1,24 +1,23 @@
 
 import { UserProfile } from './types';
 
-export const APP_VERSION = "26.1.0-PRO"; 
+export const APP_VERSION = "26.2.0-PORTFOLIO"; 
 export const ADMIN_USERNAME = "admin"; 
 export const ADMIN_SECRET = "Sushil@Architect2026"; 
 export const CREATOR_NAME = "Sushil Pokharel";
 export const SYSTEM_DOMAIN = "sushilpokharel00.com.np";
 
-const now = new Date();
-export const SYSTEM_UPGRADE_TOKEN = `2026-01`;
+export const SYSTEM_UPGRADE_TOKEN = `2026-02`;
 
 export const DEFAULT_STORAGE_LIMIT_GB = 10; 
 export const MIN_PASSWORD_LENGTH = 8; 
 
-export const APP_NAME = "StudentPocket – By Sushil";
-export const WATERMARK = "© StudentPocket | Authored by Sushil Pokharel";
+export const APP_NAME = "Sushil Pokharel | Portfolio";
+export const WATERMARK = "© Portfolio | Authored by Sushil Pokharel";
 export const ADMIN_EMAIL = "support@sushilpokharel00.com.np";
 export const ADMIN_PHONE = "9765226385";
 export const ADMIN_EDUCATION = "Bachelor of Business Studies (BBS)";
-export const COPYRIGHT_NOTICE = "SECURE PROTOCOL: Developed by Sushil Pokharel. Year: 2026.";
+export const COPYRIGHT_NOTICE = "SECURE PORTFOLIO: Developed by Sushil Pokharel. Year: 2026.";
 
 export const DEFAULT_USER: UserProfile = {
   name: "Sushil Pokharel",
