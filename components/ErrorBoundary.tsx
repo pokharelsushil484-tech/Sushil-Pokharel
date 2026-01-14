@@ -1,8 +1,9 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+
+import React from 'react';
 import { ErrorPage } from '../views/ErrorPage';
 
 interface Props {
-  children?: ReactNode;
+  children?: React.ReactNode;
 }
 
 interface State {
@@ -13,8 +14,7 @@ interface State {
 /**
  * ErrorBoundary component to catch rendering errors in the component tree.
  */
-// Fix: Extending Component directly from react ensures that the compiler correctly resolves base class members such as setState and props.
-export class ErrorBoundary extends Component<Props, State> {
+export class ErrorBoundary extends React.Component<Props, State> {
   public state: State = {
     hasError: false,
     error: null,
@@ -25,12 +25,12 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  public componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
   }
 
   private handleReset = () => {
-    // Fix: Accessing setState from the Component base class to reset error state.
+    // Fix: Accessing setState from the React.Component base class to reset error state.
     this.setState({ hasError: false, error: null });
   };
 
@@ -46,7 +46,7 @@ export class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    // Fix: Accessing children from the Component props to render the application tree.
+    // Fix: Accessing children from the React.Component props to render the application tree.
     return this.props.children;
   }
 }
