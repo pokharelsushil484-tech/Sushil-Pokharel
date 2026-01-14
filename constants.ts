@@ -1,23 +1,25 @@
 
 import { UserProfile } from './types';
 
-export const APP_VERSION = "26.2.0-PORTFOLIO"; 
-export const ADMIN_USERNAME = "admin"; 
-export const ADMIN_SECRET = "Sushil@Architect2026"; 
+export const APP_VERSION = "26.3.0-PORTFOLIO"; 
 export const CREATOR_NAME = "Sushil Pokharel";
 export const SYSTEM_DOMAIN = "sushilpokharel00.com.np";
-
-export const SYSTEM_UPGRADE_TOKEN = `2026-02`;
-
-export const DEFAULT_STORAGE_LIMIT_GB = 10; 
-export const MIN_PASSWORD_LENGTH = 8; 
-
 export const APP_NAME = "Sushil Pokharel | Portfolio";
-export const WATERMARK = "© Portfolio | Authored by Sushil Pokharel";
+export const STUDENT_IDENTITY = "Sushil Pokharel - Student";
+
 export const ADMIN_EMAIL = "support@sushilpokharel00.com.np";
 export const ADMIN_PHONE = "9765226385";
-export const ADMIN_EDUCATION = "Bachelor of Business Studies (BBS)";
-export const COPYRIGHT_NOTICE = "SECURE PORTFOLIO: Developed by Sushil Pokharel. Year: 2026.";
+export const COPYRIGHT_NOTICE = "© 2026 SUSHIL POKHAREL. ALL RIGHTS RESERVED.";
+export const PRECISION_WATERMARK = "Built with Precision by Sushil Pokharel";
+
+/**
+ * Administrative and System Constants
+ */
+export const ADMIN_USERNAME = "admin";
+export const ADMIN_SECRET = "9765226385"; 
+export const MIN_PASSWORD_LENGTH = 8;
+export const SYSTEM_UPGRADE_TOKEN = "v26.3.0-UPGRADE";
+export const WATERMARK = PRECISION_WATERMARK;
 
 export const DEFAULT_USER: UserProfile = {
   name: "Sushil Pokharel",
@@ -27,8 +29,7 @@ export const DEFAULT_USER: UserProfile = {
   isSuspicious: false,
   level: 2,
   verificationStatus: 'VERIFIED',
-  acceptedTermsVersion: SYSTEM_UPGRADE_TOKEN,
-  storageLimitGB: DEFAULT_STORAGE_LIMIT_GB,
+  storageLimitGB: 10,
   storageUsedBytes: 0,
   totpEnabled: false,
   skills: ["Market Research", "AI Strategy", "Business Analytics"],
