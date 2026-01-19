@@ -1,5 +1,5 @@
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 import { ErrorPage } from '../views/ErrorPage';
 
 interface Props {
@@ -14,8 +14,8 @@ interface State {
 /**
  * ErrorBoundary component to catch rendering errors in the component tree.
  */
-// Fix: Explicitly extend Component from 'react' to ensure 'setState', 'state', and 'props' are recognized by TypeScript
-export class ErrorBoundary extends Component<Props, State> {
+// Fix: Explicitly extending React.Component ensures that 'setState', 'props', and 'state' are correctly recognized as inherited members by TypeScript.
+export class ErrorBoundary extends React.Component<Props, State> {
   // Define initial state
   public state: State = {
     hasError: false,
@@ -32,12 +32,12 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleReset = () => {
-    // Fix: Access setState from the inherited Component base class
+    // Fix: Accessing setState from the base class React.Component.
     this.setState({ hasError: false, error: null });
   };
 
   public render() {
-    // Fix: Access state and props from the inherited Component base class
+    // Fix: Accessing state and props inherited from React.Component.
     if (this.state.hasError) {
       return (
         <ErrorPage 

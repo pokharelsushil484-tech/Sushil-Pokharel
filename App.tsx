@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Navigation } from './components/Navigation';
 import { Dashboard } from './views/Dashboard';
@@ -6,11 +7,10 @@ import { AIChat } from './views/AIChat';
 import { Vault } from './views/Vault';
 import { Support } from './views/Support';
 import { StudyPlanner } from './views/StudyPlanner';
-import { Notes } from './views/Notes';
-import { ExpenseTracker } from './views/ExpenseTracker';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
-import { View, UserProfile, VaultDocument, ChatMessage, Assignment, Note, Expense } from './types';
+import { ErrorPage } from './views/ErrorPage';
+import { View, UserProfile, VaultDocument, ChatMessage, Assignment } from './types';
 import { SYSTEM_DOMAIN, DEFAULT_USER } from './constants';
 import { storageService } from './services/storageService';
 
@@ -25,37 +25,32 @@ const App = () => {
     ...DEFAULT_USER,
     name: "Sushil Pokharel",
     education: "Bachelor of Business Studies (BBS)",
-    profession: "Business Student & Tech Enthusiast",
+    profession: "Student & Tech Innovator",
     isVerified: true,
     level: 2
   });
+
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [vaultDocs, setVaultDocs] = useState<VaultDocument[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
 
   useEffect(() => {
-    // Load local data on mount
     const loadLocalData = async () => {
       const stored = await storageService.getData('public_portfolio_data');
       if (stored) {
         if (stored.chatHistory) setChatHistory(stored.chatHistory);
         if (stored.vaultDocs) setVaultDocs(stored.vaultDocs);
         if (stored.assignments) setAssignments(stored.assignments);
-        if (stored.notes) setNotes(stored.notes);
-        if (stored.expenses) setExpenses(stored.expenses);
       }
     };
     loadLocalData();
   }, []);
 
   useEffect(() => {
-    // Save local data when changed
     storageService.setData('public_portfolio_data', {
-      chatHistory, vaultDocs, assignments, notes, expenses
+      chatHistory, vaultDocs, assignments
     });
-  }, [chatHistory, vaultDocs, assignments, notes, expenses]);
+  }, [chatHistory, vaultDocs, assignments]);
 
   useEffect(() => {
     if (darkMode) {
@@ -69,22 +64,25 @@ const App = () => {
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
 
   const renderContent = () => {
-    switch (view) {
-      case View.DASHBOARD: 
-        return <Dashboard user={user} username="sushil_p" onNavigate={setView} />;
-      case View.FILE_HUB: 
-        return <Vault user={user} documents={vaultDocs} saveDocuments={setVaultDocs} updateUser={setUser} onNavigate={setView} />;
-      case View.AI_CHAT: 
-        return <AIChat chatHistory={chatHistory} setChatHistory={setChatHistory} isVerified={true} username="sushil_p" />;
-      case View.SETTINGS: 
-        return <Settings user={user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={() => {}} username="sushil_p" darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={setUser} />;
-      case View.SUPPORT: 
-        return <Support username="sushil_p" />;
-      // Mapping internal views for student tools
-      case View.VERIFY_LINK: // We use this for the Planner in the public version
-        return <StudyPlanner assignments={assignments} setAssignments={setAssignments} isAdmin={true} />;
-      default: 
-        return <Dashboard user={user} username="sushil_p" onNavigate={setView} />;
+    try {
+      switch (view) {
+        case View.DASHBOARD: 
+          return <Dashboard user={user} onNavigate={setView} />;
+        case View.FILE_HUB: 
+          return <Vault user={user} documents={vaultDocs} saveDocuments={setVaultDocs} updateUser={setUser} onNavigate={setView} />;
+        case View.AI_CHAT: 
+          return <AIChat chatHistory={chatHistory} setChatHistory={setChatHistory} isVerified={true} username={user.name} />;
+        case View.SETTINGS: 
+          return <Settings user={user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={() => {}} username="sushil_p" darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={setUser} />;
+        case View.SUPPORT: 
+          return <Support username={user.name} />;
+        case View.VERIFY_LINK: 
+          return <StudyPlanner assignments={assignments} setAssignments={setAssignments} isAdmin={true} />;
+        default: 
+          return <Dashboard user={user} onNavigate={setView} />;
+      }
+    } catch (e) {
+      return <ErrorPage type="CRASH" errorDetails={e instanceof Error ? e.message : String(e)} onAction={() => window.location.reload()} />;
     }
   };
 
@@ -108,7 +106,7 @@ const App = () => {
            <div className="flex items-center space-x-3">
               <div className="text-right hidden sm:block">
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Public Portfolio</p>
-                  <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">Sushil Pokharel</p>
+                  <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{user.name}</p>
               </div>
               <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden p-1">
                 <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=100&auto=format&fit=crop" className="w-full h-full object-cover rounded-full" alt="User" />
@@ -126,7 +124,7 @@ const App = () => {
           setView={setView} 
           isAdmin={false} 
           isVerified={true}
-          username="Sushil Pokharel" 
+          username={user.name} 
           onLogout={() => {}}
       />
     </div>
