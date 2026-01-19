@@ -1,68 +1,59 @@
 
 export enum View {
-  ONBOARDING = 'ONBOARDING',
+  DOWNLOADER = 'DOWNLOADER',
+  HISTORY = 'HISTORY',
+  SUPPORT = 'SUPPORT',
+  SETTINGS = 'SETTINGS',
+  ABOUT = 'ABOUT',
   DASHBOARD = 'DASHBOARD',
+  VERIFY_LINK = 'VERIFY_LINK',
   FILE_HUB = 'FILE_HUB',
   AI_CHAT = 'AI_CHAT',
   VERIFICATION_FORM = 'VERIFICATION_FORM',
-  SETTINGS = 'SETTINGS',
-  ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
-  VERIFY_LINK = 'VERIFY_LINK',
-  INVITE_REGISTRATION = 'INVITE_REGISTRATION',
   ACCESS_RECOVERY = 'ACCESS_RECOVERY',
-  SUPPORT = 'SUPPORT',
+  ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
   ERROR = 'ERROR'
+}
+
+// Added DownloadItem interface for index.tsx
+export interface DownloadItem {
+  id: string;
+  url: string;
+  platform: 'YouTube' | 'Facebook' | 'Instagram' | 'TikTok' | 'Unknown' | string;
+  status: 'READY' | 'PROCESSING' | 'COMPLETED' | 'ERROR';
+  title: string;
+  quality: string;
+  timestamp: number;
 }
 
 export interface UserProfile {
   name: string;
   email: string;
   phone: string;
-  avatar?: string;
-  loginSnap?: string; // Captured during professional login
-  vaultPin?: string;
-  isBanned?: boolean;
-  banReason?: string;
   isVerified: boolean;
-  isSuspicious?: boolean; // Flag for accounts recovered via Admission Key needing re-verification
-  badges?: string[]; // 'SUSPICIOUS', 'DANGEROUS', 'VERIFIED'
-  level: number; // 0=Guest, 1=Basic, 2=Verified, 3=Elite
-  verificationStatus: 'NONE' | 'FORM_PENDING' | 'PENDING_APPROVAL' | 'VERIFIED' | 'REJECTED';
-  adminFeedback?: string; // Stores the email content/rejection reason
-  adminComments?: string[]; // Array of comments/bugs from admin
-  rescueKey?: string; // Static master key for alternative verification
-  admissionKey?: string; // Key generated for banned user recovery (Acts as Master Key)
-  acceptedTermsVersion?: string;
-  studentId?: string; // Generated ID during verification
+  isSuspicious: boolean;
+  level: number;
+  verificationStatus: string;
   storageLimitGB: number;
   storageUsedBytes: number;
   totpEnabled: boolean;
-  totpSecret?: string;
-  profession?: string;
-  education?: string;
   skills: string[];
   interests: string[];
   authorizedDevices: string[];
-}
-
-export interface ActivityLog {
-  id: string;
-  timestamp: number;
-  actor: string;        // Who performed the action (User or Admin)
-  targetUser?: string;  // Who was affected (if different from actor)
-  actionType: 'AUTH' | 'DATA' | 'ADMIN' | 'SECURITY' | 'SYSTEM';
-  description: string;
-  metadata?: string;    // JSON string for extra details (e.g., file size, old values)
-}
-
-export interface VaultDocument {
-  id: string;
-  title: string;
-  type: 'IMAGE' | 'VIDEO' | 'DATA' | 'OTHER';
-  content: string; // Base64 or Blob
-  size: number;
-  mimeType: string;
-  createdAt: number;
+  education?: string;
+  profession?: string;
+  studentId?: string;
+  acceptedTermsVersion?: string;
+  vaultPin?: string;
+  totpSecret?: string;
+  avatar?: string;
+  isBanned?: boolean;
+  banReason?: string;
+  adminFeedback?: string;
+  adminComments?: string[];
+  badges?: string[];
+  admissionKey?: string;
+  rescueKey?: string;
 }
 
 export interface ChatMessage {
@@ -72,28 +63,7 @@ export interface ChatMessage {
   timestamp: number;
 }
 
-export interface VerificationQuestion {
-  id: string;
-  question: string;
-  type: 'text' | 'choice';
-  options?: string[];
-}
-
-export interface ChangeRequest {
-  id: string;
-  userId: string;
-  username: string;
-  type: 'VERIFICATION' | 'STORAGE' | 'RECOVERY' | 'DATA_CHANGE' | 'NAME_CHANGE';
-  details: string; // Will store the JSON of the form answers
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  createdAt: number;
-  linkId?: string;
-  previousLinkIds?: string[]; // History of link IDs to allow redirects
-  generatedStudentId?: string; // The ID generated during form submission
-  autoFlagged?: boolean; // System detected potential issues
-  autoFlagReason?: string;
-}
-
+// TaskPriority enum for study planner
 export enum TaskPriority {
   URGENT = 'Urgent',
   HIGH = 'High',
@@ -101,6 +71,7 @@ export enum TaskPriority {
   LOW = 'Low'
 }
 
+// Assignment interface for study planner
 export interface Assignment {
   id: string;
   title: string;
@@ -110,9 +81,10 @@ export interface Assignment {
   priority: TaskPriority;
   completed: boolean;
   estimatedTime?: string;
-  reminderMinutes?: number;
+  reminderMinutes: number;
 }
 
+// Note interface for notes view
 export interface Note {
   id: string;
   title: string;
@@ -124,6 +96,18 @@ export interface Note {
   deletedAt?: number;
 }
 
+// VaultDocument interface for storage vault
+export interface VaultDocument {
+  id: string;
+  title: string;
+  type: 'IMAGE' | 'VIDEO' | 'OTHER';
+  content: string;
+  size: number;
+  mimeType: string;
+  createdAt: number;
+}
+
+// Expense interface for expense tracker
 export interface Expense {
   id: string;
   amount: number;
@@ -133,6 +117,43 @@ export interface Expense {
   type: 'INCOME' | 'EXPENSE';
 }
 
+// ChangeRequest interface for admin and verification workflows
+export interface ChangeRequest {
+  id: string;
+  userId: string;
+  username: string;
+  type: 'VERIFICATION' | 'DATA_CHANGE' | 'NAME_CHANGE' | 'RECOVERY';
+  details: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: number;
+  linkId?: string;
+  generatedStudentId?: string;
+  autoFlagged?: boolean;
+  autoFlagReason?: string;
+  previousLinkIds?: string[];
+}
+
+// TicketMessage interface for support tickets
+export interface TicketMessage {
+  id: string;
+  sender: string;
+  text: string;
+  timestamp: number;
+  isAdmin: boolean;
+}
+
+// SupportTicket interface for user support
+export interface SupportTicket {
+  id: string;
+  userId: string;
+  subject: string;
+  status: 'OPEN' | 'CLOSED';
+  createdAt: number;
+  updatedAt: number;
+  messages: TicketMessage[];
+}
+
+// FieldType for dynamic database schema
 export enum FieldType {
   STRING = 'String',
   NUMBER = 'Number',
@@ -140,12 +161,14 @@ export enum FieldType {
   DATE = 'Date'
 }
 
+// DbField for dynamic database schema
 export interface DbField {
   name: string;
   type: FieldType;
   required: boolean;
 }
 
+// Database interface for DatabaseManager
 export interface Database {
   id: string;
   name: string;
@@ -155,20 +178,13 @@ export interface Database {
   createdAt: number;
 }
 
-export interface TicketMessage {
+// ActivityLog interface for system auditing
+export interface ActivityLog {
   id: string;
-  sender: string; // Username or 'Admin'
-  text: string;
   timestamp: number;
-  isAdmin: boolean;
-}
-
-export interface SupportTicket {
-  id: string;
-  userId: string;
-  subject: string;
-  status: 'OPEN' | 'CLOSED';
-  createdAt: number;
-  updatedAt: number;
-  messages: TicketMessage[];
+  actor: string;
+  targetUser?: string;
+  actionType: 'DATA' | 'SECURITY' | 'ADMIN' | 'AUTH' | 'SYSTEM';
+  description: string;
+  metadata?: string;
 }

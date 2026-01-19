@@ -1,8 +1,9 @@
-import React from 'react';
+
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { ErrorPage } from '../views/ErrorPage';
 
 interface Props {
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
 interface State {
@@ -13,24 +14,27 @@ interface State {
 /**
  * ErrorBoundary component to catch rendering errors in the component tree.
  */
-export class ErrorBoundary extends React.Component<Props, State> {
-  // Fix: Initializing state property for the class component
-  public state: State = {
-    hasError: false,
-    error: null,
-  };
+export class ErrorBoundary extends Component<Props, State> {
+  // Fixed: Correct inheritance from Component<Props, State> to resolve property access errors
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null,
+    };
+  }
 
   public static getDerivedStateFromError(error: Error): State {
     // Update state so the next render will show the fallback UI.
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
   }
 
   private handleReset = () => {
-    // Fix: Accessing setState from the React.Component base class to reset error state.
+    // Fixed: Correctly update state using the class method
     this.setState({ hasError: false, error: null });
   };
 
@@ -46,7 +50,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
       );
     }
 
-    // Fix: Accessing children through the props property inherited from the React.Component class.
+    // Fixed: Access children from this.props
     return this.props.children;
   }
 }

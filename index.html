@@ -1,22 +1,16 @@
+
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sushil Pokhrel | Portfolio</title>
+    <title>8K Video Downloaders | Pro Quality by Sushil Pokhrel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
-            colors: {
-              background: '#0a0a0a',
-              indigo: {
-                500: '#6366f1',
-                600: '#4f46e5',
-              }
-            },
             fontFamily: {
               sans: ['Inter', 'system-ui', 'sans-serif'],
             }
@@ -26,46 +20,24 @@
     </script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;700;900&display=swap');
+      body { background-color: #050505; color: white; }
       
-      * { 
-        scroll-behavior: smooth;
-      }
-
-      body { 
-        background-color: #0a0a0a; 
-        color: white; 
-        -webkit-font-smoothing: antialiased; 
-        -moz-osx-font-smoothing: grayscale; 
-      }
-
       @keyframes fade-in { 
-        from { opacity: 0; } 
-        to { opacity: 1; } 
+        from { opacity: 0; transform: translateY(20px); } 
+        to { opacity: 1; transform: translateY(0); } 
       }
-      .animate-fade-in { 
-        animation: fade-in 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
-      }
-
-      @keyframes slide-up { 
-        from { transform: translateY(80px); opacity: 0; } 
-        to { transform: translateY(0); opacity: 1; } 
-      }
-      .animate-slide-up { 
-        animation: slide-up 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
-      }
+      .animate-fade-in { animation: fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
       @keyframes scale-up { 
-        from { transform: scale(0.97); opacity: 0; } 
+        from { transform: scale(0.98); opacity: 0; } 
         to { transform: scale(1); opacity: 1; } 
       }
-      .animate-scale-up { 
-        animation: scale-up 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
-      }
+      .animate-scale-up { animation: scale-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
       ::-webkit-scrollbar { width: 4px; }
-      ::-webkit-scrollbar-track { background: #0a0a0a; }
-      ::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
-      ::-webkit-scrollbar-thumb:hover { background: #4f46e5; }
+      ::-webkit-scrollbar-track { background: #050505; }
+      ::-webkit-scrollbar-thumb { background: #1e1e1e; border-radius: 10px; }
+      ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
     </style>
     <script type="importmap">
 {
@@ -73,9 +45,9 @@
     "react": "https://esm.sh/react@18.2.0",
     "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
     "lucide-react": "https://esm.sh/lucide-react@0.344.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
     "vite": "https://esm.sh/vite@^7.3.1",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
   }
