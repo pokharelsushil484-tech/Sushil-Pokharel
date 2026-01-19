@@ -14,9 +14,9 @@ interface State {
 /**
  * ErrorBoundary component to catch rendering errors in the component tree.
  */
-// Explicitly extending React.Component to resolve missing property errors for setState and props
+// Fix: Explicitly extend React.Component to ensure 'setState', 'state', and 'props' are recognized by TypeScript in this environment
 export class ErrorBoundary extends React.Component<Props, State> {
-  // Explicitly defining state property for proper TypeScript inference
+  // Define initial state
   public state: State = {
     hasError: false,
     error: null,
@@ -32,12 +32,12 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   private handleReset = () => {
-    // Accessing setState from this context (available on React.Component)
+    // Fix: Access setState from the inherited React.Component base class
     this.setState({ hasError: false, error: null });
   };
 
   public render() {
-    // Accessing state from this context (available on React.Component)
+    // Fix: Access state and props from the inherited React.Component base class
     if (this.state.hasError) {
       return (
         <ErrorPage 
@@ -49,7 +49,6 @@ export class ErrorBoundary extends React.Component<Props, State> {
       );
     }
 
-    // Accessing props from this context (available on React.Component)
     return this.props.children;
   }
 }
