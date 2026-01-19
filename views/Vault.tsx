@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { UserProfile, VaultDocument, View } from '../types';
 import { 
   FileText, Image as ImageIcon, Search, Lock, 
-  Box, CloudUpload, Download, Trash2, 
+  Box, UploadCloud, Download, Trash2, 
   ShieldAlert, LayoutGrid, List, Database, Video
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
@@ -166,7 +166,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
                   <button onClick={() => setViewMode('list')} className={`p-3 rounded-xl transition-all ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-400'}`}><List size={20}/></button>
               </div>
               <label className={`w-full md:w-auto p-4 md:px-8 bg-indigo-600 text-white rounded-[2rem] shadow-lg hover:bg-indigo-700 transition-all cursor-pointer flex items-center justify-center space-x-3 ${isUploading ? 'opacity-70 cursor-wait' : ''}`}>
-                 <CloudUpload size={20} className={isUploading ? 'animate-bounce' : ''} />
+                 <UploadCloud size={20} className={isUploading ? 'animate-bounce' : ''} />
                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">{isUploading ? 'Syncing...' : 'Upload'}</span>
                  <input type="file" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
               </label>
