@@ -1,5 +1,5 @@
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 import { ErrorPage } from '../views/ErrorPage';
 
 interface Props {
@@ -14,12 +14,11 @@ interface State {
 /**
  * ErrorBoundary component to catch rendering errors in the component tree.
  */
-// Fix: Explicitly extend Component from 'react' so that TypeScript correctly identifies it as a React component class, 
-// providing access to this.state, this.props, and this.setState, and validating the override modifier.
-export class ErrorBoundary extends Component<Props, State> {
+// Fix: Use React.Component explicitly to ensure TypeScript correctly recognizes inheritance and provides access to state, props, and lifecycle methods.
+export class ErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    // Fix: state property is now recognized as inherited from Component
+    // Initialize state within constructor
     this.state = {
       hasError: false,
       error: null,
@@ -27,24 +26,24 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public static getDerivedStateFromError(error: Error): State {
+    // Update state so the next render will show the fallback UI.
     return { hasError: true, error };
   }
 
-  // Fix: override is valid because Component defines this lifecycle method
+  // Handle errors caught during rendering or in lifecycle methods
   public override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
   }
 
+  // Method to reset the error state and allow for re-render
   private handleReset = () => {
-    // Fix: setState is now recognized as inherited from Component
     this.setState({ hasError: false, error: null });
   };
 
-  // Fix: override is valid because Component defines render
+  // Render method returns the fallback UI or children
   public override render() {
-    // Fix: state and props are now recognized as inherited members
     if (this.state.hasError) {
-      // Ensure errorDetails is a string to prevent React Error #31
+      // Ensure the error details are converted to a string for display
       const details = this.state.error ? String(this.state.error) : "Unknown Application Error";
       return (
         <ErrorPage 
