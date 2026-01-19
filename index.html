@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>8K Video Downloaders | Pro Quality by Sushil Pokhrel</title>
+    <title>8K Video Downloaders | Pro Studio by Sushil Pokharel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -20,23 +20,42 @@
     </script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;700;900&display=swap');
-      body { background-color: #050505; color: white; }
       
+      body { 
+        background-color: #050505; 
+        color: white; 
+        overflow-x: hidden;
+      }
+      
+      /* Hide scrollbar for Chrome, Safari and Opera */
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      /* Hide scrollbar for IE, Edge and Firefox */
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
       @keyframes fade-in { 
-        from { opacity: 0; transform: translateY(20px); } 
+        from { opacity: 0; transform: translateY(30px); } 
         to { opacity: 1; transform: translateY(0); } 
       }
-      .animate-fade-in { animation: fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      .animate-fade-in { animation: fade-in 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
       @keyframes scale-up { 
-        from { transform: scale(0.98); opacity: 0; } 
+        from { transform: scale(0.95); opacity: 0; } 
         to { transform: scale(1); opacity: 1; } 
       }
-      .animate-scale-up { animation: scale-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      .animate-scale-up { animation: scale-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+      @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-5px); }
+      }
+      .group-hover\:bounce:hover { animation: bounce 0.6s infinite; }
 
       ::-webkit-scrollbar { width: 4px; }
       ::-webkit-scrollbar-track { background: #050505; }
-      ::-webkit-scrollbar-thumb { background: #1e1e1e; border-radius: 10px; }
+      ::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
       ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
     </style>
     <script type="importmap">
