@@ -1,36 +1,35 @@
 
 import { UserProfile } from './types';
 
-export const APP_VERSION = "2.0.0-UHD"; 
+export const APP_VERSION = "3.0.0-PRO"; 
 export const CREATOR_NAME = "Sushil Pokharel";
 export const APP_NAME = "8K Video Downloaders";
-export const APP_TAGLINE = "Ultra High-Definition Social Media Media Extraction Hub";
+export const APP_TAGLINE = "High-Performance Multi-Quality Video Extraction";
 
-export const ADMIN_EMAIL = "support@sushilpokharel00.com.np";
-export const COPYRIGHT_NOTICE = "© 2026 8K VIDEO DOWNLOADERS BY SUSHIL POKHREL. ALL RIGHTS RESERVED.";
-export const PRECISION_WATERMARK = "Engineered & Built by Sushil Pokharel";
+export const COPYRIGHT_NOTICE = "© 2026 8K VIDEO DOWNLOADERS BY SUSHIL POKHREL.";
+export const PRECISION_WATERMARK = "Designed & Engineered by Sushil Pokharel";
 export const WATERMARK = PRECISION_WATERMARK;
 
-export const SYSTEM_DOMAIN = "8kdownloaders.com.np";
-
-// Missing constants added for system security and administrative functions
+// Added missing administrative and security constants
 export const ADMIN_USERNAME = "admin";
 export const ADMIN_SECRET = "admin123";
+export const ADMIN_EMAIL = "admin@sushilpokharel.com.np";
 export const MIN_PASSWORD_LENGTH = 8;
-export const SYSTEM_UPGRADE_TOKEN = "v2.0.0-PRO-NODE";
+export const SYSTEM_DOMAIN = "sushilpokharel.com.np";
+export const SYSTEM_UPGRADE_TOKEN = "V3-UPGRADE-2026";
 
 export const DEFAULT_USER: UserProfile = {
-  name: "Guest User",
-  email: "guest@8kdownloaders.com.np",
-  phone: "",
+  name: "Sushil Pokharel",
+  email: "admin@sushilpokharel.com.np",
+  phone: "9765226385",
   isVerified: true,
   isSuspicious: false,
-  level: 1,
+  level: 3,
   verificationStatus: 'VERIFIED',
-  storageLimitGB: 50,
+  storageLimitGB: 100,
   storageUsedBytes: 0,
-  totpEnabled: false,
-  skills: [],
-  interests: [],
-  authorizedDevices: ["PRO-Node"]
+  totpEnabled: true,
+  skills: ["Innovation", "UHD Extraction"],
+  interests: ["8K Technology"],
+  authorizedDevices: ["Main Server"]
 };

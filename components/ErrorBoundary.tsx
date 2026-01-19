@@ -15,14 +15,11 @@ interface State {
  * ErrorBoundary component to catch rendering errors in the component tree.
  */
 export class ErrorBoundary extends Component<Props, State> {
-  // Fixed: Correct inheritance from Component<Props, State> to resolve property access errors
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-    };
-  }
+  // Explicitly defining state property for proper TypeScript inference
+  public state: State = {
+    hasError: false,
+    error: null,
+  };
 
   public static getDerivedStateFromError(error: Error): State {
     // Update state so the next render will show the fallback UI.
@@ -34,11 +31,12 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleReset = () => {
-    // Fixed: Correctly update state using the class method
+    // Accessing setState from this context
     this.setState({ hasError: false, error: null });
   };
 
   public render() {
+    // Accessing state from this context
     if (this.state.hasError) {
       return (
         <ErrorPage 
@@ -50,7 +48,7 @@ export class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    // Fixed: Access children from this.props
+    // Accessing props from this context
     return this.props.children;
   }
 }

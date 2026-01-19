@@ -4,17 +4,68 @@ import { GoogleGenAI, Type } from "@google/genai";
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 /**
- * Analyzes a social media URL for video extraction capabilities.
+ * Technical Q&A with AI
  */
-export const analyzeSocialUrl = async (url: string) => {
+export const chatWithAI = async (message: string) => {
+  try {
+    // Using gemini-3-pro-preview for complex reasoning tasks
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: message,
+    });
+    return response.text || "I'm sorry, I couldn't generate a response.";
+  } catch (error) {
+    console.error("Chat Error:", error);
+    return "Error connecting to AI intelligence.";
+  }
+};
+
+/**
+ * Concisely summarizes notes
+ */
+export const summarizeNote = async (content: string) => {
+  try {
+    // Using gemini-3-flash-preview for standard summarization
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Summarize the following notes concisely and professionally:\n\n${content}`,
+    });
+    return response.text || "No summary available.";
+  } catch (error) {
+    console.error("Summary Error:", error);
+    return "Failed to generate summary.";
+  }
+};
+
+/**
+ * Strategic study plan generation
+ */
+export const generateStudyPlan = async (subject: string, hours: string) => {
+  try {
+    // Using gemini-3-pro-preview for complex planning
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: `Architect a comprehensive study plan for "${subject}" to be mastered in ${hours} hours. Provide a milestone-based breakdown.`,
+    });
+    return response.text || "Study plan generation failed.";
+  } catch (error) {
+    console.error("Plan Error:", error);
+    return "Unable to architect study plan.";
+  }
+};
+
+/**
+ * Analyzes a URL and provides metadata + regulation status.
+ */
+export const analyzeVideoLink = async (url: string) => {
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Analyze this social media URL for video extraction: ${url}. 
-      1. Identify platform.
-      2. Suggest available qualities: Focus on 8K, 7K, 4K, and 1080p.
-      3. Verify Video Regulation: Is this content likely restricted or public?
-      4. Provide a professional title.`,
+      contents: `Analyze this video URL: ${url}. 
+      1. Platform identification.
+      2. Regulation check: Is it public or restricted?
+      3. Quality simulation: List estimated sizes for 144p, 1080p, 4K, 7K, and 8K.
+      4. Professional Title.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -22,70 +73,28 @@ export const analyzeSocialUrl = async (url: string) => {
           properties: {
             platform: { type: Type.STRING },
             title: { type: Type.STRING },
-            suggestedQuality: { type: Type.STRING },
             isRegulated: { type: Type.BOOLEAN },
-            regulationNote: { type: Type.STRING },
+            regulationMessage: { type: Type.STRING },
+            estimatedSizes: { 
+                type: Type.OBJECT,
+                properties: {
+                    low: { type: Type.STRING },
+                    hd: { type: Type.STRING },
+                    uhd: { type: Type.STRING },
+                    pro: { type: Type.STRING }
+                }
+            },
             isValid: { type: Type.BOOLEAN }
           },
-          required: ["platform", "isValid", "suggestedQuality"]
+          required: ["platform", "isValid", "title"]
         }
       }
     });
     
+    // Accessing .text property directly
     return JSON.parse(response.text || "{}");
   } catch (error) {
-    console.error("Analysis Failure:", error);
-    return { platform: "Unknown", isValid: false, suggestedQuality: "1080p", title: "Untitled Video" };
-  }
-};
-
-/**
- * Generates a strategic study plan for a subject and time duration.
- * Added to resolve error in StudyPlanner.tsx.
- */
-export const generateStudyPlan = async (subject: string, estimatedTime: string) => {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Create a professional study plan for the subject: ${subject}. The student has approximately ${estimatedTime} hours available. Provide a structured breakdown.`,
-    });
-    return response.text || "Strategic breakdown unavailable at this moment.";
-  } catch (error) {
-    console.error("Study Plan Error:", error);
-    return "Error generating AI study plan. Please verify your subject details.";
-  }
-};
-
-/**
- * Summarizes the content of a node or academic note.
- * Added to resolve error in Notes.tsx.
- */
-export const summarizeNote = async (content: string) => {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Summarize the following note content concisely for a student portfolio: \n\n${content}`,
-    });
-    return response.text || "Summary could not be generated.";
-  } catch (error) {
-    console.error("Summary Error:", error);
-    return "Error generating AI summary.";
-  }
-};
-
-/**
- * Technical AI chat assistant for student queries and strategy.
- * Added to resolve error in AIChat.tsx.
- */
-export const chatWithAI = async (input: string) => {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: input,
-    });
-    return response.text || "I'm having trouble processing that query right now.";
-  } catch (error) {
-    console.error("Chat Assistant Error:", error);
-    return "Technical Error: The AI Assistant is temporarily unavailable.";
+    console.error("Link Analysis Error:", error);
+    return { platform: "Unknown", isValid: false, title: "Video Stream" };
   }
 };
