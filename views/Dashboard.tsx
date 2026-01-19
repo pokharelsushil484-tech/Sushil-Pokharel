@@ -9,10 +9,11 @@ import {
 
 interface DashboardProps {
   user: UserProfile;
+  username: string;
   onNavigate: (view: View) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,7 +71,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
             <h4 className="text-[10px] font-black uppercase text-red-500 tracking-widest">Transaction Interaction Failed</h4>
             <p className="text-xs text-slate-300 font-medium">{error}</p>
           </div>
-          {/* Fix: Use imported X icon for close button */}
+          {/* Use imported X icon for close button */}
           <button onClick={() => setError(null)} className="ml-auto p-2 hover:bg-white/5 rounded-lg"><X size={16} /></button>
         </div>
       )}

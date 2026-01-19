@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { APP_NAME, CREATOR_NAME } from '../constants';
 import { ShieldCheck } from 'lucide-react';
@@ -9,7 +8,6 @@ interface SplashScreenProps {
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   React.useEffect(() => {
-    // Increased duration to 4.5 seconds as requested
     const timer = setTimeout(onFinish, 4500);
     return () => clearTimeout(timer);
   }, [onFinish]);
@@ -17,9 +15,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   return (
     <div className="fixed inset-0 z-[300] bg-white dark:bg-[#020617] flex flex-col items-center justify-center">
       <div className="flex flex-col items-center animate-scale-up text-center">
-        {/* Custom Spiral Line Loader */}
         <div className="mb-12 relative w-32 h-32">
-           {/* Added rotation to the upper loader elements */}
            <svg className="w-full h-full text-indigo-600 animate-[spin_3s_linear_infinite]" viewBox="0 0 100 100">
              <circle 
                 cx="50" 
@@ -42,15 +38,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
                 strokeDashoffset="30"
                 className="opacity-30"
              />
-             <path 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="0.5" 
-                strokeLinecap="round" 
-                d="M 50,50 m -10,0 a 10,10 0 1,0 20,0 a 10,10 0 1,0 -20,0"
-                strokeDasharray="30"
-                className="opacity-20"
-             />
            </svg>
            <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-2 h-2 bg-indigo-600 rounded-full animate-pulse"></div>
@@ -58,14 +45,13 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         </div>
 
         <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tighter">
-          {APP_NAME.split(' by ')[0]}
+          {APP_NAME}
         </h1>
         <p className="text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-[0.6em] mb-12">
-          By {CREATOR_NAME}
+          Exclusive Professional Suite
         </p>
 
         <div className="w-64 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
-            {/* Slowed down loading bar animation to match longer duration */}
             <div className="h-full bg-indigo-600 rounded-full w-1/2 animate-[loading_3s_infinite]"></div>
         </div>
       </div>

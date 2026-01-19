@@ -1,4 +1,3 @@
-
 import { UserProfile } from './types';
 
 export const APP_NAME = "StudentPocket – By Sushil";
@@ -10,7 +9,6 @@ export const COPYRIGHT_NOTICE = "© 2024 StudentPocket. All Rights Reserved.";
 export const LEGAL_TERMS = "Terms and Conditions: This platform is provided for academic organizational purposes. Users agree to maintain data integrity and respect institutional privacy protocols.";
 export const FOOTER_SIGNATURE = "Built by Sushil Pokhrel";
 
-// Added missing system-wide constants required by various components
 export const WATERMARK = "STUDENTPOCKET • SUSHIL";
 export const ADMIN_USERNAME = "admin";
 export const ADMIN_SECRET = "admin123";

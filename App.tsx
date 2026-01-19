@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Navigation } from './components/Navigation';
 import { Dashboard } from './views/Dashboard';
@@ -11,7 +10,7 @@ import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { ErrorPage } from './views/ErrorPage';
 import { View, UserProfile, VaultDocument, ChatMessage, Assignment } from './types';
-import { SYSTEM_DOMAIN, DEFAULT_USER } from './constants';
+import { SYSTEM_DOMAIN, DEFAULT_USER, APP_NAME } from './constants';
 import { storageService } from './services/storageService';
 
 const App = () => {
@@ -67,22 +66,26 @@ const App = () => {
     try {
       switch (view) {
         case View.DASHBOARD: 
-          return <Dashboard user={user} onNavigate={setView} />;
+          return <Dashboard user={user} username={user.name} onNavigate={setView} />;
         case View.FILE_HUB: 
           return <Vault user={user} documents={vaultDocs} saveDocuments={setVaultDocs} updateUser={setUser} onNavigate={setView} />;
         case View.AI_CHAT: 
           return <AIChat chatHistory={chatHistory} setChatHistory={setChatHistory} isVerified={true} username={user.name} />;
         case View.SETTINGS: 
-          return <Settings user={user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={() => {}} username="sushil_p" darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={setUser} />;
+          return <Settings user={user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={() => {}} username={user.name} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={setUser} />;
         case View.SUPPORT: 
           return <Support username={user.name} />;
         case View.VERIFY_LINK: 
           return <StudyPlanner assignments={assignments} setAssignments={setAssignments} isAdmin={true} />;
+        case View.ERROR:
+          return <ErrorPage type="404" onAction={() => setView(View.DASHBOARD)} />;
         default: 
-          return <Dashboard user={user} onNavigate={setView} />;
+          return <Dashboard user={user} username={user.name} onNavigate={setView} />;
       }
-    } catch (e) {
-      return <ErrorPage type="CRASH" errorDetails={e instanceof Error ? e.message : String(e)} onAction={() => window.location.reload()} />;
+    } catch (e: any) {
+      // Ensure errorDetails is always a string to prevent Error #31
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      return <ErrorPage type="CRASH" errorDetails={errorMessage} onAction={() => window.location.reload()} />;
     }
   };
 
@@ -97,7 +100,7 @@ const App = () => {
                 <div className="font-black text-xs">SP</div>
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest leading-none mb-0.5">StudentPocket</span>
+                <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest leading-none mb-0.5">{APP_NAME}</span>
                 <div className="flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   <span>{SYSTEM_DOMAIN}</span>
                 </div>
@@ -105,7 +108,7 @@ const App = () => {
            </div>
            <div className="flex items-center space-x-3">
               <div className="text-right hidden sm:block">
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Public Portfolio</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Identity Verified</p>
                   <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{user.name}</p>
               </div>
               <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden p-1">
