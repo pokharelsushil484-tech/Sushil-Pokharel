@@ -167,7 +167,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
 
   if (!isUnlocked) return (
     <div className="min-h-screen flex flex-col items-center justify-start sm:justify-center bg-slate-50 dark:bg-[#020617] py-20 px-6 overflow-y-auto">
-        <div className="text-center max-w-md w-full bg-white dark:bg-slate-900 p-8 sm:p-12 rounded-[3rem] shadow-2xl border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+        <div className="text-center max-w-md w-full bg-white dark:bg-slate-900 p-10 sm:p-14 rounded-[3rem] shadow-2xl border border-slate-200 dark:border-slate-800 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1.5 bg-indigo-600"></div>
             <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/20 rounded-full flex items-center justify-center mx-auto mb-8 text-indigo-600 shadow-lg">
                 <Lock size={32} />
@@ -180,19 +180,19 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                     <input type="text" value={securityInput} onChange={(e) => setSecurityInput(e.target.value)} className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none font-bold text-sm text-center tracking-widest uppercase focus:border-indigo-500 transition-all" placeholder="STUDENT ID" />
                 </div>
                 {securityError && <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest">{securityError}</p>}
-                <button type="submit" className="w-full py-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black text-[10px] uppercase tracking-[0.2em] hover:scale-[1.02] transition-transform shadow-xl">Unlock Box</button>
+                <button type="submit" className="w-full py-5 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black text-[10px] uppercase tracking-[0.2em] hover:scale-[1.02] transition-transform shadow-xl">Unlock Box</button>
             </form>
         </div>
     </div>
   );
 
-  // Fix: Define 'details' variable by parsing the JSON string in request.details
+  // Fix: Parse request details safely
   const details = request ? JSON.parse(request.details || '{}') : {};
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#020617] py-16 px-4 sm:px-6">
-        <div className="max-w-3xl mx-auto animate-scale-up">
-            <div className="flex flex-col sm:flex-row justify-between items-center mb-10 gap-6">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#020617] py-16 px-4 sm:px-6 overflow-y-auto">
+        <div className="max-w-3xl mx-auto animate-scale-up pb-20">
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-12 gap-6">
                 <div className="flex items-center space-x-4">
                     <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
                         <ShieldCheck className="text-indigo-600" size={24} />
@@ -207,50 +207,50 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                 </button>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden relative">
-                <div className={`absolute top-0 left-0 w-full h-2 ${request?.status === 'APPROVED' ? 'bg-emerald-500' : request?.status === 'REJECTED' ? 'bg-red-500' : 'bg-amber-500'}`}></div>
-                <div className="p-8 sm:p-12 md:p-16">
-                    <div className="flex flex-col md:flex-row items-start gap-12">
+            <div className="bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden relative">
+                <div className={`absolute top-0 left-0 w-full h-2.5 ${request?.status === 'APPROVED' ? 'bg-emerald-500' : request?.status === 'REJECTED' ? 'bg-red-500' : 'bg-amber-500'}`}></div>
+                <div className="p-10 sm:p-14 md:p-20">
+                    <div className="flex flex-col md:flex-row items-start gap-16">
                         <div className="flex-shrink-0 mx-auto md:mx-0 flex flex-col items-center">
-                            <div className="w-40 h-40 rounded-[2.5rem] bg-slate-50 dark:bg-slate-950 p-2.5 shadow-inner border border-slate-100 dark:border-slate-800">
-                                <div className="w-full h-full rounded-[2rem] overflow-hidden bg-white dark:bg-slate-800 flex items-center justify-center">
-                                    {details._profileImage ? <img src={details._profileImage} className="w-full h-full object-cover" /> : <ShieldCheck size={48} className="text-indigo-500/20" />}
+                            <div className="w-48 h-48 rounded-[3rem] bg-slate-50 dark:bg-slate-950 p-3 shadow-inner border border-slate-100 dark:border-slate-800">
+                                <div className="w-full h-full rounded-[2.5rem] overflow-hidden bg-white dark:bg-slate-800 flex items-center justify-center">
+                                    {details._profileImage ? <img src={details._profileImage} className="w-full h-full object-cover" /> : <ShieldCheck size={56} className="text-indigo-500/20" />}
                                 </div>
                             </div>
                         </div>
-                        <div className="flex-1 w-full space-y-10">
+                        <div className="flex-1 w-full space-y-12">
                             <div className="text-center md:text-left">
-                                <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tighter mb-3">{details.fullName || 'Student Node'}</h2>
-                                <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${request?.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
+                                <h2 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tighter mb-4">{details.fullName || 'Student Node'}</h2>
+                                <span className={`inline-flex items-center px-5 py-2 rounded-full text-[11px] font-black uppercase tracking-widest border ${request?.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
                                     {request?.status} Status
                                 </span>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                <div className="space-y-1.5">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                <div className="space-y-2">
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Email Connection</p>
-                                    <p className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{details.email}</p>
+                                    <p className="p-5 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{details.email}</p>
                                 </div>
-                                <div className="space-y-1.5">
+                                <div className="space-y-2">
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Contact Line</p>
-                                    <p className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 text-sm font-bold text-slate-800 dark:text-slate-200">{details.phone}</p>
+                                    <p className="p-5 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 text-sm font-bold text-slate-800 dark:text-slate-200">{details.phone}</p>
                                 </div>
-                                <div className="space-y-1.5 sm:col-span-2">
+                                <div className="space-y-2 sm:col-span-2">
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Permanent Residence</p>
-                                    <p className="p-5 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed">{details.permAddress}</p>
+                                    <p className="p-6 bg-slate-50 dark:bg-slate-950/50 rounded-[2rem] border border-slate-100 dark:border-slate-800 text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed">{details.permAddress}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 {isAdmin && (
-                    <div className="bg-slate-900 dark:bg-black p-8 sm:p-10 flex flex-col sm:flex-row gap-6 justify-between items-center border-t border-white/5">
+                    <div className="bg-slate-900 dark:bg-black p-10 sm:p-12 flex flex-col sm:flex-row gap-8 justify-between items-center border-t border-white/5">
                         <div className="flex items-center space-x-3 text-slate-500">
-                            <KeyRound size={18} />
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Authority Panel</span>
+                            <KeyRound size={20} />
+                            <span className="text-[11px] font-black uppercase tracking-[0.3em]">Authority Panel</span>
                         </div>
-                        <div className="flex w-full sm:w-auto gap-4">
-                            <button onClick={() => handleAction('REJECT')} disabled={actionProcessing || request?.status !== 'PENDING'} className="flex-1 sm:px-8 py-4 rounded-2xl bg-white/5 text-red-400 border border-white/10 font-bold text-[10px] uppercase tracking-widest hover:bg-red-500/10 transition-all disabled:opacity-20">Reject</button>
-                            <button onClick={() => handleAction('APPROVE')} disabled={actionProcessing || request?.status !== 'PENDING'} className="flex-1 sm:px-10 py-4 rounded-2xl bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 hover:bg-indigo-500 disabled:opacity-20">Approve Node</button>
+                        <div className="flex w-full sm:w-auto gap-5">
+                            <button onClick={() => handleAction('REJECT')} disabled={actionProcessing || request?.status !== 'PENDING'} className="flex-1 sm:px-10 py-5 rounded-2xl bg-white/5 text-red-400 border border-white/10 font-bold text-[11px] uppercase tracking-widest hover:bg-red-500/10 transition-all disabled:opacity-20">Reject</button>
+                            <button onClick={() => handleAction('APPROVE')} disabled={actionProcessing || request?.status !== 'PENDING'} className="flex-1 sm:px-12 py-5 rounded-2xl bg-indigo-600 text-white font-black text-[11px] uppercase tracking-widest shadow-2xl shadow-indigo-600/20 hover:bg-indigo-500 disabled:opacity-20">Approve Node</button>
                         </div>
                     </div>
                 )}
