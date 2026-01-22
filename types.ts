@@ -1,29 +1,20 @@
-
 export enum View {
-  DOWNLOADER = 'DOWNLOADER',
-  HISTORY = 'HISTORY',
   SUPPORT = 'SUPPORT',
   SETTINGS = 'SETTINGS',
-  ABOUT = 'ABOUT',
   DASHBOARD = 'DASHBOARD',
   VERIFY_LINK = 'VERIFY_LINK',
   FILE_HUB = 'FILE_HUB',
-  AI_CHAT = 'AI_CHAT',
   VERIFICATION_FORM = 'VERIFICATION_FORM',
   ACCESS_RECOVERY = 'ACCESS_RECOVERY',
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
   ERROR = 'ERROR'
 }
 
-// Added DownloadItem interface for index.tsx
-export interface DownloadItem {
-  id: string;
-  url: string;
-  platform: 'YouTube' | 'Facebook' | 'Instagram' | 'TikTok' | 'Unknown' | string;
-  status: 'READY' | 'PROCESSING' | 'COMPLETED' | 'ERROR';
-  title: string;
-  quality: string;
-  timestamp: number;
+export enum TaskPriority {
+  LOW = 'Low',
+  MEDIUM = 'Medium',
+  HIGH = 'High',
+  URGENT = 'Urgent'
 }
 
 export interface UserProfile {
@@ -37,66 +28,24 @@ export interface UserProfile {
   storageLimitGB: number;
   storageUsedBytes: number;
   totpEnabled: boolean;
+  totpSecret?: string;
   skills: string[];
   interests: string[];
   authorizedDevices: string[];
   education?: string;
-  profession?: string;
   studentId?: string;
-  acceptedTermsVersion?: string;
-  vaultPin?: string;
-  totpSecret?: string;
   avatar?: string;
   isBanned?: boolean;
   banReason?: string;
   adminFeedback?: string;
-  adminComments?: string[];
-  badges?: string[];
-  admissionKey?: string;
   rescueKey?: string;
+  admissionKey?: string;
+  badges?: string[];
+  adminComments?: string[];
+  acceptedTermsVersion?: string;
+  vaultPin?: string;
 }
 
-export interface ChatMessage {
-  id: string;
-  text: string;
-  sender: 'user' | 'ai';
-  timestamp: number;
-}
-
-// TaskPriority enum for study planner
-export enum TaskPriority {
-  URGENT = 'Urgent',
-  HIGH = 'High',
-  MEDIUM = 'Medium',
-  LOW = 'Low'
-}
-
-// Assignment interface for study planner
-export interface Assignment {
-  id: string;
-  title: string;
-  category: string;
-  subject: string;
-  dueDate: string;
-  priority: TaskPriority;
-  completed: boolean;
-  estimatedTime?: string;
-  reminderMinutes: number;
-}
-
-// Note interface for notes view
-export interface Note {
-  id: string;
-  title: string;
-  content: string;
-  date: string;
-  tags: string[];
-  status: 'PENDING' | 'COMPLETED';
-  author: 'user' | 'admin';
-  deletedAt?: number;
-}
-
-// VaultDocument interface for storage vault
 export interface VaultDocument {
   id: string;
   title: string;
@@ -107,17 +56,25 @@ export interface VaultDocument {
   createdAt: number;
 }
 
-// Expense interface for expense tracker
-export interface Expense {
+export interface Assignment {
   id: string;
-  amount: number;
-  description: string;
-  category: string;
-  date: string;
-  type: 'INCOME' | 'EXPENSE';
+  title: string;
+  subject: string;
+  category?: string;
+  dueDate: string;
+  priority: string;
+  completed: boolean;
+  estimatedTime?: string;
+  reminderMinutes?: number;
 }
 
-// ChangeRequest interface for admin and verification workflows
+export interface ChatMessage {
+  id: string;
+  text: string;
+  sender: 'user' | 'ai';
+  timestamp: number;
+}
+
 export interface ChangeRequest {
   id: string;
   userId: string;
@@ -133,7 +90,6 @@ export interface ChangeRequest {
   previousLinkIds?: string[];
 }
 
-// TicketMessage interface for support tickets
 export interface TicketMessage {
   id: string;
   sender: string;
@@ -142,7 +98,6 @@ export interface TicketMessage {
   isAdmin: boolean;
 }
 
-// SupportTicket interface for user support
 export interface SupportTicket {
   id: string;
   userId: string;
@@ -153,7 +108,39 @@ export interface SupportTicket {
   messages: TicketMessage[];
 }
 
-// FieldType for dynamic database schema
+export interface ActivityLog {
+  id: string;
+  timestamp: number;
+  actor: string;
+  targetUser?: string;
+  actionType: string;
+  description: string;
+  metadata?: string;
+}
+
+// Added Note interface to resolve import error in Notes.tsx
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+  tags: string[];
+  status: 'COMPLETED' | 'PENDING';
+  author: 'admin' | 'user';
+  deletedAt?: number;
+}
+
+// Added Expense interface to resolve import error in ExpenseTracker.tsx
+export interface Expense {
+  id: string;
+  amount: number;
+  description: string;
+  category: string;
+  date: string;
+  type: 'INCOME' | 'EXPENSE';
+}
+
+// Added Database related types to resolve import error in DatabaseManager.tsx
 export enum FieldType {
   STRING = 'String',
   NUMBER = 'Number',
@@ -161,14 +148,12 @@ export enum FieldType {
   DATE = 'Date'
 }
 
-// DbField for dynamic database schema
 export interface DbField {
   name: string;
   type: FieldType;
   required: boolean;
 }
 
-// Database interface for DatabaseManager
 export interface Database {
   id: string;
   name: string;
@@ -176,15 +161,4 @@ export interface Database {
   schema: DbField[];
   records: any[];
   createdAt: number;
-}
-
-// ActivityLog interface for system auditing
-export interface ActivityLog {
-  id: string;
-  timestamp: number;
-  actor: string;
-  targetUser?: string;
-  actionType: 'DATA' | 'SECURITY' | 'ADMIN' | 'AUTH' | 'SYSTEM';
-  description: string;
-  metadata?: string;
 }

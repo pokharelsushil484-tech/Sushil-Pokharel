@@ -1,4 +1,3 @@
-
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { ErrorPage } from '../views/ErrorPage';
 
@@ -14,38 +13,38 @@ interface State {
 /**
  * ErrorBoundary component to catch rendering errors in the component tree.
  */
-// Fix: Use the named Component import from react to ensure generic Props and State are correctly recognized by the TypeScript compiler.
+// Fix: Explicitly importing and extending Component from 'react' ensures that members like this.setState and this.props are correctly recognized as inherited properties.
 export class ErrorBoundary extends Component<Props, State> {
+  public state: State = {
+    hasError: false,
+    error: null,
+  };
+
   constructor(props: Props) {
-    // Fix: Initialize the base Component class correctly with super(props).
+    // Initialize the base React Component class.
     super(props);
-    // Fix: Explicitly initialize the state object on the class instance.
-    this.state = {
-      hasError: false,
-      error: null,
-    };
   }
 
-  // Fix: Implement the static getDerivedStateFromError lifecycle method to update state when an error occurs.
+  // Use the static getDerivedStateFromError lifecycle method to update the component state when an error occurs during rendering.
   public static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
 
-  // Fix: Log the error using componentDidCatch for debugging or monitoring.
+  // Use componentDidCatch to log error information for monitoring and debugging.
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
   }
 
-  // Fix: Use an arrow function for handleReset to ensure 'this' refers to the class instance when calling this.setState.
+  // Use an arrow function to ensure 'this' is bound correctly to the component instance when resetting state.
   private handleReset = () => {
+    // Fix: Using this.setState correctly as an inherited member from the Component base class.
     this.setState({ hasError: false, error: null });
   };
 
-  // Fix: Implement the render method to return fallback UI when an error is detected.
   public render() {
-    // Fix: Accessing state inherited from the base Component class.
+    // Access state inherited from the base Component class to determine if fallback UI should be displayed.
     if (this.state.hasError) {
-      // Fix: Safely convert error details to a string to avoid rendering issues.
+      // Safely convert the error object to a string for display in the ErrorPage component.
       const details = this.state.error ? String(this.state.error) : "Unknown Application Error";
       return (
         <ErrorPage 
@@ -57,7 +56,7 @@ export class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    // Fix: Accessing children from the props inherited from the base Component class.
+    // Fix: Correctly return children from props inherited from the base Component class.
     return this.props.children;
   }
 }

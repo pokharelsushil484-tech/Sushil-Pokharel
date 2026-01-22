@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Navigation } from './components/Navigation';
 import { Dashboard } from './views/Dashboard';
 import { Settings } from './views/Settings';
-import { AIChat } from './views/AIChat';
 import { Vault } from './views/Vault';
 import { Support } from './views/Support';
 import { StudyPlanner } from './views/StudyPlanner';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { ErrorPage } from './views/ErrorPage';
-import { View, UserProfile, VaultDocument, ChatMessage, Assignment } from './types';
+import { Login } from './views/Login';
+import { View, UserProfile, VaultDocument, Assignment } from './types';
 import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN } from './constants';
 import { storageService } from './services/storageService';
 
@@ -17,26 +17,22 @@ const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
   const [isLoading, setIsLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('student_pocket_theme') === 'true');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   
-  // App Data State - Initializing with the requested Sushil persona
+  // App Data State
   const [user, setUser] = useState<UserProfile>({
     ...DEFAULT_USER,
-    name: "Sushil Pokharel",
-    education: "Business Studies Hub",
-    isVerified: true,
-    level: 1
+    education: "Academic Center for Excellence",
+    isVerified: true
   });
 
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [vaultDocs, setVaultDocs] = useState<VaultDocument[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
 
   useEffect(() => {
     const loadLocalData = async () => {
-      const stored = await storageService.getData('student_pocket_v3_data');
+      const stored = await storageService.getData('student_pocket_v5_stable');
       if (stored) {
-        if (stored.chatHistory) setChatHistory(stored.chatHistory);
         if (stored.vaultDocs) setVaultDocs(stored.vaultDocs);
         if (stored.assignments) setAssignments(stored.assignments);
       }
@@ -45,21 +41,13 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    storageService.setData('student_pocket_v3_data', {
-      chatHistory, vaultDocs, assignments
+    storageService.setData('student_pocket_v5_stable', {
+      vaultDocs, assignments
     });
-  }, [chatHistory, vaultDocs, assignments]);
-
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('student_pocket_theme', String(darkMode));
-  }, [darkMode]);
+  }, [vaultDocs, assignments]);
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
+  if (!isLoggedIn) return <Login onLogin={() => setIsLoggedIn(true)} />;
 
   const renderContent = () => {
     try {
@@ -68,56 +56,50 @@ const App = () => {
           return <Dashboard user={user} username={user.name} onNavigate={setView} />;
         case View.FILE_HUB: 
           return <Vault user={user} documents={vaultDocs} saveDocuments={setVaultDocs} updateUser={setUser} onNavigate={setView} />;
-        case View.AI_CHAT: 
-          return <AIChat chatHistory={chatHistory} setChatHistory={setChatHistory} isVerified={true} username={user.name} />;
         case View.SETTINGS: 
-          return <Settings user={user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={() => {}} username={user.name} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={setUser} />;
+          return <Settings user={user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={() => setIsLoggedIn(false)} username={user.name} darkMode={true} toggleDarkMode={() => {}} updateUser={setUser} />;
         case View.SUPPORT: 
           return <Support username={user.name} />;
         case View.VERIFY_LINK: 
           return <StudyPlanner assignments={assignments} setAssignments={setAssignments} isAdmin={true} />;
-        case View.ERROR:
-          return <ErrorPage type="404" onAction={() => setView(View.DASHBOARD)} />;
         default: 
           return <Dashboard user={user} username={user.name} onNavigate={setView} />;
       }
     } catch (e: any) {
-      // FIX FOR ERROR #31: Ensure error details are strictly converted to a string 
-      // before being passed as a child to any component.
-      const errorMessage = e && typeof e === 'object' ? (e.message || JSON.stringify(e)) : String(e);
-      return <ErrorPage type="CRASH" errorDetails={errorMessage} onAction={() => window.location.reload()} />;
+      // FIX FOR ERROR #31: Ensure error is never a raw object child.
+      const errStr = e instanceof Error ? e.message : JSON.stringify(e);
+      return <ErrorPage type="CRASH" errorDetails={String(errStr)} onAction={() => window.location.reload()} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#020617] font-sans transition-colors duration-300">
+    <div className="min-h-screen bg-black font-sans selection:bg-indigo-500/30">
       <GlobalLoader isLoading={isLoading} />
       
-      <div className="md:ml-20 lg:ml-64 transition-all animate-fade-in min-h-screen flex flex-col">
-        <header className="bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800 h-16 flex items-center justify-between px-6 sticky top-0 z-40">
-           <div className="flex items-center space-x-3">
-              <div className="p-2 bg-indigo-600 rounded-lg text-white shadow-md shadow-indigo-600/20">
+      <div className="md:ml-20 lg:ml-64 transition-all min-h-screen flex flex-col">
+        <header className="bg-black/60 backdrop-blur-xl border-b border-white/5 h-20 flex items-center justify-between px-8 sticky top-0 z-40">
+           <div className="flex items-center space-x-4">
+              <div className="p-2.5 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-600/20">
                 <div className="font-black text-xs">SP</div>
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest leading-none mb-0.5">{APP_NAME}</span>
-                <div className="flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  <span>{SYSTEM_DOMAIN}</span>
-                </div>
+                <span className="text-xs font-black text-white uppercase tracking-widest">{APP_NAME}</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{SYSTEM_DOMAIN}</span>
               </div>
            </div>
-           <div className="flex items-center space-x-3">
+           
+           <div className="flex items-center space-x-4">
               <div className="text-right hidden sm:block">
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Verified User</p>
-                  <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{user.name}</p>
+                  <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Active Profile</p>
+                  <p className="text-xs font-bold text-indigo-400">{user.name}</p>
               </div>
-              <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden p-1">
-                <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=100&auto=format&fit=crop" className="w-full h-full object-cover rounded-full" alt="User Profile" />
+              <div className="w-10 h-10 rounded-full border border-white/10 overflow-hidden bg-slate-900 flex items-center justify-center p-0.5">
+                <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop" className="w-full h-full object-cover rounded-full" alt="User" />
               </div>
            </div>
         </header>
         
-        <main className="flex-1 max-w-7xl mx-auto w-full pt-8 px-6 pb-24 md:pb-10">
+        <main className="flex-1 max-w-7xl mx-auto w-full pt-10 px-8 pb-32 md:pb-12">
             {renderContent()}
         </main>
       </div>
@@ -128,7 +110,7 @@ const App = () => {
           isAdmin={false} 
           isVerified={true}
           username={user.name} 
-          onLogout={() => {}}
+          onLogout={() => setIsLoggedIn(false)}
       />
     </div>
   );
