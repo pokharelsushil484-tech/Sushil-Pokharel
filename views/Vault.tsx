@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { UserProfile, VaultDocument, View } from '../types';
 import { 
-  FileText, Image as ImageIcon, Search, Lock, 
+  FileText, Search, Lock, 
   Box, UploadCloud, Download, Trash2, 
   ShieldAlert, LayoutGrid, List, Database, Video
 } from 'lucide-react';
@@ -33,15 +32,15 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
         <div className="bg-white dark:bg-slate-900 p-12 rounded-[3rem] shadow-2xl max-w-lg w-full border border-slate-100 dark:border-white/5 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-indigo-600"></div>
           <ShieldAlert size={64} className="text-amber-500 mx-auto mb-8 animate-pulse" />
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-4 leading-tight">Access Restricted</h2>
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-4 leading-tight">Verification Needed</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-bold leading-relaxed mb-8 uppercase tracking-[0.2em]">
-            Authorized repository access is restricted to verified office identities.
+            To keep your files safe, we require a quick student verification.
           </p>
           <button 
             className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
             onClick={() => onNavigate(View.VERIFICATION_FORM)}
           >
-            Request Access Node
+            Start Verification
           </button>
         </div>
       </div>
@@ -54,7 +53,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
       setError('');
     } else {
       setPin('');
-      setError("Unauthorized access token.");
+      setError("Incorrect Pin.");
     }
   };
 
@@ -63,7 +62,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
     if (!file) return;
 
     if (!isAdmin && (user.storageUsedBytes + file.size > user.storageLimitGB * 1024 ** 3)) {
-      alert("Cluster node capacity exceeded.");
+      alert("Storage space is full.");
       return;
     }
 
@@ -71,7 +70,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
     const reader = new FileReader();
     reader.onloadend = async () => {
       const newDoc: VaultDocument = {
-        id: 'SEG-' + Date.now(),
+        id: 'FILE-' + Date.now(),
         title: file.name,
         type: file.type.startsWith('image/') ? 'IMAGE' : file.type.startsWith('video/') ? 'VIDEO' : 'OTHER',
         content: reader.result as string,
@@ -82,12 +81,11 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
       saveDocuments([...documents, newDoc]);
       updateUser({...user, storageUsedBytes: user.storageUsedBytes + file.size});
       
-      // Log Upload Activity
       await storageService.logActivity({
         actor: user.name,
         targetUser: user.name,
         actionType: 'DATA',
-        description: `Uploaded Segment: ${file.name}`,
+        description: `Uploaded file: ${file.name}`,
         metadata: JSON.stringify({ size: file.size, type: file.type })
       });
 
@@ -106,18 +104,17 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
   };
 
   const deleteFile = async (id: string) => {
-    if (window.confirm("Purge segment permanently from repository?")) {
+    if (window.confirm("Delete this file permanently?")) {
       const doc = documents.find(d => d.id === id);
       if (doc) {
         saveDocuments(documents.filter(d => d.id !== id));
         updateUser({...user, storageUsedBytes: Math.max(0, user.storageUsedBytes - doc.size)});
         
-        // Log Delete Activity
         await storageService.logActivity({
             actor: user.name,
             targetUser: user.name,
             actionType: 'DATA',
-            description: `Purged Segment: ${doc.title}`,
+            description: `Deleted file: ${doc.title}`,
             metadata: JSON.stringify({ size: doc.size })
         });
       }
@@ -131,8 +128,8 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
           <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-950/30 rounded-[2rem] flex items-center justify-center mx-auto mb-8 border border-indigo-100 dark:border-indigo-900/30">
             <Lock className="w-10 h-10 text-indigo-600" />
           </div>
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tighter">Data Node Access</h2>
-          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mb-8">Verification Key Required</p>
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tighter">My Vault</h2>
+          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mb-8">Enter Pin to Unlock</p>
           <input 
             type="password" 
             value={pin}
@@ -142,7 +139,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
             maxLength={4}
           />
           {error && <p className="text-red-500 text-[10px] font-black uppercase mb-6 tracking-widest animate-shake">{error}</p>}
-          <button onClick={handleUnlock} className="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:bg-indigo-700 transition-all">Initialize Node</button>
+          <button onClick={handleUnlock} className="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:bg-indigo-700 transition-all">Unlock Now</button>
         </div>
       </div>
     );
@@ -157,7 +154,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
           <div className="flex items-center space-x-6 w-full md:w-auto">
               <div className="w-16 h-16 bg-indigo-600 text-white rounded-[2rem] flex items-center justify-center shadow-xl shadow-indigo-600/20 flex-shrink-0"><Database size={32} /></div>
               <div>
-                <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">Data<br/>Node</h2>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">My<br/>Files</h2>
               </div>
           </div>
           <div className="flex items-center space-x-4 w-full md:w-auto justify-end">
@@ -167,7 +164,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
               </div>
               <label className={`w-full md:w-auto p-4 md:px-8 bg-indigo-600 text-white rounded-[2rem] shadow-lg hover:bg-indigo-700 transition-all cursor-pointer flex items-center justify-center space-x-3 ${isUploading ? 'opacity-70 cursor-wait' : ''}`}>
                  <UploadCloud size={20} className={isUploading ? 'animate-bounce' : ''} />
-                 <span className="text-[10px] font-black uppercase tracking-[0.2em]">{isUploading ? 'Syncing...' : 'Upload'}</span>
+                 <span className="text-[10px] font-black uppercase tracking-[0.2em]">{isUploading ? 'Uploading...' : 'Add File'}</span>
                  <input type="file" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
               </label>
           </div>
@@ -177,7 +174,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
           <Search className="text-slate-400" size={24} />
           <input 
             type="text" 
-            placeholder="Search segments..." 
+            placeholder="Find a file..." 
             className="flex-1 bg-transparent px-4 text-base font-black uppercase tracking-widest outline-none dark:text-white placeholder:text-slate-300"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
@@ -188,13 +185,12 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
           {filteredDocs.length === 0 ? (
               <div className="text-center py-24 opacity-20 flex flex-col items-center">
                   <Box size={80} className="mb-6" />
-                  <p className="text-lg font-black uppercase tracking-[0.4em]">No segments.</p>
+                  <p className="text-lg font-black uppercase tracking-[0.4em]">No Files Yet.</p>
               </div>
           ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {filteredDocs.map(doc => (
                   <div key={doc.id} className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl transition-all relative group h-72 flex flex-col justify-between overflow-hidden">
-                      {/* Image Preview or Icon */}
                       <div className="w-full h-32 rounded-3xl overflow-hidden mb-4 bg-slate-50 dark:bg-slate-800 relative">
                            {doc.type === 'IMAGE' ? (
                                <img src={doc.content} alt={doc.title} className="w-full h-full object-cover transition-transform group-hover:scale-110" />

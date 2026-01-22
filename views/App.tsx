@@ -10,22 +10,22 @@ import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { ErrorPage } from './views/ErrorPage';
 import { View, UserProfile, VaultDocument, ChatMessage, Assignment } from './types';
-import { SYSTEM_DOMAIN, DEFAULT_USER } from './constants';
+import { DEFAULT_USER, APP_NAME } from './constants';
 import { storageService } from './services/storageService';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
   const [isLoading, setIsLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('architect_theme') === 'true');
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('student_pocket_theme') === 'true');
   
+  // App Data State - User Profile for Sushil
   const [user, setUser] = useState<UserProfile>({
     ...DEFAULT_USER,
     name: "Sushil Pokharel",
-    education: "Bachelor of Business Studies (BBS)",
-    profession: "Student & Tech Innovator",
+    education: "Business Studies Hub",
     isVerified: true,
-    level: 2
+    level: 1
   });
 
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -34,7 +34,8 @@ const App = () => {
 
   useEffect(() => {
     const loadLocalData = async () => {
-      const stored = await storageService.getData('public_portfolio_data');
+      // Updated storage key for clean system state
+      const stored = await storageService.getData('student_pocket_v2_data');
       if (stored) {
         if (stored.chatHistory) setChatHistory(stored.chatHistory);
         if (stored.vaultDocs) setVaultDocs(stored.vaultDocs);
@@ -45,7 +46,7 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    storageService.setData('public_portfolio_data', {
+    storageService.setData('student_pocket_v2_data', {
       chatHistory, vaultDocs, assignments
     });
   }, [chatHistory, vaultDocs, assignments]);
@@ -56,7 +57,7 @@ const App = () => {
     } else {
       document.documentElement.classList.remove('dark');
     }
-    localStorage.setItem('architect_theme', String(darkMode));
+    localStorage.setItem('student_pocket_theme', String(darkMode));
   }, [darkMode]);
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
@@ -65,24 +66,26 @@ const App = () => {
     try {
       switch (view) {
         case View.DASHBOARD: 
-          return <Dashboard user={user} username="sushil_p" onNavigate={setView} />;
+          return <Dashboard user={user} username={user.name} onNavigate={setView} />;
         case View.FILE_HUB: 
           return <Vault user={user} documents={vaultDocs} saveDocuments={setVaultDocs} updateUser={setUser} onNavigate={setView} />;
         case View.AI_CHAT: 
-          return <AIChat chatHistory={chatHistory} setChatHistory={setChatHistory} isVerified={true} username="sushil_p" />;
+          return <AIChat chatHistory={chatHistory} setChatHistory={setChatHistory} isVerified={true} username={user.name} />;
         case View.SETTINGS: 
-          return <Settings user={user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={() => {}} username="sushil_p" darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={setUser} />;
+          return <Settings user={user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={() => {}} username={user.name} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} updateUser={setUser} />;
         case View.SUPPORT: 
-          return <Support username="sushil_p" />;
+          return <Support username={user.name} />;
         case View.VERIFY_LINK: 
           return <StudyPlanner assignments={assignments} setAssignments={setAssignments} isAdmin={true} />;
         case View.ERROR:
           return <ErrorPage type="404" onAction={() => setView(View.DASHBOARD)} />;
         default: 
-          return <Dashboard user={user} username="sushil_p" onNavigate={setView} />;
+          return <Dashboard user={user} username={user.name} onNavigate={setView} />;
       }
-    } catch (e) {
-      return <ErrorPage type="CRASH" errorDetails={e.toString()} onAction={() => window.location.reload()} />;
+    } catch (e: any) {
+      // Robust error serialization to string to prevent Error #31
+      const errorMessage = typeof e === 'object' && e !== null ? (e.message || JSON.stringify(e)) : String(e);
+      return <ErrorPage type="CRASH" errorDetails={errorMessage} onAction={() => window.location.reload()} />;
     }
   };
 
@@ -97,19 +100,19 @@ const App = () => {
                 <div className="font-black text-xs">SP</div>
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest leading-none mb-0.5">Sushil Portfolio</span>
+                <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest leading-none mb-0.5">{APP_NAME}</span>
                 <div className="flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  <span>{SYSTEM_DOMAIN}</span>
+                  <span>Student Companion</span>
                 </div>
               </div>
            </div>
            <div className="flex items-center space-x-3">
               <div className="text-right hidden sm:block">
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Identity Verified</p>
-                  <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">Sushil Pokharel</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Account Active</p>
+                  <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{user.name}</p>
               </div>
               <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden p-1">
-                <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=100&auto=format&fit=crop" className="w-full h-full object-cover rounded-full" alt="User" />
+                <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=100&auto=format&fit=crop" className="w-full h-full object-cover rounded-full" alt="User Profile" />
               </div>
            </div>
         </header>
@@ -124,7 +127,7 @@ const App = () => {
           setView={setView} 
           isAdmin={false} 
           isVerified={true}
-          username="Sushil Pokharel" 
+          username={user.name} 
           onLogout={() => {}}
       />
     </div>
