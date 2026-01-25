@@ -1,34 +1,33 @@
 import { UserProfile } from './types';
 
 export const APP_NAME = "StudentPocket – By Sushil";
-export const APP_TAGLINE = "Elite Academic Management System";
+export const APP_TAGLINE = "Institutional Academic Management Suite";
 export const CREATOR_NAME = "Sushil Pokhrel";
-export const APP_VERSION = "9.2.0 Enterprise Build";
+export const APP_VERSION = "v9.2.5 Institutional Build [LATEST]";
+export const BUILD_DATE = "2024 - 2026 Release Cycle";
 
-export const COPYRIGHT_NOTICE = "© 2024 - 2026 StudentPocket Systems. All Rights Reserved.";
-export const LEGAL_TERMS = "Institutional Access Only: This platform is designed for professional academic organization. Data encryption is active. Unauthorized distribution of stored materials is strictly prohibited under the 2026 Privacy Act.";
-export const FOOTER_SIGNATURE = "Developed and Maintained by Sushil Pokhrel";
+export const COPYRIGHT_NOTICE = "© 2024 - 2026 StudentPocket Systems. Optimized for Professional Use.";
+export const LEGAL_TERMS = "Authorized Personnel Only. System activity is logged and encrypted under the 2026 Global Academic Data Act.";
+export const FOOTER_SIGNATURE = "Design & Architecture by Sushil Pokhrel";
 
-export const WATERMARK = "STUDENTPOCKET • SUSHIL POKHREL • 2026";
+export const WATERMARK = "STP-SUSHIL-2026-X";
 export const ADMIN_USERNAME = "admin";
 export const ADMIN_SECRET = "admin123";
 export const ADMIN_EMAIL = "support@studentpocket.app";
-export const MIN_PASSWORD_LENGTH = 8;
 export const SYSTEM_DOMAIN = "studentpocket.app";
-export const SYSTEM_UPGRADE_TOKEN = "SP-QUANTUM-2026";
+export const SYSTEM_UPGRADE_TOKEN = "SP-INSTITUTIONAL-2026";
 
 export const FOOTER_LINKS = {
   internal: [
-    { label: "Executive Dashboard", view: "DASHBOARD" },
-    { label: "Secure Data Vault", view: "FILE_HUB" },
-    { label: "Strategic Planner", view: "VERIFY_LINK" },
-    { label: "Protocol Support", view: "SUPPORT" }
+    { label: "Master Dashboard", view: "DASHBOARD" },
+    { label: "Data Vault", view: "FILE_HUB" },
+    { label: "Academic Roadmap", view: "VERIFY_LINK" },
+    { label: "Admin Console", view: "SUPPORT" }
   ],
   academic: [
-    { label: "Global Research Library", href: "#" },
-    { label: "Registrar Command", href: "#" },
-    { label: "Grant & Scholarship Portal", href: "#" },
-    { label: "E-Learning Infrastructure", href: "#" }
+    { label: "Research Archive", href: "#" },
+    { label: "Global Registrar", href: "#" },
+    { label: "Scholarship Node", href: "#" }
   ]
 };
 
@@ -40,10 +39,10 @@ export const DEFAULT_USER: UserProfile = {
   isSuspicious: false,
   level: 3,
   verificationStatus: 'VERIFIED',
-  storageLimitGB: 50,
+  storageLimitGB: 100,
   storageUsedBytes: 0,
   totpEnabled: true,
-  skills: ["System Architecture", "Academic Strategy", "Data Management"],
-  interests: ["Institutional Growth", "Machine Learning"],
-  authorizedDevices: ["Master Hub Terminal"]
+  skills: ["Executive Strategy", "Systems Management"],
+  interests: ["Data Security", "Global Education"],
+  authorizedDevices: ["Master Node Alpha"]
 };

@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest } from '../types';
 import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Gavel, ShieldAlert, UserMinus, Key, Lock, Eye, EyeOff, Edit3, Save, X, Smartphone, Mail, GraduationCap, AlertTriangle, Link as LinkIcon, Server, ExternalLink, Search } from 'lucide-react';
-import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, CREATOR_NAME, MIN_PASSWORD_LENGTH, DEFAULT_USER, APP_VERSION, SYSTEM_DOMAIN } from '../constants';
+// Fix: Removed MIN_PASSWORD_LENGTH as it is not exported from constants.ts and is not used in this file.
+import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, CREATOR_NAME, DEFAULT_USER, APP_VERSION, SYSTEM_DOMAIN } from '../constants';
 import { storageService } from '../services/storageService';
 
 interface SettingsProps {
@@ -624,7 +625,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Legal Entity: {CREATOR_NAME}</p>
                       </div>
                   </div>
-                  <p className="text-[10px] text-slate-500 leading-relaxed pl-16">
+                  <p className="text-[10px] text-slate-500 leading-relaxed font-medium italic">
                       Data residency is strictly local. Identity privacy adheres to Zero-Share protocols.
                   </p>
               </div>
