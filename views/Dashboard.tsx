@@ -3,9 +3,9 @@ import { UserProfile, View } from '../types';
 import { 
   ShieldCheck, Calendar, Database, 
   ChevronRight, RefreshCw,
-  Award, GraduationCap, CheckCircle2, Loader2
+  Award, GraduationCap, CheckCircle2, Loader2, Activity, Zap, Cpu
 } from 'lucide-react';
-import { APP_VERSION } from '../constants';
+import { APP_VERSION, WATERMARK } from '../constants';
 
 interface DashboardProps {
   user: UserProfile;
@@ -18,103 +18,130 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
 
   const handleCheckUpdates = () => {
     setUpdateState('CHECKING');
-    // Simulate check against server
     setTimeout(() => {
       setUpdateState('RESULT');
     }, 2500);
   };
 
   return (
-    <div className="space-y-8 animate-fade">
-      {/* Executive Welcome Card */}
-      <div className="relative overflow-hidden glass-card p-8 rounded-[2.5rem] bg-gradient-to-br from-indigo-600/10 to-transparent border-white/10">
-        <div className="relative z-10 space-y-4">
-          <div className="inline-flex items-center space-x-2 bg-white/5 px-3 py-1 rounded-full border border-white/10">
-            <ShieldCheck size={12} className="text-indigo-400" />
-            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-300">Verified Student Access</span>
+    <div className="space-y-16 animate-fade-in pb-32">
+      {/* Executive Status Matrix */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+        <div className="space-y-2">
+            <h2 className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.6em]">Management Node</h2>
+            <h1 className="text-5xl font-black text-white tracking-tighter italic uppercase">Executive Command</h1>
+        </div>
+        <div className="flex items-center space-x-6 bg-slate-900/60 border border-white/10 p-6 rounded-[2.5rem] backdrop-blur-2xl shadow-2xl">
+            <div className="relative">
+                <Cpu className="text-indigo-500 animate-pulse" size={28} />
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-900"></div>
+            </div>
+            <div className="text-left">
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Node Status</p>
+                <p className="text-sm font-bold text-white uppercase tracking-widest">Active / {APP_VERSION.split(' ')[0]}</p>
+            </div>
+        </div>
+      </div>
+
+      {/* High-End Hero Interface */}
+      <div className="relative overflow-hidden glass-card p-12 md:p-24 rounded-[5rem] bg-gradient-to-br from-indigo-900/20 via-transparent to-transparent border-white/10 group shadow-[0_50px_100px_-20px_rgba(0,0,0,0.6)]">
+        <div className="absolute top-0 right-0 p-16 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Zap size={300} className="text-white transform rotate-12" />
+        </div>
+        
+        <div className="relative z-10 space-y-8 max-w-2xl">
+          <div className="inline-flex items-center space-x-4 bg-indigo-600/10 px-5 py-2.5 rounded-full border border-indigo-500/20">
+            <ShieldCheck size={16} className="text-indigo-400" />
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-300">Level {user.level} Security Authorized</span>
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-white">
-            Hello, <span className="text-indigo-500">{user.name.split(' ')[0]}</span>
+          
+          <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-white leading-[0.9]">
+            Welcome, <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-600 italic">{user.name.split(' ')[0]}</span>
           </h1>
-          <p className="text-slate-400 font-medium max-w-sm text-sm leading-relaxed">
-            Welcome back to your personal academic pocket. Your files and schedule are fully synchronized.
+          
+          <p className="text-slate-400 font-medium text-xl leading-relaxed max-w-lg">
+            Institutional environment synchronized. Cryptographic protocols enforced for the 2024–2026 academic cycle.
           </p>
-          <div className="pt-2">
+          
+          <div className="pt-10 flex flex-wrap gap-6">
              <button 
               onClick={handleCheckUpdates}
-              className="px-6 py-3 bg-white text-black rounded-xl text-[11px] font-bold uppercase tracking-wider flex items-center hover:bg-slate-100 transition-colors"
+              className="px-10 py-5 bg-white text-slate-950 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] flex items-center hover:scale-105 transition-all shadow-2xl"
              >
-                <RefreshCw size={14} className="mr-2" /> Check for Updates
+                <RefreshCw size={18} className="mr-4" /> Integrity Scan
+             </button>
+             <button 
+              onClick={() => onNavigate(View.SETTINGS)}
+              className="px-10 py-5 bg-white/5 text-white border border-white/10 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] flex items-center hover:bg-white/10 transition-all"
+             >
+                Node Configuration
              </button>
           </div>
         </div>
       </div>
 
-      {/* Main Utility Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Analytics Matrix */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
         {[
-          { icon: Calendar, title: "My Planner", desc: "Deadlines & Schedule", view: View.VERIFY_LINK },
-          { icon: Database, title: "My Vault", desc: "Secure Storage", view: View.FILE_HUB }
+          { icon: Calendar, title: "Strategic Planner", desc: "Enterprise Deadlines & Roadmap", view: View.VERIFY_LINK },
+          { icon: Database, title: "Quantum Vault", desc: "End-to-End Encrypted Storage", view: View.FILE_HUB }
         ].map((item, idx) => (
           <div 
             key={idx} 
             onClick={() => onNavigate(item.view)}
-            className="glass-card p-8 rounded-[2rem] group cursor-pointer hover:border-indigo-500/50 transition-all"
+            className="glass-card p-12 rounded-[4rem] group cursor-pointer hover:border-indigo-500/50 transition-all hover:-translate-y-2 border-white/5"
           >
-            <div className="flex justify-between items-start mb-6">
-              <div className="p-3 bg-indigo-600/10 rounded-xl text-indigo-400">
-                <item.icon size={24} />
+            <div className="flex justify-between items-start mb-12">
+              <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center text-indigo-400 border border-white/5 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner">
+                <item.icon size={36} />
               </div>
-              <ChevronRight size={18} className="text-slate-600 group-hover:text-white transition-colors" />
+              <ChevronRight size={28} className="text-slate-700 group-hover:text-white group-hover:translate-x-2 transition-all" />
             </div>
-            <h3 className="text-lg font-bold text-white mb-1">{item.title}</h3>
-            <p className="text-xs text-slate-500 font-medium">{item.desc}</p>
+            <h3 className="text-3xl font-black text-white mb-3 uppercase tracking-tight italic">{item.title}</h3>
+            <p className="text-xs text-slate-500 font-bold uppercase tracking-[0.3em] leading-loose">{item.desc}</p>
           </div>
         ))}
       </div>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="glass-card p-6 rounded-3xl flex items-center space-x-4">
-           <Award className="text-amber-500" size={32} />
-           <div>
-             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Academic Level</h4>
-             <p className="text-sm font-bold text-white">Level {user.level} Student</p>
-           </div>
-        </div>
-        <div className="glass-card p-6 rounded-3xl flex items-center space-x-4">
-           <GraduationCap className="text-indigo-400" size={32} />
-           <div>
-             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Center</h4>
-             <p className="text-sm font-bold text-white truncate">{user.education || 'Academic Hub'}</p>
-           </div>
-        </div>
+      {/* Professional Watermark */}
+      <div className="pt-32 pb-16 text-center opacity-30">
+          <p className="text-[11px] font-black text-slate-600 uppercase tracking-[1.5em]">{WATERMARK}</p>
       </div>
 
-      {/* Update Result Modal */}
+      {/* System Probe Modal */}
       {updateState !== 'IDLE' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
-          <div className="w-full max-w-sm glass-card rounded-[2.5rem] p-10 text-center relative animate-fade">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-8 bg-slate-950/90 backdrop-blur-3xl">
+          <div className="w-full max-w-lg bg-slate-900 border border-white/10 rounded-[4rem] p-16 text-center relative animate-scale-up shadow-[0_50px_100px_-20px_rgba(0,0,0,0.9)]">
              {updateState === 'CHECKING' ? (
-               <>
-                 <Loader2 size={48} className="mx-auto text-indigo-500 animate-spin mb-6" />
-                 <h3 className="text-xl font-bold text-white mb-2">Connecting</h3>
-                 <p className="text-xs text-slate-400">Verifying system integrity and build status...</p>
-               </>
-             ) : (
-               <>
-                 <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-500 border border-emerald-500/20">
-                    <CheckCircle2 size={32} />
+               <div className="space-y-10">
+                 <div className="relative w-32 h-32 mx-auto">
+                    <Loader2 size={128} className="text-indigo-500 animate-spin opacity-20" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <Activity size={48} className="text-indigo-400 animate-pulse" />
+                    </div>
                  </div>
-                 <h3 className="text-xl font-bold text-white mb-2">Up to Date</h3>
-                 <p className="text-xs text-slate-400 mb-6">Build {APP_VERSION} is current. No action required.</p>
+                 <div>
+                    <h3 className="text-3xl font-black text-white mb-3 uppercase italic tracking-tight">System Probe</h3>
+                    <p className="text-xs text-slate-500 font-bold uppercase tracking-[0.4em] leading-relaxed">Analyzing node signatures for 2026 cycle...</p>
+                 </div>
+               </div>
+             ) : (
+               <div className="space-y-10">
+                 <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto text-emerald-500 border border-emerald-500/20 shadow-2xl shadow-emerald-500/20 animate-bounce">
+                    <CheckCircle2 size={56} />
+                 </div>
+                 <div>
+                    <h3 className="text-3xl font-black text-white mb-3 uppercase italic">System Integrity Verified</h3>
+                    <p className="text-xs text-slate-500 font-bold uppercase tracking-[0.3em] mb-12">{APP_VERSION} Locked.</p>
+                 </div>
                  <button 
                   onClick={() => setUpdateState('IDLE')}
-                  className="w-full py-4 bg-white text-black rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-slate-200 transition-colors"
+                  className="w-full py-6 bg-white text-slate-950 rounded-[2.5rem] text-[11px] font-black uppercase tracking-[0.4em] hover:bg-slate-100 transition-all shadow-2xl"
                  >
-                   Continue
+                   Return to Control
                  </button>
-               </>
+               </div>
              )}
           </div>
         </div>

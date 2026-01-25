@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>StudentPocket – By Sushil</title>
+    <title>StudentPocket – Professional Academic Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -12,56 +12,84 @@
         theme: {
           extend: {
             colors: {
-              obsidian: '#050505',
+              obsidian: '#020617',
               glass: 'rgba(255, 255, 255, 0.03)',
               'glass-border': 'rgba(255, 255, 255, 0.08)',
               accent: '#6366f1',
             },
             fontFamily: {
               sans: ['Outfit', 'Inter', 'sans-serif'],
+            },
+            animation: {
+              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             }
           }
         }
       }
     </script>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100;300;400;600;700;900&display=swap');
       
       :root {
         color-scheme: dark;
       }
 
       body { 
-        background-color: #000000; 
-        color: #ffffff;
+        background-color: #020617; 
+        color: #f8fafc;
         margin: 0;
         -webkit-font-smoothing: antialiased;
         overflow-x: hidden;
       }
 
+      /* High-end Glassmorphism */
       .glass-card {
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
       }
       
-      .btn-premium {
+      .btn-primary {
         background: #ffffff;
-        color: #000000;
-        font-weight: 700;
-        transition: all 0.2s ease;
+        color: #020617;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
       
-      .btn-premium:active {
-        transform: scale(0.96);
-        opacity: 0.9;
+      .btn-primary:hover {
+        background: #e2e8f0;
+        transform: translateY(-1px);
+        box-shadow: 0 10px 20px -5px rgba(255, 255, 255, 0.2);
       }
 
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+      .btn-primary:active {
+        transform: scale(0.97);
       }
-      .animate-fade { animation: fadeIn 0.4s ease forwards; }
+
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+      @keyframes scaleUp {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+      }
+      .animate-scale-up { animation: scaleUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .animate-fade-in { animation: fadeIn 0.8s ease forwards; }
+
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+      }
+      .animate-shake { animation: shake 0.2s ease-in-out infinite; }
     </style>
     <script type="importmap">
 {
