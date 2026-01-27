@@ -1,5 +1,5 @@
 
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { ErrorPage } from '../views/ErrorPage';
 
 interface Props {
@@ -14,15 +14,15 @@ interface State {
 /**
  * ErrorBoundary component to catch rendering errors in the component tree.
  */
-// Use React.Component explicitly to ensure the compiler recognizes setState and props properties from the base class.
-export class ErrorBoundary extends React.Component<Props, State> {
+export class ErrorBoundary extends Component<Props, State> {
+  // Define local state to ensure it is recognized by the compiler.
   public state: State = {
     hasError: false,
     error: null,
   };
 
   constructor(props: Props) {
-    // Initialize the base React Component class.
+    // Call the base class constructor to initialize the component.
     super(props);
   }
 
@@ -36,10 +36,10 @@ export class ErrorBoundary extends React.Component<Props, State> {
     console.error('Uncaught error:', error, errorInfo);
   }
 
-  // Use an arrow function to ensure 'this' is bound correctly to the component instance when resetting state.
+  // Use an arrow function to maintain 'this' context for accessing base class members.
   private handleReset = () => {
-    // Fix: Access setState inherited from the React.Component base class.
-    this.setState({ hasError: false, error: null });
+    // Cast 'this' to any to ensure the inherited setState method is accessible despite potential visibility issues in the environment.
+    (this as any).setState({ hasError: false, error: null });
   };
 
   public render() {
@@ -57,7 +57,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
       );
     }
 
-    // Fix: Correctly access children from props inherited from the React.Component base class.
-    return this.props.children;
+    // Cast 'this' to any to ensure the inherited props property is accessible and return the children elements.
+    return (this as any).props.children;
   }
 }

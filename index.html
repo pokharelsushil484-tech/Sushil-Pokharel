@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>StudentPocket – Professional Academic Hub</title>
+    <title>StudentPocket – Platinum Academic Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -13,9 +13,9 @@
           extend: {
             colors: {
               obsidian: '#000000',
-              slate_dark: '#080808',
-              accent_white: '#FFFFFF',
-              indigo_brand: '#6366f1',
+              slate_dark: '#050505',
+              platinum: '#E5E4E2',
+              indigo_brand: '#4f46e5',
             },
             fontFamily: {
               sans: ['Outfit', 'Inter', 'sans-serif'],
@@ -34,53 +34,77 @@
       body { 
         background-color: #000000; 
         background-image: 
-          linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-        background-size: 40px 40px;
+          radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+        background-size: 32px 32px;
         color: #ffffff;
         margin: 0;
         -webkit-font-smoothing: antialiased;
         overflow-x: hidden;
       }
 
-      /* Fixed Box Architecture */
+      /* Platinum Elite Components */
       .master-box {
-        background: rgba(10, 10, 10, 0.95);
+        background: rgba(10, 10, 10, 0.85);
         backdrop-filter: blur(40px);
         border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 1);
-        position: relative;
+        box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 1);
+        border-radius: 3rem;
+        overflow: hidden;
       }
       
       .scroll-box {
-        max-height: 65vh;
+        max-height: 70vh;
         overflow-y: auto;
-        padding-right: 8px;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255,255,255,0.1) transparent;
       }
       
-      .scroll-box::-webkit-scrollbar { width: 3px; }
+      .scroll-box::-webkit-scrollbar { width: 4px; }
       .scroll-box::-webkit-scrollbar-thumb {
         background: rgba(255, 255, 255, 0.2);
         border-radius: 10px;
       }
 
-      .stark-label {
-        background: white;
-        color: black;
-        padding: 4px 12px;
-        border-radius: 6px;
+      .btn-platinum {
+        background: #ffffff;
+        color: #000000;
         font-weight: 900;
         text-transform: uppercase;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.15em;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 1.5rem;
+      }
+      
+      .btn-platinum:hover {
+        background: #e2e8f0;
+        transform: translateY(-2px);
+        box-shadow: 0 20px 40px -10px rgba(255, 255, 255, 0.2);
       }
 
-      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-      .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
-      
-      @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-      .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      .stark-badge {
+        background: #ffffff;
+        color: #000000;
+        padding: 4px 14px;
+        border-radius: 9999px;
+        font-size: 9px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+      }
+
+      @keyframes slideUpFade {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .animate-platinum { animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+      /* Prevent white flash */
+      #root { background-color: #000000; min-height: 100vh; }
     </style>
-  <script type="importmap">
+    <script type="importmap">
 {
   "imports": {
     "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
@@ -93,7 +117,7 @@
   }
 }
 </script>
-</head>
+  </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>

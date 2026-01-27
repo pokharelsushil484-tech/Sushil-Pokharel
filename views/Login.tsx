@@ -1,177 +1,173 @@
 import React, { useState, useRef } from 'react';
-import { Lock, User, Eye, EyeOff, Loader2, ShieldCheck, ArrowRight, Fingerprint, Activity, Terminal } from 'lucide-react';
-import { COPYRIGHT_NOTICE, APP_NAME, SYSTEM_DOMAIN, APP_VERSION, BUILD_DATE } from '../constants';
+import { Lock, User, Eye, EyeOff, Loader2, ShieldCheck, ArrowRight, Fingerprint, Activity, Smartphone } from 'lucide-react';
+import { APP_NAME, SYSTEM_DOMAIN, APP_VERSION, BUILD_DATE, COPYRIGHT_NOTICE } from '../constants';
 
 interface LoginProps {
   onLogin: (username: string) => void;
 }
 
 export const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [stage, setStage] = useState<'ENTRY' | 'CREDENTIALS' | 'SCAN'>('ENTRY');
-  const [loginInput, setLoginInput] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [stage, setStage] = useState<'WELCOME' | 'CREDENTIALS' | 'BIOMETRIC'>('WELCOME');
+  const [userId, setUserId] = useState('');
+  const [token, setToken] = useState('');
+  const [showToken, setShowToken] = useState(false);
+  const [loading, setLoading] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
 
-  const startApplication = () => {
-    setIsProcessing(true);
+  const initializeTerminal = () => {
+    setLoading(true);
     setTimeout(() => {
-      setIsProcessing(false);
+      setLoading(false);
       setStage('CREDENTIALS');
-    }, 800);
+    }, 1000);
   };
 
   const handleCredentialSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginInput || !password) return;
-    setIsProcessing(true);
+    if (!userId || !token) return;
+    setLoading(true);
     setTimeout(() => {
-      setIsProcessing(false);
-      setStage('SCAN');
-      startIdentityScan();
+      setLoading(false);
+      setStage('BIOMETRIC');
+      startBiometricSim();
     }, 1200);
   };
 
-  const startIdentityScan = async () => {
+  const startBiometricSim = async () => {
     try {
       const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-      setStream(s);
       if (videoRef.current) videoRef.current.srcObject = s;
     } catch (err) {
-      console.warn("Camera restricted. Terminal fallback active.");
+      console.warn("Environmental constraints: Biometric hardware bypassed.");
     }
   };
 
-  const finalizeAccess = () => {
-    setIsProcessing(true);
+  const grantAccess = () => {
+    setLoading(true);
     setTimeout(() => {
-      if (stream) stream.getTracks().forEach(t => t.stop());
-      onLogin(loginInput);
+      onLogin(userId || "Executive");
     }, 1800);
   };
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
-      {/* Background Ambience */}
-      <div className="absolute inset-0 opacity-40 pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-indigo-900/30 rounded-full blur-[120px] animate-pulse"></div>
-        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-slate-900/40 rounded-full blur-[120px]"></div>
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 relative overflow-hidden selection:bg-white/20">
+      {/* Background Ambience - Highly Professional Indigo/Slate Blurs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-indigo-950/20 rounded-full blur-[160px]"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-slate-900/30 rounded-full blur-[160px]"></div>
       </div>
 
-      <div className="relative z-10 w-full max-w-lg">
-        <div className="bg-[#0a0a0a] border border-white/10 rounded-[3.5rem] p-10 md:p-14 shadow-[0_40px_100px_-20px_rgba(0,0,0,1)]">
+      <div className="relative z-10 w-full max-w-lg animate-platinum">
+        <div className="master-box p-12 md:p-16 border border-white/10">
           
-          {stage === 'ENTRY' && (
-            <div className="text-center space-y-10 animate-scale-in">
-              <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mx-auto mb-10 shadow-[0_0_50px_rgba(255,255,255,0.1)] transform -rotate-6">
+          {stage === 'WELCOME' && (
+            <div className="text-center space-y-12">
+              <div className="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center mx-auto shadow-[0_0_60px_rgba(255,255,255,0.1)] transform -rotate-3">
                 <ShieldCheck size={48} className="text-black" />
               </div>
-              <div>
+              <div className="space-y-4">
                 <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">{APP_NAME}</h1>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.6em] mt-4">{SYSTEM_DOMAIN}</p>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.7em]">{SYSTEM_DOMAIN}</p>
               </div>
               <button 
-                onClick={startApplication}
-                className="w-full py-6 bg-white text-black rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] transition-all hover:bg-slate-200 flex items-center justify-center group"
+                onClick={initializeTerminal}
+                disabled={loading}
+                className="btn-platinum w-full py-6"
               >
-                {isProcessing ? <Loader2 className="animate-spin" size={20} /> : <>Initialize Portal <ArrowRight className="ml-3 group-hover:translate-x-2 transition-transform" size={18}/></>}
+                {loading ? <Loader2 className="animate-spin" size={20} /> : <>Initialize Portal <ArrowRight className="ml-3" size={18}/></>}
               </button>
             </div>
           )}
 
           {stage === 'CREDENTIALS' && (
-            <div className="animate-slide-up">
-              <div className="text-center mb-12">
-                <h2 className="text-xl font-black text-white uppercase tracking-widest italic">Security Node</h2>
-                <div className="inline-flex items-center space-x-2 bg-white/5 px-4 py-1.5 rounded-full mt-4 border border-white/5">
-                  <Activity size={12} className="text-emerald-500 animate-pulse" />
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.3em]">Authorized Session Layer</span>
+            <div className="space-y-10">
+              <div className="text-center">
+                <h2 className="text-xl font-black text-white uppercase tracking-widest italic">Authorization Node</h2>
+                <div className="inline-flex items-center space-x-2 bg-white/5 px-4 py-1.5 rounded-full mt-5 border border-white/5">
+                  <Activity size={12} className="text-indigo-400 animate-pulse" />
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em]">Institutional Layer Access</span>
                 </div>
               </div>
 
               <form onSubmit={handleCredentialSubmit} className="space-y-8">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] ml-6">Personnel ID</label>
-                  <div className="relative">
-                    <User className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
+                <div className="space-y-3">
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] ml-4">Personnel Identity</label>
+                  <div className="relative group">
+                    <User className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 transition-colors group-focus-within:text-white" size={18} />
                     <input 
                       type="text" 
-                      value={loginInput} 
-                      onChange={e => setLoginInput(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-3xl py-5 pl-16 pr-8 text-white font-bold text-sm outline-none focus:border-white/30 focus:bg-white/[0.08] transition-all"
-                      placeholder="Username / Student ID"
+                      value={userId} 
+                      onChange={e => setUserId(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] py-5 pl-16 pr-8 text-white font-bold text-sm outline-none focus:border-white/30 focus:bg-white/[0.08] transition-all placeholder:text-slate-700"
+                      placeholder="Student ID / Alias"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] ml-6">Access Token</label>
-                  <div className="relative">
-                    <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
+                <div className="space-y-3">
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] ml-4">Access Token</label>
+                  <div className="relative group">
+                    <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 transition-colors group-focus-within:text-white" size={18} />
                     <input 
-                      type={showPassword ? "text" : "password"} 
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-3xl py-5 pl-16 pr-16 text-white font-bold text-sm outline-none focus:border-white/30 focus:bg-white/[0.08] transition-all"
-                      placeholder="Access Code"
+                      type={showToken ? "text" : "password"} 
+                      value={token}
+                      onChange={e => setToken(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] py-5 pl-16 pr-16 text-white font-bold text-sm outline-none focus:border-white/30 focus:bg-white/[0.08] transition-all placeholder:text-slate-700"
+                      placeholder="Security Hash"
                     />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    <button type="button" onClick={() => setShowToken(!showToken)} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white">
+                      {showToken ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
                 </div>
 
                 <button 
                   type="submit" 
-                  disabled={isProcessing}
-                  className="w-full py-6 bg-white text-black rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] transition-all shadow-xl"
+                  disabled={loading}
+                  className="btn-platinum w-full py-6"
                 >
-                  {isProcessing ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Authorize Identity'}
+                  {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Authorize Metadata'}
                 </button>
               </form>
             </div>
           )}
 
-          {stage === 'SCAN' && (
-            <div className="animate-scale-in text-center space-y-12">
-              <div className="relative mx-auto w-60 h-60 rounded-[3.5rem] overflow-hidden border border-white/10 shadow-2xl bg-black">
-                <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover opacity-60 grayscale" />
-                <div className="absolute inset-0 border-[20px] border-black/80"></div>
-                <div className="absolute inset-x-0 top-0 h-0.5 bg-white shadow-[0_0_15px_rgba(255,255,255,0.8)] animate-[scan_2.5s_infinite]"></div>
+          {stage === 'BIOMETRIC' && (
+            <div className="text-center space-y-12">
+              <div className="relative mx-auto w-64 h-64 rounded-[4rem] overflow-hidden border border-white/10 shadow-2xl bg-black group">
+                <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover opacity-40 grayscale group-hover:opacity-60 transition-opacity" />
+                <div className="absolute inset-0 border-[24px] border-black/80"></div>
+                <div className="absolute inset-x-0 top-0 h-0.5 bg-white shadow-[0_0_20px_rgba(255,255,255,0.8)] animate-[scan_3s_infinite]"></div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Fingerprint size={80} className="text-white opacity-10 animate-pulse" />
+                  <Fingerprint size={100} className="text-white opacity-5 animate-pulse" />
                 </div>
               </div>
               
               <div>
-                <h3 className="text-2xl font-black text-white uppercase tracking-tight italic">Biometric Hash</h3>
-                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.5em] mt-2">Scanning Real-Time Personnel Frame</p>
+                <h3 className="text-2xl font-black text-white uppercase tracking-tight italic">Biometric Integrity</h3>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.6em] mt-3">Validating Personnel Signature</p>
               </div>
 
               <button 
-                onClick={finalizeAccess}
-                disabled={isProcessing}
-                className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl shadow-indigo-600/30 transition-all"
+                onClick={grantAccess}
+                disabled={loading}
+                className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.4em] shadow-2xl shadow-indigo-600/30 transition-all hover:bg-indigo-500"
               >
-                {isProcessing ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Finalize Login'}
+                {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Finalize Synchronization'}
               </button>
             </div>
           )}
 
-          {/* Detailed Version Section - Highly Visible */}
-          <div className="mt-16 text-center border-t border-white/5 pt-10">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="px-4 py-1.5 bg-white text-black text-[9px] font-black uppercase tracking-widest rounded-full">
-                {APP_VERSION}
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] text-white font-bold tracking-[0.3em] uppercase">{BUILD_DATE}</p>
-                <p className="text-[8px] text-slate-600 font-bold tracking-[0.4em] uppercase">{COPYRIGHT_NOTICE}</p>
-              </div>
+          {/* Version/Legal Section - Always Sharp & Visible */}
+          <div className="mt-16 text-center border-t border-white/5 pt-10 space-y-6">
+            <div className="flex flex-col items-center space-y-3">
+              <span className="stark-badge">{APP_VERSION}</span>
+              <p className="text-[9px] text-white font-black tracking-[0.5em] uppercase">{BUILD_DATE}</p>
             </div>
+            <p className="text-[8px] text-slate-600 font-bold tracking-[0.4em] uppercase leading-relaxed max-w-xs mx-auto">
+              {COPYRIGHT_NOTICE}
+            </p>
           </div>
 
         </div>
@@ -179,8 +175,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
       <style>{`
         @keyframes scan {
-          0%, 100% { top: 0%; }
-          50% { top: 100%; }
+          0%, 100% { top: 0%; opacity: 0.5; }
+          50% { top: 100%; opacity: 1; }
         }
       `}</style>
     </div>
