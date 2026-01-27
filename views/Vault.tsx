@@ -24,28 +24,6 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
   const isAdmin = localStorage.getItem('active_session_user') === 'admin'; 
-  const isVerified = user.isVerified || isAdmin;
-
-  if (!isVerified) {
-    return (
-      <div className="h-[70vh] flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-        <div className="bg-white dark:bg-slate-900 p-12 rounded-[3rem] shadow-2xl max-w-lg w-full border border-slate-100 dark:border-white/5 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-indigo-600"></div>
-          <ShieldAlert size={64} className="text-amber-500 mx-auto mb-8 animate-pulse" />
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-4 leading-tight">Verification Needed</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-bold leading-relaxed mb-8 uppercase tracking-[0.2em]">
-            To keep your files safe, we require a quick student verification.
-          </p>
-          <button 
-            className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
-            onClick={() => onNavigate(View.VERIFICATION_FORM)}
-          >
-            Start Verification
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   const handleUnlock = () => {
     if (pin === (user.vaultPin || "1234")) {
@@ -53,7 +31,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
       setError('');
     } else {
       setPin('');
-      setError("Incorrect Pin.");
+      setError("AUTHORIZATION DENIED.");
     }
   };
 
@@ -80,15 +58,6 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
       };
       saveDocuments([...documents, newDoc]);
       updateUser({...user, storageUsedBytes: user.storageUsedBytes + file.size});
-      
-      await storageService.logActivity({
-        actor: user.name,
-        targetUser: user.name,
-        actionType: 'DATA',
-        description: `Uploaded file: ${file.name}`,
-        metadata: JSON.stringify({ size: file.size, type: file.type })
-      });
-
       setIsUploading(false);
     };
     reader.readAsDataURL(file);
@@ -104,19 +73,11 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
   };
 
   const deleteFile = async (id: string) => {
-    if (window.confirm("Delete this file permanently?")) {
+    if (window.confirm("Purge this data node?")) {
       const doc = documents.find(d => d.id === id);
       if (doc) {
         saveDocuments(documents.filter(d => d.id !== id));
         updateUser({...user, storageUsedBytes: Math.max(0, user.storageUsedBytes - doc.size)});
-        
-        await storageService.logActivity({
-            actor: user.name,
-            targetUser: user.name,
-            actionType: 'DATA',
-            description: `Deleted file: ${doc.title}`,
-            metadata: JSON.stringify({ size: doc.size })
-        });
       }
     }
   };
@@ -124,22 +85,23 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
   if (!isUnlocked) {
     return (
       <div className="h-[70vh] flex flex-col items-center justify-center animate-fade-in px-4">
-        <div className="bg-white dark:bg-slate-900 p-12 rounded-[3rem] shadow-2xl w-full max-w-sm text-center border border-slate-100 dark:border-white/5 relative">
-          <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-950/30 rounded-[2rem] flex items-center justify-center mx-auto mb-8 border border-indigo-100 dark:border-indigo-900/30">
-            <Lock className="w-10 h-10 text-indigo-600" />
+        <div className="bg-slate-900 p-12 rounded-[4rem] shadow-2xl w-full max-w-sm text-center border border-white/10 relative">
+          <div className="w-20 h-20 bg-indigo-600/10 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-indigo-500/20">
+            <Lock size={36} className="text-indigo-500" />
           </div>
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tighter">My Vault</h2>
-          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mb-8">Enter Pin to Unlock</p>
+          <h2 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter italic">Quantum Vault</h2>
+          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mb-10">Access Token Required</p>
           <input 
             type="password" 
             value={pin}
             onChange={e => setPin(e.target.value)}
-            className="w-full p-6 bg-slate-50 dark:bg-slate-800 rounded-[2rem] text-center text-3xl font-black tracking-[0.8em] outline-none mb-8 border-2 border-transparent focus:border-indigo-500 transition-all dark:text-white"
+            className="w-full p-6 bg-black border-2 border-transparent focus:border-indigo-500 rounded-[2rem] text-center text-3xl font-black tracking-[0.8em] outline-none mb-10 text-white shadow-inner"
             placeholder="••••"
             maxLength={4}
+            autoFocus
           />
           {error && <p className="text-red-500 text-[10px] font-black uppercase mb-6 tracking-widest animate-shake">{error}</p>}
-          <button onClick={handleUnlock} className="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:bg-indigo-700 transition-all">Unlock Now</button>
+          <button onClick={handleUnlock} className="w-full bg-white text-black py-5 rounded-[2.5rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:bg-slate-200 transition-all">Unlock Node</button>
         </div>
       </div>
     );
@@ -148,72 +110,69 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
   const filteredDocs = documents.filter(doc => doc.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
-    <div className="pb-24 animate-fade-in max-w-7xl mx-auto w-full flex flex-col h-full px-4 sm:px-0">
-      {/* HEADER CONTROLS */}
-      <div className="mb-8 bg-white dark:bg-slate-900 p-8 rounded-[3rem] shadow-sm border border-slate-100 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center space-x-6 w-full md:w-auto">
-              <div className="w-16 h-16 bg-indigo-600 text-white rounded-[2rem] flex items-center justify-center shadow-xl shadow-indigo-600/20 flex-shrink-0"><Database size={32} /></div>
+    <div className="animate-fade-in max-w-7xl mx-auto w-full flex flex-col h-full space-y-6">
+      <div className="bg-slate-900/50 p-8 rounded-[3.5rem] border border-white/10 flex flex-col md:flex-row justify-between items-center gap-6 shadow-2xl backdrop-blur-xl">
+          <div className="flex items-center space-x-6">
+              <div className="w-16 h-16 bg-white text-black rounded-[2rem] flex items-center justify-center shadow-xl flex-shrink-0"><Database size={32} /></div>
               <div>
-                <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">My<br/>Files</h2>
+                <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic">Master<br/>Vault</h2>
               </div>
           </div>
-          <div className="flex items-center space-x-4 w-full md:w-auto justify-end">
-              <div className="hidden sm:flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl mr-2">
-                  <button onClick={() => setViewMode('grid')} className={`p-3 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-400'}`}><LayoutGrid size={20}/></button>
-                  <button onClick={() => setViewMode('list')} className={`p-3 rounded-xl transition-all ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-400'}`}><List size={20}/></button>
+          <div className="flex items-center space-x-4 w-full md:w-auto">
+              <div className="hidden sm:flex bg-white/5 p-1 rounded-2xl mr-2 border border-white/5">
+                  <button onClick={() => setViewMode('grid')} className={`p-3 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-white text-black' : 'text-slate-500'}`}><LayoutGrid size={18}/></button>
+                  <button onClick={() => setViewMode('list')} className={`p-3 rounded-xl transition-all ${viewMode === 'list' ? 'bg-white text-black' : 'text-slate-500'}`}><List size={18}/></button>
               </div>
-              <label className={`w-full md:w-auto p-4 md:px-8 bg-indigo-600 text-white rounded-[2rem] shadow-lg hover:bg-indigo-700 transition-all cursor-pointer flex items-center justify-center space-x-3 ${isUploading ? 'opacity-70 cursor-wait' : ''}`}>
+              <label className={`flex-1 md:flex-none p-5 bg-indigo-600 text-white rounded-[2rem] shadow-xl hover:bg-indigo-500 transition-all cursor-pointer flex items-center justify-center space-x-3 ${isUploading ? 'opacity-70 cursor-wait' : ''}`}>
                  <UploadCloud size={20} className={isUploading ? 'animate-bounce' : ''} />
-                 <span className="text-[10px] font-black uppercase tracking-[0.2em]">{isUploading ? 'Uploading...' : 'Add File'}</span>
+                 <span className="text-[10px] font-black uppercase tracking-widest">{isUploading ? 'Syncing...' : 'Upload Node'}</span>
                  <input type="file" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
               </label>
           </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-200 dark:border-white/5 shadow-sm flex items-center mb-8 px-6">
-          <Search className="text-slate-400" size={24} />
+      <div className="bg-white/5 p-4 rounded-[2rem] border border-white/10 flex items-center px-8">
+          <Search className="text-slate-500" size={24} />
           <input 
             type="text" 
-            placeholder="Find a file..." 
-            className="flex-1 bg-transparent px-4 text-base font-black uppercase tracking-widest outline-none dark:text-white placeholder:text-slate-300"
+            placeholder="IDENTIFY DATA NODE..." 
+            className="flex-1 bg-transparent px-6 text-sm font-black uppercase tracking-widest outline-none text-white placeholder:text-slate-800"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
       </div>
 
-      <div className="flex-1 pb-10">
+      <div className="scroll-box flex-1 min-h-[500px]">
           {filteredDocs.length === 0 ? (
-              <div className="text-center py-24 opacity-20 flex flex-col items-center">
-                  <Box size={80} className="mb-6" />
-                  <p className="text-lg font-black uppercase tracking-[0.4em]">No Files Yet.</p>
+              <div className="text-center py-32 opacity-20 flex flex-col items-center justify-center">
+                  <Box size={100} className="mb-8" />
+                  <p className="text-xl font-black uppercase tracking-[0.5em]">No Data Discovered</p>
               </div>
           ) : viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 {filteredDocs.map(doc => (
-                  <div key={doc.id} className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl transition-all relative group h-72 flex flex-col justify-between overflow-hidden">
-                      <div className="w-full h-32 rounded-3xl overflow-hidden mb-4 bg-slate-50 dark:bg-slate-800 relative">
+                  <div key={doc.id} className="master-box p-6 rounded-[3rem] hover:border-white/30 transition-all group h-80 flex flex-col">
+                      <div className="w-full h-36 rounded-[2rem] overflow-hidden mb-6 bg-black flex items-center justify-center relative shadow-inner">
                            {doc.type === 'IMAGE' ? (
-                               <img src={doc.content} alt={doc.title} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                               <img src={doc.content} alt={doc.title} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
                            ) : (
-                               <div className={`w-full h-full flex items-center justify-center ${
-                                   doc.type === 'VIDEO' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-500' : 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500'
-                               }`}>
-                                   {doc.type === 'VIDEO' ? <Video size={32} /> : <FileText size={32} />}
+                               <div className="text-indigo-500 opacity-40">
+                                   {doc.type === 'VIDEO' ? <Video size={48} /> : <FileText size={48} />}
                                </div>
                            )}
                       </div>
 
-                      <div className="flex justify-between items-start">
-                         <div className="min-w-0 flex-1 mr-2">
-                             <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight truncate" title={doc.title}>{doc.title}</h4>
-                             <div className="flex justify-between items-center text-[9px] text-slate-400 font-black uppercase tracking-widest mt-1">
-                                <span>{doc.type}</span>
-                                <span>{(doc.size / 1024).toFixed(1)} KB</span>
+                      <div className="flex-1 flex flex-col justify-between">
+                         <div className="space-y-1">
+                             <h4 className="text-sm font-black text-white uppercase tracking-tight truncate">{doc.title}</h4>
+                             <div className="flex items-center gap-3">
+                                <span className="stark-label text-[8px] py-0.5">{doc.type}</span>
+                                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">{(doc.size / 1024).toFixed(1)} KB</span>
                              </div>
                          </div>
-                         <div className="flex flex-col gap-2">
-                            <button onClick={() => downloadFile(doc)} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 hover:text-indigo-600 transition-colors"><Download size={16}/></button>
-                            <button onClick={() => deleteFile(doc.id)} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
+                         <div className="flex gap-3 mt-4">
+                            <button onClick={() => downloadFile(doc)} className="flex-1 p-3 bg-white/5 rounded-xl text-slate-400 hover:text-white transition-all border border-white/5"><Download size={16} className="mx-auto"/></button>
+                            <button onClick={() => deleteFile(doc.id)} className="flex-1 p-3 bg-white/5 rounded-xl text-slate-400 hover:text-red-500 transition-all border border-white/5"><Trash2 size={16} className="mx-auto"/></button>
                          </div>
                       </div>
                   </div>
@@ -222,23 +181,23 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
           ) : (
             <div className="space-y-4">
                {filteredDocs.map(doc => (
-                 <div key={doc.id} className="bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-100 dark:border-white/5 flex items-center justify-between group hover:shadow-lg transition-all">
-                    <div className="flex items-center space-x-5 overflow-hidden">
-                       <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-indigo-600 flex-shrink-0 overflow-hidden">
+                 <div key={doc.id} className="master-box p-5 rounded-[2.5rem] flex items-center justify-between group hover:border-white/20 transition-all">
+                    <div className="flex items-center space-x-6 overflow-hidden">
+                       <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden shadow-inner">
                           {doc.type === 'IMAGE' ? (
-                              <img src={doc.content} alt={doc.title} className="w-full h-full object-cover" />
+                              <img src={doc.content} className="w-full h-full object-cover" alt="" />
                           ) : (
-                              doc.type === 'VIDEO' ? <Video size={24} /> : <FileText size={24} />
+                              doc.type === 'VIDEO' ? <Video size={24} className="text-indigo-500 opacity-40"/> : <FileText size={24} className="text-slate-500"/>
                           )}
                        </div>
                        <div className="min-w-0">
-                          <p className="font-black text-slate-800 dark:text-white uppercase tracking-tight text-sm truncate">{doc.title}</p>
-                          <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">{(doc.size / 1024).toFixed(1)} KB</p>
+                          <p className="font-black text-white uppercase tracking-widest text-sm truncate">{doc.title}</p>
+                          <p className="text-[10px] text-slate-600 font-black uppercase">{(doc.size / 1024).toFixed(1)} KB • {doc.type}</p>
                        </div>
                     </div>
                     <div className="flex items-center space-x-2 pl-4">
-                       <button onClick={() => downloadFile(doc)} className="p-3 text-slate-400 hover:text-indigo-600 transition-colors"><Download size={18}/></button>
-                       <button onClick={() => deleteFile(doc.id)} className="p-3 text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
+                       <button onClick={() => downloadFile(doc)} className="p-4 text-slate-500 hover:text-white transition-colors"><Download size={20}/></button>
+                       <button onClick={() => deleteFile(doc.id)} className="p-4 text-slate-500 hover:text-red-500 transition-colors"><Trash2 size={20}/></button>
                     </div>
                  </div>
                ))}

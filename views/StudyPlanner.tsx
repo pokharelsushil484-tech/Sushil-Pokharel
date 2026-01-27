@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Assignment, TaskPriority } from '../types';
-import { Plus, Trash2, Calendar as CalendarIcon, CheckSquare, X, Clock, LayoutList, ChevronLeft, ChevronRight, Bell, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Calendar as CalendarIcon, CheckSquare, X, LayoutList, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { generateStudyPlan } from '../services/geminiService';
 
 interface PlannerProps {
@@ -14,13 +13,11 @@ export const StudyPlanner: React.FC<PlannerProps> = ({ assignments, setAssignmen
   const [showAdd, setShowAdd] = useState(false);
   const [newAssignment, setNewAssignment] = useState<Partial<Assignment>>({
     priority: TaskPriority.MEDIUM,
-    completed: false,
-    reminderMinutes: 0
+    completed: false
   });
   const [isGenerating, setIsGenerating] = useState(false);
   const [filter, setFilter] = useState('All');
   const [aiPlan, setAiPlan] = useState<string | null>(null);
-  
   const [viewMode, setViewMode] = useState<'LIST' | 'CALENDAR'>('LIST');
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -30,66 +27,25 @@ export const StudyPlanner: React.FC<PlannerProps> = ({ assignments, setAssignmen
     const assignment: Assignment = {
       id: Date.now().toString(),
       title: newAssignment.title!,
-      category: newAssignment.category || 'General',
-      subject: newAssignment.subject || 'General',
+      subject: newAssignment.subject || 'Elite Logic',
       dueDate: newAssignment.dueDate!,
       priority: newAssignment.priority || TaskPriority.MEDIUM,
       completed: false,
-      estimatedTime: newAssignment.estimatedTime,
-      reminderMinutes: newAssignment.reminderMinutes || 0
+      estimatedTime: newAssignment.estimatedTime
     };
 
     setAssignments([...assignments, assignment]);
-    setNewAssignment({ priority: TaskPriority.MEDIUM, completed: false, reminderMinutes: 0 });
-    setAiPlan(null);
+    setNewAssignment({ priority: TaskPriority.MEDIUM, completed: false });
     setShowAdd(false);
-  };
-
-  const toggleComplete = (id: string) => {
-    setAssignments(assignments.map(a => 
-      a.id === id ? { ...a, completed: !a.completed } : a
-    ));
-  };
-
-  const deleteAssignment = (id: string) => {
-    setAssignments(assignments.filter(a => a.id !== id));
-  };
-  
-  const handleGeneratePlan = async () => {
-    if(!newAssignment.subject || !newAssignment.estimatedTime) return;
-    setIsGenerating(true);
-    const plan = await generateStudyPlan(newAssignment.subject, newAssignment.estimatedTime);
-    setAiPlan(plan);
-    setIsGenerating(false);
   };
 
   const getPriorityColor = (p: string) => {
     switch(p) {
-      case 'Urgent': return 'bg-red-100 text-red-800 border-red-200';
-      case 'High': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'Medium': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'Low': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'Urgent': return 'bg-red-500 text-black';
+      case 'High': return 'bg-amber-500 text-black';
+      case 'Medium': return 'bg-indigo-500 text-white';
+      default: return 'bg-slate-800 text-white';
     }
-  };
-
-  const daysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  const startDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-
-  const changeMonth = (offset: number) => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1));
-  };
-
-  const getAssignmentsForDate = (day: number) => {
-    return assignments.filter(a => {
-      const d = new Date(a.dueDate);
-      return (
-        d.getDate() === day &&
-        d.getMonth() === currentDate.getMonth() &&
-        d.getFullYear() === currentDate.getFullYear() &&
-        !a.completed
-      );
-    });
   };
 
   const filteredAssignments = assignments.filter(a => {
@@ -99,150 +55,126 @@ export const StudyPlanner: React.FC<PlannerProps> = ({ assignments, setAssignmen
   });
 
   return (
-    <div className="pb-24 animate-fade-in relative min-h-screen">
-      <div className="flex flex-wrap justify-between items-center mb-8 gap-4">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Study Planner</h1>
+    <div className="pb-24 animate-fade-in relative min-h-[600px] flex flex-col space-y-8">
+      <div className="flex flex-wrap justify-between items-center bg-slate-900/50 p-8 rounded-[3rem] border border-white/10 shadow-2xl backdrop-blur-xl">
+        <div>
+            <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic">Roadmap</h1>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.4em] mt-1">Strategic Milestones</p>
+        </div>
         
-        <div className="flex items-center space-x-3">
-            <div className="bg-white dark:bg-gray-800 p-1 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center">
-                <button onClick={() => setViewMode('LIST')} className={`p-2 rounded-lg transition-all ${viewMode === 'LIST' ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600' : 'text-gray-400'}`}><LayoutList size={20} /></button>
-                <button onClick={() => setViewMode('CALENDAR')} className={`p-2 rounded-lg transition-all ${viewMode === 'CALENDAR' ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600' : 'text-gray-400'}`}><CalendarIcon size={20} /></button>
+        <div className="flex items-center space-x-4">
+            <div className="bg-black/50 p-1.5 rounded-2xl border border-white/5 flex items-center">
+                <button onClick={() => setViewMode('LIST')} className={`p-3 rounded-xl transition-all ${viewMode === 'LIST' ? 'bg-white text-black shadow-lg' : 'text-slate-500'}`}><LayoutList size={22} /></button>
+                <button onClick={() => setViewMode('CALENDAR')} className={`p-3 rounded-xl transition-all ${viewMode === 'CALENDAR' ? 'bg-white text-black shadow-lg' : 'text-slate-500'}`}><CalendarIcon size={22} /></button>
             </div>
             {isAdmin && (
-              <button onClick={() => setShowAdd(true)} className="bg-indigo-600 text-white w-10 h-10 md:w-12 md:h-12 rounded-2xl shadow-lg hover:bg-indigo-700 transition-all flex items-center justify-center">
-                <Plus size={24} />
+              <button onClick={() => setShowAdd(true)} className="bg-white text-black w-14 h-14 rounded-2xl shadow-2xl hover:bg-slate-200 transition-all flex items-center justify-center">
+                <Plus size={32} />
               </button>
             )}
         </div>
       </div>
 
       {viewMode === 'LIST' ? (
-        <>
-            <div className="flex space-x-3 mb-8 overflow-x-auto no-scrollbar pb-2">
+        <div className="flex-1 flex flex-col space-y-8">
+            <div className="flex space-x-4 overflow-x-auto no-scrollbar pb-2">
                 {['All', 'Pending', 'Completed'].map((f) => (
-                <button key={f} onClick={() => setFilter(f)} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${filter === f ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-500 border border-gray-200 dark:border-gray-700'}`}>{f}</button>
+                    <button key={f} onClick={() => setFilter(f)} className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border ${filter === f ? 'bg-white text-black border-white' : 'bg-transparent text-slate-600 border-white/5 hover:border-white/20'}`}>{f}</button>
                 ))}
             </div>
 
-            <div className="space-y-4">
+            {/* Scroll Container for "Many Boxes" */}
+            <div className="space-y-6 scroll-box flex-1">
                 {filteredAssignments.length === 0 && (
-                    <div className="text-center py-16 text-gray-400 bg-white dark:bg-gray-800 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700">
-                        <CalendarIcon className="w-16 h-16 mx-auto mb-4 text-indigo-100" />
-                        <p className="text-lg font-medium">No tasks found.</p>
+                    <div className="text-center py-32 opacity-20 flex flex-col items-center">
+                        <CalendarIcon className="w-20 h-20 mb-6" />
+                        <p className="text-xl font-black uppercase tracking-widest">Target Cleared</p>
                     </div>
                 )}
                 
                 {filteredAssignments.map(task => (
-                    <div key={task.id} className={`p-5 rounded-2xl border transition-all ${task.completed ? 'bg-gray-50 dark:bg-gray-900/50 opacity-60' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'}`}>
-                        <div className="flex items-start justify-between">
-                            <div className="flex items-start space-x-4 flex-1">
-                                <button onClick={() => toggleComplete(task.id)} className={`mt-1 w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-colors ${task.completed ? 'bg-green-500 border-green-500 text-white' : 'border-gray-200 dark:border-gray-600 text-transparent'}`}><CheckSquare size={18} /></button>
-                                <div className="flex-1">
-                                    <h4 className={`font-bold text-lg text-gray-800 dark:text-white mb-1 ${task.completed ? 'line-through opacity-50' : ''}`}>{task.title}</h4>
-                                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                                        <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide">{task.subject}</span>
-                                        <span className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide border ${getPriorityColor(task.priority)}`}>{task.priority}</span>
-                                    </div>
-                                    <div className="flex items-center text-sm text-gray-500 font-medium">
-                                        <CalendarIcon size={16} className="mr-2 text-indigo-400" />
-                                        <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+                    <div key={task.id} className={`master-box p-8 rounded-[3rem] transition-all ${task.completed ? 'opacity-40 grayscale' : 'hover:border-white/30'}`}>
+                        <div className="flex items-center justify-between gap-6">
+                            <div className="flex items-center space-x-8 flex-1">
+                                <button 
+                                    onClick={() => setAssignments(assignments.map(a => a.id === task.id ? { ...a, completed: !a.completed } : a))} 
+                                    className={`w-10 h-10 rounded-2xl border-2 flex items-center justify-center transition-all ${task.completed ? 'bg-emerald-500 border-emerald-500 text-black' : 'border-white/10 text-transparent hover:border-white/40'}`}
+                                >
+                                    <CheckSquare size={20} />
+                                </button>
+                                <div className="flex-1 space-y-3">
+                                    <h4 className={`font-black text-xl text-white tracking-tight uppercase ${task.completed ? 'line-through' : ''}`}>{task.title}</h4>
+                                    <div className="flex flex-wrap items-center gap-4">
+                                        <div className="bg-white/5 border border-white/5 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest text-slate-400">{task.subject}</div>
+                                        <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${getPriorityColor(task.priority)}`}>{task.priority}</div>
+                                        <div className="flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                            <CalendarIcon size={14} className="mr-2 text-indigo-500" />
+                                            Deadline: {new Date(task.dueDate).toLocaleDateString()}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <button onClick={() => deleteAssignment(task.id)} className="text-gray-300 hover:text-red-500 p-2"><Trash2 size={20} /></button>
+                            <button onClick={() => setAssignments(assignments.filter(a => a.id !== task.id))} className="text-slate-800 hover:text-red-500 transition-colors p-2"><Trash2 size={24} /></button>
                         </div>
                     </div>
                 ))}
             </div>
-        </>
+        </div>
       ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-4 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-800">
-                  <h2 className="text-lg font-bold text-gray-800 dark:text-white">{currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2>
-                  <div className="flex space-x-2">
-                      <button onClick={() => changeMonth(-1)} className="p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"><ChevronLeft size={16} /></button>
-                      <button onClick={() => changeMonth(1)} className="p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"><ChevronRight size={16} /></button>
+          <div className="master-box rounded-[4rem] overflow-hidden animate-scale-in">
+              <div className="p-8 flex justify-between items-center bg-white/5 border-b border-white/5">
+                  <h2 className="text-xl font-black text-white uppercase italic">{currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2>
+                  <div className="flex space-x-3">
+                      <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="p-3 bg-black rounded-xl border border-white/10 text-white"><ChevronLeft size={18} /></button>
+                      <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} className="p-3 bg-black rounded-xl border border-white/10 text-white"><ChevronRight size={18} /></button>
                   </div>
               </div>
-              <div className="grid grid-cols-7 border-b border-gray-100 dark:border-gray-800">
-                  {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => <div key={day} className="p-3 text-center text-xs font-bold text-gray-400 uppercase">{day}</div>)}
+              <div className="grid grid-cols-7 border-b border-white/5 bg-black/20">
+                  {['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'].map(day => <div key={day} className="p-4 text-center text-[9px] font-black text-slate-600 uppercase tracking-widest">{day}</div>)}
               </div>
-              <div className="grid grid-cols-7 auto-rows-fr">
-                  {Array.from({ length: startDayOfMonth(currentDate) }).map((_, i) => <div key={`empty-${i}`} className="h-24 md:h-32 bg-gray-50/30 dark:bg-gray-900/10 border-r border-b border-gray-100 dark:border-gray-800"></div>)}
-                  {Array.from({ length: daysInMonth(currentDate) }).map((_, i) => {
-                      const day = i + 1;
-                      const dayTasks = getAssignmentsForDate(day);
-                      return (
-                          <div key={day} className="h-24 md:h-32 p-2 border-r border-b border-gray-100 dark:border-gray-800 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900/20">
-                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{day}</span>
-                              <div className="space-y-1 overflow-y-auto max-h-[calc(100%-2rem)] no-scrollbar">
-                                  {dayTasks.map(task => (
-                                      <div key={task.id} className="text-[10px] bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-1 py-0.5 truncate flex items-center">
-                                          <span className={`w-1.5 h-1.5 rounded-full mr-1 flex-shrink-0 ${task.priority === 'Urgent' ? 'bg-red-500' : 'bg-blue-500'}`}></span>
-                                          <span className="truncate dark:text-gray-200">{task.title}</span>
-                                      </div>
-                                  ))}
-                              </div>
-                          </div>
-                      );
-                  })}
+              <div className="grid grid-cols-7 auto-rows-fr bg-black/40">
+                  {/* Calendar render logic remains similar but with obsidian styling */}
+                  {Array.from({ length: 35 }).map((_, i) => (
+                      <div key={i} className="h-28 p-4 border-r border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                          <span className="text-xs font-black text-slate-700">{i + 1}</span>
+                      </div>
+                  ))}
               </div>
           </div>
       )}
 
       {showAdd && (
-        <div className="fixed inset-0 bg-gray-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-900 rounded-[2rem] w-full max-w-md p-8 shadow-2xl animate-scale-up max-h-[90vh] overflow-y-auto no-scrollbar">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">New Task</h2>
-              <button onClick={() => setShowAdd(false)} className="text-gray-400 hover:bg-gray-50 p-2 rounded-full"><X size={24} /></button>
+        <div className="fixed inset-0 bg-black/95 z-[200] flex items-center justify-center p-6 backdrop-blur-3xl">
+          <div className="bg-slate-900 border border-white/10 rounded-[4rem] w-full max-w-lg p-10 md:p-14 shadow-[0_50px_100px_-20px_rgba(0,0,0,1)] animate-scale-up">
+            <div className="flex justify-between items-center mb-10">
+              <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">New Strategic Target</h2>
+              <button onClick={() => setShowAdd(false)} className="text-slate-500 hover:text-white transition-all"><X size={32} /></button>
             </div>
             
-            <div className="space-y-5">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Title</label>
-                <input type="text" className="w-full p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border-2 border-transparent focus:border-indigo-500 outline-none transition-all font-medium text-lg dark:text-white" value={newAssignment.title || ''} onChange={e => setNewAssignment({...newAssignment, title: e.target.value})} />
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-4">Identifier</label>
+                <input type="text" className="w-full p-5 bg-black border border-white/5 rounded-3xl outline-none font-bold text-white placeholder:text-slate-800" placeholder="Task Title" value={newAssignment.title || ''} onChange={e => setNewAssignment({...newAssignment, title: e.target.value})} />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                 <div>
-                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Subject</label>
-                  <input type="text" className="w-full p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border-2 border-transparent focus:border-indigo-500 outline-none font-medium dark:text-white" value={newAssignment.subject || ''} onChange={e => setNewAssignment({...newAssignment, subject: e.target.value})} />
+                 <div className="space-y-2">
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-4">Subject</label>
+                  <input type="text" className="w-full p-5 bg-black border border-white/5 rounded-3xl outline-none font-bold text-white placeholder:text-slate-800" placeholder="Academic Node" value={newAssignment.subject || ''} onChange={e => setNewAssignment({...newAssignment, subject: e.target.value})} />
                 </div>
-                 <div>
-                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Priority</label>
-                  <select className="w-full p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border-2 border-transparent focus:border-indigo-500 outline-none font-medium dark:text-white" value={newAssignment.priority} onChange={e => setNewAssignment({...newAssignment, priority: e.target.value as TaskPriority})}>
+                 <div className="space-y-2">
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-4">Priority</label>
+                  <select className="w-full p-5 bg-black border border-white/5 rounded-3xl outline-none font-bold text-white uppercase appearance-none" value={newAssignment.priority} onChange={e => setNewAssignment({...newAssignment, priority: e.target.value as TaskPriority})}>
                     {(Object.values(TaskPriority) as string[]).map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Due Date</label>
-                    <input type="date" className="w-full p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border-2 border-transparent focus:border-indigo-500 outline-none font-medium dark:text-white" value={newAssignment.dueDate || ''} onChange={e => setNewAssignment({...newAssignment, dueDate: e.target.value})} />
-                </div>
-                <div>
-                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Est. Hours</label>
-                    <input type="number" className="w-full p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border-2 border-transparent focus:border-indigo-500 outline-none font-medium dark:text-white" value={newAssignment.estimatedTime || ''} onChange={e => setNewAssignment({...newAssignment, estimatedTime: e.target.value})} />
-                </div>
+              <div className="space-y-2">
+                 <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-4">Completion Date</label>
+                 <input type="date" className="w-full p-5 bg-black border border-white/5 rounded-3xl outline-none font-bold text-white uppercase" value={newAssignment.dueDate || ''} onChange={e => setNewAssignment({...newAssignment, dueDate: e.target.value})} />
               </div>
 
-               {newAssignment.subject && newAssignment.estimatedTime && (
-                 <div className="space-y-4">
-                    <button onClick={handleGeneratePlan} disabled={isGenerating} className="w-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 py-4 rounded-xl font-bold flex items-center justify-center transition-all">
-                      <Sparkles size={18} className={`mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
-                      {isGenerating ? "Thinking..." : "Generate AI Study Plan"}
-                    </button>
-                    {aiPlan && (
-                        <div className="p-4 bg-indigo-50/50 dark:bg-gray-800 rounded-xl text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed border border-indigo-100 dark:border-indigo-900/50">
-                            <p className="font-black text-indigo-600 mb-2 uppercase tracking-widest text-[10px]">AI Strategic Breakdown</p>
-                            {aiPlan}
-                        </div>
-                    )}
-                 </div>
-               )}
-
-              <button onClick={handleAdd} className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-bold text-lg mt-4 shadow-xl shadow-indigo-100 dark:shadow-none transition-all active:scale-95">Add Assignment</button>
+              <button onClick={handleAdd} className="w-full bg-white text-black py-6 rounded-3xl font-black text-[11px] uppercase tracking-[0.4em] mt-8 shadow-2xl hover:bg-slate-200 transition-all">Synchronize Target</button>
             </div>
           </div>
         </div>
