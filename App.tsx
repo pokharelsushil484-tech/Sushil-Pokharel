@@ -13,6 +13,7 @@ import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { ErrorPage } from './views/ErrorPage';
 import { Login } from './views/Login';
+import { Footer } from './components/Footer';
 import { View, UserProfile, VaultDocument, Assignment } from './types';
 import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME } from './constants';
 import { storageService } from './services/storageService';
@@ -45,6 +46,12 @@ const App = () => {
 
   const loadUserData = async (username: string) => {
     const stored = await storageService.getData(`architect_data_${username}`);
+    
+    if (stored?.user?.isBanned) {
+        setUser(stored.user);
+        return;
+    }
+
     if (username === ADMIN_USERNAME) {
         // Force Admin to be Verified and High Level
         const adminProfile: UserProfile = stored?.user ? {
@@ -85,7 +92,7 @@ const App = () => {
   };
 
   useEffect(() => {
-    if (activeUser) {
+    if (activeUser && !user.isBanned) {
         storageService.setData(`architect_data_${activeUser}`, {
           user, vaultDocs, assignments
         });
@@ -93,6 +100,19 @@ const App = () => {
   }, [user, vaultDocs, assignments, activeUser]);
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
+
+  if (user.isBanned) {
+      return (
+        <ErrorPage 
+            type="CRASH" 
+            title="SYSTEM ACCESS REVOKED" 
+            message={`Your identity node has been terminated due to serious security infractions. Reason: ${user.banReason || 'Protocol Violation'}`}
+            actionLabel="Request Recovery Appeal"
+            onAction={() => window.location.href = `https://www.${SYSTEM_DOMAIN}/recovery`}
+        />
+      );
+  }
+
   if (!isLoggedIn) return <Login onLogin={handleLogin} />;
 
   // Enforce Verification State for non-verified users, BYPASS FOR ADMIN
@@ -166,6 +186,7 @@ const App = () => {
         <main className="flex-1 max-w-7xl mx-auto w-full pt-10 px-6 sm:px-10 pb-32 md:pb-12">
             <div className="w-full h-full min-h-[600px]">
                 {renderContent()}
+                <Footer onNavigate={setView} />
             </div>
         </main>
       </div>

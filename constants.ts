@@ -3,7 +3,7 @@ import { UserProfile } from './types';
 export const APP_NAME = "StudentPocket – By Sushil";
 export const APP_TAGLINE = "Platinum Institutional Management Suite";
 export const CREATOR_NAME = "Sushil Pokhrel";
-export const APP_VERSION = "v9.5.0 Platinum Punishment Build";
+export const APP_VERSION = "v10.0.0 Platinum Punishment Build";
 export const BUILD_DATE = "2024 - 2026 Enterprise Cycle";
 
 export const COPYRIGHT_NOTICE = "© 2024 - 2026 StudentPocket Systems. Engineered for Academic Excellence.";

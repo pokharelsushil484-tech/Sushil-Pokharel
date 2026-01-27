@@ -18,7 +18,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Pre-seed "user1" and ensure it is unverified in the database
+  // Pre-seed "susilpokharel00@123" and ensure it is unverified in the database
   useEffect(() => {
     const seedUser = async () => {
         const usersStr = localStorage.getItem('studentpocket_users');
@@ -29,22 +29,26 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             users['admin'] = { password: 'admin123', name: 'Lead Architect', email: 'admin@sushilpokharel00.com.np', verified: true };
         }
         
-        // Insert "User One" as requested (Unverified)
-        if (!users['user1']) {
-            users['user1'] = { password: 'user123', name: 'User One', email: 'user1@sushilpokharel00.com.np', verified: false };
+        // Insert specific personal user as requested
+        const targetUser = "susilpokharel00@123";
+        if (!users[targetUser]) {
+            users[targetUser] = { password: targetUser, name: 'Sushil Pokharel', email: 'susilpokharel00@123@sushilpokharel00.com.np', verified: false };
             
-            // Explicitly store unverified profile in IndexedDB
-            const user1Profile = {
+            // Explicitly store unverified profile in the "Administration's Database" (IndexedDB)
+            const userProfile: any = {
                 ...DEFAULT_USER,
-                name: "User One",
-                email: "user1@sushilpokharel00.com.np",
+                name: "Sushil Pokharel",
+                email: "susilpokharel00@123@gmail.com",
                 isVerified: false,
                 verificationStatus: 'NONE',
                 level: 0,
-                studentId: "SP-USER01"
+                studentId: "SP-SUSHIL-123",
+                violationCount: 0,
+                maxViolations: 3
             };
-            await storageService.setData('architect_data_user1', {
-                user: user1Profile,
+            
+            await storageService.setData(`architect_data_${targetUser}`, {
+                user: userProfile,
                 vaultDocs: [],
                 assignments: []
             });
@@ -157,7 +161,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                       placeholder="Student ID / Alias"
                     />
                   </div>
-                  <p className="text-[8px] text-slate-600 uppercase tracking-widest ml-4">Tip: Use 'user1' / 'user123'</p>
+                  <p className="text-[8px] text-slate-600 uppercase tracking-widest ml-4">Tip: Use 'susilpokharel00@123'</p>
                 </div>
 
                 <div className="space-y-3">

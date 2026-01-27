@@ -3,12 +3,12 @@ import { UserProfile, ChangeRequest, SupportTicket, TicketMessage } from '../typ
 import { 
   Users, ShieldCheck, LifeBuoy, Trash2, 
   CheckCircle, XCircle, RefreshCw, User, Lock, 
-  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award, Edit2, ArrowRight, Save, X, BadgeCheck, BadgeAlert, Skull, AlertTriangle, MessageCircle, Ticket, Plus, UserPlus, Download, Copy, ShieldX
+  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award, Edit2, ArrowRight, Save, X, BadgeCheck, BadgeAlert, Skull, AlertTriangle, MessageCircle, Ticket, Plus, UserPlus, Download, Copy, ShieldX, Ban
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { ADMIN_USERNAME, DEFAULT_USER, SYSTEM_UPGRADE_TOKEN } from '../constants';
 
-type AdminView = 'OVERVIEW' | 'USERS' | 'REQUESTS' | 'RECOVERY' | 'SUPPORT';
+type AdminView = 'OVERVIEW' | 'USERS' | 'REQUESTS' | 'SUPPORT';
 
 export const AdminDashboard: React.FC = () => {
   const [viewMode, setViewMode] = useState<AdminView>('OVERVIEW');
@@ -94,13 +94,9 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const handleBanUser = async (username: string) => {
-      if(!window.confirm(`Suspend access for ${username}?`)) return;
-      const data = await storageService.getData(`architect_data_${username}`);
-      if (data && data.user) {
-          data.user.isBanned = true;
-          await storageService.setData(`architect_data_${username}`, data);
-          loadData();
-      }
+      if(!window.confirm(`Permanently terminate node access for ${username}?`)) return;
+      await storageService.enforceSecurityLockdown(username, "Manual Administrative Termination", "Action performed by Lead Architect.");
+      loadData();
   };
 
   const pendingRequests = requests.filter(r => r.status === 'PENDING');
@@ -159,14 +155,14 @@ export const AdminDashboard: React.FC = () => {
                    <thead className="bg-white/5 border-b border-white/5">
                        <tr>
                            <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Identity</th>
-                           <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Status</th>
-                           <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Action</th>
-                           <th className="p-8"></th>
+                           <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Status / Level</th>
+                           <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Punishment</th>
+                           <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Actions</th>
                        </tr>
                    </thead>
                    <tbody className="divide-y divide-white/5">
                        {profiles.map((p: any) => (
-                           <tr key={p._username} className="hover:bg-white/[0.02] transition-colors">
+                           <tr key={p._username} className={`hover:bg-white/[0.02] transition-colors ${p.isBanned ? 'opacity-40 grayscale' : ''}`}>
                                <td className="p-8">
                                    <div className="flex items-center gap-4">
                                        <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden">
@@ -179,23 +175,34 @@ export const AdminDashboard: React.FC = () => {
                                    </div>
                                </td>
                                <td className="p-8">
-                                   <span className={`stark-badge text-[8px] ${p.isVerified ? 'bg-emerald-500' : 'bg-amber-500'}`}>
-                                       {p.isVerified ? 'Verified' : 'Unverified'}
-                                   </span>
+                                   <div className="flex flex-col gap-2">
+                                        <span className={`stark-badge text-[8px] text-center ${p.isVerified ? 'bg-emerald-500' : 'bg-amber-500'}`}>
+                                            {p.isVerified ? 'Verified' : 'Unverified'}
+                                        </span>
+                                        <span className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Lvl {p.level}</span>
+                                   </div>
                                </td>
                                <td className="p-8">
-                                   <button 
-                                      onClick={() => toggleVerification(p._username, p.isVerified)}
-                                      className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center"
-                                   >
-                                       {p.isVerified ? <ShieldX size={12} className="mr-2"/> : <ShieldCheck size={12} className="mr-2"/>}
-                                       {p.isVerified ? 'Unverify' : 'Verify'}
-                                   </button>
+                                   <div className="flex gap-1">
+                                       {Array.from({ length: 3 }).map((_, i) => (
+                                           <div key={i} className={`w-4 h-1 rounded-full ${i < (p.violationCount || 0) ? 'bg-red-600' : 'bg-white/10'}`}></div>
+                                       ))}
+                                   </div>
+                                   {p.isBanned && <span className="text-[8px] font-black text-red-500 uppercase mt-2 block">TERMINATED</span>}
                                </td>
-                               <td className="p-8 text-right">
-                                   <button onClick={() => handleBanUser(p._username)} className="p-3 bg-white/5 rounded-xl text-slate-500 hover:text-red-500 transition-all border border-white/5">
-                                       <Lock size={16} />
-                                   </button>
+                               <td className="p-8">
+                                   <div className="flex items-center gap-3">
+                                       <button 
+                                          onClick={() => toggleVerification(p._username, p.isVerified)}
+                                          className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center"
+                                       >
+                                           {p.isVerified ? <ShieldX size={12} className="mr-2"/> : <ShieldCheck size={12} className="mr-2"/>}
+                                           {p.isVerified ? 'Unverify' : 'Verify'}
+                                       </button>
+                                       <button onClick={() => handleBanUser(p._username)} className="p-3 bg-white/5 rounded-xl text-slate-500 hover:text-red-500 transition-all border border-white/5">
+                                           <Ban size={16} />
+                                       </button>
+                                   </div>
                                </td>
                            </tr>
                        ))}

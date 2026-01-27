@@ -41,22 +41,22 @@ export const AIChat: React.FC<AIChatProps> = ({ chatHistory, setChatHistory, isV
       );
   }
 
-  // --- SECURITY & VIOLENCE DETECTION ---
+  // --- PUNISHMENT SYSTEM INTEGRATION ---
   const detectViolations = async (text: string) => {
       if (!username) return false;
 
       const lower = text.toLowerCase();
-      // Bad / Negative / Violent Keywords list
-      const negativeTerms = ["hate", "kill", "die", "attack", "bomb", "stupid", "idiot", "violence", "blood", "death", "hack", "crack", "destroy", "bad", "evil", "enemy", "suicide", "terror"];
+      // Expanded negative/violent/hacker terms that violate StudentPocket protocols
+      const negativeTerms = ["hate", "kill", "die", "attack", "bomb", "stupid", "idiot", "violence", "blood", "death", "hack", "crack", "destroy", "bad", "evil", "enemy", "suicide", "terror", "cheat"];
       
       if (negativeTerms.some(term => lower.includes(term))) {
-          // PUNISHMENT SYSTEM INTEGRATION - STRIKE SYSTEM
+          // Record official strike
           await storageService.recordViolation(
               username,
-              `Protocol Violation: Negative content in AI channel.`
+              `Protocol Violation: Offensive content in AI interface.`
           );
 
-          // Update local state to reflect possible ban immediately
+          // Update local state to check for immediate lockdown
           const stored = await storageService.getData(`architect_data_${username}`);
           if (stored && stored.user && stored.user.isBanned) {
               window.location.reload();
@@ -71,8 +71,9 @@ export const AIChat: React.FC<AIChatProps> = ({ chatHistory, setChatHistory, isV
     e?.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    // Security Check
+    // Run Security Check before processing AI response
     if (await detectViolations(input)) {
+        alert("INSTITUTIONAL WARNING: Message violates protocol. Strike recorded.");
         setInput('');
         return;
     }

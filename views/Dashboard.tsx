@@ -72,7 +72,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-black shadow-xl">
                 <ShieldCheck size={24} />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Security Clearance Level {user.level}</span>
+            <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40 leading-none mb-1">Clearance Level {user.level}</span>
+                <span className={`text-[9px] font-black uppercase tracking-widest ${user.isVerified ? 'text-emerald-500' : 'text-amber-500'}`}>
+                    Node Status: {user.isVerified ? 'VERIFIED' : 'UNVERIFIED'}
+                </span>
+            </div>
           </div>
           
           <h2 className="text-6xl md:text-8xl font-black tracking-tighter text-white leading-[0.85]">
@@ -84,9 +89,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
             Personnel environment synchronized. Institutional encryption active for the <span className="text-white">{BUILD_DATE}</span> release cycle.
           </p>
 
+          {!user.isVerified && (
+              <div className="p-6 bg-amber-500/5 border border-amber-500/20 rounded-3xl flex items-start gap-5 max-w-md animate-pulse">
+                  <AlertTriangle className="text-amber-500 shrink-0" size={24} />
+                  <div>
+                      <p className="text-xs font-black text-amber-500 uppercase tracking-widest mb-1">Restricted Protocol</p>
+                      <p className="text-[10px] text-amber-200/60 leading-relaxed uppercase font-bold">Your account is currently UNVERIFIED. High-security features are locked until institutional audit completion.</p>
+                  </div>
+              </div>
+          )}
+
           {strikeLevel > 0 && (
               <div className="p-6 bg-red-500/5 border border-red-500/20 rounded-3xl flex items-start gap-5 max-w-md animate-pulse">
-                  <AlertTriangle className="text-red-500 shrink-0" size={24} />
+                  <ShieldAlert className="text-red-500 shrink-0" size={24} />
                   <div>
                       <p className="text-xs font-black text-red-500 uppercase tracking-widest mb-1">Violation Warning</p>
                       <p className="text-[10px] text-red-200/60 leading-relaxed uppercase font-bold">Your node has recorded {strikeLevel} protocol violations. Reaching strike 3 will result in permanent identity termination.</p>

@@ -35,12 +35,13 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
       setError("AUTHORIZATION DENIED.");
       
       // PUNISHMENT SYSTEM INTEGRATION
-      await storageService.recordViolation(activeUser, "Unauthorized Vault Access Attempt: Invalid PIN");
+      await storageService.recordViolation(activeUser, "Unauthorized Vault Access Attempt: Invalid Security PIN");
       
-      // Update local state if strike was recorded
+      // Sync local state immediately to check if strike 3 was reached
       const stored = await storageService.getData(`architect_data_${activeUser}`);
       if (stored && stored.user) {
           updateUser(stored.user);
+          // If banned, the App component will automatically swap to ErrorPage via state refresh
           if (stored.user.isBanned) window.location.reload();
       }
     }

@@ -136,7 +136,7 @@ export const storageService = {
         user.violationCount = (user.violationCount || 0) + 1;
         
         if (user.violationCount >= (user.maxViolations || 3)) {
-            await this.enforceSecurityLockdown(username, `CRITICAL TERMINATION: ${reason} (Strike ${user.violationCount})`, "Multiple strikes reached.");
+            await this.enforceSecurityLockdown(username, `CRITICAL TERMINATION: ${reason} (Strike ${user.violationCount})`, "Maximum violation threshold exceeded.");
         } else {
             await this.setData(dataKey, storedData);
             await this.logActivity({
@@ -176,7 +176,7 @@ export const storageService = {
       const count = parseInt(localStorage.getItem(key) || '0') + 1;
       localStorage.setItem(key, count.toString());
       if (count >= 3) {
-          await this.enforceSecurityLockdown(username, "Brute force attempt detected. Excessive login failures.", "Attempt recorded at " + new Date().toISOString());
+          await this.enforceSecurityLockdown(username, "Brute force attempt detected. Multiple failed login requests.", "Recorded at " + new Date().toISOString());
       }
       return count;
   }
