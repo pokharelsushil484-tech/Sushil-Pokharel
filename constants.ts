@@ -3,7 +3,7 @@ import { UserProfile } from './types';
 export const APP_NAME = "StudentPocket – By Sushil";
 export const APP_TAGLINE = "Platinum Institutional Management Suite";
 export const CREATOR_NAME = "Sushil Pokhrel";
-export const APP_VERSION = "v9.3.0 Platinum Build [STABLE]";
+export const APP_VERSION = "v9.4.0 Platinum Build [SECURE]";
 export const BUILD_DATE = "2024 - 2026 Enterprise Cycle";
 
 export const COPYRIGHT_NOTICE = "© 2024 - 2026 StudentPocket Systems. Engineered for Academic Excellence.";
@@ -13,9 +13,14 @@ export const FOOTER_SIGNATURE = "Executive System Architecture by Sushil Pokhrel
 export const WATERMARK = "STP-PLATINUM-SUSHIL-2026";
 export const ADMIN_USERNAME = "admin";
 export const ADMIN_SECRET = "admin123";
-export const ADMIN_EMAIL = "support@studentpocket.app";
-export const SYSTEM_DOMAIN = "studentpocket.app";
+export const ADMIN_EMAIL = "support@sushilpokharel00.com.np";
+export const SYSTEM_DOMAIN = "sushilpokharel00.com.np";
 export const SYSTEM_UPGRADE_TOKEN = "SP-PLATINUM-2026";
+
+// Punishment System Constants
+export const MAX_LOGIN_ATTEMPTS = 3;
+export const LOCKOUT_DURATION_MINS = 30;
+export const CRITICAL_VIOLATION_LIMIT = 5;
 
 export const FOOTER_LINKS = {
   internal: [
@@ -25,15 +30,15 @@ export const FOOTER_LINKS = {
     { label: "System Config", view: "SETTINGS" }
   ],
   academic: [
-    { label: "Institutional Archive", href: "#" },
-    { label: "Global Registrar", href: "#" },
-    { label: "Research Node", href: "#" }
+    { label: "Institutional Archive", href: `https://www.${SYSTEM_DOMAIN}/archive` },
+    { label: "Global Registrar", href: `https://www.${SYSTEM_DOMAIN}/registrar` },
+    { label: "Research Node", href: `https://www.${SYSTEM_DOMAIN}/research` }
   ]
 };
 
 export const DEFAULT_USER: UserProfile = {
   name: "Sushil Pokhrel",
-  email: "sushil@studentpocket.app",
+  email: `sushil@${SYSTEM_DOMAIN}`,
   phone: "+977 9800000000",
   isVerified: true,
   isSuspicious: false,

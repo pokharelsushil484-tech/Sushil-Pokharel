@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest, View } from '../types';
-import { ShieldCheck, Loader2, ArrowLeft, Send, User, Lock, Info, MapPin, Phone, Mail } from 'lucide-react';
+import { ShieldCheck, Loader2, ArrowLeft, Send, User, Lock } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { SYSTEM_DOMAIN } from '../constants';
 
@@ -82,9 +82,12 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
              </div>
              <h2 className="text-3xl font-black text-white uppercase mb-2">Protocol Active</h2>
              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-12">Institutional Review Pending</p>
-             <div className="bg-white/5 p-10 rounded-[2.5rem] border border-white/5 mb-10">
+             <div className="bg-white/5 p-10 rounded-[2.5rem] border border-white/5 mb-6 text-left">
                  <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-4">Node Identity</p>
                  <p className="font-mono text-3xl text-white font-bold tracking-widest">{successState.studentId}</p>
+             </div>
+             <div className="p-4 bg-black/40 rounded-xl mb-10 text-[9px] text-slate-500 font-mono break-all text-left">
+                 HTTPS://WWW.{SYSTEM_DOMAIN.toUpperCase()}/V/{successState.linkId}
              </div>
              <button onClick={() => window.location.reload()} className="btn-platinum w-full py-6">Finalize Node State</button>
         </div>
@@ -100,12 +103,12 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
 
       <div className="master-box border border-white/10 overflow-hidden">
         <div className="bg-white/[0.03] border-b border-white/10 p-12 flex items-center gap-8">
-            <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center text-black">
+            <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center text-black shadow-2xl">
                <ShieldCheck size={40} />
             </div>
             <div>
                <h2 className="text-4xl font-black text-white italic uppercase leading-none">Identity Intake</h2>
-               <p className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.5em] mt-2">v9.2.5 Security Layer</p>
+               <p className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.5em] mt-2">Institutional Node Registration</p>
             </div>
         </div>
 
@@ -114,15 +117,15 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
             <div className="space-y-8">
                 <div className="space-y-3">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Full Signature Name</label>
-                    <input value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full px-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-white/30 outline-none font-bold text-white" placeholder="LEGAL NAME" required />
+                    <input value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full px-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-white/30 outline-none font-bold text-white placeholder:text-slate-800" placeholder="LEGAL NAME" required />
                 </div>
                 <div className="space-y-3">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Digital Mail Node</label>
-                    <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-white/30 outline-none font-bold text-white" placeholder="EMAIL@DOMAIN" required />
+                    <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-white/30 outline-none font-bold text-white placeholder:text-slate-800" placeholder="EMAIL@SUSHILPOKHAREL00.COM.NP" required />
                 </div>
                 <div className="space-y-3">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Communication Link</label>
-                    <input type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-white/30 outline-none font-bold text-white" placeholder="+PHONE" required />
+                    <input type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-white/30 outline-none font-bold text-white placeholder:text-slate-800" placeholder="+977-PHONE" required />
                 </div>
             </div>
 
