@@ -44,6 +44,8 @@ export interface UserProfile {
   adminComments?: string[];
   acceptedTermsVersion?: string;
   vaultPin?: string;
+  violationCount: number;
+  maxViolations: number;
 }
 
 export interface VaultDocument {
@@ -118,7 +120,6 @@ export interface ActivityLog {
   metadata?: string;
 }
 
-// Added Note interface to resolve import error in Notes.tsx
 export interface Note {
   id: string;
   title: string;
@@ -130,7 +131,6 @@ export interface Note {
   deletedAt?: number;
 }
 
-// Added Expense interface to resolve import error in ExpenseTracker.tsx
 export interface Expense {
   id: string;
   amount: number;
@@ -140,7 +140,6 @@ export interface Expense {
   type: 'INCOME' | 'EXPENSE';
 }
 
-// Added Database related types to resolve import error in DatabaseManager.tsx
 export enum FieldType {
   STRING = 'String',
   NUMBER = 'Number',

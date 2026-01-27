@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, Trash2, Loader2, MessageCircle, Lock } from 'lucide-react';
 import { ChatMessage, UserProfile } from '../types';
@@ -51,15 +50,18 @@ export const AIChat: React.FC<AIChatProps> = ({ chatHistory, setChatHistory, isV
       const negativeTerms = ["hate", "kill", "die", "attack", "bomb", "stupid", "idiot", "violence", "blood", "death", "hack", "crack", "destroy", "bad", "evil", "enemy", "suicide", "terror"];
       
       if (negativeTerms.some(term => lower.includes(term))) {
-          // IMMEDIATE CENTRALIZED LOCKDOWN
-          await storageService.enforceSecurityLockdown(
+          // PUNISHMENT SYSTEM INTEGRATION - STRIKE SYSTEM
+          await storageService.recordViolation(
               username,
-              "CRITICAL SECURITY STOP: Unwanted/Violent content detected in AI Channel. System Force Logout.",
-              `Content: ${text}`
+              `Protocol Violation: Negative content in AI channel.`
           );
 
-          // Force reload to trigger "App Removed" / Lock Screen
-          window.location.reload();
+          // Update local state to reflect possible ban immediately
+          const stored = await storageService.getData(`architect_data_${username}`);
+          if (stored && stored.user && stored.user.isBanned) {
+              window.location.reload();
+          }
+          
           return true;
       }
       return false;
@@ -70,7 +72,10 @@ export const AIChat: React.FC<AIChatProps> = ({ chatHistory, setChatHistory, isV
     if (!input.trim() || isLoading) return;
 
     // Security Check
-    if (await detectViolations(input)) return;
+    if (await detectViolations(input)) {
+        setInput('');
+        return;
+    }
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),

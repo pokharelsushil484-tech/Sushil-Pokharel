@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { Lock, User, Eye, EyeOff, Loader2, ShieldCheck, ArrowRight, Fingerprint, Activity, ShieldAlert } from 'lucide-react';
-import { APP_NAME, SYSTEM_DOMAIN, APP_VERSION, BUILD_DATE, COPYRIGHT_NOTICE, MAX_LOGIN_ATTEMPTS } from '../constants';
+import React, { useState, useRef, useEffect } from 'react';
+import { Lock, User, Eye, EyeOff, Loader2, ShieldCheck, ArrowRight, Fingerprint, Activity, ShieldAlert, UserPlus } from 'lucide-react';
+import { APP_NAME, SYSTEM_DOMAIN, APP_VERSION, BUILD_DATE, COPYRIGHT_NOTICE, MAX_LOGIN_ATTEMPTS, DEFAULT_USER } from '../constants';
 import { storageService } from '../services/storageService';
 
 interface LoginProps {
@@ -18,6 +18,43 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Pre-seed "user1" and ensure it is unverified in the database
+  useEffect(() => {
+    const seedUser = async () => {
+        const usersStr = localStorage.getItem('studentpocket_users');
+        const users = usersStr ? JSON.parse(usersStr) : {};
+        
+        // Ensure Admin exists
+        if (!users['admin']) {
+            users['admin'] = { password: 'admin123', name: 'Lead Architect', email: 'admin@sushilpokharel00.com.np', verified: true };
+        }
+        
+        // Insert "User One" as requested (Unverified)
+        if (!users['user1']) {
+            users['user1'] = { password: 'user123', name: 'User One', email: 'user1@sushilpokharel00.com.np', verified: false };
+            
+            // Explicitly store unverified profile in IndexedDB
+            const user1Profile = {
+                ...DEFAULT_USER,
+                name: "User One",
+                email: "user1@sushilpokharel00.com.np",
+                isVerified: false,
+                verificationStatus: 'NONE',
+                level: 0,
+                studentId: "SP-USER01"
+            };
+            await storageService.setData('architect_data_user1', {
+                user: user1Profile,
+                vaultDocs: [],
+                assignments: []
+            });
+        }
+        
+        localStorage.setItem('studentpocket_users', JSON.stringify(users));
+    };
+    seedUser();
+  }, []);
+
   const initializeTerminal = () => {
     setLoading(true);
     setTimeout(() => {
@@ -32,7 +69,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setLoading(true);
     setSystemError('');
 
-    // Internal Authentication Logic with Punishment System
     const usersStr = localStorage.getItem('studentpocket_users');
     const users = usersStr ? JSON.parse(usersStr) : {};
     const userData = users[userId];
@@ -43,7 +79,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         setSystemError(`CREDENTIAL MISMATCH. ATTEMPT ${newCount}/${MAX_LOGIN_ATTEMPTS}`);
         setLoading(false);
         if (newCount >= MAX_LOGIN_ATTEMPTS) {
-            window.location.reload(); // Punishment will trigger on App.tsx load
+            window.location.reload();
         }
         return;
     }
@@ -67,7 +103,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const grantAccess = () => {
     setLoading(true);
     setTimeout(() => {
-      onLogin(userId || "Executive");
+      onLogin(userId);
     }, 1800);
   };
 
@@ -121,6 +157,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                       placeholder="Student ID / Alias"
                     />
                   </div>
+                  <p className="text-[8px] text-slate-600 uppercase tracking-widest ml-4">Tip: Use 'user1' / 'user123'</p>
                 </div>
 
                 <div className="space-y-3">

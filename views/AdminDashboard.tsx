@@ -3,7 +3,7 @@ import { UserProfile, ChangeRequest, SupportTicket, TicketMessage } from '../typ
 import { 
   Users, ShieldCheck, LifeBuoy, Trash2, 
   CheckCircle, XCircle, RefreshCw, User, Lock, 
-  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award, Edit2, ArrowRight, Save, X, BadgeCheck, BadgeAlert, Skull, AlertTriangle, MessageCircle, Ticket, Plus, UserPlus, Download, Copy
+  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award, Edit2, ArrowRight, Save, X, BadgeCheck, BadgeAlert, Skull, AlertTriangle, MessageCircle, Ticket, Plus, UserPlus, Download, Copy, ShieldX
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { ADMIN_USERNAME, DEFAULT_USER, SYSTEM_UPGRADE_TOKEN } from '../constants';
@@ -15,15 +15,11 @@ export const AdminDashboard: React.FC = () => {
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
-  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
-  const [replyText, setReplyText] = useState('');
   
   // Admission Key State
   const [msKey, setMsKey] = useState<string | null>(null);
   const [keyStatus, setKeyStatus] = useState<'ACTIVE' | 'COOLDOWN'>('ACTIVE');
   const [cooldownTime, setCooldownTime] = useState(0);
-
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadData();
@@ -75,6 +71,26 @@ export const AdminDashboard: React.FC = () => {
       );
       setRequests(updatedReqs as ChangeRequest[]);
       localStorage.setItem('studentpocket_requests', JSON.stringify(updatedReqs));
+  };
+
+  const toggleVerification = async (username: string, currentStatus: boolean) => {
+      const data = await storageService.getData(`architect_data_${username}`);
+      if (data && data.user) {
+          data.user.isVerified = !currentStatus;
+          data.user.verificationStatus = !currentStatus ? 'VERIFIED' : 'NONE';
+          data.user.level = !currentStatus ? 1 : 0;
+          await storageService.setData(`architect_data_${username}`, data);
+          
+          // Update the users registry too
+          const usersStr = localStorage.getItem('studentpocket_users');
+          const users = usersStr ? JSON.parse(usersStr) : {};
+          if (users[username]) {
+              users[username].verified = !currentStatus;
+              localStorage.setItem('studentpocket_users', JSON.stringify(users));
+          }
+          
+          loadData();
+      }
   };
 
   const handleBanUser = async (username: string) => {
@@ -144,7 +160,7 @@ export const AdminDashboard: React.FC = () => {
                        <tr>
                            <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Identity</th>
                            <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Status</th>
-                           <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Clearance</th>
+                           <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Action</th>
                            <th className="p-8"></th>
                        </tr>
                    </thead>
@@ -164,11 +180,17 @@ export const AdminDashboard: React.FC = () => {
                                </td>
                                <td className="p-8">
                                    <span className={`stark-badge text-[8px] ${p.isVerified ? 'bg-emerald-500' : 'bg-amber-500'}`}>
-                                       {p.isVerified ? 'Verified' : 'Pending'}
+                                       {p.isVerified ? 'Verified' : 'Unverified'}
                                    </span>
                                </td>
                                <td className="p-8">
-                                   <span className="text-xs font-black text-indigo-400 uppercase italic">Lvl {p.level}</span>
+                                   <button 
+                                      onClick={() => toggleVerification(p._username, p.isVerified)}
+                                      className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center"
+                                   >
+                                       {p.isVerified ? <ShieldX size={12} className="mr-2"/> : <ShieldCheck size={12} className="mr-2"/>}
+                                       {p.isVerified ? 'Unverify' : 'Verify'}
+                                   </button>
                                </td>
                                <td className="p-8 text-right">
                                    <button onClick={() => handleBanUser(p._username)} className="p-3 bg-white/5 rounded-xl text-slate-500 hover:text-red-500 transition-all border border-white/5">

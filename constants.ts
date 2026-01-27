@@ -3,7 +3,7 @@ import { UserProfile } from './types';
 export const APP_NAME = "StudentPocket – By Sushil";
 export const APP_TAGLINE = "Platinum Institutional Management Suite";
 export const CREATOR_NAME = "Sushil Pokhrel";
-export const APP_VERSION = "v9.4.0 Platinum Build [SECURE]";
+export const APP_VERSION = "v9.5.0 Platinum Punishment Build";
 export const BUILD_DATE = "2024 - 2026 Enterprise Cycle";
 
 export const COPYRIGHT_NOTICE = "© 2024 - 2026 StudentPocket Systems. Engineered for Academic Excellence.";
@@ -19,8 +19,8 @@ export const SYSTEM_UPGRADE_TOKEN = "SP-PLATINUM-2026";
 
 // Punishment System Constants
 export const MAX_LOGIN_ATTEMPTS = 3;
+export const MAX_VIOLATIONS = 3;
 export const LOCKOUT_DURATION_MINS = 30;
-export const CRITICAL_VIOLATION_LIMIT = 5;
 
 export const FOOTER_LINKS = {
   internal: [
@@ -49,5 +49,7 @@ export const DEFAULT_USER: UserProfile = {
   totpEnabled: true,
   skills: ["Executive Leadership", "Strategic Management"],
   interests: ["Data Sovereignty", "Institutional Growth"],
-  authorizedDevices: ["Platinum Node 01"]
+  authorizedDevices: ["Platinum Node 01"],
+  violationCount: 0,
+  maxViolations: 3
 };

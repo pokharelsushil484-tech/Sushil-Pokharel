@@ -3,7 +3,7 @@ import { UserProfile, View } from '../types';
 import { 
   ShieldCheck, Calendar, Database, 
   ChevronRight, RefreshCw,
-  CheckCircle2, Loader2, Activity, Zap, Cpu, Bell, Globe
+  CheckCircle2, Loader2, Activity, Zap, Cpu, Bell, Globe, ShieldAlert, AlertTriangle
 } from 'lucide-react';
 import { APP_VERSION, WATERMARK, BUILD_DATE } from '../constants';
 
@@ -21,6 +21,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
     setTimeout(() => setIntegrityState('SECURE'), 2000);
   };
 
+  const strikeLevel = user.violationCount || 0;
+  const maxStrikes = user.maxViolations || 3;
+
   return (
     <div className="space-y-10 animate-platinum pb-32">
       {/* Executive Status Header */}
@@ -31,6 +34,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
         </div>
         
         <div className="flex flex-wrap gap-4">
+            {/* Punishment Matrix Widget */}
+            <div className={`flex items-center space-x-5 bg-white/5 border ${strikeLevel > 0 ? 'border-red-500/30' : 'border-white/10'} p-5 rounded-[2.5rem] shadow-2xl backdrop-blur-xl transition-colors`}>
+                <div className={`p-3 ${strikeLevel > 0 ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                    {strikeLevel > 0 ? <ShieldAlert className="animate-pulse" size={24} /> : <ShieldCheck size={24} />}
+                </div>
+                <div className="text-left pr-4">
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1.5">Punishment Matrix</p>
+                    <div className={`flex gap-1`}>
+                        {Array.from({ length: maxStrikes }).map((_, i) => (
+                            <div key={i} className={`w-6 h-1.5 rounded-full ${i < strikeLevel ? 'bg-red-600 shadow-[0_0_8px_rgba(220,38,38,0.5)]' : 'bg-white/10'}`}></div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
             <div className="flex items-center space-x-5 bg-white/5 border border-white/10 p-5 rounded-[2.5rem] shadow-2xl backdrop-blur-xl">
                 <div className="p-3 bg-emerald-500/10 rounded-2xl">
                     <Cpu className="text-emerald-400 animate-pulse" size={24} />
@@ -40,21 +58,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                     <div className="bg-emerald-500 text-black text-[9px] px-3 py-1 rounded-lg font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20">Operational</div>
                 </div>
             </div>
-            <div className="flex items-center space-x-5 bg-white/5 border border-white/10 p-5 rounded-[2.5rem] shadow-2xl backdrop-blur-xl">
-                <div className="p-3 bg-indigo-500/10 rounded-2xl">
-                    <Globe className="text-indigo-400" size={24} />
-                </div>
-                <div className="text-left pr-4">
-                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1.5">Network Node</p>
-                    <p className="text-xs font-black text-white uppercase tracking-widest italic">Global Alpha</p>
-                </div>
-            </div>
         </div>
       </div>
 
       {/* Hero Management Card */}
       <div className="master-box p-12 md:p-20 relative overflow-hidden group">
-        {/* Subtle Decorative Elements */}
         <div className="absolute top-0 right-0 p-12 opacity-5 group-hover:opacity-10 transition-opacity">
             <Zap size={300} className="text-white" />
         </div>
@@ -75,6 +83,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
           <p className="text-slate-400 font-medium text-xl leading-relaxed max-w-lg">
             Personnel environment synchronized. Institutional encryption active for the <span className="text-white">{BUILD_DATE}</span> release cycle.
           </p>
+
+          {strikeLevel > 0 && (
+              <div className="p-6 bg-red-500/5 border border-red-500/20 rounded-3xl flex items-start gap-5 max-w-md animate-pulse">
+                  <AlertTriangle className="text-red-500 shrink-0" size={24} />
+                  <div>
+                      <p className="text-xs font-black text-red-500 uppercase tracking-widest mb-1">Violation Warning</p>
+                      <p className="text-[10px] text-red-200/60 leading-relaxed uppercase font-bold">Your node has recorded {strikeLevel} protocol violations. Reaching strike 3 will result in permanent identity termination.</p>
+                  </div>
+              </div>
+          )}
           
           <div className="pt-8 flex flex-wrap gap-6">
              <button 

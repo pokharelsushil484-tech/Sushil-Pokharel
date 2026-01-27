@@ -1,4 +1,3 @@
-
 import { ActivityLog, UserProfile } from '../types';
 import { DEFAULT_USER } from '../constants';
 
@@ -6,7 +5,7 @@ const DB_NAME = 'StudentPocketDB';
 const STORE_NAME = 'user_data';
 const LOGS_STORE_NAME = 'activity_logs';
 const SYSTEM_STORE_NAME = 'system_config'; 
-const DB_VERSION = 4; // Incremented for penalty tracking
+const DB_VERSION = 4; 
 
 const initDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -129,6 +128,28 @@ export const storageService = {
       return state.status === 'ACTIVE' && (input === state.msCode || input === state.admCode || input === state.tknCode);
   },
 
+  async recordViolation(username: string, reason: string): Promise<void> {
+    const dataKey = `architect_data_${username}`;
+    const storedData = await this.getData(dataKey);
+    if (storedData && storedData.user) {
+        const user = storedData.user as UserProfile;
+        user.violationCount = (user.violationCount || 0) + 1;
+        
+        if (user.violationCount >= (user.maxViolations || 3)) {
+            await this.enforceSecurityLockdown(username, `CRITICAL TERMINATION: ${reason} (Strike ${user.violationCount})`, "Multiple strikes reached.");
+        } else {
+            await this.setData(dataKey, storedData);
+            await this.logActivity({
+                actor: 'SYSTEM-PUNISHMENT',
+                targetUser: username,
+                actionType: 'SECURITY',
+                description: `STRIKE ISSUED: ${reason}`,
+                metadata: `Current strikes: ${user.violationCount}`
+            });
+        }
+    }
+  },
+
   async enforceSecurityLockdown(username: string, reason: string, context: string): Promise<void> {
       const dataKey = `architect_data_${username}`;
       const storedData = await this.getData(dataKey);
@@ -138,13 +159,13 @@ export const storageService = {
           storedData.user.verificationStatus = 'NONE';
           storedData.user.level = 0;
           storedData.user.banReason = reason;
-          storedData.user.badges = Array.from(new Set([...(storedData.user.badges || []), 'DANGEROUS', 'SUSPICIOUS', 'PUNISHED']));
+          storedData.user.badges = Array.from(new Set([...(storedData.user.badges || []), 'TERMINATED', 'BANNED', 'PUNISHED']));
           await this.setData(dataKey, storedData);
           await this.logActivity({
             actor: 'SYSTEM-PUNISHMENT',
             targetUser: username,
             actionType: 'SECURITY',
-            description: `PUNISHMENT ENFORCED: ${reason}`,
+            description: `PERMANENT BAN ENFORCED: ${reason}`,
             metadata: context
           });
       }

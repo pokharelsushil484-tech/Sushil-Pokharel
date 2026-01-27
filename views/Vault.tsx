@@ -19,19 +19,30 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
   
   const isAdmin = localStorage.getItem('active_session_user') === 'admin'; 
+  const activeUser = localStorage.getItem('active_session_user') || 'Unknown';
 
-  const handleUnlock = () => {
+  const handleUnlock = async () => {
     if (pin === (user.vaultPin || "1234")) {
       setIsUnlocked(true);
       setError('');
     } else {
       setPin('');
       setError("AUTHORIZATION DENIED.");
+      
+      // PUNISHMENT SYSTEM INTEGRATION
+      await storageService.recordViolation(activeUser, "Unauthorized Vault Access Attempt: Invalid PIN");
+      
+      // Update local state if strike was recorded
+      const stored = await storageService.getData(`architect_data_${activeUser}`);
+      if (stored && stored.user) {
+          updateUser(stored.user);
+          if (stored.user.isBanned) window.location.reload();
+      }
     }
   };
 
