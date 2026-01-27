@@ -1,25 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { UserProfile, ChangeRequest, SupportTicket, TicketMessage } from '../types';
+import React, { useState, useEffect } from 'react';
+import { UserProfile, ChangeRequest, SupportTicket } from '../types';
 import { 
-  Users, ShieldCheck, LifeBuoy, Trash2, 
-  CheckCircle, XCircle, RefreshCw, User, Lock, 
-  ShieldAlert, MessageSquare, Send, Key, ChevronUp, ChevronDown, Award, Edit2, ArrowRight, Save, X, BadgeCheck, BadgeAlert, Skull, AlertTriangle, MessageCircle, Ticket, Plus, UserPlus, Download, Copy, ShieldX, Ban
+  Users, ShieldCheck, RefreshCw, User, Lock, 
+  ShieldAlert, Key, BadgeCheck, ShieldX, Ban, UserPlus, Send, Loader2, Database
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
-import { ADMIN_USERNAME, DEFAULT_USER, SYSTEM_UPGRADE_TOKEN } from '../constants';
+import { ADMIN_USERNAME, DEFAULT_USER, SYSTEM_DOMAIN } from '../constants';
 
-type AdminView = 'OVERVIEW' | 'USERS' | 'REQUESTS' | 'SUPPORT';
+type AdminView = 'OVERVIEW' | 'USERS' | 'PROVISION' | 'LINKS';
 
 export const AdminDashboard: React.FC = () => {
   const [viewMode, setViewMode] = useState<AdminView>('OVERVIEW');
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
-  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [provisioning, setProvisioning] = useState({ username: '', password: '', fullName: '', email: '' });
+  const [isProvisioning, setIsProvisioning] = useState(false);
   
-  // Admission Key State
   const [msKey, setMsKey] = useState<string | null>(null);
-  const [keyStatus, setKeyStatus] = useState<'ACTIVE' | 'COOLDOWN'>('ACTIVE');
-  const [cooldownTime, setCooldownTime] = useState(0);
 
   useEffect(() => {
     loadData();
@@ -44,72 +41,79 @@ export const AdminDashboard: React.FC = () => {
 
         const reqStr = localStorage.getItem('studentpocket_requests');
         if (reqStr) setRequests(JSON.parse(reqStr));
-
-        const ticketStr = localStorage.getItem('studentpocket_tickets');
-        if (ticketStr) setTickets(JSON.parse(ticketStr));
         
         const keys = await storageService.getSystemKeys();
         setMsKey(keys.msCode);
-        setKeyStatus(keys.status);
-        setCooldownTime(keys.timerRemaining);
     } catch (error) {
         console.error("Dashboard Sync Error:", error);
     }
   };
 
-  const handleVerifyRequest = async (req: ChangeRequest, approve: boolean) => {
-      const data = await storageService.getData(`architect_data_${req.username}`);
-      if (data && data.user) {
-          data.user.isVerified = approve;
-          data.user.verificationStatus = approve ? 'VERIFIED' : 'REJECTED';
-          data.user.level = approve ? 1 : 0;
-          await storageService.setData(`architect_data_${req.username}`, data);
+  const handleProvision = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!provisioning.username || !provisioning.password) return;
+      setIsProvisioning(true);
+
+      const usersStr = localStorage.getItem('studentpocket_users');
+      const users = usersStr ? JSON.parse(usersStr) : {};
+      
+      if (users[provisioning.username]) {
+          alert("Error: Node ID already exists in registry.");
+          setIsProvisioning(false);
+          return;
       }
 
-      const updatedReqs = requests.map(r => 
-        r.id === req.id ? { ...r, status: approve ? 'APPROVED' : 'REJECTED' } : r
-      );
-      setRequests(updatedReqs as ChangeRequest[]);
-      localStorage.setItem('studentpocket_requests', JSON.stringify(updatedReqs));
+      // 1. Update Global Registry (allows login from any "device")
+      users[provisioning.username] = { 
+          password: provisioning.password, 
+          name: provisioning.fullName || provisioning.username, 
+          email: provisioning.email || `node@${SYSTEM_DOMAIN}`, 
+          verified: true 
+      };
+      localStorage.setItem('studentpocket_users', JSON.stringify(users));
+
+      // 2. Initialize Data Node
+      const profile: UserProfile = {
+          ...DEFAULT_USER,
+          name: provisioning.fullName || provisioning.username,
+          email: provisioning.email || `node@${SYSTEM_DOMAIN}`,
+          isVerified: true,
+          verificationStatus: 'VERIFIED',
+          level: 1,
+          studentId: `STP-${Math.floor(100000 + Math.random() * 900000)}`
+      };
+      await storageService.setData(`architect_data_${provisioning.username}`, { user: profile, vaultDocs: [], assignments: [] });
+
+      setTimeout(() => {
+          setProvisioning({ username: '', password: '', fullName: '', email: '' });
+          setIsProvisioning(false);
+          loadData();
+          alert("Node Provisioned Successfully. User can now log in on any device.");
+      }, 1000);
   };
 
   const toggleVerification = async (username: string, currentStatus: boolean) => {
-      const data = await storageService.getData(`architect_data_${username}`);
+      const dataKey = `architect_data_${username}`;
+      const data = await storageService.getData(dataKey);
       if (data && data.user) {
           data.user.isVerified = !currentStatus;
           data.user.verificationStatus = !currentStatus ? 'VERIFIED' : 'NONE';
-          data.user.level = !currentStatus ? 1 : 0;
-          await storageService.setData(`architect_data_${username}`, data);
-          
-          // Update the users registry too
-          const usersStr = localStorage.getItem('studentpocket_users');
-          const users = usersStr ? JSON.parse(usersStr) : {};
-          if (users[username]) {
-              users[username].verified = !currentStatus;
-              localStorage.setItem('studentpocket_users', JSON.stringify(users));
-          }
-          
+          await storageService.setData(dataKey, data);
           loadData();
       }
   };
 
-  const handleBanUser = async (username: string) => {
-      if(!window.confirm(`Permanently terminate node access for ${username}?`)) return;
-      await storageService.enforceSecurityLockdown(username, "Manual Administrative Termination", "Action performed by Lead Architect.");
-      loadData();
-  };
-
-  const pendingRequests = requests.filter(r => r.status === 'PENDING');
+  const pendingRequests = requests.filter(r => r.status === 'PENDING' && r.type === 'VERIFICATION');
 
   return (
     <div className="pb-32 animate-platinum space-y-10">
        <div className="flex justify-between items-end border-b border-white/5 pb-8">
            <div>
-               <div className="stark-badge mb-3">Authority Level 3</div>
+               <div className="stark-badge mb-3">Lead Architect Hub</div>
                <h1 className="text-4xl font-black text-white uppercase italic tracking-tighter">Command Matrix</h1>
            </div>
            <div className="flex gap-4">
-               {['OVERVIEW', 'USERS', 'REQUESTS', 'SUPPORT'].map((m) => (
+               {['OVERVIEW', 'USERS', 'PROVISION', 'LINKS'].map((m) => (
                    <button 
                     key={m} 
                     onClick={() => setViewMode(m as AdminView)}
@@ -131,21 +135,54 @@ export const AdminDashboard: React.FC = () => {
                    <h3 className="text-5xl font-black text-white italic">{profiles.length}</h3>
                </div>
                <div className="master-box p-10 space-y-6">
-                   <div className="flex justify-between items-center">
-                        <ShieldAlert className="text-amber-500" />
+                   <div className="flex justify-between items-center text-amber-500">
+                        <ShieldAlert />
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Auth Pending</span>
                    </div>
                    <h3 className="text-5xl font-black text-white italic">{pendingRequests.length}</h3>
                </div>
                <div className="master-box p-10 space-y-6 border-indigo-500/20">
-                   <div className="flex justify-between items-center">
-                        <Key className="text-emerald-500" />
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">System Key</span>
+                   <div className="flex justify-between items-center text-emerald-500">
+                        <Key />
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Master Link</span>
                    </div>
-                   <div className="bg-black/50 p-4 rounded-xl text-center">
-                        <h3 className="text-2xl font-mono font-black text-emerald-400 tracking-widest">{msKey || 'CYCLING...'}</h3>
+                   <div className="bg-black/50 p-4 rounded-xl text-center font-mono text-xl text-emerald-400 tracking-widest">
+                        {msKey || 'SYNCING...'}
                    </div>
                </div>
+           </div>
+       )}
+
+       {viewMode === 'PROVISION' && (
+           <div className="max-w-2xl mx-auto master-box p-12 border border-indigo-500/30">
+               <div className="flex items-center space-x-6 mb-12">
+                   <div className="w-16 h-16 bg-indigo-600 rounded-[2rem] flex items-center justify-center text-white shadow-xl shadow-indigo-600/20">
+                       <UserPlus size={32} />
+                   </div>
+                   <div>
+                       <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">Personnel Provisioning</h2>
+                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Instant Node Deployment</p>
+                   </div>
+               </div>
+               <form onSubmit={handleProvision} className="space-y-6">
+                   <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-4">Node ID</label>
+                            <input value={provisioning.username} onChange={e => setProvisioning({...provisioning, username: e.target.value})} className="w-full bg-black/50 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none focus:border-indigo-500" placeholder="e.g. user_x" required />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-4">Security Token</label>
+                            <input type="password" value={provisioning.password} onChange={e => setProvisioning({...provisioning, password: e.target.value})} className="w-full bg-black/50 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none focus:border-indigo-500" placeholder="e.g. secret_123" required />
+                        </div>
+                   </div>
+                   <div className="space-y-2">
+                        <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-4">Full Name</label>
+                        <input value={provisioning.fullName} onChange={e => setProvisioning({...provisioning, fullName: e.target.value})} className="w-full bg-black/50 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none focus:border-indigo-500" placeholder="LEGAL SIGNATURE" />
+                   </div>
+                   <button type="submit" disabled={isProvisioning} className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.4em] shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center">
+                       {isProvisioning ? <Loader2 className="animate-spin" /> : 'Provision Node'}
+                   </button>
+               </form>
            </div>
        )}
 
@@ -154,88 +191,41 @@ export const AdminDashboard: React.FC = () => {
                <table className="w-full text-left">
                    <thead className="bg-white/5 border-b border-white/5">
                        <tr>
-                           <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Identity</th>
-                           <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Status / Level</th>
-                           <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Punishment</th>
+                           <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Identity Node</th>
+                           <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Status</th>
                            <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Actions</th>
                        </tr>
                    </thead>
                    <tbody className="divide-y divide-white/5">
                        {profiles.map((p: any) => (
-                           <tr key={p._username} className={`hover:bg-white/[0.02] transition-colors ${p.isBanned ? 'opacity-40 grayscale' : ''}`}>
+                           <tr key={p._username} className="hover:bg-white/[0.02]">
                                <td className="p-8">
                                    <div className="flex items-center gap-4">
-                                       <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden">
-                                           {p.avatar ? <img src={p.avatar} className="w-full h-full object-cover"/> : <User size={18}/>}
-                                       </div>
+                                       <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center font-black text-xs">{p.name[0]}</div>
                                        <div>
-                                           <div className="text-sm font-black text-white uppercase italic">{p.name}</div>
+                                           <div className="text-sm font-black text-white italic">{p.name} {p.isVerified && <BadgeCheck size={14} className="inline text-indigo-400 ml-2" />}</div>
                                            <div className="text-[9px] text-slate-500 font-bold uppercase">{p.email}</div>
                                        </div>
                                    </div>
                                </td>
                                <td className="p-8">
-                                   <div className="flex flex-col gap-2">
-                                        <span className={`stark-badge text-[8px] text-center ${p.isVerified ? 'bg-emerald-500' : 'bg-amber-500'}`}>
-                                            {p.isVerified ? 'Verified' : 'Unverified'}
-                                        </span>
-                                        <span className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Lvl {p.level}</span>
-                                   </div>
+                                    <span className={`px-4 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest ${p.isVerified ? 'bg-indigo-500/20 text-indigo-400' : 'bg-amber-500/20 text-amber-500'}`}>
+                                        {p.isVerified ? 'Verified' : 'Unverified'}
+                                    </span>
                                </td>
                                <td className="p-8">
-                                   <div className="flex gap-1">
-                                       {Array.from({ length: 3 }).map((_, i) => (
-                                           <div key={i} className={`w-4 h-1 rounded-full ${i < (p.violationCount || 0) ? 'bg-red-600' : 'bg-white/10'}`}></div>
-                                       ))}
-                                   </div>
-                                   {p.isBanned && <span className="text-[8px] font-black text-red-500 uppercase mt-2 block">TERMINATED</span>}
-                               </td>
-                               <td className="p-8">
-                                   <div className="flex items-center gap-3">
-                                       <button 
-                                          onClick={() => toggleVerification(p._username, p.isVerified)}
-                                          className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center"
-                                       >
-                                           {p.isVerified ? <ShieldX size={12} className="mr-2"/> : <ShieldCheck size={12} className="mr-2"/>}
-                                           {p.isVerified ? 'Unverify' : 'Verify'}
-                                       </button>
-                                       <button onClick={() => handleBanUser(p._username)} className="p-3 bg-white/5 rounded-xl text-slate-500 hover:text-red-500 transition-all border border-white/5">
-                                           <Ban size={16} />
-                                       </button>
-                                   </div>
+                                   <button 
+                                      onClick={() => toggleVerification(p._username, p.isVerified)}
+                                      className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center"
+                                   >
+                                       {p.isVerified ? <ShieldX size={12} className="mr-2"/> : <ShieldCheck size={12} className="mr-2"/>}
+                                       {p.isVerified ? 'Unverify' : 'Verify'}
+                                   </button>
                                </td>
                            </tr>
                        ))}
                    </tbody>
                </table>
-           </div>
-       )}
-
-       {viewMode === 'REQUESTS' && (
-           <div className="space-y-6">
-               {pendingRequests.map(req => (
-                   <div key={req.id} className="master-box p-10 flex flex-col md:flex-row justify-between items-center gap-10">
-                       <div className="flex items-center gap-8">
-                           <div className="w-16 h-16 bg-indigo-500/10 rounded-3xl flex items-center justify-center text-indigo-500 border border-indigo-500/20">
-                               <ShieldCheck size={32} />
-                           </div>
-                           <div>
-                               <h4 className="text-xl font-black text-white uppercase italic">Access Appeal</h4>
-                               <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Node: {req.username} | Ref: {req.id}</p>
-                           </div>
-                       </div>
-                       <div className="flex gap-4">
-                           <button onClick={() => handleVerifyRequest(req, false)} className="px-8 py-4 rounded-2xl bg-white/5 text-slate-500 font-black text-[10px] uppercase tracking-widest border border-white/5 hover:text-red-500 transition-all">Deny</button>
-                           <button onClick={() => handleVerifyRequest(req, true)} className="btn-platinum px-12 py-4 text-[10px]">Approve Access</button>
-                       </div>
-                   </div>
-               ))}
-               {pendingRequests.length === 0 && (
-                   <div className="text-center py-20 opacity-20">
-                       <ShieldCheck size={64} className="mx-auto mb-4" />
-                       <p className="text-xl font-black uppercase tracking-[0.4em]">Grid Clean</p>
-                   </div>
-               )}
            </div>
        )}
     </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest, View } from '../types';
-import { ShieldCheck, Loader2, ArrowLeft, Send, User, Lock } from 'lucide-react';
+import { ShieldCheck, Loader2, ArrowLeft, Send, User, Lock, Copy, Check } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { SYSTEM_DOMAIN } from '../constants';
 
@@ -14,6 +14,7 @@ interface VerificationFormProps {
 export const VerificationForm: React.FC<VerificationFormProps> = ({ user, username, updateUser, onNavigate }) => {
   const [submitting, setSubmitting] = useState(false);
   const [successState, setSuccessState] = useState<{ studentId: string; linkId: string } | null>(null);
+  const [copied, setCopied] = useState(false);
   
   const [formData, setFormData] = useState({
       fullName: user.name || '',
@@ -33,6 +34,12 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     }
   };
 
+  const handleCopyLink = (link: string) => {
+      navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.fullName || !profileImage) {
@@ -41,11 +48,13 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     }
     
     setSubmitting(true);
-    const linkId = Math.random().toString(36).substring(7).toUpperCase();
+    const linkId = Math.random().toString(36).substring(2, 9).toUpperCase();
     const generatedStudentId = `SP-${Math.floor(100000 + Math.random() * 900000)}`;
 
     setTimeout(async () => {
-      const existing = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
+      const existingStr = localStorage.getItem('studentpocket_requests');
+      const existing = existingStr ? JSON.parse(existingStr) : [];
+      
       const request: ChangeRequest = {
           id: 'REQ-' + Date.now(),
           userId: username,
@@ -64,8 +73,13 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
           ...user, 
           verificationStatus: 'PENDING_APPROVAL',
           studentId: generatedStudentId,
-          level: 0
+          level: 0,
+          isVerified: false // Explicitly false until admin action
       };
+      
+      const dataKey = `architect_data_${username}`;
+      const stored = await storageService.getData(dataKey);
+      await storageService.setData(dataKey, { ...stored, user: updatedProfile });
       
       updateUser(updatedProfile);
       setSuccessState({ studentId: generatedStudentId, linkId });
@@ -74,29 +88,47 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
   };
 
   if (successState) {
+    const fullLink = `https://www.${SYSTEM_DOMAIN}/v/${successState.linkId}`;
     return (
-      <div className="max-w-xl mx-auto pt-16 animate-platinum">
-        <div className="master-box p-12 text-center">
-             <div className="w-24 h-24 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-indigo-500/20 text-indigo-500">
+      <div className="max-w-xl mx-auto pt-16 animate-platinum pb-40">
+        <div className="master-box p-12 text-center border border-indigo-500/30">
+             <div className="w-24 h-24 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-indigo-500/20 text-indigo-500 shadow-[0_0_50px_rgba(79,70,229,0.2)]">
                  <Lock size={44} />
              </div>
-             <h2 className="text-3xl font-black text-white uppercase mb-2">Protocol Active</h2>
-             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-12">Institutional Review Pending</p>
-             <div className="bg-white/5 p-10 rounded-[2.5rem] border border-white/5 mb-6 text-left">
-                 <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-4">Node Identity</p>
-                 <p className="font-mono text-3xl text-white font-bold tracking-widest">{successState.studentId}</p>
+             <h2 className="text-3xl font-black text-white uppercase mb-2 italic tracking-tighter">Protocol Engaged</h2>
+             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.5em] mb-12">Administration Review Active</p>
+             
+             <div className="space-y-6">
+                <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/5 text-left">
+                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-4">Permanent Node Identity</p>
+                    <p className="font-mono text-3xl text-white font-bold tracking-widest">{successState.studentId}</p>
+                </div>
+
+                <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/5 text-left">
+                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-4">Institutional Verification Link</p>
+                    <div className="flex items-center gap-4">
+                        <div className="flex-1 p-4 bg-black rounded-xl text-[10px] text-slate-400 font-mono break-all border border-white/5 shadow-inner">
+                            {fullLink}
+                        </div>
+                        <button onClick={() => handleCopyLink(fullLink)} className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 transition-all border border-white/10 text-white">
+                            {copied ? <Check size={20} className="text-emerald-500"/> : <Copy size={20}/>}
+                        </button>
+                    </div>
+                </div>
              </div>
-             <div className="p-4 bg-black/40 rounded-xl mb-10 text-[9px] text-slate-500 font-mono break-all text-left">
-                 HTTPS://WWW.{SYSTEM_DOMAIN.toUpperCase()}/V/{successState.linkId}
-             </div>
-             <button onClick={() => window.location.reload()} className="btn-platinum w-full py-6">Finalize Node State</button>
+
+             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-10 leading-relaxed">
+                 Warning: Your node will remain unverified until the administrator uses the link above to authorize your data.
+             </p>
+
+             <button onClick={() => window.location.reload()} className="btn-platinum w-full py-6 mt-10">Return to Terminal</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto pb-32 animate-platinum">
+    <div className="max-w-5xl mx-auto pb-40 animate-platinum">
       <button onClick={() => onNavigate(View.DASHBOARD)} className="flex items-center text-slate-500 hover:text-white font-black text-[10px] uppercase tracking-widest mb-10 transition-all group">
         <ArrowLeft size={16} className="mr-3 group-hover:-translate-x-1 transition-transform" /> Cancel Protocol
       </button>
@@ -121,7 +153,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                 </div>
                 <div className="space-y-3">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Digital Mail Node</label>
-                    <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-white/30 outline-none font-bold text-white placeholder:text-slate-800" placeholder="EMAIL@SUSHILPOKHAREL00.COM.NP" required />
+                    <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-white/30 outline-none font-bold text-white placeholder:text-slate-800" placeholder="EMAIL" required />
                 </div>
                 <div className="space-y-3">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Communication Link</label>

@@ -9,10 +9,12 @@ import { VerificationForm } from './views/VerificationForm';
 import { AccessRecovery } from './views/AccessRecovery';
 import { VerificationPending } from './views/VerificationPending';
 import { AdminDashboard } from './views/AdminDashboard';
+import { InviteRegistration } from './views/InviteRegistration';
 import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { ErrorPage } from './views/ErrorPage';
 import { Login } from './views/Login';
+import { Footer } from './components/Footer';
 import { View, UserProfile, VaultDocument, Assignment } from './types';
 import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME } from './constants';
 import { storageService } from '../services/storageService';
@@ -86,14 +88,6 @@ const App = () => {
       setView(View.DASHBOARD);
   };
 
-  useEffect(() => {
-    if (activeUser && !user.isBanned) {
-        storageService.setData(`architect_data_${activeUser}`, {
-          user, vaultDocs, assignments
-        });
-    }
-  }, [user, vaultDocs, assignments, activeUser]);
-
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
   
   if (user.isBanned) {
@@ -108,7 +102,12 @@ const App = () => {
       );
   }
 
-  if (!isLoggedIn) return <Login onLogin={handleLogin} />;
+  // REGISTER View - Privacy Build
+  if (view === View.REGISTER) {
+    return <InviteRegistration onRegister={handleLogin} onNavigate={setView} />;
+  }
+
+  if (!isLoggedIn) return <Login onLogin={handleLogin} onNavigateRegister={() => setView(View.REGISTER)} />;
 
   if (activeUser !== ADMIN_USERNAME && !user.isVerified && view !== View.VERIFICATION_FORM && view !== View.SUPPORT && view !== View.ACCESS_RECOVERY) {
       return (
@@ -156,7 +155,7 @@ const App = () => {
            </div>
            <div className="flex items-center space-x-4">
               <div className="text-right hidden sm:block">
-                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Authorized Layer</p>
+                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Personnel Layer</p>
                   <p className="text-xs font-bold text-indigo-400">{user.name}</p>
               </div>
               <div className="w-10 h-10 rounded-full border border-white/20 overflow-hidden bg-slate-900 flex items-center justify-center p-0.5 shadow-xl">
@@ -166,6 +165,7 @@ const App = () => {
         </header>
         <main className="flex-1 max-w-7xl mx-auto w-full pt-10 px-6 sm:px-10 pb-32 md:pb-12">
             {renderContent()}
+            <Footer onNavigate={setView} />
         </main>
       </div>
       <Navigation currentView={view} setView={setView} isAdmin={activeUser === ADMIN_USERNAME} isVerified={user.isVerified} username={activeUser || ''} onLogout={handleLogout} />

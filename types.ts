@@ -1,3 +1,4 @@
+
 export enum View {
   SUPPORT = 'SUPPORT',
   SETTINGS = 'SETTINGS',
@@ -7,6 +8,7 @@ export enum View {
   VERIFICATION_FORM = 'VERIFICATION_FORM',
   ACCESS_RECOVERY = 'ACCESS_RECOVERY',
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
+  REGISTER = 'REGISTER',
   ERROR = 'ERROR'
 }
 
@@ -48,6 +50,29 @@ export interface UserProfile {
   maxViolations: number;
 }
 
+// Fixed missing types for application components
+
+export interface Assignment {
+  id: string;
+  title: string;
+  subject: string;
+  dueDate: string;
+  priority: TaskPriority;
+  completed: boolean;
+  estimatedTime?: string;
+}
+
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+  tags: string[];
+  status: 'PENDING' | 'COMPLETED';
+  author: 'admin' | 'user';
+  deletedAt?: number;
+}
+
 export interface VaultDocument {
   id: string;
   title: string;
@@ -58,38 +83,16 @@ export interface VaultDocument {
   createdAt: number;
 }
 
-export interface Assignment {
-  id: string;
-  title: string;
-  subject: string;
-  category?: string;
-  dueDate: string;
-  priority: string;
-  completed: boolean;
-  estimatedTime?: string;
-  reminderMinutes?: number;
-}
-
-export interface ChatMessage {
-  id: string;
-  text: string;
-  sender: 'user' | 'ai';
-  timestamp: number;
-}
-
 export interface ChangeRequest {
   id: string;
   userId: string;
   username: string;
-  type: 'VERIFICATION' | 'DATA_CHANGE' | 'NAME_CHANGE' | 'RECOVERY';
-  details: string;
+  type: 'VERIFICATION' | 'DATA_CHANGE' | 'RECOVERY';
+  details: string; // JSON string payload
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: number;
-  linkId?: string;
+  linkId: string;
   generatedStudentId?: string;
-  autoFlagged?: boolean;
-  autoFlagReason?: string;
-  previousLinkIds?: string[];
 }
 
 export interface TicketMessage {
@@ -110,25 +113,11 @@ export interface SupportTicket {
   messages: TicketMessage[];
 }
 
-export interface ActivityLog {
+export interface ChatMessage {
   id: string;
+  text: string;
+  sender: 'user' | 'ai';
   timestamp: number;
-  actor: string;
-  targetUser?: string;
-  actionType: string;
-  description: string;
-  metadata?: string;
-}
-
-export interface Note {
-  id: string;
-  title: string;
-  content: string;
-  date: string;
-  tags: string[];
-  status: 'COMPLETED' | 'PENDING';
-  author: 'admin' | 'user';
-  deletedAt?: number;
 }
 
 export interface Expense {
@@ -158,6 +147,16 @@ export interface Database {
   name: string;
   description: string;
   schema: DbField[];
-  records: any[];
+  records: Record<string, any>[];
   createdAt: number;
+}
+
+export interface ActivityLog {
+  id: string;
+  timestamp: number;
+  actor: string;
+  targetUser: string;
+  actionType: string;
+  description: string;
+  metadata?: string;
 }

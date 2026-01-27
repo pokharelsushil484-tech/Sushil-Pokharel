@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Lock, User, Eye, EyeOff, Loader2, ShieldCheck, ArrowRight, Fingerprint, Activity, ShieldAlert, UserPlus } from 'lucide-react';
-import { APP_NAME, SYSTEM_DOMAIN, APP_VERSION, BUILD_DATE, COPYRIGHT_NOTICE, MAX_LOGIN_ATTEMPTS, DEFAULT_USER } from '../constants';
+import { Lock, User, Eye, EyeOff, Loader2, ShieldCheck, ArrowRight, Fingerprint, ShieldAlert, UserPlus, Server } from 'lucide-react';
+import { APP_NAME, SYSTEM_DOMAIN, APP_VERSION, BUILD_DATE, MAX_LOGIN_ATTEMPTS, ADMIN_USERNAME, ADMIN_SECRET, PRE_SEEDED_USERS, DEFAULT_USER } from '../constants';
 import { storageService } from '../services/storageService';
 
 interface LoginProps {
   onLogin: (username: string) => void;
+  onNavigateRegister: () => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLogin }) => {
+export const Login: React.FC<LoginProps> = ({ onLogin, onNavigateRegister }) => {
   const [stage, setStage] = useState<'WELCOME' | 'CREDENTIALS' | 'BIOMETRIC'>('WELCOME');
   const [userId, setUserId] = useState('');
   const [token, setToken] = useState('');
@@ -18,45 +19,33 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Pre-seed "susilpokharel00@123" and ensure it is unverified in the database
   useEffect(() => {
-    const seedUser = async () => {
+    const seedSystem = async () => {
         const usersStr = localStorage.getItem('studentpocket_users');
         const users = usersStr ? JSON.parse(usersStr) : {};
         
-        // Ensure Admin exists
-        if (!users['admin']) {
-            users['admin'] = { password: 'admin123', name: 'Lead Architect', email: 'admin@sushilpokharel00.com.np', verified: true };
+        let changed = false;
+        // 1. Ensure Admin exists
+        if (!users[ADMIN_USERNAME]) {
+            users[ADMIN_USERNAME] = { password: ADMIN_SECRET, name: 'Lead Architect', email: `admin@${SYSTEM_DOMAIN}`, verified: true };
+            changed = true;
         }
         
-        // Insert specific personal user as requested
-        const targetUser = "susilpokharel00@123";
-        if (!users[targetUser]) {
-            users[targetUser] = { password: targetUser, name: 'Sushil Pokharel', email: 'susilpokharel00@123@sushilpokharel00.com.np', verified: false };
-            
-            // Explicitly store unverified profile in the "Administration's Database" (IndexedDB)
-            const userProfile: any = {
-                ...DEFAULT_USER,
-                name: "Sushil Pokharel",
-                email: "susilpokharel00@123@gmail.com",
-                isVerified: false,
-                verificationStatus: 'NONE',
-                level: 0,
-                studentId: "SP-SUSHIL-123",
-                violationCount: 0,
-                maxViolations: 3
-            };
-            
-            await storageService.setData(`architect_data_${targetUser}`, {
-                user: userProfile,
-                vaultDocs: [],
-                assignments: []
-            });
+        // 2. Seed 10 Storage Users if they don't exist
+        for (const u of PRE_SEEDED_USERS) {
+            if (!users[u.username]) {
+                users[u.username] = { password: u.password, name: u.name, email: u.email, verified: false };
+                changed = true;
+                
+                // Initialize their data node too
+                const profile = { ...DEFAULT_USER, name: u.name, email: u.email, studentId: `STP-NODE-${u.username.toUpperCase()}` };
+                await storageService.setData(`architect_data_${u.username}`, { user: profile, vaultDocs: [], assignments: [] });
+            }
         }
         
-        localStorage.setItem('studentpocket_users', JSON.stringify(users));
+        if (changed) localStorage.setItem('studentpocket_users', JSON.stringify(users));
     };
-    seedUser();
+    seedSystem();
   }, []);
 
   const initializeTerminal = () => {
@@ -64,7 +53,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setTimeout(() => {
       setLoading(false);
       setStage('CREDENTIALS');
-    }, 1000);
+    }, 800);
   };
 
   const handleCredentialSubmit = async (e: React.FormEvent) => {
@@ -80,11 +69,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     if (!userData || (typeof userData === 'string' ? userData !== token : userData.password !== token)) {
         const newCount = await storageService.recordFailedLogin(userId);
         setAttempts(newCount);
-        setSystemError(`CREDENTIAL MISMATCH. ATTEMPT ${newCount}/${MAX_LOGIN_ATTEMPTS}`);
+        setSystemError(`ACCESS DENIED. ATTEMPT ${newCount}/${MAX_LOGIN_ATTEMPTS}`);
         setLoading(false);
-        if (newCount >= MAX_LOGIN_ATTEMPTS) {
-            window.location.reload();
-        }
         return;
     }
 
@@ -92,7 +78,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       setLoading(false);
       setStage('BIOMETRIC');
       startBiometricSim();
-    }, 1200);
+    }, 1000);
   };
 
   const startBiometricSim = async () => {
@@ -100,7 +86,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
       if (videoRef.current) videoRef.current.srcObject = s;
     } catch (err) {
-      console.warn("Environmental constraints: Biometric hardware bypassed.");
+      console.warn("Hardware Bypass: Protocol engaged.");
     }
   };
 
@@ -108,11 +94,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setLoading(true);
     setTimeout(() => {
       onLogin(userId);
-    }, 1800);
+    }, 1200);
   };
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 relative overflow-hidden selection:bg-white/20">
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 relative overflow-hidden selection:bg-indigo-500/20">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-indigo-950/20 rounded-full blur-[160px]"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-slate-900/30 rounded-full blur-[160px]"></div>
@@ -128,29 +114,35 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
               <div className="space-y-4">
                 <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">{APP_NAME}</h1>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.7em]">WWW.{SYSTEM_DOMAIN.toUpperCase()}</p>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.7em]">MULTI-NODE ARCHITECTURE ACTIVE</p>
               </div>
-              <button onClick={initializeTerminal} disabled={loading} className="btn-platinum w-full py-6">
-                {loading ? <Loader2 className="animate-spin" size={20} /> : <>Initialize Portal <ArrowRight className="ml-3" size={18}/></>}
-              </button>
+              <div className="space-y-4">
+                <button onClick={initializeTerminal} disabled={loading} className="btn-platinum w-full py-6">
+                  {loading ? <Loader2 className="animate-spin" size={20} /> : <>Initialize Portal <ArrowRight className="ml-3" size={18}/></>}
+                </button>
+                <div className="pt-4 flex items-center justify-center space-x-2 opacity-30">
+                    <Server size={14} className="text-white" />
+                    <span className="text-[8px] font-bold text-white uppercase tracking-widest">Storage Registry: 10 Nodes Connected</span>
+                </div>
+              </div>
             </div>
           )}
 
           {stage === 'CREDENTIALS' && (
             <div className="space-y-10">
               <div className="text-center">
-                <h2 className="text-xl font-black text-white uppercase tracking-widest italic">Authorization Node</h2>
+                <h2 className="text-xl font-black text-white uppercase tracking-widest italic">Identity Validation</h2>
                 {attempts > 0 && (
                     <div className="inline-flex items-center space-x-2 bg-red-500/10 px-4 py-1.5 rounded-full mt-5 border border-red-500/20">
                         <ShieldAlert size={12} className="text-red-500 animate-pulse" />
-                        <span className="text-[8px] font-black text-red-500 uppercase tracking-[0.3em]">Punishment Threshold: {attempts}/{MAX_LOGIN_ATTEMPTS}</span>
+                        <span className="text-[8px] font-black text-red-500 uppercase tracking-[0.3em]">Warning {attempts}/{MAX_LOGIN_ATTEMPTS}</span>
                     </div>
                 )}
               </div>
 
               <form onSubmit={handleCredentialSubmit} className="space-y-8">
                 <div className="space-y-3">
-                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] ml-4">Personnel Identity</label>
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] ml-4">Node Identity</label>
                   <div className="relative group">
                     <User className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 transition-colors group-focus-within:text-white" size={18} />
                     <input 
@@ -159,13 +151,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                       onChange={e => setUserId(e.target.value)}
                       className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] py-5 pl-16 pr-8 text-white font-bold text-sm outline-none focus:border-white/30 transition-all placeholder:text-slate-700"
                       placeholder="Student ID / Alias"
+                      autoComplete="off"
                     />
                   </div>
-                  <p className="text-[8px] text-slate-600 uppercase tracking-widest ml-4">Tip: Use 'susilpokharel00@123'</p>
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] ml-4">Access Token</label>
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] ml-4">Security Token</label>
                   <div className="relative group">
                     <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 transition-colors group-focus-within:text-white" size={18} />
                     <input 
@@ -173,7 +165,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                       value={token}
                       onChange={e => setToken(e.target.value)}
                       className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] py-5 pl-16 pr-16 text-white font-bold text-sm outline-none focus:border-white/30 transition-all placeholder:text-slate-700"
-                      placeholder="Security Hash"
+                      placeholder="Encrypted Hash"
+                      autoComplete="off"
                     />
                     <button type="button" onClick={() => setShowToken(!showToken)} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white">
                       {showToken ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -184,7 +177,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 {systemError && <p className="text-[10px] font-black text-red-500 text-center uppercase tracking-widest">{systemError}</p>}
 
                 <button type="submit" disabled={loading} className="btn-platinum w-full py-6">
-                  {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Authorize Metadata'}
+                  {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Authorize Node'}
                 </button>
               </form>
             </div>
@@ -202,10 +195,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
               <div>
                 <h3 className="text-2xl font-black text-white uppercase tracking-tight italic">Biometric Integrity</h3>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.6em] mt-3">Validating Personnel Signature</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.6em] mt-3">Validating Signal</p>
               </div>
               <button onClick={grantAccess} disabled={loading} className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.4em] shadow-2xl shadow-indigo-600/30 transition-all hover:bg-indigo-500">
-                {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Finalize Synchronization'}
+                {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Finalize Sync'}
               </button>
             </div>
           )}
@@ -215,9 +208,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <span className="stark-badge">{APP_VERSION}</span>
               <p className="text-[9px] text-white font-black tracking-[0.5em] uppercase">{BUILD_DATE}</p>
             </div>
-            <p className="text-[8px] text-slate-600 font-bold tracking-[0.4em] uppercase leading-relaxed max-w-xs mx-auto">
-              {COPYRIGHT_NOTICE}
-            </p>
           </div>
         </div>
       </div>
