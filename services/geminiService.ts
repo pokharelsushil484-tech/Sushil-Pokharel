@@ -1,12 +1,11 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 /**
  * Technical Q&A with AI
  */
 export const chatWithAI = async (message: string) => {
+  // Fix: Instantiate GoogleGenAI inside the function to use the most up-to-date API key.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     // Using gemini-3-pro-preview for complex reasoning tasks
     const response = await ai.models.generateContent({
@@ -24,6 +23,8 @@ export const chatWithAI = async (message: string) => {
  * Concisely summarizes notes
  */
 export const summarizeNote = async (content: string) => {
+  // Fix: Instantiate GoogleGenAI inside the function to use the most up-to-date API key.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     // Using gemini-3-flash-preview for standard summarization
     const response = await ai.models.generateContent({
@@ -41,6 +42,8 @@ export const summarizeNote = async (content: string) => {
  * Strategic study plan generation
  */
 export const generateStudyPlan = async (subject: string, hours: string) => {
+  // Fix: Instantiate GoogleGenAI inside the function to use the most up-to-date API key.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     // Using gemini-3-pro-preview for complex planning
     const response = await ai.models.generateContent({
@@ -58,6 +61,8 @@ export const generateStudyPlan = async (subject: string, hours: string) => {
  * Analyzes a URL and provides metadata + regulation status.
  */
 export const analyzeVideoLink = async (url: string) => {
+  // Fix: Instantiate GoogleGenAI inside the function to use the most up-to-date API key.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
