@@ -1,7 +1,7 @@
 <?php
 /**
  * StudentPocket - Master Institutional Controller
- * Security Build: v12.0.0 (Zero-Exposure)
+ * Security Build: v12.5.0 (Executive Unified)
  * Architect: Sushil Pokhrel
  */
 
@@ -14,7 +14,7 @@ session_start();
 
 // Institutional Configuration
 define('SYSTEM_DOMAIN', 'sushilpokharel00.com.np');
-define('ADMIN_CREDENTIAL', 'admin123'); // Hardened internal ref
+define('ADMIN_CREDENTIAL', 'admin123'); // Master Admin Access Key
 
 // Helper: Get Request Payload
 function get_payload() {
@@ -51,29 +51,31 @@ switch ($action) {
             exit;
         }
 
-        // Professional Logic for Admin/User Authorization
-        // Note: In local storage demo mode, the actual comparison happens in the frontend 
-        // using the structures defined here for the "Ghost Grid".
+        // Logic for Admin/User Authorization
+        $is_admin = ($userId === 'admin' && $hash === ADMIN_CREDENTIAL);
+        
         echo json_encode([
             'status' => 'SUCCESS',
             'authorized' => true,
+            'role' => $is_admin ? 'ADMINISTRATOR' : 'PERSONNEL',
             'session_vault' => session_id()
         ]);
         break;
 
     case 'REGISTER_NODE':
-        // Logic for creating new personnel nodes
         echo json_encode([
             'status' => 'NODE_CREATED',
             'requires_clearance' => true
         ]);
         break;
 
-    case 'REQUEST_RECOVERY':
+    case 'INITIATE_RECOVERY':
+        $identity = $request['identity'] ?? 'UNKNOWN';
         $recoveryId = bin2hex(random_bytes(4));
         echo json_encode([
             'status' => 'RECOVERY_LOGGED',
-            'recovery_id' => strtoupper($recoveryId)
+            'recovery_id' => strtoupper($recoveryId),
+            'target' => $identity
         ]);
         break;
 

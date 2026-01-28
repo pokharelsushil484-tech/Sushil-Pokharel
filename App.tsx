@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Navigation } from './components/Navigation';
 import { Dashboard } from './views/Dashboard';
@@ -6,7 +7,6 @@ import { Vault } from './views/Vault';
 import { Support } from './views/Support';
 import { StudyPlanner } from './views/StudyPlanner';
 import { VerificationForm } from './views/VerificationForm';
-import { AccessRecovery } from './views/AccessRecovery';
 import { VerificationPending } from './views/VerificationPending';
 import { AdminDashboard } from './views/AdminDashboard';
 import { InviteRegistration } from './views/InviteRegistration';
@@ -14,10 +14,10 @@ import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { ErrorPage } from './views/ErrorPage';
 import { Footer } from './components/Footer';
-import { View, UserProfile, VaultDocument, Assignment } from './types';
-import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME, APP_VERSION, ADMIN_SECRET } from './constants';
+import { View, UserProfile, VaultDocument, Assignment, ChangeRequest } from './types';
+import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME, APP_VERSION, ADMIN_SECRET, ADMIN_EMAIL } from './constants';
 import { storageService } from './services/storageService';
-import { ShieldCheck, UserPlus, Lock, ShieldAlert, Cpu, Fingerprint, Loader2, KeyRound, Terminal, Eye, EyeOff } from 'lucide-react';
+import { ShieldCheck, UserPlus, Lock, ShieldAlert, Cpu, Fingerprint, Loader2, KeyRound, Terminal, Eye, EyeOff, Send, Mail, Copy, Check, ArrowLeft } from 'lucide-react';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -26,13 +26,18 @@ const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeUser, setActiveUser] = useState<string | null>(null);
   
-  // Login flow states
-  const [loginStage, setLoginStage] = useState<'SPLASH' | 'CREDENTIALS' | 'BIOMETRIC'>('SPLASH');
+  // Login flow states: SPLASH -> CREDENTIALS -> BIOMETRIC | RECOVERY
+  const [loginStage, setLoginStage] = useState<'SPLASH' | 'CREDENTIALS' | 'BIOMETRIC' | 'RECOVERY' | 'RECOVERY_SUCCESS'>('SPLASH');
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [handshakeToken, setHandshakeToken] = useState('');
+  
+  // Recovery states
+  const [recoveryReason, setRecoveryReason] = useState('');
+  const [generatedRecoveryId, setGeneratedRecoveryId] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const [user, setUser] = useState<UserProfile>({
     ...DEFAULT_USER,
@@ -83,9 +88,9 @@ const App = () => {
 
   const handleHandshake = async () => {
     setIsLoading(true);
-    // Simulated PHP handshake call
+    // Simulated PHP call to login.php?action=INITIALIZE_HANDSHAKE
     setTimeout(() => {
-        setHandshakeToken(Math.random().toString(36).slice(2));
+        setHandshakeToken(Math.random().toString(36).slice(2).toUpperCase());
         setLoginStage('CREDENTIALS');
         setIsLoading(false);
     }, 800);
@@ -100,7 +105,6 @@ const App = () => {
     const usersStr = localStorage.getItem('studentpocket_users');
     const users = usersStr ? JSON.parse(usersStr) : {};
     
-    // Seed admin if missing
     if (!users[ADMIN_USERNAME]) {
         users[ADMIN_USERNAME] = { password: ADMIN_SECRET, name: 'Lead Architect', verified: true };
         localStorage.setItem('studentpocket_users', JSON.stringify(users));
@@ -123,6 +127,34 @@ const App = () => {
     }, 1000);
   };
 
+  const handleRecoverySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId || !recoveryReason) return;
+    setIsLoading(true);
+
+    setTimeout(() => {
+        const newId = Math.random().toString(36).substring(2, 9).toUpperCase();
+        setGeneratedRecoveryId(newId);
+        
+        const existingReqs = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
+        const request: ChangeRequest = {
+            id: 'REC-' + Date.now(),
+            userId: userId,
+            username: userId,
+            type: 'RECOVERY',
+            details: JSON.stringify({ reason: recoveryReason, timestamp: Date.now() }),
+            status: 'PENDING',
+            createdAt: Date.now(),
+            linkId: newId 
+        };
+        existingReqs.push(request);
+        localStorage.setItem('studentpocket_requests', JSON.stringify(existingReqs));
+        
+        setLoginStage('RECOVERY_SUCCESS');
+        setIsLoading(false);
+    }, 1200);
+  };
+
   const startBiometric = async () => {
     try {
       const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
@@ -130,14 +162,6 @@ const App = () => {
     } catch (err) {
       console.warn("Hardware Bypass: Grid Synchronization Active.");
     }
-  };
-
-  // Fixed: Added missing handleLogin function for registration flow
-  const handleLogin = (username: string) => {
-    localStorage.setItem('active_session_user', username);
-    setActiveUser(username);
-    setIsLoggedIn(true);
-    loadUserData(username);
   };
 
   const finalizeLogin = () => {
@@ -149,6 +173,14 @@ const App = () => {
         loadUserData(userId);
         setIsLoading(false);
     }, 1200);
+  };
+
+  // Fix: Added handleLogin function used by InviteRegistration component.
+  const handleLogin = (username: string) => {
+    localStorage.setItem('active_session_user', username);
+    setActiveUser(username);
+    setIsLoggedIn(true);
+    loadUserData(username);
   };
 
   const handleLogout = () => {
@@ -171,13 +203,13 @@ const App = () => {
             title="SYSTEM ACCESS REVOKED" 
             message={`Your identity node has been terminated due to serious security infractions. Reason: ${user.banReason || 'Protocol Violation'}`}
             actionLabel="Request Recovery Appeal"
-            onAction={() => setView(View.ACCESS_RECOVERY)}
+            onAction={() => { setLoginStage('RECOVERY'); setIsLoggedIn(false); }}
         />
       );
   }
 
-  // --- Professional Zero-Exposure Login Shell ---
-  if (!isLoggedIn && view !== View.REGISTER && view !== View.ACCESS_RECOVERY) {
+  // --- Professional Zero-Exposure Unified Login ---
+  if (!isLoggedIn && view !== View.REGISTER) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -205,7 +237,7 @@ const App = () => {
                             <button onClick={() => setView(View.REGISTER)} className="py-4 bg-white/5 text-slate-400 rounded-2xl text-[9px] font-black uppercase tracking-widest border border-white/5 hover:text-white transition-all">
                                 Initialize Node
                             </button>
-                            <button onClick={() => setView(View.ACCESS_RECOVERY)} className="py-4 bg-white/5 text-slate-400 rounded-2xl text-[9px] font-black uppercase tracking-widest border border-white/5 hover:text-white transition-all">
+                            <button onClick={() => setLoginStage('RECOVERY')} className="py-4 bg-white/5 text-slate-400 rounded-2xl text-[9px] font-black uppercase tracking-widest border border-white/5 hover:text-white transition-all">
                                 Recovery Protocol
                             </button>
                         </div>
@@ -230,7 +262,7 @@ const App = () => {
                                 <input 
                                     type="text" value={userId} onChange={e => setUserId(e.target.value)}
                                     className="w-full bg-white/5 border border-white/10 rounded-3xl py-5 pl-16 pr-8 text-white font-bold text-sm outline-none focus:border-indigo-500 transition-all"
-                                    placeholder="Username / Student ID"
+                                    placeholder="Username / ID"
                                 />
                             </div>
                         </div>
@@ -241,7 +273,7 @@ const App = () => {
                                 <input 
                                     type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
                                     className="w-full bg-white/5 border border-white/10 rounded-3xl py-5 pl-16 pr-16 text-white font-bold text-sm outline-none focus:border-indigo-500 transition-all"
-                                    placeholder="Encrypted Hash"
+                                    placeholder="Secret Credentials"
                                 />
                                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white">
                                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -249,9 +281,68 @@ const App = () => {
                             </div>
                         </div>
                         {loginError && <p className="text-[10px] font-black text-red-500 text-center uppercase tracking-widest animate-shake">{loginError}</p>}
-                        <button type="submit" className="btn-platinum w-full py-6">Authorize Data Node</button>
-                        <button type="button" onClick={() => setLoginStage('SPLASH')} className="w-full text-[9px] font-bold text-slate-600 uppercase tracking-widest">Abort Protocol</button>
+                        <button type="submit" className="btn-platinum w-full py-6">Authorize Node</button>
+                        <button type="button" onClick={() => setLoginStage('SPLASH')} className="w-full text-[9px] font-bold text-slate-600 uppercase tracking-widest">Abort</button>
                     </form>
+                </div>
+              )}
+
+              {loginStage === 'RECOVERY' && (
+                <div className="space-y-10">
+                    <div className="text-center">
+                        <h2 className="text-xl font-black text-white uppercase tracking-widest italic">Access Appeal</h2>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2">Node Restoration Protocol</p>
+                    </div>
+                    <form onSubmit={handleRecoverySubmit} className="space-y-8">
+                        <div className="space-y-3">
+                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] ml-4">Target Identity</label>
+                            <input 
+                                type="text" value={userId} onChange={e => setUserId(e.target.value)}
+                                className="w-full bg-white/5 border border-white/10 rounded-3xl py-5 px-8 text-white font-bold text-sm outline-none focus:border-indigo-500 transition-all"
+                                placeholder="Username or Student ID"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-3">
+                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] ml-4">Reason for Request</label>
+                            <textarea 
+                                value={recoveryReason} onChange={e => setRecoveryReason(e.target.value)}
+                                className="w-full bg-white/5 border border-white/10 rounded-3xl py-5 px-8 text-white font-medium text-sm outline-none focus:border-indigo-500 transition-all resize-none"
+                                placeholder="Explain access requirements..."
+                                rows={4}
+                                required
+                            />
+                        </div>
+                        <button type="submit" className="btn-platinum w-full py-6">Log Security Appeal</button>
+                        <button type="button" onClick={() => setLoginStage('SPLASH')} className="w-full text-[9px] font-bold text-slate-600 uppercase tracking-widest">Return</button>
+                    </form>
+                </div>
+              )}
+
+              {loginStage === 'RECOVERY_SUCCESS' && (
+                <div className="text-center space-y-10">
+                    <div className="w-20 h-20 bg-amber-500/10 rounded-3xl flex items-center justify-center mx-auto text-amber-500 border border-amber-500/20">
+                        <Lock size={32} />
+                    </div>
+                    <div className="space-y-2">
+                        <h2 className="text-2xl font-black text-white uppercase italic">Appeal Logged</h2>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">Institutional Link Generated</p>
+                    </div>
+                    <div className="bg-white/5 p-6 rounded-3xl border border-white/5 space-y-4">
+                        <p className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">Recovery ID: {generatedRecoveryId}</p>
+                        <div className="flex gap-2">
+                            <div className="flex-1 bg-black p-3 rounded-xl border border-white/10 text-[10px] font-mono text-slate-400 truncate select-all">
+                                {`www.${SYSTEM_DOMAIN}/recovery/${generatedRecoveryId}`}
+                            </div>
+                            <button onClick={() => { navigator.clipboard.writeText(`www.${SYSTEM_DOMAIN}/recovery/${generatedRecoveryId}`); setCopied(true); setTimeout(()=>setCopied(false),2000); }} className="p-3 bg-white/5 rounded-xl border border-white/10 text-white">
+                                {copied ? <Check size={16} className="text-emerald-500"/> : <Copy size={16}/>}
+                            </button>
+                        </div>
+                    </div>
+                    <a href={`mailto:${ADMIN_EMAIL}?subject=Recovery ID: ${generatedRecoveryId}`} className="btn-platinum w-full py-5 text-xs">
+                        Contact Administrator <Mail size={16} className="ml-3" />
+                    </a>
+                    <button onClick={() => setLoginStage('SPLASH')} className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Back to Entry</button>
                 </div>
               )}
 
@@ -266,8 +357,8 @@ const App = () => {
                         </div>
                     </div>
                     <div>
-                        <h3 className="text-2xl font-black text-white uppercase tracking-tight italic">Biometric Integrity</h3>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.6em] mt-3">Validating Hardware Signal</p>
+                        <h3 className="text-2xl font-black text-white uppercase tracking-tight italic">Identity Verified</h3>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.6em] mt-3">Ready for Grid Sync</p>
                     </div>
                     <button onClick={finalizeLogin} className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.4em] shadow-2xl shadow-indigo-600/30 hover:bg-indigo-500 transition-all">
                         Finalize Synchronization
@@ -288,10 +379,6 @@ const App = () => {
 
   if (view === View.REGISTER) {
     return <InviteRegistration onRegister={handleLogin} onNavigate={setView} />;
-  }
-
-  if (view === View.ACCESS_RECOVERY) {
-    return <AccessRecovery onNavigate={setView} />;
   }
 
   if (activeUser !== ADMIN_USERNAME && !user.isVerified && view !== View.VERIFICATION_FORM && view !== View.SUPPORT) {
