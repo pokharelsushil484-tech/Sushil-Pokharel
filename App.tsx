@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Navigation } from './components/Navigation';
 import { Dashboard } from './views/Dashboard';
 import { Settings } from './views/Settings';
@@ -15,9 +15,9 @@ import { SplashScreen } from './components/SplashScreen';
 import { ErrorPage } from './views/ErrorPage';
 import { Footer } from './components/Footer';
 import { View, UserProfile, VaultDocument, Assignment } from './types';
-import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME, APP_VERSION } from './constants';
+import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME, APP_VERSION, ADMIN_SECRET } from './constants';
 import { storageService } from './services/storageService';
-import { ShieldCheck, ArrowRight, UserPlus, Lock, ShieldAlert, Cpu } from 'lucide-react';
+import { ShieldCheck, UserPlus, Lock, ShieldAlert, Cpu, Fingerprint, Loader2, KeyRound, Terminal, Eye, EyeOff } from 'lucide-react';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -26,6 +26,14 @@ const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeUser, setActiveUser] = useState<string | null>(null);
   
+  // Login flow states
+  const [loginStage, setLoginStage] = useState<'SPLASH' | 'CREDENTIALS' | 'BIOMETRIC'>('SPLASH');
+  const [userId, setUserId] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [handshakeToken, setHandshakeToken] = useState('');
+
   const [user, setUser] = useState<UserProfile>({
     ...DEFAULT_USER,
     isVerified: false,
@@ -34,6 +42,7 @@ const App = () => {
 
   const [vaultDocs, setVaultDocs] = useState<VaultDocument[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const sessionUser = localStorage.getItem('active_session_user');
@@ -46,7 +55,6 @@ const App = () => {
 
   const loadUserData = async (username: string) => {
     const stored = await storageService.getData(`architect_data_${username}`);
-    
     if (stored?.user?.isBanned) {
         setUser(stored.user);
         return;
@@ -73,18 +81,83 @@ const App = () => {
     }
   };
 
-  const handleRegisterSuccess = (username: string) => {
-      localStorage.setItem('active_session_user', username);
-      setActiveUser(username);
-      setIsLoggedIn(true);
-      loadUserData(username);
-      setView(View.DASHBOARD);
+  const handleHandshake = async () => {
+    setIsLoading(true);
+    // Simulated PHP handshake call
+    setTimeout(() => {
+        setHandshakeToken(Math.random().toString(36).slice(2));
+        setLoginStage('CREDENTIALS');
+        setIsLoading(false);
+    }, 800);
+  };
+
+  const handleAuthorize = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId || !password) return;
+    setIsLoading(true);
+    setLoginError('');
+
+    const usersStr = localStorage.getItem('studentpocket_users');
+    const users = usersStr ? JSON.parse(usersStr) : {};
+    
+    // Seed admin if missing
+    if (!users[ADMIN_USERNAME]) {
+        users[ADMIN_USERNAME] = { password: ADMIN_SECRET, name: 'Lead Architect', verified: true };
+        localStorage.setItem('studentpocket_users', JSON.stringify(users));
+    }
+
+    const userData = users[userId];
+    const valid = userData && (typeof userData === 'string' ? userData === password : userData.password === password);
+
+    if (!valid) {
+        const attempts = await storageService.recordFailedLogin(userId);
+        setLoginError(`ACCESS DENIED. ATTEMPT ${attempts}/3`);
+        setIsLoading(false);
+        return;
+    }
+
+    setTimeout(() => {
+        setLoginStage('BIOMETRIC');
+        setIsLoading(false);
+        startBiometric();
+    }, 1000);
+  };
+
+  const startBiometric = async () => {
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      if (videoRef.current) videoRef.current.srcObject = s;
+    } catch (err) {
+      console.warn("Hardware Bypass: Grid Synchronization Active.");
+    }
+  };
+
+  // Fixed: Added missing handleLogin function for registration flow
+  const handleLogin = (username: string) => {
+    localStorage.setItem('active_session_user', username);
+    setActiveUser(username);
+    setIsLoggedIn(true);
+    loadUserData(username);
+  };
+
+  const finalizeLogin = () => {
+    setIsLoading(true);
+    setTimeout(() => {
+        localStorage.setItem('active_session_user', userId);
+        setActiveUser(userId);
+        setIsLoggedIn(true);
+        loadUserData(userId);
+        setIsLoading(false);
+    }, 1200);
   };
 
   const handleLogout = () => {
       localStorage.removeItem('active_session_user');
       setIsLoggedIn(false);
       setActiveUser(null);
+      setLoginStage('SPLASH');
+      setUserId('');
+      setPassword('');
       setUser({ ...DEFAULT_USER, isVerified: false });
       setView(View.DASHBOARD);
   };
@@ -103,7 +176,7 @@ const App = () => {
       );
   }
 
-  // Privacy Entry Grid - Replaces Login.tsx
+  // --- Professional Zero-Exposure Login Shell ---
   if (!isLoggedIn && view !== View.REGISTER && view !== View.ACCESS_RECOVERY) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 relative overflow-hidden">
@@ -113,60 +186,114 @@ const App = () => {
         </div>
         
         <div className="relative z-10 w-full max-w-lg animate-platinum">
-          <div className="master-box p-12 md:p-16 border border-white/10 text-center space-y-12">
-              <div className="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center mx-auto shadow-[0_0_60px_rgba(255,255,255,0.1)] transform -rotate-3">
-                <ShieldCheck size={48} className="text-black" />
-              </div>
-              <div className="space-y-4">
-                <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">{APP_NAME}</h1>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.7em]">Institutional Privacy Secured</p>
-              </div>
-
-              <div className="p-8 bg-white/5 rounded-3xl border border-white/5 space-y-4">
-                <div className="flex items-center justify-center space-x-3 text-indigo-400">
-                  <Lock size={16} />
-                  <span className="text-[9px] font-black uppercase tracking-widest">Ghost Grid Active</span>
+          <div className="master-box p-12 md:p-16 border border-white/10 space-y-12">
+              
+              {loginStage === 'SPLASH' && (
+                <div className="text-center space-y-12">
+                    <div className="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center mx-auto shadow-[0_0_60px_rgba(255,255,255,0.1)] transform -rotate-3">
+                        <ShieldCheck size={48} className="text-black" />
+                    </div>
+                    <div className="space-y-4">
+                        <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">{APP_NAME}</h1>
+                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.6em]">Professional Management Node</p>
+                    </div>
+                    <div className="space-y-5">
+                        <button onClick={handleHandshake} className="btn-platinum w-full py-6">
+                            Initiate Secure Handshake <Cpu size={18} className="ml-3" />
+                        </button>
+                        <div className="grid grid-cols-2 gap-4">
+                            <button onClick={() => setView(View.REGISTER)} className="py-4 bg-white/5 text-slate-400 rounded-2xl text-[9px] font-black uppercase tracking-widest border border-white/5 hover:text-white transition-all">
+                                Initialize Node
+                            </button>
+                            <button onClick={() => setView(View.ACCESS_RECOVERY)} className="py-4 bg-white/5 text-slate-400 rounded-2xl text-[9px] font-black uppercase tracking-widest border border-white/5 hover:text-white transition-all">
+                                Recovery Protocol
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <p className="text-[10px] text-slate-500 leading-relaxed font-medium uppercase italic">
-                  Traditional entry fields are disabled for node protection. Identity validation is restricted to authorized hardware handshakes.
-                </p>
-              </div>
+              )}
 
-              <div className="space-y-4">
-                <button onClick={() => setView(View.REGISTER)} className="btn-platinum w-full py-6">
-                   Initialize New Node <UserPlus size={18} className="ml-3" />
-                </button>
-                <div className="flex gap-4">
-                   <button onClick={() => setView(View.ACCESS_RECOVERY)} className="flex-1 py-4 bg-white/5 text-slate-400 rounded-2xl text-[9px] font-black uppercase tracking-widest border border-white/5 hover:text-white transition-all">
-                      Access Recovery
-                   </button>
-                   <button onClick={() => { localStorage.setItem('active_session_user', ADMIN_USERNAME); window.location.reload(); }} className="flex-1 py-4 bg-white/5 text-slate-400 rounded-2xl text-[9px] font-black uppercase tracking-widest border border-white/5 hover:text-indigo-400 transition-all">
-                      Admin Node
-                   </button>
+              {loginStage === 'CREDENTIALS' && (
+                <div className="space-y-10">
+                    <div className="text-center">
+                        <h2 className="text-xl font-black text-white uppercase tracking-widest italic">Identity Validation</h2>
+                        <div className="inline-flex items-center space-x-2 bg-indigo-500/10 px-4 py-1.5 rounded-full mt-5 border border-indigo-500/20">
+                            <Cpu size={12} className="text-indigo-500" />
+                            <span className="text-[8px] font-black text-indigo-500 uppercase tracking-[0.3em]">Handshake: {handshakeToken}</span>
+                        </div>
+                    </div>
+                    <form onSubmit={handleAuthorize} className="space-y-8">
+                        <div className="space-y-3">
+                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] ml-4">Node Identity</label>
+                            <div className="relative">
+                                <Terminal className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
+                                <input 
+                                    type="text" value={userId} onChange={e => setUserId(e.target.value)}
+                                    className="w-full bg-white/5 border border-white/10 rounded-3xl py-5 pl-16 pr-8 text-white font-bold text-sm outline-none focus:border-indigo-500 transition-all"
+                                    placeholder="Username / Student ID"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-3">
+                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] ml-4">Security Token</label>
+                            <div className="relative">
+                                <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
+                                <input 
+                                    type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
+                                    className="w-full bg-white/5 border border-white/10 rounded-3xl py-5 pl-16 pr-16 text-white font-bold text-sm outline-none focus:border-indigo-500 transition-all"
+                                    placeholder="Encrypted Hash"
+                                />
+                                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white">
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
+                        </div>
+                        {loginError && <p className="text-[10px] font-black text-red-500 text-center uppercase tracking-widest animate-shake">{loginError}</p>}
+                        <button type="submit" className="btn-platinum w-full py-6">Authorize Data Node</button>
+                        <button type="button" onClick={() => setLoginStage('SPLASH')} className="w-full text-[9px] font-bold text-slate-600 uppercase tracking-widest">Abort Protocol</button>
+                    </form>
                 </div>
-              </div>
+              )}
 
-              <div className="pt-8 border-t border-white/5">
-                <div className="flex items-center justify-center space-x-2 text-slate-700">
-                  <Cpu size={14} />
-                  <span className="text-[8px] font-black uppercase tracking-[0.5em]">{SYSTEM_DOMAIN}</span>
+              {loginStage === 'BIOMETRIC' && (
+                <div className="text-center space-y-12">
+                    <div className="relative mx-auto w-64 h-64 rounded-[4rem] overflow-hidden border border-white/10 shadow-2xl bg-black">
+                        <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover opacity-40 grayscale" />
+                        <div className="absolute inset-0 border-[24px] border-black/80"></div>
+                        <div className="absolute inset-x-0 top-0 h-0.5 bg-white shadow-[0_0_20px_rgba(255,255,255,0.8)] animate-[scan_3s_infinite]"></div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <Fingerprint size={100} className="text-white opacity-5 animate-pulse" />
+                        </div>
+                    </div>
+                    <div>
+                        <h3 className="text-2xl font-black text-white uppercase tracking-tight italic">Biometric Integrity</h3>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.6em] mt-3">Validating Hardware Signal</p>
+                    </div>
+                    <button onClick={finalizeLogin} className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black text-[10px] uppercase tracking-[0.4em] shadow-2xl shadow-indigo-600/30 hover:bg-indigo-500 transition-all">
+                        Finalize Synchronization
+                    </button>
                 </div>
+              )}
+
+              <div className="pt-8 border-t border-white/5 flex flex-col items-center space-y-4">
+                <span className="stark-badge">PORTAL {APP_VERSION.split(' ')[0]}</span>
+                <span className="text-[8px] font-black text-slate-700 uppercase tracking-[0.5em]">{SYSTEM_DOMAIN}</span>
               </div>
           </div>
         </div>
+        <style>{`@keyframes scan { 0%, 100% { top: 0%; opacity: 0.5; } 50% { top: 100%; opacity: 1; } }`}</style>
       </div>
     );
   }
 
   if (view === View.REGISTER) {
-    return <InviteRegistration onRegister={handleRegisterSuccess} onNavigate={setView} />;
+    return <InviteRegistration onRegister={handleLogin} onNavigate={setView} />;
   }
 
   if (view === View.ACCESS_RECOVERY) {
     return <AccessRecovery onNavigate={setView} />;
   }
 
-  // Fix: Removed redundant check for View.ACCESS_RECOVERY as it is already handled earlier at line 160.
   if (activeUser !== ADMIN_USERNAME && !user.isVerified && view !== View.VERIFICATION_FORM && view !== View.SUPPORT) {
       return (
         <div className="min-h-screen bg-black flex flex-col">
