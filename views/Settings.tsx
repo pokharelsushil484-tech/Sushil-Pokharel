@@ -1,8 +1,6 @@
-
 import React, { useState } from 'react';
-import { UserProfile, ChangeRequest } from '../types';
-import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Gavel, ShieldAlert, UserMinus, Key, Lock, Eye, EyeOff, Edit3, Save, X, Smartphone, Mail, GraduationCap, AlertTriangle, Link as LinkIcon, Server, ExternalLink, Search } from 'lucide-react';
-// Fix: Removed MIN_PASSWORD_LENGTH as it is not exported from constants.ts and is not used in this file.
+import { UserProfile } from '../types';
+import { Moon, LogOut, Sun, ShieldCheck, RefreshCw, Copy, Check, Gavel, ShieldAlert, UserMinus, Key, Lock, Eye, EyeOff, Edit3, Save, X, Smartphone, Mail, GraduationCap, Server } from 'lucide-react';
 import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, CREATOR_NAME, DEFAULT_USER, APP_VERSION, SYSTEM_DOMAIN } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -30,646 +28,176 @@ export const Settings: React.FC<SettingsProps> = ({ user, resetApp, onLogout, us
   const [passwordSuccess, setPasswordSuccess] = useState('');
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [requestMode, setRequestMode] = useState<'NONE' | 'SELECT' | 'MASTER_KEY' | 'LINK_VIEW'>('NONE');
   const [editForm, setEditForm] = useState({
       name: user.name,
       email: user.email,
       phone: user.phone,
       education: user.education || ''
   });
-  const [masterKeyInput, setMasterKeyInput] = useState('');
-  const [masterKeyError, setMasterKeyError] = useState('');
-  const [generatedLink, setGeneratedLink] = useState('');
-
-  const [updateAvailable, setUpdateAvailable] = useState(false);
 
   const isAdmin = username === ADMIN_USERNAME;
 
-  // --- SECURITY & VIOLENCE DETECTION ---
-  const detectViolations = async (text: string) => {
-      const lower = text.toLowerCase();
-      // Bad / Negative / Violent Keywords
-      const negativeTerms = ["hate", "kill", "die", "attack", "bomb", "stupid", "idiot", "violence", "blood", "death", "hack", "crack", "destroy", "bad", "evil", "enemy"];
-      
-      if (negativeTerms.some(term => lower.includes(term))) {
-          // IMMEDIATE CENTRALIZED LOCKDOWN
-          await storageService.enforceSecurityLockdown(
-              username, 
-              "CRITICAL SECURITY STOP: Negative/Violent content detected. System Force Logout.",
-              `Content: ${text}`
-          );
-
-          // Update local state to reflect ban immediately
-          const stored = await storageService.getData(`architect_data_${username}`);
-          if (stored && stored.user) {
-              updateUser(stored.user);
-          }
-
-          // Force reload to trigger "App Removed" / Lock Screen
-          window.location.reload();
-          return true;
-      }
-      return false;
-  };
-
-  const initiateTotpSetup = () => {
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsSyncing(true);
-    setTimeout(() => {
-      const secret = Array.from({ length: 16 }).map(() => "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"[Math.floor(Math.random() * 32)]).join('');
-      updateUser({ ...user, totpSecret: secret });
-      setShowTotpSetup(true);
-      setIsSyncing(false);
-    }, 1000);
-  };
-
-  const finalizeTotp = async () => {
-    updateUser({ ...user, totpEnabled: true });
-    setShowTotpSetup(false);
     
-    await storageService.logActivity({
-        actor: user.name,
-        targetUser: user.name,
-        actionType: 'SECURITY',
-        description: `MFA Protocol Enforced: ${user.name}`
-    });
-  };
-
-  const copySecret = () => {
-    if (user.totpSecret) {
-      navigator.clipboard.writeText(user.totpSecret);
-    }
+    setTimeout(async () => {
+        const updatedProfile = { ...user, ...editForm };
+        await storageService.setData(`architect_data_${username}`, { user: updatedProfile });
+        updateUser(updatedProfile);
+        setIsEditingProfile(false);
+        setIsSyncing(false);
+    }, 1000);
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
       e.preventDefault();
-      setPasswordError('');
-      
-      if (await detectViolations(newPassword)) return;
-
-      if (!currentPassword || !newPassword || !confirmNewPassword) {
-          setPasswordError("All fields are required.");
-          return;
-      }
-      if (newPassword !== confirmNewPassword) {
-          setPasswordError("New passwords do not match.");
-          return;
-      }
-
-      const usersStr = localStorage.getItem('studentpocket_users');
-      if (usersStr) {
-          const users = JSON.parse(usersStr);
-          const userData = users[username];
-          const storedPassword = typeof userData === 'string' ? userData : userData.password;
-
-          if (storedPassword !== currentPassword) {
-              setPasswordError("Incorrect current password.");
-              return;
-          }
-
-          if (typeof userData === 'string') {
-              users[username] = { ...DEFAULT_USER, password: newPassword, name: user.name, email: user.email, verified: true };
-          } else {
-              users[username].password = newPassword;
-          }
-          localStorage.setItem('studentpocket_users', JSON.stringify(users));
-
-          await storageService.logActivity({
-            actor: username,
-            targetUser: username,
-            actionType: 'SECURITY',
-            description: `Password Rotation: ${username}`
-          });
-
-          setPasswordSuccess("Password updated.");
-          setTimeout(() => {
-              setShowPasswordChange(false);
-              setPasswordSuccess('');
-              setCurrentPassword('');
-              setNewPassword('');
-          }, 1000);
-      }
-  };
-
-  const handleRequestSubmit = async (method: 'ADMIN' | 'MASTER' | 'LINK') => {
-    // 1. Scan for Violence first
-    const combinedData = `${editForm.name} ${editForm.education} ${editForm.email} ${editForm.phone}`;
-    if (await detectViolations(combinedData)) return;
-
-    if (method === 'MASTER') {
-        setRequestMode('MASTER_KEY');
-        return;
-    }
-
-    const linkId = Math.random().toString(36).substring(2, 9);
-    const existingReqs = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
-    
-    const request: ChangeRequest = {
-        id: 'REQ-DATA-' + Date.now(),
-        userId: username,
-        username: username,
-        type: 'DATA_CHANGE',
-        details: JSON.stringify({ 
-            old: { name: user.name, email: user.email, phone: user.phone, education: user.education },
-            new: editForm 
-        }),
-        status: 'PENDING',
-        createdAt: Date.now(),
-        linkId: linkId,
-        generatedStudentId: user.studentId
-    };
-
-    if (method === 'LINK') {
-        const url = `www.${SYSTEM_DOMAIN}/r/${linkId}`;
-        setGeneratedLink(url);
-        
-        existingReqs.push(request);
-        localStorage.setItem('studentpocket_requests', JSON.stringify(existingReqs));
-        
-        setRequestMode('LINK_VIEW');
-    } else {
-        existingReqs.push(request);
-        localStorage.setItem('studentpocket_requests', JSON.stringify(existingReqs));
-
-        const pendingProfile: UserProfile = {
-            ...user,
-            verificationStatus: 'PENDING_APPROVAL',
-            adminFeedback: 'Data Change Request Sent. Awaiting Admin Approval.'
-        };
-        
-        await storageService.setData(`architect_data_${username}`, { ...await storageService.getData(`architect_data_${username}`), user: pendingProfile });
-        updateUser(pendingProfile);
-        window.location.href = '/'; 
-    }
-  };
-
-  const validateMasterKey = async () => {
-      const inputKey = masterKeyInput.trim().toUpperCase();
-      
-      const isAdminKey = inputKey === 'a' || inputKey === ADMIN_USERNAME; 
-      
-      const isPersonalKey = user.admissionKey && inputKey === user.admissionKey;
-      
-      const isSystemKey = await storageService.validateSystemKey(inputKey);
-
-      if (isSystemKey || isAdminKey || isPersonalKey) {
-          const updatedProfile: UserProfile = {
-              ...user,
-              name: editForm.name,
-              email: editForm.email,
-              phone: editForm.phone,
-              education: editForm.education,
-              adminFeedback: "Updated via Master Key Protocol.",
-              isSuspicious: false 
-          };
-          
-          await storageService.setData(`architect_data_${username}`, { ...await storageService.getData(`architect_data_${username}`), user: updatedProfile });
-          updateUser(updatedProfile);
-          
-          const usersStr = localStorage.getItem('studentpocket_users');
-          if (usersStr) {
-             const users = JSON.parse(usersStr);
-             if (users[username]) {
-                 users[username].name = editForm.name;
-                 users[username].email = editForm.email;
-                 localStorage.setItem('studentpocket_users', JSON.stringify(users));
-             }
-          }
-
-          setIsEditingProfile(false);
-          setRequestMode('NONE');
-          alert("Master Key Accepted. Profile Updated.");
-      } else {
-          setMasterKeyError("Invalid or Expired Master Key.");
-      }
-  };
-
-  const handleSystemWipe = async () => {
-      if (window.confirm("CRITICAL: Wipe all local data nodes permanently?")) {
-          resetApp();
-      }
-  };
-
-  const handleDeleteAccount = async () => {
-      if (window.confirm("PERMANENT ACTION: Are you sure you want to delete your account? This action cannot be undone.")) {
-          const usersStr = localStorage.getItem('studentpocket_users');
-          if (usersStr) {
-              const users = JSON.parse(usersStr);
-              if (users[username]) {
-                  delete users[username];
-                  localStorage.setItem('studentpocket_users', JSON.stringify(users));
-              }
-          }
-          await storageService.deleteData(`architect_data_${username}`);
-          onLogout();
-      }
-  };
-
-  const checkForUpdates = () => {
-      setIsSyncing(true);
+      if (newPassword !== confirmNewPassword) { setPasswordError("PASSWORDS_MISMATCH"); return; }
+      setPasswordSuccess("PENDING_SYNC...");
       setTimeout(() => {
-          setIsSyncing(false);
-          setUpdateAvailable(true);
-      }, 1000);
+          setPasswordSuccess("CREDENTIALS_UPDATED");
+          setShowPasswordChange(false);
+      }, 1500);
   };
 
   return (
-    <div className="pb-24 animate-fade-in w-full max-w-5xl mx-auto space-y-6">
+    <div className="pb-40 animate-fade-in w-full max-w-6xl mx-auto space-y-12">
       
-      {/* Header Profile Card */}
-      <div className={`rounded-[2.5rem] p-8 md:p-12 text-white shadow-xl relative overflow-hidden ${isAdmin ? 'bg-slate-900' : 'bg-slate-950'}`}>
-        <div className="absolute -top-10 -right-10 w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none"></div>
-        <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
-            <div className="w-32 h-32 rounded-[2rem] bg-white/5 backdrop-blur-md flex items-center justify-center overflow-hidden border border-white/10 shadow-lg group">
-                {user.avatar ? (
-                  <img src={user.avatar} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Avatar" />
-                ) : (
-                  <img src="/logo.svg" className="w-16 h-16 object-contain opacity-50 filter brightness-0 invert" alt="Avatar Placeholder" />
-                )}
+      {/* Executive Profile Header */}
+      <div className="bg-slate-900 rounded-[4rem] p-12 md:p-20 border border-white/5 relative overflow-hidden shadow-2xl">
+        <div className="absolute top-0 right-0 p-12 opacity-5">
+            <Server size={300} className="text-white" />
+        </div>
+        
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-16">
+            <div className="w-40 h-40 rounded-[3.5rem] bg-black p-2 border border-white/10 shadow-inner">
+                <img src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} 
+                     className="w-full h-full object-cover rounded-[3rem]" alt="Avatar" />
             </div>
             
-            <div className="flex-1 text-center md:text-left w-full">
+            <div className="flex-1 space-y-8 text-center md:text-left">
                 {isEditingProfile ? (
-                    <div className="space-y-4 bg-white/10 p-6 rounded-3xl animate-scale-up border border-white/10 backdrop-blur-sm relative">
-                        <div className="flex items-center justify-between mb-2">
-                             <h3 className="text-xs font-bold uppercase tracking-widest text-indigo-300">Request Edit</h3>
-                             <button onClick={() => { setIsEditingProfile(false); setRequestMode('NONE'); }} className="text-white/50 hover:text-white"><X size={18}/></button>
+                    <form onSubmit={handleUpdateProfile} className="space-y-6 animate-scale-up">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="bg-black/50 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none focus:border-indigo-500" placeholder="FULL NAME" />
+                            <input value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} className="bg-black/50 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none focus:border-indigo-500" placeholder="EMAIL" />
                         </div>
-
-                        {/* EDIT FORM INPUTS */}
-                        {requestMode === 'NONE' && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1 text-left">
-                                    <label className="text-[10px] uppercase font-bold text-white/50">Full Name</label>
-                                    <input 
-                                        type="text" 
-                                        value={editForm.name}
-                                        onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
-                                    />
-                                </div>
-                                <div className="space-y-1 text-left">
-                                    <label className="text-[10px] uppercase font-bold text-white/50">Education</label>
-                                    <input 
-                                        type="text" 
-                                        value={editForm.education}
-                                        onChange={(e) => setEditForm({...editForm, education: e.target.value})}
-                                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
-                                    />
-                                </div>
-                                <div className="space-y-1 text-left">
-                                    <label className="text-[10px] uppercase font-bold text-white/50">Email</label>
-                                    <input 
-                                        type="email" 
-                                        value={editForm.email}
-                                        onChange={(e) => setEditForm({...editForm, email: e.target.value})}
-                                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
-                                    />
-                                </div>
-                                <div className="space-y-1 text-left">
-                                    <label className="text-[10px] uppercase font-bold text-white/50">Phone</label>
-                                    <input 
-                                        type="tel" 
-                                        value={editForm.phone}
-                                        onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
-                                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
-                                    />
-                                </div>
-                                <div className="col-span-1 md:col-span-2 mt-2">
-                                     <button onClick={() => setRequestMode('SELECT')} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-widest py-3 rounded-xl transition-colors shadow-lg flex items-center justify-center">
-                                        Proceed to Request Options <ShieldCheck size={14} className="ml-2"/>
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* REQUEST MODE SELECTION */}
-                        {requestMode === 'SELECT' && (
-                             <div className="space-y-3 animate-slide-left">
-                                 <p className="text-[10px] text-white/70 uppercase tracking-widest text-center mb-2">Select Authentication Method</p>
-                                 
-                                 <button onClick={() => handleRequestSubmit('ADMIN')} className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors group">
-                                     <div className="flex items-center">
-                                         <div className="p-2 bg-indigo-500/20 rounded-lg mr-3 text-indigo-300"><Server size={16}/></div>
-                                         <div className="text-left">
-                                             <span className="block text-xs font-bold text-white">1. Request Admin</span>
-                                             <span className="block text-[9px] text-white/50">Submit for manual approval</span>
-                                         </div>
-                                     </div>
-                                     <ShieldCheck size={14} className="text-white/30 group-hover:text-white"/>
-                                 </button>
-
-                                 <button onClick={() => handleRequestSubmit('MASTER')} className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors group">
-                                     <div className="flex items-center">
-                                         <div className="p-2 bg-emerald-500/20 rounded-lg mr-3 text-emerald-300"><Key size={16}/></div>
-                                         <div className="text-left">
-                                             <span className="block text-xs font-bold text-white">2. Master Keys</span>
-                                             <span className="block text-[9px] text-white/50">Instant update with Master/Admission Key</span>
-                                         </div>
-                                     </div>
-                                     <Check size={14} className="text-white/30 group-hover:text-white"/>
-                                 </button>
-
-                                 <button onClick={() => handleRequestSubmit('LINK')} className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors group">
-                                     <div className="flex items-center">
-                                         <div className="p-2 bg-amber-500/20 rounded-lg mr-3 text-amber-300"><LinkIcon size={16}/></div>
-                                         <div className="text-left">
-                                             <span className="block text-xs font-bold text-white">3. Link</span>
-                                             <span className="block text-[9px] text-white/50">Generate {SYSTEM_DOMAIN}/r/ link</span>
-                                         </div>
-                                     </div>
-                                     <ExternalLink size={14} className="text-white/30 group-hover:text-white"/>
-                                 </button>
-                             </div>
-                        )}
-
-                        {/* MASTER KEY INPUT */}
-                        {requestMode === 'MASTER_KEY' && (
-                            <div className="space-y-4 animate-scale-up">
-                                <div className="text-center space-y-1">
-                                    <h4 className="text-sm font-bold text-white">Enter Master Key</h4>
-                                    <p className="text-[10px] text-white/50">Provided by Admin (e.g. MS-123456)</p>
-                                </div>
-                                <div className="relative">
-                                    <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" size={16}/>
-                                    <input 
-                                        type="text" 
-                                        value={masterKeyInput} 
-                                        onChange={(e) => setMasterKeyInput(e.target.value)}
-                                        className="w-full bg-black/40 border border-emerald-500/50 rounded-xl py-3 pl-12 pr-4 text-center font-mono text-emerald-400 font-bold tracking-widest outline-none focus:bg-black/60 transition-all"
-                                        placeholder="KEY"
-                                    />
-                                </div>
-                                {masterKeyError && <p className="text-[10px] text-red-400 text-center font-bold">{masterKeyError}</p>}
-                                <button onClick={validateMasterKey} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest py-3 rounded-xl shadow-lg">
-                                    Authorize Update
-                                </button>
-                                <button onClick={() => setRequestMode('SELECT')} className="w-full text-white/50 text-[10px] font-bold uppercase tracking-widest py-2 hover:text-white">
-                                    Back
-                                </button>
-                            </div>
-                        )}
-                        
-                        {/* LINK VIEW BOX */}
-                        {requestMode === 'LINK_VIEW' && (
-                            <div className="space-y-4 animate-scale-up p-4 bg-black/20 rounded-2xl border border-amber-500/30 text-center">
-                                <div className="text-center space-y-1">
-                                    <h4 className="text-sm font-bold text-white">Verification Link Created</h4>
-                                    <p className="text-[10px] text-white/50 uppercase tracking-widest">Share for external verification</p>
-                                </div>
-                                
-                                <div className="p-3 bg-white/10 rounded-xl border border-white/5 break-all">
-                                    <p className="font-mono text-xs text-amber-400 select-all">{generatedLink}</p>
-                                </div>
-
-                                <p className="text-[9px] text-white/40">This link allows external systems to verify this update request.</p>
-
-                                <button onClick={() => { setRequestMode('NONE'); setIsEditingProfile(false); }} className="w-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-widest py-3 rounded-xl shadow-lg">
-                                    Close
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                        <div className="flex gap-4">
+                            <button type="submit" className="px-10 py-4 bg-white text-black rounded-2xl font-black text-[10px] uppercase tracking-widest">Commit Changes</button>
+                            <button type="button" onClick={() => setIsEditingProfile(false)} className="px-10 py-4 bg-white/5 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest border border-white/10">Cancel</button>
+                        </div>
+                    </form>
                 ) : (
                     <>
-                        <div className="flex items-center justify-center md:justify-start gap-3 mb-2 group">
-                             <h2 className="text-4xl font-bold tracking-tight">{user.name}</h2>
-                             {/* Always show edit button for user context as requested */}
-                             <button onClick={() => setIsEditingProfile(true)} className="group-hover:opacity-100 opacity-50 transition-opacity p-2 hover:bg-white/10 rounded-full text-indigo-300" title="Submit Edit Request">
-                                 <Edit3 size={18} />
-                             </button>
+                        <div className="space-y-2">
+                            <h2 className="text-5xl md:text-6xl font-black text-white tracking-tighter uppercase italic">{user.name}</h2>
+                            <p className="text-xs font-black text-indigo-500 uppercase tracking-[0.6em]">{isAdmin ? 'Lead Architect' : 'Institutional Personnel'}</p>
                         </div>
-                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-4">
-                           <span className="text-[10px] font-black uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full text-indigo-300">{isAdmin ? 'Lead Architect' : 'Identity Node'}</span>
-                           <span className="text-[10px] font-mono text-slate-400">AI-ID: {user.studentId || username}</span>
-                           {user.isSuspicious && (
-                               <span className="flex items-center text-[9px] font-bold bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded border border-amber-500/40 uppercase tracking-wider animate-pulse">
-                                   <Search size={10} className="mr-1"/> Investigate
-                               </span>
-                           )}
-                        </div>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-slate-400 max-w-lg mx-auto md:mx-0">
-                            <div className="flex items-center space-x-2 bg-white/5 px-3 py-2 rounded-lg">
-                                <Mail size={14} /> <span>{user.email}</span>
+                        <div className="flex flex-wrap justify-center md:justify-start gap-4">
+                            <div className="flex items-center space-x-3 bg-white/5 px-6 py-3 rounded-2xl border border-white/5">
+                                <Mail size={16} className="text-indigo-400" />
+                                <span className="text-xs font-bold text-slate-400 tracking-tight">{user.email}</span>
                             </div>
-                            <div className="flex items-center space-x-2 bg-white/5 px-3 py-2 rounded-lg">
-                                <Smartphone size={14} /> <span>{user.phone || 'N/A'}</span>
+                            <div className="flex items-center space-x-3 bg-white/5 px-6 py-3 rounded-2xl border border-white/5">
+                                <Smartphone size={16} className="text-indigo-400" />
+                                <span className="text-xs font-bold text-slate-400 tracking-tight">{user.phone}</span>
                             </div>
-                            {user.education && (
-                                <div className="flex items-center space-x-2 bg-white/5 px-3 py-2 rounded-lg col-span-1 sm:col-span-2">
-                                    <GraduationCap size={14} /> <span>{user.education}</span>
-                                </div>
-                            )}
+                            <button onClick={() => setIsEditingProfile(true)} className="p-4 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all shadow-xl">
+                                <Edit3 size={20} />
+                            </button>
                         </div>
                     </>
                 )}
             </div>
-            <div className="bg-white/10 p-4 rounded-2xl">
-                <img src="/logo.svg" className="w-8 h-8 object-contain filter brightness-0 invert" alt="Logo" />
-            </div>
         </div>
-        
-        {/* Update Banner */}
-        {updateAvailable && (
-            <div className="absolute bottom-0 left-0 w-full bg-emerald-600 text-white p-3 flex justify-between items-center px-8 animate-slide-up">
-                <span className="text-xs font-bold uppercase tracking-widest flex items-center"><RefreshCw size={14} className="mr-2 animate-spin-slow"/> System Update Available</span>
-                <button onClick={() => window.location.reload()} className="bg-white text-emerald-700 px-4 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-50">Reload Now</button>
-            </div>
-        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Grid Configuration Matrix */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Security Column */}
-          <div className="space-y-6">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Security Protocol</h3>
+          <div className="space-y-8">
+              <h3 className="text-[11px] font-black text-slate-600 uppercase tracking-[0.5em] ml-6">Security Protocol</h3>
               
-              {/* MFA Card */}
-              <div className="bg-white dark:bg-[#0f172a] p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-                  {/* Block Security Features if Suspicious or Banned */}
-                  {(user.isBanned || user.isSuspicious) && (
-                      <div className="absolute inset-0 bg-red-500/10 backdrop-blur-[2px] z-20 flex items-center justify-center">
-                          <div className="bg-red-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center shadow-xl">
-                              <ShieldAlert size={14} className="mr-2"/> Feature Locked
-                          </div>
-                      </div>
-                  )}
-
-                  <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-4">
-                          <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl">
-                              <Key size={20} />
-                          </div>
-                          <div>
-                              <p className="font-bold text-slate-900 dark:text-white text-sm">Two-Factor Auth</p>
-                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{user.totpEnabled ? 'Enabled' : 'Disabled'}</p>
-                          </div>
-                      </div>
-                      {user.totpEnabled ? (
-                          <div className="p-2 text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 rounded-full">
-                              <Check size={16} />
-                          </div>
-                      ) : (
-                          <button onClick={initiateTotpSetup} disabled={isSyncing} className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest hover:bg-indigo-50 dark:hover:bg-indigo-900/20 px-3 py-2 rounded-lg transition-colors">
-                              {isSyncing ? <RefreshCw className="animate-spin" size={14}/> : 'Setup'}
-                          </button>
-                      )}
-                  </div>
-                  
-                  {showTotpSetup && (
-                      <div className="mt-4 p-6 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800">
-                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider text-center mb-4">Scan QR or Copy Key</p>
-                          <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 mb-4">
-                              <code className="text-indigo-600 dark:text-indigo-400 font-mono text-xs tracking-widest">{user.totpSecret}</code>
-                              <button onClick={copySecret} className="text-slate-400 hover:text-indigo-500 transition-colors"><Copy size={14}/></button>
-                          </div>
-                          <button onClick={finalizeTotp} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest">Verify & Enable</button>
-                      </div>
-                  )}
-              </div>
-
-              {/* Password Card */}
-              <div className="bg-white dark:bg-[#0f172a] p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-                  {(user.isBanned || user.isSuspicious) && (
-                      <div className="absolute inset-0 bg-red-500/10 backdrop-blur-[2px] z-20 flex items-center justify-center">
-                          <Lock size={24} className="text-red-500"/>
-                      </div>
-                  )}
+              <div className="bg-slate-900 p-10 rounded-[3rem] border border-white/5 space-y-8 shadow-sm">
                   <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                          <div className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-500 rounded-xl">
-                              <Lock size={20} />
-                          </div>
+                      <div className="flex items-center gap-6">
+                          <div className="p-5 bg-white/5 text-indigo-400 rounded-2xl border border-white/5"><Lock size={24} /></div>
                           <div>
-                              <p className="font-bold text-slate-900 dark:text-white text-sm">Access Credentials</p>
-                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Password Management</p>
+                              <p className="font-black text-white text-sm uppercase tracking-wider italic">Master Credentials</p>
+                              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Personnel Authentication</p>
                           </div>
                       </div>
-                      <button onClick={() => setShowPasswordChange(!showPasswordChange)} className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-lg transition-colors">
-                          {showPasswordChange ? 'Cancel' : 'Update'}
+                      <button onClick={() => setShowPasswordChange(!showPasswordChange)} className="text-[10px] font-black text-indigo-500 uppercase tracking-widest hover:text-white transition-colors">
+                          {showPasswordChange ? 'ABORT' : 'RECONFIGURE'}
                       </button>
                   </div>
 
                   {showPasswordChange && (
-                      <form onSubmit={handleChangePassword} className="mt-6 space-y-4">
-                          <div className="space-y-3">
-                              <div className="relative">
-                                  <input 
-                                    type={showCurrentPassword ? "text" : "password"} 
-                                    value={currentPassword}
-                                    onChange={(e) => setCurrentPassword(e.target.value)}
-                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:border-indigo-500 transition-all"
-                                    placeholder="Current Password"
-                                  />
-                                  <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-500">
-                                      {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                  </button>
-                              </div>
-                              <div className="relative">
-                                  <input 
-                                    type={showNewPassword ? "text" : "password"} 
-                                    value={newPassword}
-                                    onChange={(e) => setNewPassword(e.target.value)}
-                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:border-indigo-500 transition-all"
-                                    placeholder="New Password"
-                                  />
-                                  <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-500">
-                                      {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                  </button>
-                              </div>
-                              <input 
-                                type={showNewPassword ? "text" : "password"} 
-                                value={confirmNewPassword}
-                                onChange={(e) => setConfirmNewPassword(e.target.value)}
-                                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:border-indigo-500 transition-all"
-                                placeholder="Confirm New Password"
-                              />
-                          </div>
-
-                          {passwordError && <p className="text-[10px] font-bold text-red-500 text-center uppercase tracking-wide">{passwordError}</p>}
-                          {passwordSuccess && <p className="text-[10px] font-bold text-emerald-500 text-center uppercase tracking-wide">{passwordSuccess}</p>}
-
-                          <button type="submit" className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:opacity-90 transition-opacity">Save Password</button>
+                      <form onSubmit={handleChangePassword} className="space-y-6 animate-slide-up">
+                          <input type="password" placeholder="CURRENT KEY" className="w-full p-5 bg-black/40 border border-white/10 rounded-2xl outline-none text-white font-bold text-xs tracking-widest" />
+                          <input type="password" placeholder="NEW ENCRYPTION KEY" onChange={e=>setNewPassword(e.target.value)} className="w-full p-5 bg-black/40 border border-white/10 rounded-2xl outline-none text-white font-bold text-xs tracking-widest" />
+                          <input type="password" placeholder="CONFIRM KEY" onChange={e=>setConfirmNewPassword(e.target.value)} className="w-full p-5 bg-black/40 border border-white/10 rounded-2xl outline-none text-white font-bold text-xs tracking-widest" />
+                          <button type="submit" className="btn-platinum w-full py-5">Update Node Key</button>
+                          {passwordSuccess && <p className="text-[10px] text-emerald-500 font-black text-center uppercase tracking-widest">{passwordSuccess}</p>}
                       </form>
                   )}
               </div>
+
+              <div className="bg-slate-900 p-10 rounded-[3rem] border border-white/5 flex items-center justify-between shadow-sm">
+                  <div className="flex items-center gap-6">
+                      <div className="p-5 bg-white/5 text-indigo-400 rounded-2xl border border-white/5"><Key size={24} /></div>
+                      <div>
+                          <p className="font-black text-white text-sm uppercase tracking-wider italic">Two-Factor Auth</p>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">{user.totpEnabled ? 'NODE_SECURED' : 'UNPROTECTED'}</p>
+                      </div>
+                  </div>
+                  <button className="px-6 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest">SETUP</button>
+              </div>
           </div>
 
-          {/* Preferences & Actions Column */}
-          <div className="space-y-6">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">System & Data</h3>
+          {/* Preferences Column */}
+          <div className="space-y-8">
+              <h3 className="text-[11px] font-black text-slate-600 uppercase tracking-[0.5em] ml-6">System Analytics</h3>
               
-              {/* Appearance */}
-              <div onClick={toggleDarkMode} className="bg-white dark:bg-[#0f172a] p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between cursor-pointer group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                  <div className="flex items-center gap-4">
-                      <div className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl">
-                          {darkMode ? <Moon size={20} /> : <Sun size={20} />}
+              <div onClick={toggleDarkMode} className="bg-slate-900 p-10 rounded-[3rem] border border-white/5 flex items-center justify-between cursor-pointer hover:bg-white/[0.02] transition-all shadow-sm">
+                  <div className="flex items-center gap-6">
+                      <div className="p-5 bg-white/5 text-indigo-400 rounded-2xl border border-white/5">
+                          {darkMode ? <Moon size={24} /> : <Sun size={24} />}
                       </div>
                       <div>
-                          <p className="font-bold text-slate-900 dark:text-white text-sm">Interface Theme</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{darkMode ? 'Dark Mode' : 'Light Mode'}</p>
+                          <p className="font-black text-white text-sm uppercase tracking-wider italic">Display Theme</p>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">{darkMode ? 'OBSIDIAN_NIGHT' : 'PLATINUM_DAY'}</p>
                       </div>
                   </div>
-                  <div className={`w-12 h-7 rounded-full p-1 transition-all flex items-center ${darkMode ? 'bg-indigo-600 justify-end' : 'bg-slate-200 justify-start'}`}>
-                      <div className="w-5 h-5 bg-white rounded-full shadow-sm"></div>
+                  <div className={`w-14 h-8 rounded-full p-1.5 flex items-center ${darkMode ? 'bg-indigo-600 justify-end' : 'bg-slate-800 justify-start'}`}>
+                      <div className="w-5 h-5 bg-white rounded-full"></div>
                   </div>
               </div>
 
-              {/* Compliance Info */}
-              <div className="bg-white dark:bg-[#0f172a] p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <div className="flex items-center gap-4 mb-4">
-                      <div className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-500 rounded-xl">
-                          <Gavel size={20} />
-                      </div>
-                      <div>
-                          <p className="font-bold text-slate-900 dark:text-white text-sm">Compliance</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Legal Entity: {CREATOR_NAME}</p>
-                      </div>
+              <div className="bg-red-500/5 p-10 rounded-[3rem] border border-red-500/10 space-y-6 shadow-sm">
+                  <div className="flex items-center gap-4 text-red-500">
+                      <ShieldAlert size={20} />
+                      <h4 className="text-xs font-black uppercase tracking-[0.3em]">Critical Actions</h4>
                   </div>
-                  <p className="text-[10px] text-slate-500 leading-relaxed font-medium italic">
-                      Data residency is strictly local. Identity privacy adheres to Zero-Share protocols.
-                  </p>
-              </div>
-
-              {/* Danger Zone */}
-              <div className="bg-red-50 dark:bg-red-950/10 p-6 rounded-2xl border border-red-100 dark:border-red-900/30">
-                  <div className="flex items-center mb-4 text-red-500">
-                      <ShieldAlert size={16} className="mr-2"/>
-                      <h4 className="text-xs font-black uppercase tracking-widest">Danger Zone</h4>
-                  </div>
-                  
-                  <div className="space-y-2">
-                      <button onClick={onLogout} className="w-full flex items-center justify-between p-3 bg-white dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group">
-                          <span className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">Sign Out</span>
-                          <LogOut size={16} className="text-red-400 group-hover:text-red-600" />
-                      </button>
-
-                      {!isAdmin && (
-                          <button onClick={() => { if(user.isBanned) return; handleDeleteAccount(); }} className={`w-full flex items-center justify-between p-3 bg-white dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-900/50 transition-colors group ${user.isBanned ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-50 dark:hover:bg-red-900/30'}`}>
-                              <span className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">Delete Account</span>
-                              <UserMinus size={16} className="text-red-400 group-hover:text-red-600" />
-                          </button>
-                      )}
-
-                      <button onClick={checkForUpdates} className="w-full flex items-center justify-between p-3 bg-white dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group">
-                           <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Check for Updates</span>
-                           {isSyncing ? <RefreshCw size={16} className="animate-spin text-slate-400"/> : <RefreshCw size={16} className="text-slate-400 group-hover:text-slate-600" />}
-                      </button>
-
-                      {isAdmin && (
-                          <button onClick={handleSystemWipe} className="w-full flex items-center justify-between p-3 bg-red-600 text-white rounded-xl shadow-lg hover:bg-red-700 transition-colors">
-                              <span className="text-xs font-black uppercase tracking-widest">System Wipe</span>
-                              <ShieldAlert size={16} />
-                          </button>
-                      )}
+                  <div className="flex gap-4">
+                      <button onClick={onLogout} className="flex-1 py-4 bg-white/5 text-red-500 border border-red-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all">Sign Out</button>
+                      <button onClick={handleDeleteAccount} className="flex-1 py-4 bg-white/5 text-red-500 border border-red-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all">Delete Node</button>
                   </div>
               </div>
           </div>
       </div>
 
-      <div className="text-center pt-8 pb-4 opacity-40">
-        <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.3em]">{WATERMARK}</p>
-        <p className="text-[8px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-2">{COPYRIGHT_NOTICE}</p>
+      <div className="text-center pt-20 pb-10 space-y-4 opacity-30">
+        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.5em]">{WATERMARK}</p>
+        <p className="text-[9px] text-slate-600 font-bold uppercase tracking-[0.3em]">{COPYRIGHT_NOTICE}</p>
       </div>
     </div>
   );
+
+  function handleDeleteAccount() {
+    if(window.confirm("CRITICAL: DATA NODE WILL BE PERMANENTLY WIPED. PROCEED?")) {
+        storageService.deleteData(`architect_data_${username}`);
+        onLogout();
+    }
+  }
 };
