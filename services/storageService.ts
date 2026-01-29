@@ -1,3 +1,4 @@
+
 import { ActivityLog, UserProfile } from '../types';
 import { DEFAULT_USER } from '../constants';
 
@@ -75,8 +76,13 @@ export const storageService = {
 
   async deleteData(key: string): Promise<void> {
     const db = await initDB();
-    const transaction = db.transaction(STORE_NAME, 'readwrite');
-    transaction.objectStore(STORE_NAME).delete(key);
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.delete(key);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
   },
 
   async logActivity(log: Omit<ActivityLog, 'id' | 'timestamp'>): Promise<void> {
@@ -156,6 +162,7 @@ export const storageService = {
       if (storedData && storedData.user) {
           storedData.user.isBanned = true;
           storedData.user.isSuspicious = true;
+          storedData.user.isSuspended = false;
           storedData.user.verificationStatus = 'NONE';
           storedData.user.level = 0;
           storedData.user.banReason = reason;
@@ -171,13 +178,20 @@ export const storageService = {
       }
   },
 
-  async recordFailedLogin(username: string): Promise<number> {
-      const key = `penalty_count_${username}`;
-      const count = parseInt(localStorage.getItem(key) || '0') + 1;
-      localStorage.setItem(key, count.toString());
-      if (count >= 3) {
-          await this.enforceSecurityLockdown(username, "Brute force attempt detected. Multiple failed login requests.", "Recorded at " + new Date().toISOString());
-      }
-      return count;
+  async suspendUserNode(username: string, reason: string): Promise<void> {
+    const dataKey = `architect_data_${username}`;
+    const storedData = await this.getData(dataKey);
+    if (storedData && storedData.user) {
+        storedData.user.isSuspended = true;
+        storedData.user.isVerified = false;
+        storedData.user.adminFeedback = reason;
+        await this.setData(dataKey, storedData);
+        await this.logActivity({
+            actor: 'ADMIN-OVERRIDE',
+            targetUser: username,
+            actionType: 'SUSPENSION',
+            description: `NODE SUSPENDED: ${reason}`
+        });
+    }
   }
 };

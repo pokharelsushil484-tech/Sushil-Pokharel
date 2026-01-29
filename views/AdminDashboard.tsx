@@ -1,13 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { UserProfile, ChangeRequest, SupportTicket } from '../types';
 import { 
   Users, ShieldCheck, RefreshCw, User, Lock, 
-  ShieldAlert, Key, BadgeCheck, ShieldX, Ban, UserPlus, Send, Loader2, Database
+  ShieldAlert, Key, BadgeCheck, ShieldX, Ban, UserPlus, Send, Loader2, Database, Trash2, Ban as BanIcon, ShieldOff, AlertCircle
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { ADMIN_USERNAME, DEFAULT_USER, SYSTEM_DOMAIN } from '../constants';
 
-type AdminView = 'OVERVIEW' | 'USERS' | 'PROVISION' | 'LINKS';
+type AdminView = 'OVERVIEW' | 'USERS' | 'PROVISION' | 'LOGS';
 
 export const AdminDashboard: React.FC = () => {
   const [viewMode, setViewMode] = useState<AdminView>('OVERVIEW');
@@ -15,7 +16,7 @@ export const AdminDashboard: React.FC = () => {
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
   const [provisioning, setProvisioning] = useState({ username: '', password: '', fullName: '', email: '' });
   const [isProvisioning, setIsProvisioning] = useState(false);
-  
+  const [processingUser, setProcessingUser] = useState<string | null>(null);
   const [msKey, setMsKey] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,6 +50,33 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleAction = async (username: string, action: 'SUSPEND' | 'BAN' | 'DELETE') => {
+      if (!window.confirm(`CRITICAL: Confirm ${action} action on node ${username.toUpperCase()}?`)) return;
+      
+      setProcessingUser(username);
+      const dataKey = `architect_data_${username}`;
+      
+      try {
+          if (action === 'DELETE') {
+              // 1. Remove from global auth registry
+              const users = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
+              delete users[username];
+              localStorage.setItem('studentpocket_users', JSON.stringify(users));
+              // 2. Wipe IndexedDB data
+              await storageService.deleteData(dataKey);
+          } else if (action === 'BAN') {
+              await storageService.enforceSecurityLockdown(username, "MANUAL ADMINISTRATIVE TERMINATION", "Decision by Lead Architect.");
+          } else if (action === 'SUSPEND') {
+              await storageService.suspendUserNode(username, "Under administrative review.");
+          }
+          await loadData();
+      } catch (e) {
+          console.error("Admin Action Fault:", e);
+      } finally {
+          setProcessingUser(null);
+      }
+  };
+
   const handleProvision = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!provisioning.username || !provisioning.password) return;
@@ -58,12 +86,11 @@ export const AdminDashboard: React.FC = () => {
       const users = usersStr ? JSON.parse(usersStr) : {};
       
       if (users[provisioning.username]) {
-          alert("Error: Node ID already exists in registry.");
+          alert("Error: Node ID already exists.");
           setIsProvisioning(false);
           return;
       }
 
-      // 1. Update Global Registry (allows login from any "device")
       users[provisioning.username] = { 
           password: provisioning.password, 
           name: provisioning.fullName || provisioning.username, 
@@ -72,7 +99,6 @@ export const AdminDashboard: React.FC = () => {
       };
       localStorage.setItem('studentpocket_users', JSON.stringify(users));
 
-      // 2. Initialize Data Node
       const profile: UserProfile = {
           ...DEFAULT_USER,
           name: provisioning.fullName || provisioning.username,
@@ -88,36 +114,22 @@ export const AdminDashboard: React.FC = () => {
           setProvisioning({ username: '', password: '', fullName: '', email: '' });
           setIsProvisioning(false);
           loadData();
-          alert("Node Provisioned Successfully. User can now log in on any device.");
       }, 1000);
   };
 
-  const toggleVerification = async (username: string, currentStatus: boolean) => {
-      const dataKey = `architect_data_${username}`;
-      const data = await storageService.getData(dataKey);
-      if (data && data.user) {
-          data.user.isVerified = !currentStatus;
-          data.user.verificationStatus = !currentStatus ? 'VERIFIED' : 'NONE';
-          await storageService.setData(dataKey, data);
-          loadData();
-      }
-  };
-
-  const pendingRequests = requests.filter(r => r.status === 'PENDING' && r.type === 'VERIFICATION');
-
   return (
     <div className="pb-32 animate-platinum space-y-10">
-       <div className="flex justify-between items-end border-b border-white/5 pb-8">
+       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-10 border-b border-white/5 pb-10">
            <div>
-               <div className="stark-badge mb-3">Lead Architect Hub</div>
-               <h1 className="text-4xl font-black text-white uppercase italic tracking-tighter">Command Matrix</h1>
+               <div className="stark-badge mb-4">Authority Over Grid</div>
+               <h1 className="text-4xl sm:text-6xl font-black text-white uppercase italic tracking-tighter leading-none">Administrative<br/>Command</h1>
            </div>
-           <div className="flex gap-4">
-               {['OVERVIEW', 'USERS', 'PROVISION', 'LINKS'].map((m) => (
+           <div className="flex flex-wrap gap-4">
+               {['OVERVIEW', 'USERS', 'PROVISION'].map((m) => (
                    <button 
                     key={m} 
                     onClick={() => setViewMode(m as AdminView)}
-                    className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === m ? 'bg-white text-black' : 'text-slate-500 hover:text-white'}`}
+                    className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === m ? 'bg-white text-black shadow-xl' : 'text-slate-500 hover:text-white bg-white/5'}`}
                    >
                        {m}
                    </button>
@@ -127,105 +139,126 @@ export const AdminDashboard: React.FC = () => {
 
        {viewMode === 'OVERVIEW' && (
            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-               <div className="master-box p-10 space-y-6">
-                   <div className="flex justify-between items-center">
-                        <Users className="text-indigo-500" />
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Active Nodes</span>
+               <div className="master-box p-12 space-y-8 bg-black/40">
+                   <div className="flex justify-between items-center text-indigo-500">
+                        <Users size={32} />
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em]">Active Nodes</span>
                    </div>
-                   <h3 className="text-5xl font-black text-white italic">{profiles.length}</h3>
+                   <h3 className="text-6xl font-black text-white italic">{profiles.length}</h3>
                </div>
-               <div className="master-box p-10 space-y-6">
+               <div className="master-box p-12 space-y-8 bg-black/40">
                    <div className="flex justify-between items-center text-amber-500">
-                        <ShieldAlert />
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Auth Pending</span>
+                        <ShieldAlert size={32} />
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em]">Suspended</span>
                    </div>
-                   <h3 className="text-5xl font-black text-white italic">{pendingRequests.length}</h3>
+                   <h3 className="text-6xl font-black text-white italic">{profiles.filter(p => p.isSuspended).length}</h3>
                </div>
-               <div className="master-box p-10 space-y-6 border-indigo-500/20">
-                   <div className="flex justify-between items-center text-emerald-500">
-                        <Key />
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Master Link</span>
+               <div className="master-box p-12 space-y-8 bg-black/40 border-red-500/20">
+                   <div className="flex justify-between items-center text-red-500">
+                        <ShieldOff size={32} />
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em]">Terminated</span>
                    </div>
-                   <div className="bg-black/50 p-4 rounded-xl text-center font-mono text-xl text-emerald-400 tracking-widest">
-                        {msKey || 'SYNCING...'}
-                   </div>
+                   <h3 className="text-6xl font-black text-white italic">{profiles.filter(p => p.isBanned).length}</h3>
+               </div>
+           </div>
+       )}
+
+       {viewMode === 'USERS' && (
+           <div className="master-box overflow-hidden border-white/5 bg-black/20">
+               <div className="overflow-x-auto">
+                   <table className="w-full text-left min-w-[800px]">
+                       <thead className="bg-white/5 border-b border-white/5 font-black text-[10px] uppercase tracking-widest text-slate-500">
+                           <tr>
+                               <th className="p-8">Personnel Node</th>
+                               <th className="p-8">Status Registry</th>
+                               <th className="p-8 text-center">Nuclear Actions</th>
+                           </tr>
+                       </thead>
+                       <tbody className="divide-y divide-white/5">
+                           {profiles.map((p: any) => (
+                               <tr key={p._username} className="hover:bg-white/[0.02] transition-colors">
+                                   <td className="p-8">
+                                       <div className="flex items-center gap-6">
+                                           <div className="w-12 h-12 rounded-2xl bg-slate-800 border border-white/5 flex items-center justify-center font-black text-lg shadow-inner">{p.name[0]}</div>
+                                           <div>
+                                               <div className="text-base font-black text-white italic uppercase tracking-tighter">{p.name} {p.isVerified && <BadgeCheck size={16} className="inline text-indigo-400 ml-2" />}</div>
+                                               <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">ID: {p.studentId || p._username}</div>
+                                           </div>
+                                       </div>
+                                   </td>
+                                   <td className="p-8">
+                                        <div className="flex flex-col gap-2">
+                                            <span className={`inline-flex items-center px-4 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest w-fit ${p.isBanned ? 'bg-red-500/10 text-red-500' : p.isSuspended ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                                                <div className={`w-1.5 h-1.5 rounded-full mr-3 ${p.isBanned ? 'bg-red-500' : p.isSuspended ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
+                                                {p.isBanned ? 'Terminated' : p.isSuspended ? 'Suspended' : 'Stable'}
+                                            </span>
+                                        </div>
+                                   </td>
+                                   <td className="p-8">
+                                       <div className="flex items-center justify-center gap-3">
+                                           <button 
+                                                onClick={() => handleAction(p._username, 'SUSPEND')}
+                                                disabled={p.isBanned || p.isSuspended}
+                                                className="p-3 bg-white/5 rounded-xl text-amber-500 hover:bg-amber-500 hover:text-black transition-all border border-amber-500/20 disabled:opacity-10"
+                                                title="Suspend Features"
+                                           >
+                                               <ShieldOff size={18} />
+                                           </button>
+                                           <button 
+                                                onClick={() => handleAction(p._username, 'BAN')}
+                                                disabled={p.isBanned}
+                                                className="p-3 bg-white/5 rounded-xl text-red-500 hover:bg-red-500 hover:text-black transition-all border border-red-500/20 disabled:opacity-10"
+                                                title="Permanent Ban"
+                                           >
+                                               <BanIcon size={18} />
+                                           </button>
+                                           <button 
+                                                onClick={() => handleAction(p._username, 'DELETE')}
+                                                className="p-3 bg-white/5 rounded-xl text-slate-500 hover:bg-white hover:text-black transition-all border border-white/10"
+                                                title="Full Node Wipe"
+                                           >
+                                               <Trash2 size={18} />
+                                           </button>
+                                       </div>
+                                   </td>
+                               </tr>
+                           ))}
+                       </tbody>
+                   </table>
                </div>
            </div>
        )}
 
        {viewMode === 'PROVISION' && (
-           <div className="max-w-2xl mx-auto master-box p-12 border border-indigo-500/30">
+           <div className="max-w-2xl mx-auto master-box p-12 border border-indigo-500/30 bg-black/40">
                <div className="flex items-center space-x-6 mb-12">
-                   <div className="w-16 h-16 bg-indigo-600 rounded-[2rem] flex items-center justify-center text-white shadow-xl shadow-indigo-600/20">
+                   <div className="w-16 h-16 bg-white text-black rounded-3xl flex items-center justify-center shadow-2xl">
                        <UserPlus size={32} />
                    </div>
                    <div>
-                       <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">Personnel Provisioning</h2>
-                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Instant Node Deployment</p>
+                       <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter leading-none">Instant Provision</h2>
+                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-2">Deploy Institutional Node</p>
                    </div>
                </div>
                <form onSubmit={handleProvision} className="space-y-6">
                    <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-4">Node ID</label>
-                            <input value={provisioning.username} onChange={e => setProvisioning({...provisioning, username: e.target.value})} className="w-full bg-black/50 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none focus:border-indigo-500" placeholder="e.g. user_x" required />
+                            <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-4">Node Identity</label>
+                            <input value={provisioning.username} onChange={e => setProvisioning({...provisioning, username: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none focus:border-indigo-500 transition-all text-xs" placeholder="USERNAME" required />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-4">Security Token</label>
-                            <input type="password" value={provisioning.password} onChange={e => setProvisioning({...provisioning, password: e.target.value})} className="w-full bg-black/50 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none focus:border-indigo-500" placeholder="e.g. secret_123" required />
+                            <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-4">Master Token</label>
+                            <input type="password" value={provisioning.password} onChange={e => setProvisioning({...provisioning, password: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none focus:border-indigo-500 transition-all text-xs" placeholder="SECRET KEY" required />
                         </div>
                    </div>
                    <div className="space-y-2">
-                        <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-4">Full Name</label>
-                        <input value={provisioning.fullName} onChange={e => setProvisioning({...provisioning, fullName: e.target.value})} className="w-full bg-black/50 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none focus:border-indigo-500" placeholder="LEGAL SIGNATURE" />
+                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-4">Full Signature</label>
+                        <input value={provisioning.fullName} onChange={e => setProvisioning({...provisioning, fullName: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none focus:border-indigo-500 transition-all text-xs" placeholder="LEGAL NAME" />
                    </div>
-                   <button type="submit" disabled={isProvisioning} className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.4em] shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center">
-                       {isProvisioning ? <Loader2 className="animate-spin" /> : 'Provision Node'}
+                   <button type="submit" disabled={isProvisioning} className="w-full bg-white text-black py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.5em] shadow-2xl hover:bg-slate-200 transition-all flex items-center justify-center">
+                       {isProvisioning ? <Loader2 className="animate-spin" /> : 'Create Grid Entry'}
                    </button>
                </form>
-           </div>
-       )}
-
-       {viewMode === 'USERS' && (
-           <div className="master-box overflow-hidden">
-               <table className="w-full text-left">
-                   <thead className="bg-white/5 border-b border-white/5">
-                       <tr>
-                           <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Identity Node</th>
-                           <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Status</th>
-                           <th className="p-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Actions</th>
-                       </tr>
-                   </thead>
-                   <tbody className="divide-y divide-white/5">
-                       {profiles.map((p: any) => (
-                           <tr key={p._username} className="hover:bg-white/[0.02]">
-                               <td className="p-8">
-                                   <div className="flex items-center gap-4">
-                                       <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center font-black text-xs">{p.name[0]}</div>
-                                       <div>
-                                           <div className="text-sm font-black text-white italic">{p.name} {p.isVerified && <BadgeCheck size={14} className="inline text-indigo-400 ml-2" />}</div>
-                                           <div className="text-[9px] text-slate-500 font-bold uppercase">{p.email}</div>
-                                       </div>
-                                   </div>
-                               </td>
-                               <td className="p-8">
-                                    <span className={`px-4 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest ${p.isVerified ? 'bg-indigo-500/20 text-indigo-400' : 'bg-amber-500/20 text-amber-500'}`}>
-                                        {p.isVerified ? 'Verified' : 'Unverified'}
-                                    </span>
-                               </td>
-                               <td className="p-8">
-                                   <button 
-                                      onClick={() => toggleVerification(p._username, p.isVerified)}
-                                      className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center"
-                                   >
-                                       {p.isVerified ? <ShieldX size={12} className="mr-2"/> : <ShieldCheck size={12} className="mr-2"/>}
-                                       {p.isVerified ? 'Unverify' : 'Verify'}
-                                   </button>
-                               </td>
-                           </tr>
-                       ))}
-                   </tbody>
-               </table>
            </div>
        )}
     </div>

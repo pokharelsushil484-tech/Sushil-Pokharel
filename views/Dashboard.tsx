@@ -4,7 +4,7 @@ import { UserProfile, View, Note } from '../types';
 import { 
   ShieldCheck, Database, 
   ChevronRight, RefreshCw,
-  CheckCircle2, Loader2, BadgeCheck, Send, Terminal, Activity, Cpu, Fingerprint
+  CheckCircle2, Loader2, BadgeCheck, Send, Terminal, Activity, Cpu, Fingerprint, ShieldOff
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 
@@ -26,7 +26,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
 
   const handleQuickCommit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!quickNote.trim()) return;
+    if (!quickNote.trim() || user.isSuspended) return;
     setIsCommitting(true);
     
     const newNote: Note = {
@@ -55,16 +55,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
       {/* Executive Command Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10">
         <div className="space-y-6 w-full">
-            <div className="stark-badge inline-flex items-center space-x-4">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]"></div>
-                <span>ADMIN_NODE: {username.toUpperCase()}</span>
+            <div className={`stark-badge inline-flex items-center space-x-4 ${user.isSuspended ? 'border-amber-500/30' : ''}`}>
+                <div className={`w-2 h-2 rounded-full animate-pulse shadow-[0_0_10px_current] ${user.isSuspended ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
+                <span>NODE: {username.toUpperCase()} {user.isSuspended ? '(LIMITED)' : ''}</span>
             </div>
             <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black text-white tracking-tighter uppercase italic leading-[0.85]">StudentPocket<br/><span className="text-indigo-600 not-italic">Infrastructure</span></h1>
         </div>
       </div>
 
+      {/* Suspension Alert if applicable */}
+      {user.isSuspended && (
+          <div className="p-8 bg-amber-500/10 border border-amber-500/20 rounded-[2.5rem] flex items-center justify-between">
+              <div className="flex items-center space-x-6">
+                  <div className="w-14 h-14 bg-amber-500/20 rounded-2xl flex items-center justify-center text-amber-500">
+                      <ShieldOff size={28} />
+                  </div>
+                  <div>
+                      <h4 className="text-white font-black uppercase italic tracking-widest leading-none mb-1 text-base">Node Functions Limited</h4>
+                      <p className="text-[10px] text-amber-500 font-bold uppercase tracking-[0.3em]">Pending Administrative Approval</p>
+                  </div>
+              </div>
+              <button onClick={() => onNavigate(View.SUPPORT)} className="px-8 py-3 bg-amber-500 text-black font-black text-[10px] uppercase tracking-widest rounded-xl hover:scale-105 transition-transform">File Appeal</button>
+          </div>
+      )}
+
       {/* Primary Intake Node */}
-      <div className="master-box p-10 sm:p-20 relative group overflow-hidden">
+      <div className={`master-box p-10 sm:p-20 relative group overflow-hidden ${user.isSuspended ? 'opacity-40 pointer-events-none' : ''}`}>
         <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none">
             <Fingerprint size={500} className="text-white" />
         </div>
@@ -75,7 +91,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                 <BadgeCheck size={48} />
             </div>
             <div className="space-y-1">
-                <span className="inline-block bg-indigo-500/10 text-indigo-500 text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-[0.4em] border border-indigo-500/20">Clearance Level 03</span>
+                <span className="inline-block bg-indigo-500/10 text-indigo-500 text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-[0.4em] border border-indigo-500/20">Clearance Level {user.level}</span>
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">AUTHORIZED_ACCESS_GRANTED</p>
             </div>
           </div>
@@ -118,7 +134,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
       </div>
 
       {/* Grid Matrix */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+      <div className={`grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 ${user.isSuspended ? 'grayscale blur-sm pointer-events-none' : ''}`}>
         {[
           { icon: Activity, title: "Strategic Roadmap", desc: "Global Milestones", view: View.VERIFY_LINK },
           { icon: Database, title: "Secure Data Vault", desc: "Platinum Preservation", view: View.FILE_HUB }

@@ -24,6 +24,7 @@ export interface UserProfile {
   email: string;
   phone: string;
   isVerified: boolean;
+  isSuspended?: boolean;
   isSuspicious: boolean;
   level: number;
   verificationStatus: string;
@@ -49,8 +50,6 @@ export interface UserProfile {
   violationCount: number;
   maxViolations: number;
 }
-
-// Fixed missing types for application components
 
 export interface Assignment {
   id: string;
@@ -87,8 +86,8 @@ export interface ChangeRequest {
   id: string;
   userId: string;
   username: string;
-  type: 'VERIFICATION' | 'DATA_CHANGE' | 'RECOVERY';
-  details: string; // JSON string payload
+  type: 'VERIFICATION' | 'DATA_CHANGE' | 'RECOVERY' | 'REACTIVATION';
+  details: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: number;
   linkId: string;
