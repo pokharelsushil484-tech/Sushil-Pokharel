@@ -1,6 +1,6 @@
 <?php
 /**
- * StudentPocket - Strict Admin Auth Controller
+ * StudentPocket - Strict Identity Controller
  * Architect: Sushil Pokhrel
  */
 
@@ -39,6 +39,7 @@ if ($action === 'AUTHORIZE_IDENTITY') {
     $identity = $request['identity'] ?? '';
     $hash = $request['hash'] ?? '';
 
+    // Admin hardcoded logic
     if ($identity === SystemConfig::ADMIN_USER && $hash === SystemConfig::ADMIN_SECRET) {
         emit_response([
             'status' => 'SUCCESS',
@@ -46,17 +47,24 @@ if ($action === 'AUTHORIZE_IDENTITY') {
             'clearance' => 3
         ]);
     } else {
-        emit_response(['error' => 'AUTHORIZATION_DENIED'], 401);
+        // In a real app, you would check a database here.
+        // For this build, we rely on the SUCCESS status from local registry fallback in the frontend.
+        emit_response(['error' => 'AUTHORIZATION_DENIED', 'details' => 'NODE_NOT_FOUND_IN_CENTRAL_REGISTRY'], 401);
     }
 } elseif ($action === 'REGISTER_IDENTITY') {
     $identity = $request['identity'] ?? '';
     $email = $request['email'] ?? '';
     
-    // Mock registration success. Real verification happens via separate form.
+    if (empty($identity) || empty($email)) {
+        emit_response(['error' => 'INCOMPLETE_DATA'], 400);
+    }
+
+    // Mock successful identity creation
     emit_response([
         'status' => 'SUCCESS',
         'message' => 'IDENTITY_PROVISIONED',
-        'requires_verification' => true
+        'requires_verification' => true,
+        'assigned_node' => strtoupper($identity)
     ]);
 } else {
     emit_response(['error' => 'ILLEGAL_REQUEST'], 403);
