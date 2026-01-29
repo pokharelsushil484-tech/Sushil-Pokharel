@@ -1,7 +1,9 @@
 {
   "name": "StudentPocket – By Sushil",
-  "description": "Premium Executive Portfolio for Student Success.",
+  "description": "Premium Executive Institutional Suite for Global Student Success.",
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "microphone",
+    "geolocation"
   ]
 }

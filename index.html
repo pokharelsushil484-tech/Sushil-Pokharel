@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>StudentPocket – Platinum Academic Hub</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>StudentPocket – Platinum Academic Suite</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -29,95 +29,122 @@
       
       :root {
         color-scheme: dark;
+        --safe-area-inset-top: env(safe-area-inset-top);
+        --safe-area-inset-bottom: env(safe-area-inset-bottom);
+      }
+
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
       }
 
       body { 
         background-color: #000000; 
         background-image: 
-          radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
-        background-size: 32px 32px;
+          radial-gradient(circle at 50% 0%, rgba(79, 70, 229, 0.08) 0%, transparent 70%),
+          radial-gradient(circle at 0% 100%, rgba(30, 27, 75, 0.1) 0%, transparent 50%);
         color: #ffffff;
         margin: 0;
         -webkit-font-smoothing: antialiased;
         overflow-x: hidden;
+        min-height: 100vh;
+        line-height: 1.5;
       }
 
-      /* Platinum Elite Components */
+      /* Unified Executive Box System */
       .master-box {
-        background: rgba(10, 10, 10, 0.85);
-        backdrop-filter: blur(40px);
+        background: rgba(18, 18, 24, 0.6);
+        backdrop-filter: blur(30px) saturate(180%);
+        -webkit-backdrop-filter: blur(30px) saturate(180%);
         border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 1);
-        border-radius: 3rem;
+        border-radius: 2rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         overflow: hidden;
       }
       
-      .scroll-box {
-        max-height: 70vh;
-        overflow-y: auto;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(255,255,255,0.1) transparent;
-      }
-      
-      .scroll-box::-webkit-scrollbar { width: 4px; }
-      .scroll-box::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 10px;
+      @media (min-width: 1024px) {
+        .master-box { border-radius: 2.5rem; }
       }
 
       .btn-platinum {
         background: #ffffff;
         color: #000000;
-        font-weight: 900;
+        font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0.15em;
-        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        display: flex;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        border-radius: 1rem;
+        padding: 1.25rem 2rem;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        border-radius: 1.5rem;
+        border: none;
+        width: 100%;
       }
       
       .btn-platinum:hover {
-        background: #e2e8f0;
+        background: #f8fafc;
         transform: translateY(-2px);
         box-shadow: 0 20px 40px -10px rgba(255, 255, 255, 0.2);
       }
 
+      .btn-platinum:active {
+        transform: translateY(0);
+      }
+
       .stark-badge {
-        background: #ffffff;
-        color: #000000;
-        padding: 4px 14px;
-        border-radius: 9999px;
-        font-size: 9px;
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.8);
+        padding: 0.4rem 1rem;
+        border-radius: 0.75rem;
+        font-size: 10px;
         font-weight: 900;
         text-transform: uppercase;
         letter-spacing: 0.15em;
+        border: 1px solid rgba(255, 255, 255, 0.1);
       }
 
-      @keyframes slideUpFade {
-        from { opacity: 0; transform: translateY(30px); }
-        to { opacity: 1; transform: translateY(0); }
+      /* Scroll Performance */
+      .scroll-box {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
       }
-      .animate-platinum { animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      .scroll-box::-webkit-scrollbar { display: none; }
 
-      /* Prevent white flash */
-      #root { background-color: #000000; min-height: 100vh; }
+      /* Visual Polish */
+      .glass-card {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+      }
+
+      @keyframes platinum-glow {
+        0% { border-color: rgba(255,255,255,0.1); }
+        50% { border-color: rgba(255,255,255,0.3); }
+        100% { border-color: rgba(255,255,255,0.1); }
+      }
+
+      .border-glow {
+        animation: platinum-glow 4s ease-in-out infinite;
+      }
+
+      #root { min-height: 100vh; display: flex; flex-direction: column; }
     </style>
-    <script type="importmap">
+  <script type="importmap">
 {
   "imports": {
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "vite": "https://esm.sh/vite@^7.3.1",
     "react/": "https://esm.sh/react@^19.2.4/",
     "react": "https://esm.sh/react@^19.2.4",
+    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "vite": "https://esm.sh/vite@^7.3.1",
-    "@google/genai": "https://esm.sh/@google/genai@^1.38.0"
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
   }
 }
 </script>
-  </head>
+</head>
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>

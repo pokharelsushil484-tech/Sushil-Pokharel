@@ -1,62 +1,69 @@
 <?php
 /**
- * StudentPocket - Institutional Backend API
- * Security Build: v13.0.0 (Platinum Executive)
+ * StudentPocket - Master Institutional Controller
+ * Security Build: v13.5.0 (Enterprise Unified)
  * Architect: Sushil Pokhrel
  */
 
 declare(strict_types=1);
 
-header('Content-Type: application/json');
+// Production Headers
+header('Content-Type: application/json; charset=UTF-8');
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
-header('Access-Control-Allow-Origin: *');
+header('X-XSS-Protection: 1; mode=block');
+header('Access-Control-Allow-Origin: *'); 
 header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
 
+// Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
     exit;
 }
 
 session_start();
 
-// Configuration Matrix
-final class Config {
-    public const DOMAIN = 'sushilpokharel00.com.np';
-    public const VERSION = 'v13.0.0-PRO';
+// Infrastructure Matrix
+final class SystemConfig {
+    public const NODE_DOMAIN = 'sushilpokharel00.com.np';
+    public const BUILD_TAG = 'STP-PLATINUM-V13.5';
     public const ADMIN_SECRET = 'admin123';
 }
 
-// Request Handler
-function getPayload(): array {
-    $raw = file_get_contents('php://input');
-    return json_decode($raw, true) ?? [];
-}
-
-$request = getPayload();
-$action = $request['action'] ?? '';
-
-// API Response Utility
-function sendResponse(array $data, int $code = 200): void {
-    http_response_code($code);
+/**
+ * Standardized API Response
+ */
+function emit_response(array $payload, int $status_code = 200): void {
+    http_response_code($status_code);
     echo json_encode(array_merge([
-        'system' => 'StudentPocket Master Node',
-        'timestamp' => date('c'),
-        'ref' => uniqid('SP-'),
-    ], $data));
+        'node' => SystemConfig::NODE_DOMAIN,
+        'build' => SystemConfig::BUILD_TAG,
+        'execution_time' => microtime(true) - $_SERVER['REQUEST_TIME_FLOAT'],
+        'timestamp' => time()
+    ], $payload));
     exit;
 }
 
-// Action Controller
+// Extract Sanitized Payload
+$raw_input = file_get_contents('php://input');
+$request = json_decode($raw_input, true) ?? [];
+$action = filter_var($request['action'] ?? '', FILTER_SANITIZE_STRING);
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    emit_response(['error' => 'METHOD_NOT_ALLOWED'], 405);
+}
+
+// Controller Logic
 switch ($action) {
     case 'INITIALIZE_HANDSHAKE':
-        $token = bin2hex(random_bytes(32));
-        $_SESSION['handshake_node'] = $token;
-        sendResponse([
-            'status' => 'PROTOCOL_ENGAGED',
-            'token' => $token,
-            'node_domain' => Config::DOMAIN,
-            'security_layer' => 'AES-256-GCM-INST'
+        $secure_token = bin2hex(random_bytes(32));
+        $_SESSION['active_handshake_id'] = $secure_token;
+        
+        emit_response([
+            'status' => 'CHANNEL_ESTABLISHED',
+            'token' => $secure_token,
+            'encryption' => 'AES-256-GCM'
         ]);
         break;
 
@@ -65,35 +72,30 @@ switch ($action) {
         $hash = $request['hash'] ?? null;
         $handshake = $request['handshake'] ?? null;
 
-        if (!$identity || !$hash || $handshake !== ($_SESSION['handshake_node'] ?? '')) {
-            sendResponse(['status' => 'UNAUTHORIZED', 'error' => 'IDENTITY_MISMATCH'], 401);
+        // Integrity Check
+        if (!$identity || !$hash || $handshake !== ($_SESSION['active_handshake_id'] ?? '')) {
+            emit_response(['status' => 'AUTH_FAILED', 'context' => 'INTEGRITY_MISMATCH'], 401);
         }
 
-        $is_admin = ($identity === 'admin' && $hash === Config::ADMIN_SECRET);
+        $is_master = ($identity === 'admin' && $hash === SystemConfig::ADMIN_SECRET);
         
-        sendResponse([
-            'status' => 'AUTHORIZED',
-            'identity_node' => strtoupper($identity),
-            'clearance' => $is_admin ? 'LEVEL_3_ARCHITECT' : 'LEVEL_1_PERSONNEL',
-            'session_key' => session_id()
+        emit_response([
+            'status' => 'SUCCESS',
+            'identity_node' => strtoupper((string)$identity),
+            'clearance_level' => $is_master ? 3 : 1,
+            'session_vault_id' => session_id()
         ]);
         break;
 
-    case 'SYNC_VAULT':
-        sendResponse(['status' => 'VAULT_SYNCED', 'integrity' => '100%']);
-        break;
-
-    case 'INITIATE_RECOVERY':
-        $target = $request['identity'] ?? 'UNKNOWN';
-        $recoveryId = bin2hex(random_bytes(4));
-        sendResponse([
-            'status' => 'APPEAL_LOGGED',
-            'recovery_id' => strtoupper($recoveryId),
-            'target_node' => $target
+    case 'RESTORE_NODE':
+        emit_response([
+            'status' => 'RECOVERY_INITIATED',
+            'log_ref' => bin2hex(random_bytes(8))
         ]);
         break;
 
     default:
-        sendResponse(['status' => 'ERROR', 'message' => 'INVALID_COMMAND_INPUT'], 400);
+        emit_response(['error' => 'PROTOCOL_UNKNOWN', 'action' => $action], 400);
+        break;
 }
 ?>
