@@ -6,7 +6,6 @@ import { Vault } from './views/Vault';
 import { Support } from './views/Support';
 import { StudyPlanner } from './views/StudyPlanner';
 import { VerificationForm } from './views/VerificationForm';
-import { VerificationPending } from './views/VerificationPending';
 import { AdminDashboard } from './views/AdminDashboard';
 import { InviteRegistration } from './views/InviteRegistration';
 import { LinkVerification } from './views/LinkVerification';
@@ -17,7 +16,7 @@ import { Footer } from './components/Footer';
 import { View, UserProfile, VaultDocument, Assignment } from './types';
 import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME, APP_VERSION } from './constants';
 import { storageService } from './services/storageService';
-import { ShieldCheck, Lock, Cpu, Fingerprint, Terminal, Eye, EyeOff, Info, Send, UserCheck, ShieldAlert } from 'lucide-react';
+import { ShieldCheck, Lock, Cpu, Fingerprint, Terminal, Eye, EyeOff, Info, User, Loader2, ArrowRight } from 'lucide-react';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -26,13 +25,13 @@ const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeUser, setActiveUser] = useState<string | null>(null);
   
-  // High-End Modal Login States
-  const [loginStage, setLoginStage] = useState<'IDLE' | 'HANDSHAKE' | 'IDENTITY' | 'VALIDATING'>('IDLE');
+  // High-End Modal Entry States
+  const [entryStage, setEntryStage] = useState<'IDLE' | 'HANDSHAKE' | 'IDENTITY' | 'VALIDATING'>('IDLE');
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loginError, setLoginError] = useState('');
-  const [handshakeToken, setHandshakeToken] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [token, setToken] = useState('');
 
   const [user, setUser] = useState<UserProfile>(DEFAULT_USER);
   const [vaultDocs, setVaultDocs] = useState<VaultDocument[]>([]);
@@ -76,24 +75,23 @@ const App = () => {
   };
 
   const handleHandshake = async () => {
-    setLoginStage('HANDSHAKE');
+    setEntryStage('HANDSHAKE');
     setIsLoading(true);
     try {
-        // PHP-Driven Handshake Initialization
         const res = await fetch('/login.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'INITIALIZE_HANDSHAKE' })
         });
         const data = await res.json();
-        setHandshakeToken(data.token || Math.random().toString(36).slice(2).toUpperCase());
+        setToken(data.token || Math.random().toString(36).slice(2).toUpperCase());
         setTimeout(() => {
-            setLoginStage('IDENTITY');
+            setEntryStage('IDENTITY');
             setIsLoading(false);
-        }, 1000);
+        }, 800);
     } catch (e) {
-        setHandshakeToken(Math.random().toString(36).slice(2).toUpperCase());
-        setLoginStage('IDENTITY');
+        setToken(Math.random().toString(36).slice(2).toUpperCase());
+        setEntryStage('IDENTITY');
         setIsLoading(false);
     }
   };
@@ -102,7 +100,7 @@ const App = () => {
     e.preventDefault();
     if (!userId || !password) return;
     setIsLoading(true);
-    setLoginError('');
+    setAuthError('');
 
     try {
         const res = await fetch('/login.php', {
@@ -112,30 +110,30 @@ const App = () => {
                 action: 'AUTHORIZE_IDENTITY',
                 identity: userId,
                 hash: password,
-                handshake: handshakeToken
+                handshake: token
             })
         });
         const data = await res.json();
 
         if (data.status === 'SUCCESS') {
-            setLoginStage('VALIDATING');
+            setEntryStage('VALIDATING');
             setTimeout(() => {
-                const finalUid = data.identity_node.toLowerCase();
-                localStorage.setItem('active_session_user', finalUid);
-                setActiveUser(finalUid);
+                const uid = data.identity_node.toLowerCase();
+                localStorage.setItem('active_session_user', uid);
+                setActiveUser(uid);
                 setIsLoggedIn(true);
-                loadUserData(finalUid);
+                loadUserData(uid);
                 setIsLoading(false);
-            }, 1500);
+            }, 1200);
         } else {
-            const attempts = await storageService.recordFailedLogin(userId);
-            setLoginError(`ACCESS_DENIED: ATTEMPT ${attempts}/3`);
+            const att = await storageService.recordFailedLogin(userId);
+            setAuthError(`AUTHORIZATION FAILED [${att}/3]`);
             setIsLoading(false);
         }
     } catch (e) {
-        // Local Fail-safe for Development environment
+        // Fallback for static builds or local testing
         if ((userId === 'admin' && password === 'admin123') || userId === 'sushil') {
-            setLoginStage('VALIDATING');
+            setEntryStage('VALIDATING');
             setTimeout(() => {
                 localStorage.setItem('active_session_user', userId);
                 setActiveUser(userId);
@@ -144,7 +142,7 @@ const App = () => {
                 setIsLoading(false);
             }, 1000);
         } else {
-            setLoginError("CREDENTIAL_MISMATCH_DETECTION");
+            setAuthError("CRYPTOGRAPHIC MISMATCH");
             setIsLoading(false);
         }
     }
@@ -154,7 +152,7 @@ const App = () => {
       localStorage.removeItem('active_session_user');
       setIsLoggedIn(false);
       setActiveUser(null);
-      setLoginStage('IDLE');
+      setEntryStage('IDLE');
       setUserId('');
       setPassword('');
       setUser(DEFAULT_USER);
@@ -163,39 +161,37 @@ const App = () => {
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
   
-  // --- Professional Zero-Exposure Unified Entry ---
+  // --- Professional Institutional Entry Modal ---
   if (!isLoggedIn && view !== View.REGISTER) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4 sm:p-10 relative overflow-hidden">
-        {/* Elite Ambient Layer */}
+      <div className="min-h-screen bg-black flex items-center justify-center p-6 sm:p-12 relative overflow-hidden selection:bg-white/10">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,_rgba(79,70,229,0.05),_transparent)] animate-pulse"></div>
-          <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-indigo-950/20 rounded-full blur-[150px]"></div>
-          <div className="absolute -bottom-[20%] -right-[10%] w-[50%] h-[50%] bg-blue-900/10 rounded-full blur-[120px]"></div>
+          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-950/20 rounded-full blur-[160px] animate-pulse"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/10 rounded-full blur-[140px]"></div>
         </div>
         
-        <div className="relative z-10 w-full max-w-xl animate-platinum">
-          <div className="master-box p-10 sm:p-20 border border-white/5 space-y-12">
+        <div className="relative z-10 w-full max-w-2xl animate-platinum">
+          <div className="master-box p-10 sm:p-24 border border-white/5 space-y-16">
               
-              {loginStage === 'IDLE' && (
-                <div className="text-center space-y-12">
-                    <div className="relative mx-auto w-28 h-28 flex items-center justify-center">
-                        <div className="absolute inset-0 bg-white rounded-[2.5rem] rotate-6"></div>
-                        <ShieldCheck size={56} className="text-black relative z-10" />
+              {entryStage === 'IDLE' && (
+                <div className="text-center space-y-16">
+                    <div className="relative mx-auto w-32 h-32 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-white rounded-[3rem] -rotate-6 transform hover:rotate-0 transition-transform duration-500 shadow-[0_30px_60px_rgba(255,255,255,0.1)]"></div>
+                        <ShieldCheck size={64} className="text-black relative z-10" />
                     </div>
                     <div className="space-y-4">
-                        <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tighter uppercase italic leading-none">{APP_NAME}</h1>
-                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.8em]">Personal Management Node</p>
+                        <h1 className="text-5xl sm:text-7xl font-black text-white tracking-tighter uppercase italic leading-none">{APP_NAME}</h1>
+                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[1em] ml-2">Executive Entry Node</p>
                     </div>
                     <div className="space-y-6">
-                        <button onClick={handleHandshake} className="btn-platinum py-6 text-sm">
-                            Initiate Secure Handshake <Cpu size={20} className="ml-4" />
+                        <button onClick={handleHandshake} className="btn-platinum py-7 text-sm">
+                            Initiate Protocol <Cpu size={22} className="ml-5" />
                         </button>
-                        <div className="grid grid-cols-2 gap-4">
-                            <button onClick={() => setView(View.REGISTER)} className="py-4 bg-white/5 text-slate-500 rounded-2xl text-[9px] font-black uppercase tracking-widest border border-white/5 hover:text-white transition-all">
-                                Request Entry
+                        <div className="grid grid-cols-2 gap-5">
+                            <button onClick={() => setView(View.REGISTER)} className="py-5 bg-white/5 text-slate-500 rounded-2xl text-[9px] font-black uppercase tracking-[0.4em] border border-white/5 hover:text-white hover:bg-white/10 transition-all">
+                                Initialize
                             </button>
-                            <button onClick={() => window.location.reload()} className="py-4 bg-white/5 text-slate-500 rounded-2xl text-[9px] font-black uppercase tracking-widest border border-white/5 hover:text-white transition-all">
+                            <button onClick={() => window.location.reload()} className="py-5 bg-white/5 text-slate-500 rounded-2xl text-[9px] font-black uppercase tracking-[0.4em] border border-white/5 hover:text-white hover:bg-white/10 transition-all">
                                 System Audit
                             </button>
                         </div>
@@ -203,63 +199,63 @@ const App = () => {
                 </div>
               )}
 
-              {loginStage === 'IDENTITY' && (
-                <div className="space-y-12">
+              {entryStage === 'IDENTITY' && (
+                <div className="space-y-16">
                     <div className="text-center space-y-4">
-                        <h2 className="text-2xl font-black text-white uppercase tracking-widest italic">Authorization</h2>
-                        <div className="inline-flex items-center space-x-3 bg-indigo-500/10 px-5 py-2 rounded-full border border-indigo-500/20">
-                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
-                            <span className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.3em]">HANDSHAKE: {handshakeToken}</span>
+                        <h2 className="text-3xl font-black text-white uppercase tracking-widest italic">Authorization</h2>
+                        <div className="inline-flex items-center space-x-3 bg-white/5 px-6 py-2.5 rounded-full border border-white/10">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Node ID Active: {token}</span>
                         </div>
                     </div>
-                    <form onSubmit={handleAuthorize} className="space-y-6">
-                        <div className="space-y-4">
+                    <form onSubmit={handleAuthorize} className="space-y-8">
+                        <div className="space-y-5">
                             <div className="relative group">
-                                <Terminal className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={20} />
+                                <Terminal className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={22} />
                                 <input 
                                     type="text" value={userId} onChange={e => setUserId(e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-[1.5rem] py-6 pl-16 pr-8 text-white font-bold text-sm outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800"
-                                    placeholder="NODE_IDENTITY"
+                                    className="w-full bg-black/40 border border-white/10 rounded-[1.5rem] py-7 pl-16 pr-8 text-white font-bold text-sm outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800"
+                                    placeholder="NODE IDENTITY"
                                 />
                             </div>
                             <div className="relative group">
-                                <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={20} />
+                                <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={22} />
                                 <input 
                                     type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-[1.5rem] py-6 pl-16 pr-16 text-white font-bold text-sm outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800"
-                                    placeholder="SECURITY_TOKEN"
+                                    className="w-full bg-black/40 border border-white/10 rounded-[1.5rem] py-7 pl-16 pr-16 text-white font-bold text-sm outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800"
+                                    placeholder="SECRET CODE"
                                 />
                                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
-                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
                                 </button>
                             </div>
                         </div>
-                        {loginError && <div className="text-[10px] font-black text-red-500 text-center uppercase tracking-widest bg-red-500/5 py-4 rounded-xl border border-red-500/10 animate-shake">{loginError}</div>}
-                        <button type="submit" className="btn-platinum py-6 text-sm">Authorize Data Sync</button>
-                        <button type="button" onClick={() => setLoginStage('IDLE')} className="w-full text-[9px] font-bold text-slate-600 uppercase tracking-widest text-center hover:text-white transition-colors">Abort Procedure</button>
+                        {authError && <div className="text-[10px] font-black text-red-500 text-center uppercase tracking-widest bg-red-500/5 py-4 rounded-2xl border border-red-500/10 animate-shake">{authError}</div>}
+                        <button type="submit" className="btn-platinum py-7 text-sm">Authorize Data Node</button>
+                        <button type="button" onClick={() => setEntryStage('IDLE')} className="w-full text-[9px] font-bold text-slate-600 uppercase tracking-widest text-center hover:text-white transition-colors">Abort Access</button>
                     </form>
                 </div>
               )}
 
-              {loginStage === 'VALIDATING' && (
-                <div className="text-center space-y-12 py-10">
-                    <div className="relative mx-auto w-32 h-32 flex items-center justify-center">
-                        <div className="absolute inset-0 border-[6px] border-white/5 rounded-full"></div>
-                        <div className="absolute inset-0 border-[6px] border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                        <Fingerprint size={56} className="text-indigo-500 animate-pulse" />
+              {entryStage === 'VALIDATING' && (
+                <div className="text-center space-y-16 py-10">
+                    <div className="relative mx-auto w-40 h-40 flex items-center justify-center">
+                        <div className="absolute inset-0 border-[8px] border-white/5 rounded-full"></div>
+                        <div className="absolute inset-0 border-[8px] border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                        <Fingerprint size={72} className="text-indigo-500 animate-pulse" />
                     </div>
-                    <div className="space-y-3">
-                        <h3 className="text-2xl font-black text-white uppercase italic">Validating Node</h3>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.5em]">Establishing Private Link...</p>
+                    <div className="space-y-4">
+                        <h3 className="text-3xl font-black text-white uppercase italic">Validating Node</h3>
+                        <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.6em]">Establishing Encrypted Link...</p>
                     </div>
                 </div>
               )}
 
-              <div className="pt-10 border-t border-white/5 flex flex-col items-center space-y-4">
-                <span className="stark-badge">PORTAL {APP_VERSION.split(' ')[0]}</span>
-                <div className="flex items-center space-x-3 text-slate-700">
-                    <Info size={14} />
-                    <span className="text-[9px] font-black uppercase tracking-[0.4em]">{SYSTEM_DOMAIN}</span>
+              <div className="pt-12 border-t border-white/5 flex flex-col items-center space-y-5">
+                <span className="stark-badge">BUILD {APP_VERSION.split(' ')[0]}</span>
+                <div className="flex items-center space-x-3 text-slate-800">
+                    <Info size={16} />
+                    <span className="text-[10px] font-black uppercase tracking-[0.5em]">{SYSTEM_DOMAIN}</span>
                 </div>
               </div>
           </div>
@@ -289,33 +285,33 @@ const App = () => {
     <div className="min-h-screen bg-black font-sans selection:bg-indigo-500/30 flex flex-col">
       <GlobalLoader isLoading={isLoading} />
       
-      <div className="md:ml-20 lg:ml-64 transition-all flex-1 flex flex-col">
-        <header className="bg-black/80 backdrop-blur-3xl border-b border-white/10 h-24 flex items-center justify-between px-6 sm:px-12 sticky top-0 z-40">
-           <div className="flex items-center space-x-5">
-              <div className="p-3 bg-white rounded-xl text-black shadow-xl transform hover:scale-110 transition-transform">
-                <div className="font-black text-sm">SP</div>
+      <div className="md:ml-24 lg:ml-72 transition-all flex-1 flex flex-col">
+        <header className="bg-black/80 backdrop-blur-3xl border-b border-white/10 h-24 flex items-center justify-between px-8 sm:px-16 sticky top-0 z-40">
+           <div className="flex items-center space-x-6">
+              <div className="p-3.5 bg-white rounded-2xl text-black shadow-2xl transform hover:scale-110 transition-transform">
+                <div className="font-black text-sm uppercase">SP</div>
               </div>
               <div className="hidden sm:flex flex-col">
-                <span className="text-sm font-black text-white uppercase tracking-widest">{APP_NAME}</span>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{SYSTEM_DOMAIN}</span>
+                <span className="text-sm font-black text-white uppercase tracking-widest leading-none">{APP_NAME}</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1.5">{SYSTEM_DOMAIN}</span>
               </div>
            </div>
            
-           <div className="flex items-center space-x-6">
+           <div className="flex items-center space-x-8">
               <div className="text-right hidden sm:block">
-                  <div className="flex items-center justify-end space-x-2">
-                     <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Clearance</span>
-                     <div className={`w-2 h-2 rounded-full ${user.level >= 3 ? 'bg-indigo-500 shadow-[0_0_10px_#4f46e5]' : 'bg-emerald-500'}`}></div>
+                  <div className="flex items-center justify-end space-x-2.5 mb-1.5">
+                     <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">CLEARANCE</span>
+                     <div className={`w-2 h-2 rounded-full ${user.level >= 3 ? 'bg-indigo-500 shadow-[0_0_15px_#4f46e5]' : 'bg-emerald-500 shadow-[0_0_10px_#10b981]'}`}></div>
                   </div>
                   <p className="text-sm font-bold text-indigo-400">{user.name}</p>
               </div>
-              <div className="w-12 h-12 rounded-2xl border-2 border-white/10 overflow-hidden bg-slate-900 shadow-2xl hover:border-indigo-500 transition-colors">
+              <div className="w-12 h-12 rounded-3xl border-2 border-white/10 overflow-hidden bg-slate-900 shadow-2xl hover:border-indigo-500 transition-colors cursor-pointer">
                 <img src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} className="w-full h-full object-cover" alt="User" />
               </div>
            </div>
         </header>
 
-        <main className="flex-1 max-w-[1800px] mx-auto w-full pt-12 px-6 sm:px-12 pb-32 md:pb-20">
+        <main className="flex-1 max-w-[1920px] mx-auto w-full pt-16 px-8 sm:px-16 pb-40 md:pb-24">
             {renderContent()}
             <Footer onNavigate={setView} />
         </main>

@@ -41,30 +41,31 @@
       body { 
         background-color: #000000; 
         background-image: 
-          radial-gradient(circle at 50% 0%, rgba(79, 70, 229, 0.08) 0%, transparent 70%),
-          radial-gradient(circle at 0% 100%, rgba(30, 27, 75, 0.1) 0%, transparent 50%);
+          radial-gradient(circle at 50% 0%, rgba(79, 70, 229, 0.12) 0%, transparent 70%),
+          radial-gradient(circle at 0% 100%, rgba(30, 27, 75, 0.15) 0%, transparent 50%);
         color: #ffffff;
         margin: 0;
         -webkit-font-smoothing: antialiased;
         overflow-x: hidden;
         min-height: 100vh;
         line-height: 1.5;
+        font-family: 'Outfit', sans-serif;
       }
 
-      /* Unified Executive Box System */
+      /* Unified Executive Box System - Fixed Alignments */
       .master-box {
-        background: rgba(18, 18, 24, 0.6);
-        backdrop-filter: blur(30px) saturate(180%);
-        -webkit-backdrop-filter: blur(30px) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 2rem;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: rgba(10, 10, 15, 0.7);
+        backdrop-filter: blur(40px) saturate(200%);
+        -webkit-backdrop-filter: blur(40px) saturate(200%);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 2.5rem;
+        box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7);
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         overflow: hidden;
       }
       
       @media (min-width: 1024px) {
-        .master-box { border-radius: 2.5rem; }
+        .master-box { border-radius: 3.5rem; }
       }
 
       .btn-platinum {
@@ -72,62 +73,53 @@
         color: #000000;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 0.15em;
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        border-radius: 1rem;
-        padding: 1.25rem 2rem;
+        letter-spacing: 0.2em;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        border-radius: 1.25rem;
+        padding: 1.5rem 2.5rem;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         border: none;
         width: 100%;
+        cursor: pointer;
       }
       
       .btn-platinum:hover {
         background: #f8fafc;
-        transform: translateY(-2px);
-        box-shadow: 0 20px 40px -10px rgba(255, 255, 255, 0.2);
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 25px 50px -12px rgba(255, 255, 255, 0.25);
       }
 
       .btn-platinum:active {
-        transform: translateY(0);
+        transform: translateY(0) scale(0.98);
       }
 
       .stark-badge {
         background: rgba(255, 255, 255, 0.05);
-        color: rgba(255, 255, 255, 0.8);
-        padding: 0.4rem 1rem;
-        border-radius: 0.75rem;
+        color: rgba(255, 255, 255, 0.9);
+        padding: 0.6rem 1.4rem;
+        border-radius: 1rem;
         font-size: 10px;
         font-weight: 900;
         text-transform: uppercase;
-        letter-spacing: 0.15em;
+        letter-spacing: 0.2em;
         border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(5px);
       }
 
-      /* Scroll Performance */
+      /* Ultra-Smooth Scrollbox */
       .scroll-box {
         scrollbar-width: none;
         -ms-overflow-style: none;
       }
       .scroll-box::-webkit-scrollbar { display: none; }
 
-      /* Visual Polish */
-      .glass-card {
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
+      @keyframes slide-up-fade {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
       }
-
-      @keyframes platinum-glow {
-        0% { border-color: rgba(255,255,255,0.1); }
-        50% { border-color: rgba(255,255,255,0.3); }
-        100% { border-color: rgba(255,255,255,0.1); }
-      }
-
-      .border-glow {
-        animation: platinum-glow 4s ease-in-out infinite;
-      }
+      .animate-platinum { animation: slide-up-fade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
       #root { min-height: 100vh; display: flex; flex-direction: column; }
     </style>
