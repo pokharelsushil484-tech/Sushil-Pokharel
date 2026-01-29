@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
   <head>
@@ -41,8 +42,8 @@
       body { 
         background-color: #000000; 
         background-image: 
-          radial-gradient(circle at 50% 0%, rgba(79, 70, 229, 0.12) 0%, transparent 70%),
-          radial-gradient(circle at 0% 100%, rgba(30, 27, 75, 0.15) 0%, transparent 50%);
+          radial-gradient(circle at 50% 0%, rgba(79, 70, 229, 0.1) 0%, transparent 70%),
+          radial-gradient(circle at 0% 100%, rgba(30, 27, 75, 0.1) 0%, transparent 50%);
         color: #ffffff;
         margin: 0;
         -webkit-font-smoothing: antialiased;
@@ -52,20 +53,20 @@
         font-family: 'Outfit', sans-serif;
       }
 
-      /* Unified Executive Box System - Fixed Alignments */
+      /* Unified Executive Box System */
       .master-box {
-        background: rgba(10, 10, 15, 0.7);
-        backdrop-filter: blur(40px) saturate(200%);
-        -webkit-backdrop-filter: blur(40px) saturate(200%);
+        background: rgba(15, 15, 20, 0.7);
+        backdrop-filter: blur(40px) saturate(180%);
+        -webkit-backdrop-filter: blur(40px) saturate(180%);
         border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 2.5rem;
-        box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7);
+        border-radius: 2rem;
+        box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.8);
         transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         overflow: hidden;
       }
       
       @media (min-width: 1024px) {
-        .master-box { border-radius: 3.5rem; }
+        .master-box { border-radius: 2.5rem; }
       }
 
       .btn-platinum {
@@ -73,10 +74,10 @@
         color: #000000;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 0.2em;
-        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        letter-spacing: 0.15em;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         border-radius: 1.25rem;
-        padding: 1.5rem 2.5rem;
+        padding: 1.25rem 2rem;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -86,9 +87,9 @@
       }
       
       .btn-platinum:hover {
-        background: #f8fafc;
-        transform: translateY(-4px) scale(1.02);
-        box-shadow: 0 25px 50px -12px rgba(255, 255, 255, 0.25);
+        background: #f1f5f9;
+        transform: translateY(-3px) scale(1.01);
+        box-shadow: 0 20px 40px -10px rgba(255, 255, 255, 0.2);
       }
 
       .btn-platinum:active {
@@ -97,18 +98,16 @@
 
       .stark-badge {
         background: rgba(255, 255, 255, 0.05);
-        color: rgba(255, 255, 255, 0.9);
-        padding: 0.6rem 1.4rem;
-        border-radius: 1rem;
+        color: rgba(255, 255, 255, 0.8);
+        padding: 0.5rem 1.2rem;
+        border-radius: 0.75rem;
         font-size: 10px;
         font-weight: 900;
         text-transform: uppercase;
-        letter-spacing: 0.2em;
+        letter-spacing: 0.15em;
         border: 1px solid rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(5px);
       }
 
-      /* Ultra-Smooth Scrollbox */
       .scroll-box {
         scrollbar-width: none;
         -ms-overflow-style: none;
@@ -119,24 +118,24 @@
         from { opacity: 0; transform: translateY(30px); }
         to { opacity: 1; transform: translateY(0); }
       }
-      .animate-platinum { animation: slide-up-fade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      .animate-platinum { animation: slide-up-fade 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
       #root { min-height: 100vh; display: flex; flex-direction: column; }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "vite": "https://esm.sh/vite@^7.3.1",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
-  }
-}
-</script>
-</head>
+    <script type="importmap">
+    {
+      "imports": {
+        "vite": "https://esm.sh/vite@^7.3.1",
+        "react/": "https://esm.sh/react@^19.2.4/",
+        "react": "https://esm.sh/react@^19.2.4",
+        "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
+        "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+        "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+        "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
+      }
+    }
+    </script>
+  </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
