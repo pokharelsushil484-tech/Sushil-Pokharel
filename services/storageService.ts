@@ -156,6 +156,22 @@ export const storageService = {
     }
   },
 
+  async toggleVerificationNode(username: string, status: boolean): Promise<void> {
+    const dataKey = `architect_data_${username}`;
+    const storedData = await this.getData(dataKey);
+    if (storedData && storedData.user) {
+        storedData.user.isVerified = status;
+        storedData.user.verificationStatus = status ? 'VERIFIED' : 'NONE';
+        await this.setData(dataKey, storedData);
+        await this.logActivity({
+            actor: 'ADMIN-OVERRIDE',
+            targetUser: username,
+            actionType: 'VERIFICATION',
+            description: `NODE CLEARANCE ${status ? 'GRANTED' : 'REVOKED'}`
+        });
+    }
+  },
+
   async enforceSecurityLockdown(username: string, reason: string, context: string): Promise<void> {
       const dataKey = `architect_data_${username}`;
       const storedData = await this.getData(dataKey);

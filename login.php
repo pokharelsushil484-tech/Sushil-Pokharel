@@ -1,4 +1,3 @@
-
 <?php
 /**
  * StudentPocket - Strict Admin Auth Controller
@@ -49,6 +48,16 @@ if ($action === 'AUTHORIZE_IDENTITY') {
     } else {
         emit_response(['error' => 'AUTHORIZATION_DENIED'], 401);
     }
+} elseif ($action === 'REGISTER_IDENTITY') {
+    $identity = $request['identity'] ?? '';
+    $email = $request['email'] ?? '';
+    
+    // Mock registration success. Real verification happens via separate form.
+    emit_response([
+        'status' => 'SUCCESS',
+        'message' => 'IDENTITY_PROVISIONED',
+        'requires_verification' => true
+    ]);
 } else {
     emit_response(['error' => 'ILLEGAL_REQUEST'], 403);
 }
