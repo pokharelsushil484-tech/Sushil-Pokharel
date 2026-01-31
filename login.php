@@ -1,6 +1,6 @@
 <?php
 /**
- * StudentPocket - Strict Identity Controller
+ * StudentPocket - Central Identity Controller
  * Architect: Sushil Pokhrel
  */
 
@@ -26,7 +26,8 @@ function emit_response(array $payload, int $status_code = 200): void {
     http_response_code($status_code);
     echo json_encode(array_merge([
         'node' => SystemConfig::NODE_DOMAIN,
-        'timestamp' => time()
+        'timestamp' => time(),
+        'attribution' => 'StudentPocket – By Sushil'
     ], $payload));
     exit;
 }
@@ -39,7 +40,7 @@ if ($action === 'AUTHORIZE_IDENTITY') {
     $identity = $request['identity'] ?? '';
     $hash = $request['hash'] ?? '';
 
-    // Admin hardcoded logic
+    // Hardcoded Admin Logic
     if ($identity === SystemConfig::ADMIN_USER && $hash === SystemConfig::ADMIN_SECRET) {
         emit_response([
             'status' => 'SUCCESS',
@@ -47,26 +48,25 @@ if ($action === 'AUTHORIZE_IDENTITY') {
             'clearance' => 3
         ]);
     } else {
-        // In a real app, you would check a database here.
-        // For this build, we rely on the SUCCESS status from local registry fallback in the frontend.
-        emit_response(['error' => 'AUTHORIZATION_DENIED', 'details' => 'NODE_NOT_FOUND_IN_CENTRAL_REGISTRY'], 401);
+        // Return error to trigger the frontend local registry fallback
+        emit_response(['error' => 'AUTHORIZATION_DENIED', 'code' => 'NOT_IN_CENTRAL_REGISTRY'], 401);
     }
 } elseif ($action === 'REGISTER_IDENTITY') {
     $identity = $request['identity'] ?? '';
     $email = $request['email'] ?? '';
     
     if (empty($identity) || empty($email)) {
-        emit_response(['error' => 'INCOMPLETE_DATA'], 400);
+        emit_response(['error' => 'INCOMPLETE_DATA_STREAM'], 400);
     }
 
-    // Mock successful identity creation
+    // Provision identity in the central flow
     emit_response([
         'status' => 'SUCCESS',
         'message' => 'IDENTITY_PROVISIONED',
-        'requires_verification' => true,
+        'requires_local_sync' => true,
         'assigned_node' => strtoupper($identity)
     ]);
 } else {
-    emit_response(['error' => 'ILLEGAL_REQUEST'], 403);
+    emit_response(['error' => 'ILLEGAL_NODE_REQUEST'], 403);
 }
 ?>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Navigation } from './components/Navigation';
 import { Dashboard } from './views/Dashboard';
@@ -10,14 +11,14 @@ import { GlobalLoader } from './components/GlobalLoader';
 import { SplashScreen } from './components/SplashScreen';
 import { ErrorPage } from './views/ErrorPage';
 import { Footer } from './components/Footer';
-import { LinkVerification } from './views/LinkVerification';
 import { VerificationForm } from './views/VerificationForm';
 import { VerificationPending } from './views/VerificationPending';
 import { AccessRecovery } from './views/AccessRecovery';
 import { View, UserProfile, VaultDocument, Assignment } from './types';
-import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME, APP_VERSION } from './constants';
+import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME } from './constants';
 import { storageService } from './services/storageService';
-import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, UserPlus, Info, HelpCircle, AlertTriangle, ShieldAlert, Mail } from 'lucide-react';
+// Added missing AlertTriangle import
+import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, UserPlus, Mail, CheckCircle2, ArrowRight, AlertTriangle } from 'lucide-react';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -27,6 +28,8 @@ const App = () => {
   const [activeUser, setActiveUser] = useState<string | null>(null);
   
   const [authMode, setAuthMode] = useState<'LOGIN' | 'SIGNUP'>('LOGIN');
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
@@ -54,10 +57,6 @@ const App = () => {
             verificationStatus: 'VERIFIED'
         };
         setUser(adminProfile);
-        if (stored) {
-          if (stored.vaultDocs) setVaultDocs(stored.vaultDocs);
-          if (stored.assignments) setAssignments(stored.assignments);
-        }
     } else if (stored && stored.user) {
         setUser(stored.user);
         if (stored.vaultDocs) setVaultDocs(stored.vaultDocs);
@@ -74,70 +73,54 @@ const App = () => {
 
     try {
         if (authMode === 'LOGIN') {
-            const payload = {
-                action: 'AUTHORIZE_IDENTITY',
-                identity: inputId,
-                hash: password
-            };
-
+            const payload = { action: 'AUTHORIZE_IDENTITY', identity: inputId, hash: password };
             const res = await fetch('/login.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
             
-            if (res.ok) {
-                const data = await res.json();
-                if (data.status === 'SUCCESS') {
-                    sessionStorage.setItem('active_session_user', inputId);
-                    setActiveUser(inputId);
-                    setIsLoggedIn(true);
-                    await loadUserData(inputId);
-                    setIsLoading(false);
-                    return;
-                }
-            }
+            const data = await res.json();
             
-            const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
-            const localUser = localUsers[inputId];
-            
-            if (localUser && localUser.password === password) {
+            if (data.status === 'SUCCESS') {
                 sessionStorage.setItem('active_session_user', inputId);
                 setActiveUser(inputId);
                 setIsLoggedIn(true);
                 await loadUserData(inputId);
             } else {
-                setAuthError('AUTHORIZATION_DENIED');
+                // PHP rejected (401), check Local hardware Node Registry
+                const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
+                const localUser = localUsers[inputId];
+                
+                if (localUser && localUser.password === password) {
+                    sessionStorage.setItem('active_session_user', inputId);
+                    setActiveUser(inputId);
+                    setIsLoggedIn(true);
+                    await loadUserData(inputId);
+                } else {
+                    setAuthError('AUTHORIZATION_DENIED');
+                }
             }
         } else {
             // SIGNUP MODE
-            const payload = {
-                action: 'REGISTER_IDENTITY',
-                identity: inputId,
-                email: email
-            };
-
+            const payload = { action: 'REGISTER_IDENTITY', identity: inputId, email: email };
             const res = await fetch('/login.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
-            if (res.ok) {
+            const data = await res.json();
+            if (data.status === 'SUCCESS') {
                 const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
                 if (localUsers[inputId]) {
-                    setAuthError('NODE_EXISTS');
+                    setAuthError('NODE_ID_TAKEN');
                     setIsLoading(false);
                     return;
                 }
 
-                // Register locally as unverified
-                localUsers[inputId] = { 
-                    password: password, 
-                    email: email, 
-                    name: fullName,
-                    verified: false 
-                };
+                // Persist locally for future login fallback
+                localUsers[inputId] = { password, email, name: fullName, verified: false };
                 localStorage.setItem('studentpocket_users', JSON.stringify(localUsers));
 
                 const profile: UserProfile = {
@@ -146,16 +129,18 @@ const App = () => {
                     email: email || `node@${SYSTEM_DOMAIN}`,
                     isVerified: false,
                     verificationStatus: 'NONE',
-                    level: 1
+                    level: 1,
+                    studentId: `SP-${Math.floor(100000 + Math.random() * 900000)}`
                 };
                 await storageService.setData(`architect_data_${inputId}`, { user: profile, vaultDocs: [], assignments: [] });
                 
-                // Switch to login automatically
-                setAuthMode('LOGIN');
-                setAuthError('ACCOUNT_CREATED_PLEASE_LOGIN');
+                setRegistrationSuccess(true);
+            } else {
+                setAuthError('REGISTRATION_FAILED');
             }
         }
     } catch (err) {
+        // Static dev fallback
         if (inputId === 'admin' && password === 'admin123') {
             sessionStorage.setItem('active_session_user', inputId);
             setActiveUser(inputId);
@@ -186,102 +171,87 @@ const App = () => {
         
         <div className="relative z-10 w-full max-w-lg animate-platinum">
           <div className="master-box p-10 sm:p-16 border border-white/5 space-y-12">
-              <div className="text-center space-y-6">
-                <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-2xl">
-                  <ShieldCheck size={48} className="text-black" />
-                </div>
-                <div className="space-y-1">
-                  <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">{APP_NAME}</h1>
-                  <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.6em]">
-                    {authMode === 'LOGIN' ? 'Administrative Access Node' : 'Initialize New Identity'}
-                  </p>
-                </div>
-              </div>
-
-              <form onSubmit={handleAuth} className="space-y-6">
-                <div className="space-y-4">
-                  {authMode === 'SIGNUP' && (
-                    <>
-                    <div className="relative group">
-                      <ShieldCheck className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                      <input 
-                        type="text" 
-                        value={fullName}
-                        onChange={e => setFullName(e.target.value)}
-                        className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800"
-                        placeholder="FULL LEGAL NAME"
-                        required
-                      />
+              {registrationSuccess ? (
+                <div className="text-center space-y-10 animate-scale-up">
+                    <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.1)]">
+                        <CheckCircle2 size={48} className="text-emerald-500" />
                     </div>
-                    <div className="relative group">
-                      <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                      <input 
-                        type="email" 
-                        value={email}
-                        onChange={e => setEmail(e.target.value)}
-                        className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800"
-                        placeholder="NODE EMAIL"
-                        required
-                      />
+                    <div className="space-y-3">
+                        <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">Identity Created</h2>
+                        <p className="text-sm text-slate-400 font-medium">Node {userId.toUpperCase()} has been provisioned. <br/>StudentPocket – By Sushil</p>
                     </div>
-                    </>
-                  )}
-                  <div className="relative group">
-                    <Terminal className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                    <input 
-                      type="text" 
-                      value={userId}
-                      onChange={e => setUserId(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800"
-                      placeholder="IDENT_NODE_ID"
-                      required
-                    />
-                  </div>
-                  <div className="relative group">
-                    <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                    <input 
-                      type={showPassword ? "text" : "password"} 
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-16 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800"
-                      placeholder="SECURITY_TOKEN"
-                      required
-                    />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {/* The "Last Button" requested by user */}
+                    <button 
+                        onClick={() => { setRegistrationSuccess(false); setAuthError(''); setAuthMode('LOGIN'); }}
+                        className="btn-platinum py-5 text-xs flex items-center justify-center gap-3"
+                    >
+                        Return to Authentication <ArrowRight size={18} />
                     </button>
-                  </div>
                 </div>
-
-                {authError && (
-                  <div className={`text-[9px] font-black text-center uppercase tracking-widest py-3 rounded-xl border animate-shake ${authError.includes('CREATED') ? 'text-emerald-500 bg-emerald-500/5 border-emerald-500/10' : 'text-red-500 bg-red-500/5 border-red-500/10'}`}>
-                    {authError}
-                  </div>
-                )}
-
-                <button type="submit" className="btn-platinum py-5 text-xs flex items-center justify-center gap-3 shadow-2xl">
-                  {authMode === 'LOGIN' ? <LogIn size={18} /> : <UserPlus size={18} />}
-                  {authMode === 'LOGIN' ? 'Authorize Access' : 'Settle Identity'}
-                </button>
-              </form>
-
-              <div className="flex flex-col items-center space-y-6 pt-8 border-t border-white/5">
-                <button 
-                  type="button" 
-                  onClick={() => setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN')}
-                  className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-[0.3em] transition-all"
-                >
-                  {authMode === 'LOGIN' ? "Create New Node Profile" : "Existing Identity Login"}
-                </button>
-                <div className="flex justify-between w-full opacity-50">
-                    <button type="button" onClick={() => window.location.href = `https://www.${SYSTEM_DOMAIN}/recovery`} className="text-[9px] font-bold text-slate-500 hover:text-white uppercase tracking-widest transition-colors flex items-center gap-2">
-                    <HelpCircle size={12} /> Support Node
-                    </button>
-                    <div className="flex items-center space-x-2 text-slate-800">
-                    <span className="text-[8px] font-black uppercase tracking-widest">{SYSTEM_DOMAIN}</span>
+              ) : (
+                <>
+                <div className="text-center space-y-6">
+                    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-2xl">
+                    <ShieldCheck size={48} className="text-black" />
+                    </div>
+                    <div className="space-y-1">
+                    <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic leading-none">{APP_NAME}</h1>
+                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.6em]">
+                        {authMode === 'LOGIN' ? 'Administrative Access Node' : 'Initialize New Identity'}
+                    </p>
                     </div>
                 </div>
-              </div>
+
+                <form onSubmit={handleAuth} className="space-y-6">
+                    <div className="space-y-4">
+                    {authMode === 'SIGNUP' && (
+                        <>
+                        <div className="relative group">
+                        <ShieldCheck className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                        <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="FULL LEGAL NAME" required />
+                        </div>
+                        <div className="relative group">
+                        <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                        <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="NODE EMAIL" required />
+                        </div>
+                        </>
+                    )}
+                    <div className="relative group">
+                        <Terminal className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                        <input type="text" value={userId} onChange={e => setUserId(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="IDENT_NODE_ID" required />
+                    </div>
+                    <div className="relative group">
+                        <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                        <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-16 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="SECURITY_TOKEN" required />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                    </div>
+                    </div>
+
+                    {authError && (
+                    <div className={`text-[9px] font-black text-center uppercase tracking-widest py-3 rounded-xl border animate-shake text-red-500 bg-red-500/5 border-red-500/10`}>
+                        {authError}
+                    </div>
+                    )}
+
+                    <button type="submit" className="btn-platinum py-5 text-xs flex items-center justify-center gap-3 shadow-2xl">
+                    {authMode === 'LOGIN' ? <LogIn size={18} /> : <UserPlus size={18} />}
+                    {authMode === 'LOGIN' ? 'Authorize Access' : 'Settle Identity'}
+                    </button>
+                </form>
+
+                <div className="flex flex-col items-center space-y-6 pt-8 border-t border-white/5">
+                    <button 
+                    type="button" 
+                    onClick={() => { setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setAuthError(''); }}
+                    className="text-[10px] font-black text-indigo-400 hover:text-white uppercase tracking-[0.3em] transition-all"
+                    >
+                    {authMode === 'LOGIN' ? "Create New Node Profile" : "Existing Identity Login"}
+                    </button>
+                </div>
+                </>
+              )}
           </div>
         </div>
       </div>
@@ -297,7 +267,7 @@ const App = () => {
                     <AlertTriangle size={48} />
                 </div>
                 <h1 className="text-3xl font-black text-white uppercase italic tracking-tighter mb-4">Node Terminated</h1>
-                <p className="text-sm text-slate-400 font-medium leading-relaxed mb-10">This identity has been permanently removed from the system infrastructure. There is no possibility of unbanning through standard protocols.</p>
+                <p className="text-sm text-slate-400 font-medium leading-relaxed mb-10">This identity has been permanently removed from the system infrastructure.</p>
                 <div className="bg-red-500/5 p-6 rounded-2xl border border-red-500/10 mb-10">
                     <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">Reason for Punishment</p>
                     <p className="text-xs font-bold text-white uppercase">{user.banReason || 'CRITICAL SYSTEM VIOLATION'}</p>
@@ -311,11 +281,7 @@ const App = () => {
   if (activeUser !== ADMIN_USERNAME && !user.isVerified && view !== View.VERIFICATION_FORM && view !== View.SUPPORT && view !== View.ACCESS_RECOVERY) {
       return (
         <div className="min-h-screen bg-black flex flex-col">
-           <VerificationPending 
-             studentId={user.studentId} 
-             onLogout={handleLogout} 
-             onNavigate={setView}
-           />
+           <VerificationPending studentId={user.studentId} onLogout={handleLogout} onNavigate={setView} />
         </div>
       );
   }

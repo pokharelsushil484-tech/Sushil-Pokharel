@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
-import { UserProfile, ChangeRequest } from '../types';
+import { UserProfile } from '../types';
+// Added missing ShieldCheck import
 import { 
-  Users, RefreshCw, Trash2, Ban as BanIcon, ShieldOff, BadgeCheck, 
-  UserPlus, Loader2, ShieldCheck, ShieldAlert, Terminal, Lock, Mail,
-  CheckCircle2, XCircle
+  Users, Trash2, Ban as BanIcon, ShieldOff, BadgeCheck, 
+  UserPlus, Loader2, Terminal, Lock, Mail,
+  CheckCircle2, XCircle, ShieldAlert, ShieldCheck
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { ADMIN_USERNAME, DEFAULT_USER, SYSTEM_DOMAIN } from '../constants';
@@ -45,14 +47,8 @@ export const AdminDashboard: React.FC = () => {
   const toggleVerification = async (username: string, currentStatus: boolean) => {
     setProcessingUser(username);
     try {
-        const dataKey = `architect_data_${username}`;
-        const stored = await storageService.getData(dataKey);
-        if (stored && stored.user) {
-            stored.user.isVerified = !currentStatus;
-            stored.user.verificationStatus = !currentStatus ? 'VERIFIED' : 'NONE';
-            await storageService.setData(dataKey, stored);
-            await loadData();
-        }
+        await storageService.toggleVerificationNode(username, !currentStatus);
+        await loadData();
     } catch (e) {
         console.error("Verification toggle fault:", e);
     } finally {
@@ -282,7 +278,6 @@ export const AdminDashboard: React.FC = () => {
                         <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-4">Full Signature</label>
                         <div className="relative">
                             <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700" size={16} />
-                            {/* // Fix: Use setProvisioning instead of non-existent setFormData */}
                             <input value={provisioning.fullName} onChange={e => setProvisioning({...provisioning, fullName: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 pl-12 text-white font-bold outline-none focus:border-indigo-500 transition-all text-xs" placeholder="LEGAL NAME" />
                         </div>
                    </div>
