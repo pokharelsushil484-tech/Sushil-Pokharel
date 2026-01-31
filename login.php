@@ -1,15 +1,14 @@
 <?php
 /**
- * StudentPocket - Central Identity Registry
+ * StudentPocket - Universal Identity Server
  * Architect: Sushil Pokhrel
- * Version: 9.5.0 Platinum (Secure OTP)
+ * Version: 9.6.0 Platinum (Resilient Mesh)
  */
 
 declare(strict_types=1);
 
 ob_start();
 
-// Essential Headers for Mobile/Web Interoperability
 header('Content-Type: application/json; charset=UTF-8');
 header('Access-Control-Allow-Origin: *'); 
 header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -24,7 +23,7 @@ final class SystemConfig {
     public const NODE_DOMAIN = 'sushilpokharel00.com.np';
     public const ADMIN_USER = 'admin';
     public const ADMIN_SECRET = 'admin123';
-    public const VERSION = '9.5.0';
+    public const VERSION = '9.6.0';
 }
 
 function emit_response(array $payload, int $status_code = 200): void {
@@ -32,10 +31,10 @@ function emit_response(array $payload, int $status_code = 200): void {
     http_response_code($status_code);
     echo json_encode(array_merge([
         'node' => SystemConfig::NODE_DOMAIN,
-        'status' => 'ACTIVE',
+        'sync_status' => 'ACTIVE',
         'attribution' => 'StudentPocket – By Sushil',
-        'timestamp' => time(),
-        'protocol' => 'V-9.5'
+        'version' => SystemConfig::VERSION,
+        'timestamp' => time()
     ], $payload));
     exit;
 }
@@ -51,40 +50,38 @@ try {
 
         if ($identity === SystemConfig::ADMIN_USER && $hash === SystemConfig::ADMIN_SECRET) {
             emit_response([
-                'auth_status' => 'SUCCESS',
+                'status' => 'SUCCESS',
                 'identity_node' => strtoupper($identity),
                 'clearance' => 3
             ]);
         } else {
             emit_response([
-                'auth_status' => 'DENIED', 
-                'code' => 'AUTH_FAILED'
+                'error' => 'AUTHORIZATION_DENIED', 
+                'code' => 'INVALID_CREDENTIALS'
             ], 401);
         }
     } elseif ($action === 'SEND_VERIFICATION_CODE') {
         $email = $request['email'] ?? '';
         if (empty($email)) {
-            emit_response(['error' => 'MISSING_NODE_EMAIL'], 400);
+            emit_response(['error' => 'MISSING_TARGET_EMAIL'], 400);
         }
         
-        // Simulation: Code dispatched to mail servers
         emit_response([
-            'auth_status' => 'SUCCESS',
-            'message' => 'SECURITY_CODE_DISPATCHED',
-            'node_target' => $email,
-            'expiry' => 300
+            'status' => 'SUCCESS',
+            'message' => 'CODE_DISPATCHED',
+            'target' => $email,
+            'expiry_window' => 600
         ]);
     } elseif ($action === 'VERIFY_CODE') {
         $code = $request['code'] ?? '';
-        // Mock verification logic
+        // Simulation accepts any 6-digit numeric string as valid
         if (strlen($code) === 6 && is_numeric($code)) {
             emit_response([
-                'auth_status' => 'SUCCESS',
-                'message' => 'TOKEN_VERIFIED',
-                'identity_key' => bin2hex(random_bytes(16))
+                'status' => 'SUCCESS',
+                'message' => 'TOKEN_VALIDATED'
             ]);
         } else {
-            emit_response(['error' => 'INVALID_TOKEN'], 401);
+            emit_response(['error' => 'INVALID_TOKEN_FORMAT'], 400);
         }
     } elseif ($action === 'REGISTER_IDENTITY') {
         $identity = $request['identity'] ?? '';
@@ -92,14 +89,14 @@ try {
             emit_response(['error' => 'MISSING_IDENTIFIER'], 400);
         }
         emit_response([
-            'auth_status' => 'SUCCESS',
-            'message' => 'IDENTITY_PROVISIONED',
-            'node' => strtoupper($identity)
+            'status' => 'SUCCESS',
+            'message' => 'MESH_NODE_COMMITTED',
+            'node_id' => strtoupper($identity)
         ]);
     } else {
-        emit_response(['error' => 'ILLEGAL_REQUEST'], 403);
+        emit_response(['error' => 'ILLEGAL_ACTION_REQUEST'], 403);
     }
 } catch (Exception $e) {
-    emit_response(['error' => 'SYSTEM_FAULT'], 500);
+    emit_response(['error' => 'CORE_FAULT'], 500);
 }
 ?>
