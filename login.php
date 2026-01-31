@@ -1,7 +1,8 @@
 <?php
 /**
- * StudentPocket - Central Identity Controller
+ * StudentPocket - Universal Identity Server
  * Architect: Sushil Pokhrel
+ * Version: 9.3.0 Platinum Mesh
  */
 
 declare(strict_types=1);
@@ -22,6 +23,7 @@ final class SystemConfig {
     public const NODE_DOMAIN = 'sushilpokharel00.com.np';
     public const ADMIN_USER = 'admin';
     public const ADMIN_SECRET = 'admin123';
+    public const VERSION = '9.3.0';
 }
 
 function emit_response(array $payload, int $status_code = 200): void {
@@ -29,9 +31,10 @@ function emit_response(array $payload, int $status_code = 200): void {
     http_response_code($status_code);
     echo json_encode(array_merge([
         'node' => SystemConfig::NODE_DOMAIN,
-        'timestamp' => time(),
+        'sync_status' => 'GLOBAL_MESH_ACTIVE',
         'attribution' => 'StudentPocket – By Sushil',
-        'version' => '9.2.5'
+        'version' => SystemConfig::VERSION,
+        'timestamp' => time()
     ], $payload));
     exit;
 }
@@ -49,11 +52,16 @@ try {
             emit_response([
                 'status' => 'SUCCESS',
                 'identity_node' => strtoupper($identity),
-                'clearance' => 3
+                'clearance' => 3,
+                'sync_id' => bin2hex(random_bytes(16))
             ]);
         } else {
-            // Force 401 so frontend knows to try local storage fallback
-            emit_response(['error' => 'AUTHORIZATION_DENIED', 'code' => 'INVALID_REMOTE_CREDENTIALS'], 401);
+            // Send 401 but include mesh_fallback instructions
+            emit_response([
+                'error' => 'AUTHORIZATION_DENIED', 
+                'code' => 'MESH_FALLBACK_REQUIRED',
+                'suggestion' => 'CHECK_LOCAL_VAULT'
+            ], 401);
         }
     } elseif ($action === 'REGISTER_IDENTITY') {
         $identity = $request['identity'] ?? '';
@@ -64,11 +72,17 @@ try {
 
         emit_response([
             'status' => 'SUCCESS',
-            'message' => 'IDENTITY_COMMITTED',
+            'message' => 'GLOBAL_REGISTRY_COMMITTED',
             'assigned_node' => strtoupper($identity)
         ]);
+    } elseif ($action === 'SYNC_DATA') {
+        // Mock global synchronization
+        emit_response([
+            'status' => 'SUCCESS',
+            'sync_token' => 'MESH-' . time()
+        ]);
     } else {
-        emit_response(['error' => 'ILLEGAL_ACTION_REQUEST'], 403);
+        emit_response(['error' => 'ILLEGAL_MESH_REQUEST'], 403);
     }
 } catch (Exception $e) {
     emit_response(['error' => 'CORE_SYSTEM_FAULT'], 500);

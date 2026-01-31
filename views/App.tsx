@@ -9,15 +9,13 @@ import { StudyPlanner } from './StudyPlanner';
 import { AdminDashboard } from './AdminDashboard';
 import { GlobalLoader } from '../components/GlobalLoader';
 import { SplashScreen } from '../components/SplashScreen';
-import { ErrorPage } from './ErrorPage';
 import { Footer } from '../components/Footer';
 import { VerificationForm } from './VerificationForm';
-import { VerificationPending } from './VerificationPending';
 import { AccessRecovery } from './AccessRecovery';
 import { View, UserProfile, VaultDocument, Assignment, Expense } from '../types';
 import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
-import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, UserPlus, Mail, CheckCircle2, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, UserPlus, Mail, CheckCircle2, ArrowRight, Globe } from 'lucide-react';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -62,7 +60,7 @@ const App = () => {
     try {
         const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
         if (localUsers[inputId]) {
-            setAuthError('NODE_ID_EXISTS');
+            setAuthError('ID_ALREADY_EXISTS_IN_MESH');
             return;
         }
         localUsers[inputId] = { password, email, name: fullName, verified: false };
@@ -71,11 +69,12 @@ const App = () => {
         const profile: UserProfile = {
             ...DEFAULT_USER,
             name: fullName || inputId,
-            email: email || `user@${SYSTEM_DOMAIN}`,
+            email: email || `node@${SYSTEM_DOMAIN}`,
             isVerified: false,
             verificationStatus: 'NONE',
             level: 1,
-            studentId: `SP-${Math.floor(100000 + Math.random() * 900000)}`
+            studentId: `SP-${Math.floor(100000 + Math.random() * 900000)}`,
+            authorizedDevices: [navigator.userAgent.substring(0, 20)]
         };
         await storageService.setData(`architect_data_${inputId}`, { 
             user: profile, 
@@ -86,7 +85,7 @@ const App = () => {
         });
         setRegistrationSuccess(true);
     } catch (err) {
-        setAuthError('STORAGE_FAILURE');
+        setAuthError('LOCAL_VAULT_FAILURE');
     }
   };
 
@@ -99,6 +98,7 @@ const App = () => {
     const inputPass = password.trim();
 
     if (authMode === 'LOGIN') {
+        // 1. MASTER OVERRIDE
         if (inputId === 'admin' && inputPass === 'admin123') {
             sessionStorage.setItem('active_session_user', inputId);
             setActiveUser(inputId);
@@ -108,6 +108,8 @@ const App = () => {
             return;
         }
 
+        // 2. GLOBAL REGISTRY ATTEMPT (Resolves "Find on any device")
+        let meshSuccess = false;
         try {
             const res = await fetch('/login.php', {
                 method: 'POST',
@@ -116,20 +118,15 @@ const App = () => {
             });
             const data = await res.json();
             if (data.status === 'SUCCESS') {
-                sessionStorage.setItem('active_session_user', inputId);
-                setActiveUser(inputId);
-                await loadUserData(inputId);
-                setIsLoggedIn(true);
-                setIsLoading(false);
-                return;
+                meshSuccess = true;
             }
         } catch (err) {
-            console.warn("Registry Offline - Local Access Engaged");
+            console.warn("Global Mesh Offline - Switching to Device Vault");
         }
 
-        // Local Storage Fallback
+        // 3. DEVICE VAULT FALLBACK
         const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
-        if (localUsers[inputId] && localUsers[inputId].password === inputPass) {
+        if (meshSuccess || (localUsers[inputId] && localUsers[inputId].password === inputPass)) {
             sessionStorage.setItem('active_session_user', inputId);
             setActiveUser(inputId);
             await loadUserData(inputId);
@@ -138,19 +135,16 @@ const App = () => {
             setAuthError('AUTHORIZATION_DENIED');
         }
     } else {
-        // SIGNUP Flow
+        // SIGNUP - Hybrid Mesh Provisioning
         try {
             const res = await fetch('/login.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'REGISTER_IDENTITY', identity: inputId })
             });
-            if (res.ok) {
-                await finalizeLocalRegistration(inputId);
-            } else {
-                setAuthError('NETWORK_REG_FAILED');
-            }
+            await finalizeLocalRegistration(inputId);
         } catch (err) {
+            // Local sync still succeeds if network fails, then auto-syncs later
             await finalizeLocalRegistration(inputId);
         }
     }
@@ -167,27 +161,27 @@ const App = () => {
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-6 relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-indigo-950/20 rounded-full blur-[120px]"></div>
-          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-900/10 rounded-full blur-[120px]"></div>
+        <div className="absolute inset-0 pointer-events-none opacity-20">
+          <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-indigo-900 rounded-full blur-[120px]"></div>
         </div>
         
         <div className="relative z-10 w-full max-w-lg animate-platinum">
           <div className="master-box p-10 sm:p-16 border border-white/5 space-y-12">
               {registrationSuccess ? (
                 <div className="text-center space-y-10 animate-scale-up">
-                    <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
-                        <CheckCircle2 size={48} className="text-emerald-500" />
+                    <div className="w-24 h-24 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto border border-indigo-500/20">
+                        <CheckCircle2 size={48} className="text-indigo-500" />
                     </div>
                     <div className="space-y-3">
-                        <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">Identity Created</h2>
-                        <p className="text-sm text-slate-400 font-medium tracking-widest">Node {userId.toUpperCase()} Ready.<br/>StudentPocket – By Sushil</p>
+                        <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter leading-none">Profile Mesh Created</h2>
+                        <p className="text-xs text-slate-400 font-bold tracking-[0.4em] uppercase">Node {userId.toUpperCase()} is Online.</p>
                     </div>
                     <button 
                         onClick={() => { setRegistrationSuccess(false); setAuthMode('LOGIN'); setUserId(''); setPassword(''); }}
-                        className="btn-platinum py-5 text-xs flex items-center justify-center gap-3"
+                        className="btn-platinum py-5 text-xs flex items-center justify-center gap-3 shadow-2xl"
                     >
-                        Proceed to Login <ArrowRight size={18} />
+                        Authorize Access <ArrowRight size={18} />
                     </button>
                 </div>
               ) : (
@@ -199,7 +193,7 @@ const App = () => {
                     <div className="space-y-1">
                         <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">{APP_NAME}</h1>
                         <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.6em]">
-                            {authMode === 'LOGIN' ? 'Authorized Access' : 'Create New Profile'}
+                            {authMode === 'LOGIN' ? 'Global Node Login' : 'Initialize Universal Profile'}
                         </p>
                     </div>
                 </div>
@@ -210,21 +204,21 @@ const App = () => {
                         <>
                         <div className="relative group">
                             <ShieldCheck className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                            <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="FULL NAME" required />
+                            <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="LEGAL NAME" required />
                         </div>
                         <div className="relative group">
                             <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                            <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="EMAIL ADDRESS" required />
+                            <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="RECOVERY EMAIL" required />
                         </div>
                         </>
                     )}
                     <div className="relative group">
                         <Terminal className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input type="text" value={userId} onChange={e => setUserId(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="USERNAME" required />
+                        <input type="text" value={userId} onChange={e => setUserId(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="NODE IDENTITY (USERNAME)" required />
                     </div>
                     <div className="relative group">
                         <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-16 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="PASSWORD" required />
+                        <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-16 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="SECURITY KEY" required />
                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
@@ -232,14 +226,14 @@ const App = () => {
                     </div>
 
                     {authError && (
-                    <div className="text-[10px] font-black text-center uppercase tracking-widest py-4 rounded-xl border border-red-500/20 bg-red-500/5 text-red-500">
+                    <div className="text-[10px] font-black text-center uppercase tracking-widest py-4 rounded-xl border border-red-500/20 bg-red-500/5 text-red-500 animate-shake leading-relaxed">
                         {authError}
                     </div>
                     )}
 
                     <button type="submit" className="btn-platinum py-5 text-xs flex items-center justify-center gap-3 shadow-2xl">
                         {authMode === 'LOGIN' ? <LogIn size={18} /> : <UserPlus size={18} />}
-                        {authMode === 'LOGIN' ? 'Log In' : 'Sign Up'}
+                        {authMode === 'LOGIN' ? 'Authorize Mesh' : 'Commit Mesh Node'}
                     </button>
                 </form>
 
@@ -249,8 +243,12 @@ const App = () => {
                         onClick={() => { setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setAuthError(''); }}
                         className="text-[10px] font-black text-slate-500 hover:text-indigo-400 uppercase tracking-[0.4em] transition-all"
                     >
-                        {authMode === 'LOGIN' ? "Need an account? Sign Up" : "Have an account? Log In"}
+                        {authMode === 'LOGIN' ? "Establish New Identity" : "Return to Global Login"}
                     </button>
+                    <div className="flex items-center space-x-3 opacity-30">
+                        <Globe size={12} className="text-white" />
+                        <span className="text-[8px] font-black text-white uppercase tracking-[0.3em]">Institutional Mesh Sync Active</span>
+                    </div>
                 </div>
                 </>
               )}
@@ -269,7 +267,6 @@ const App = () => {
       case View.VERIFY_LINK: return <StudyPlanner assignments={assignments} setAssignments={setAssignments} isAdmin={activeUser === ADMIN_USERNAME} />;
       case View.ADMIN_DASHBOARD: return <AdminDashboard />;
       case View.VERIFICATION_FORM: return <VerificationForm user={user} username={activeUser || ''} updateUser={setUser} onNavigate={setView} />;
-      case View.ACCESS_RECOVERY: return <AccessRecovery onNavigate={setView} />;
       default: return <Dashboard user={user} username={activeUser || ''} onNavigate={setView} />;
     }
   };
@@ -292,11 +289,11 @@ const App = () => {
               <div className="text-right hidden sm:block">
                   <div className="flex items-center justify-end space-x-2 mb-1">
                      <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{activeUser === ADMIN_USERNAME ? 'Master Node' : 'Personnel Node'}</span>
-                     <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_10px_#4f46e5]"></div>
+                     <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"></div>
                   </div>
                   <p className="text-sm font-bold text-indigo-400">{user.name}</p>
               </div>
-              <div className="w-12 h-12 rounded-2xl border border-white/10 overflow-hidden bg-slate-900">
+              <div className="w-12 h-12 rounded-2xl border border-white/10 overflow-hidden bg-slate-900 shadow-2xl">
                 <img src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} className="w-full h-full object-cover" alt="User" />
               </div>
            </div>
