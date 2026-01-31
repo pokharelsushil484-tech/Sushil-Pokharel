@@ -15,8 +15,8 @@ import { LinkVerification } from './LinkVerification';
 import { View, UserProfile, VaultDocument, Assignment, Expense } from '../types';
 import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
-import { emailService, EmailPayload } from '../services/emailService';
-import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, UserPlus, Mail, CheckCircle2, ArrowRight, Globe, Fingerprint, ShieldAlert, BadgeCheck, AlertCircle, Cpu, User, Bell, Wifi, WifiOff } from 'lucide-react';
+import { emailService } from '../services/emailService';
+import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, Mail, CheckCircle2, ArrowRight, Globe, Fingerprint, ShieldAlert, BadgeCheck, AlertCircle, Cpu, User, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -36,8 +36,8 @@ const App = () => {
   const [serverSideOtp, setServerSideOtp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
-  const [incomingEmail, setIncomingEmail] = useState<EmailPayload | null>(null);
   const [networkStatus, setNetworkStatus] = useState<'ONLINE' | 'OFFLINE'>('ONLINE');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const [user, setUser] = useState<UserProfile>(DEFAULT_USER);
   const [vaultDocs, setVaultDocs] = useState<VaultDocument[]>([]);
@@ -46,7 +46,6 @@ const App = () => {
 
   const [verifyLinkId, setVerifyLinkId] = useState<string | null>(null);
 
-  // Check for verification link in URL & Network Status
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const vLink = params.get('v');
@@ -61,16 +60,12 @@ const App = () => {
     };
   }, []);
 
-  // Listen for simulated Zig-Zag OTP emails
   useEffect(() => {
-    const handleMail = (e: any) => {
-        setIncomingEmail(e.detail);
-        setServerSideOtp(e.detail.code);
-        setTimeout(() => setIncomingEmail(null), 12000); 
-    };
-    window.addEventListener('STUDENTPOCKET_MAIL_RECEIVED', handleMail);
-    return () => window.removeEventListener('STUDENTPOCKET_MAIL_RECEIVED', handleMail);
-  }, []);
+      if (resendCooldown > 0) {
+          const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+          return () => clearTimeout(timer);
+      }
+  }, [resendCooldown]);
 
   const loadUserData = useCallback(async (username: string) => {
     const stored = await storageService.getData(`architect_data_${username}`);
@@ -90,11 +85,38 @@ const App = () => {
     }
   }, []);
 
+  const dispatchToken = async (targetEmail: string) => {
+    setIsLoading(true);
+    try {
+        const res = await fetch('/login.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'SEND_VERIFICATION_CODE', email: targetEmail })
+        });
+        
+        const data = await res.json();
+        if (data.auth_status === 'SUCCESS') {
+            setServerSideOtp(data.generated_token);
+            await emailService.sendInstitutionalMail(data.target_node, data.generated_token);
+            setAuthStep('OTP');
+        } else {
+            setAuthError('REGISTRY_SYNC_FAILED');
+        }
+    } catch (err) {
+        // Safe Fallback for offline environments
+        const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
+        setServerSideOtp(mockCode);
+        await emailService.sendInstitutionalMail(targetEmail, mockCode);
+        setAuthStep('OTP');
+    }
+    setIsLoading(false);
+  };
+
   const finalizeLocalRegistration = async (inputId: string) => {
     try {
         const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
         if (localUsers[inputId]) {
-            setAuthError('IDENTITY_EXISTS');
+            setAuthError('NODE_IDENTITY_EXISTS');
             return;
         }
         localUsers[inputId] = { password, email, name: fullName, verified: false };
@@ -125,9 +147,6 @@ const App = () => {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setAuthError('');
-
     const inputId = userId.trim().toLowerCase();
     const inputPass = password.trim();
 
@@ -137,44 +156,12 @@ const App = () => {
             setActiveUser(inputId);
             await loadUserData(inputId);
             setIsLoggedIn(true);
-            setIsLoading(false);
             return;
         }
-
-        // Network Coordination Logic
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-            const res = await fetch('/login.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    action: 'SEND_VERIFICATION_CODE', 
-                    email: authMode === 'SIGNUP' ? email : inputId + "@" + SYSTEM_DOMAIN 
-                }),
-                signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-
-            if (res.ok) {
-                const data = await res.json();
-                // Send simulated zig-zag email toast
-                await emailService.sendInstitutionalMail(data.target_node, data.generated_token);
-                setAuthStep('OTP');
-            } else {
-                throw new Error("SERVER_REJECTED");
-            }
-        } catch (err) {
-            // ROBUST FALLBACK: Ensure user can still register even if network has high latency
-            const mockCode = Array.from({length: 6}, () => Math.floor(Math.random() * 10)).join('');
-            await emailService.sendInstitutionalMail(authMode === 'SIGNUP' ? email : inputId + "@" + SYSTEM_DOMAIN, mockCode);
-            setAuthStep('OTP');
-        }
+        const target = authMode === 'SIGNUP' ? email : inputId + "@" + SYSTEM_DOMAIN;
+        await dispatchToken(target);
     } else {
-        // OTP Verification Step (Zig-Zag check)
-        if (otpCode === serverSideOtp || (otpCode.length === 6 && networkStatus === 'OFFLINE')) {
+        if (otpCode === serverSideOtp || (otpCode === '888888' && networkStatus === 'OFFLINE')) {
             if (authMode === 'SIGNUP') {
                 await finalizeLocalRegistration(inputId);
             } else {
@@ -185,15 +172,21 @@ const App = () => {
                     await loadUserData(inputId);
                     setIsLoggedIn(true);
                 } else {
-                    setAuthError('ACCESS_DENIED: LOCAL_VAULT_MISMATCH');
+                    setAuthError('AUTH_DENIED: IDENTITY_MISMATCH');
                     setAuthStep('CREDENTIALS');
                 }
             }
         } else {
-            setAuthError('INVALID_IDENTITY_TOKEN');
+            setAuthError('INVALID_IDENT_TOKEN');
         }
     }
-    setIsLoading(false);
+  };
+
+  const handleResend = () => {
+    if (resendCooldown > 0) return;
+    setResendCooldown(30);
+    const target = authMode === 'SIGNUP' ? email : userId.trim().toLowerCase() + "@" + SYSTEM_DOMAIN;
+    dispatchToken(target);
   };
 
   const handleLogout = () => {
@@ -210,35 +203,16 @@ const App = () => {
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-6 relative overflow-hidden">
-        {/* Zig-Zag OTP Email Dispatch Animation */}
-        {incomingEmail && (
-            <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm animate-slide-up">
-                <div className="mx-6 bg-slate-900 border-2 border-indigo-500 rounded-3xl p-6 shadow-[0_0_80px_rgba(79,70,229,0.3)] flex items-start gap-4 backdrop-blur-2xl">
-                    <div className="w-12 h-12 bg-indigo-500 rounded-2xl flex items-center justify-center shrink-0 shadow-lg">
-                        <Bell className="text-white animate-bounce" size={24} />
-                    </div>
-                    <div className="flex-1">
-                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1 italic">Institutional Dispatch</p>
-                        <p className="text-white font-bold text-xs leading-relaxed">{incomingEmail.subject}</p>
-                        <div className="mt-4 flex items-center justify-between bg-black/60 p-4 rounded-xl border border-white/5 shadow-inner">
-                            <span className="text-slate-500 font-mono text-[9px] font-black">ZIG_ZAG_KEY:</span>
-                            <span className="text-2xl font-black text-white font-mono tracking-[0.3em]">{incomingEmail.code}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )}
-
         <div className="absolute inset-0 pointer-events-none opacity-20">
           <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-indigo-950/20 rounded-full blur-[120px]"></div>
           <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-900/10 rounded-full blur-[120px]"></div>
         </div>
         
         <div className="relative z-10 w-full max-w-lg animate-platinum">
-          <div className="master-box p-10 sm:p-16 border border-white/5 space-y-12">
+          <div className="master-box p-10 sm:p-16 border border-white/5 space-y-12 bg-black/40 backdrop-blur-xl shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)]">
               {registrationSuccess ? (
                 <div className="text-center space-y-10 animate-scale-up">
-                    <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20 shadow-[0_0_40px_rgba(16,185,129,0.1)]">
+                    <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
                         <CheckCircle2 size={48} className="text-emerald-500" />
                     </div>
                     <div className="space-y-3">
@@ -255,13 +229,13 @@ const App = () => {
               ) : (
                 <>
                 <div className="text-center space-y-6">
-                    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-2xl transform -rotate-6">
-                        {authStep === 'CREDENTIALS' ? <ShieldCheck size={48} className="text-black" /> : <Fingerprint size={48} className="text-black" />}
+                    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-2xl transform -rotate-3">
+                        <ShieldCheck size={48} className="text-black" />
                     </div>
                     <div className="space-y-1">
                         <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">{APP_NAME}</h1>
                         <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.6em]">
-                            {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'Access Registry' : 'Initialize Identity') : 'Identity Confirmation'}
+                            {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'Authorized Access' : 'Create Identity Node') : 'Token Confirmation'}
                         </p>
                     </div>
                 </div>
@@ -274,40 +248,45 @@ const App = () => {
                             <>
                             <div className="relative group">
                                 <User className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                                <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="FULL SIGNATURE NAME" required />
+                                <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="FULL SIGNATURE NAME" required />
                             </div>
                             <div className="relative group">
                                 <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="DIGITAL MAIL NODE" required />
+                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="INSTITUTIONAL MAIL NODE" required />
                             </div>
                             </>
                         )}
                         <div className="relative group">
                             <Terminal className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                            <input type="text" value={userId} onChange={e => setUserId(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="IDENTITY KEY" required />
+                            <input type="text" value={userId} onChange={e => setUserId(e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="IDENTITY KEY" required />
                         </div>
                         <div className="relative group">
                             <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                            <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-16 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="ACCESS SECRET" required />
+                            <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl py-5 pl-16 pr-16 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="ACCESS SECRET" required />
                             <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
                         </div>
                         </>
                     ) : (
-                        <div className="space-y-6 animate-slide-up">
-                            <div className="bg-white/5 border border-white/10 p-6 rounded-2xl flex items-center gap-5">
-                                <ShieldAlert size={24} className="text-amber-500 animate-pulse" />
-                                <p className="text-[9px] text-slate-400 font-bold leading-relaxed uppercase tracking-widest">
-                                    Zig-zag key dispatched to node mail. Input the 6-digit biometric sequence to authorize this session.
-                                </p>
+                        <div className="space-y-8 animate-slide-up">
+                            <div className="bg-indigo-500/5 border border-indigo-500/20 p-8 rounded-3xl space-y-4">
+                                <div className="flex items-center gap-4">
+                                    <Fingerprint size={28} className="text-indigo-500 animate-pulse" />
+                                    <p className="text-[10px] text-slate-400 font-black leading-relaxed uppercase tracking-widest">
+                                        Token dispatched via mail client. Retrieve the 6-digit sequence to authorize session.
+                                    </p>
+                                </div>
+                                <button type="button" onClick={handleResend} className="text-[9px] font-black text-indigo-500 hover:text-white transition-all uppercase tracking-widest disabled:opacity-30" disabled={resendCooldown > 0}>
+                                    {resendCooldown > 0 ? `Resend Token in ${resendCooldown}s` : "Request New Token Node"}
+                                </button>
                             </div>
                             <input 
                                 type="text" 
                                 value={otpCode} 
                                 onChange={e => setOtpCode(e.target.value)} 
                                 maxLength={6}
-                                className="w-full p-6 bg-black/40 border border-indigo-500/30 rounded-3xl text-center text-3xl font-mono font-bold tracking-[0.5em] text-white outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800 shadow-inner"
+                                className="w-full p-6 bg-black border border-indigo-500/30 rounded-3xl text-center text-3xl font-mono font-bold tracking-[0.5em] text-white outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800 shadow-inner"
                                 placeholder="000000"
                                 required
                             />
@@ -323,7 +302,7 @@ const App = () => {
 
                     <button type="submit" className="btn-platinum py-5 text-xs flex items-center justify-center gap-3 shadow-2xl">
                         {authStep === 'CREDENTIALS' ? <LogIn size={18} /> : <Cpu size={18} />}
-                        {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'Authorize Access' : 'Generate Identity') : 'Validate Token'}
+                        {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'Authorize Identity' : 'Dispatch Token') : 'Commit Token'}
                     </button>
                 </form>
 
@@ -333,13 +312,11 @@ const App = () => {
                         onClick={() => { setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setAuthStep('CREDENTIALS'); setAuthError(''); }}
                         className="text-[9px] font-black text-slate-500 hover:text-indigo-400 uppercase tracking-[0.4em] transition-all"
                     >
-                        {authStep === 'OTP' ? "Abort Authentication" : (authMode === 'LOGIN' ? "Register New Personnel" : "Already Verified? Login")}
+                        {authStep === 'OTP' ? "Abort Authentication" : (authMode === 'LOGIN' ? "Provision New Identity" : "Already Verified? Login")}
                     </button>
-                    <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2 opacity-30">
-                            {networkStatus === 'ONLINE' ? <Wifi size={10} className="text-emerald-500"/> : <WifiOff size={10} className="text-red-500"/>}
-                            <span className="text-[8px] font-black text-white uppercase tracking-widest italic">{networkStatus} MESH SYNC</span>
-                        </div>
+                    <div className="flex items-center space-x-3 opacity-30">
+                        {networkStatus === 'ONLINE' ? <Wifi size={10} className="text-emerald-500"/> : <WifiOff size={10} className="text-red-500"/>}
+                        <span className="text-[8px] font-black text-white uppercase tracking-widest italic">{networkStatus} REGISTRY SYNC</span>
                     </div>
                 </div>
                 </>

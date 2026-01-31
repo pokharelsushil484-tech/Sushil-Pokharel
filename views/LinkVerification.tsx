@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, View } from '../types';
-import { ShieldCheck, User, Lock, RefreshCw, ArrowLeft, Mail, Phone, MapPin, KeyRound, AlertCircle, Terminal, BadgeCheck, XCircle } from 'lucide-react';
+import { ShieldCheck, User, Lock, ArrowLeft, Mail, Phone, MapPin, KeyRound, BadgeCheck, XCircle } from 'lucide-react';
 import { ADMIN_USERNAME, SYSTEM_DOMAIN } from '../constants';
 import { storageService } from '../services/storageService';
 
@@ -86,8 +86,6 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
         const updatedRequests = requests.map(r => r.id === request.id ? { ...r, status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED' } : r);
         localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
         
-        // Return to admin dashboard or refresh
-        alert(`NODE IDENTITY ${action === 'APPROVE' ? 'AUTHORIZED' : 'TERMINATED'}`);
         window.location.href = '/';
     }
     setActionProcessing(false);
@@ -157,23 +155,18 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                 
                 <div className="p-12 md:p-20">
                     <div className="flex flex-col lg:flex-row items-center lg:items-start gap-16">
-                        {/* Biometric Capture Review */}
                         <div className="relative shrink-0">
                             <div className="w-64 h-64 rounded-[4rem] bg-black p-3 border border-white/5 shadow-inner">
                                 <div className="w-full h-full rounded-[3.5rem] overflow-hidden bg-slate-950 flex items-center justify-center border border-white/10">
                                     {details._profileImage ? (
-                                        <img src={details._profileImage} className="w-full h-full object-cover transition-transform duration-[2s] hover:scale-110" alt="Biometric" />
+                                        <img src={details._profileImage} className="w-full h-full object-cover" alt="Biometric" />
                                     ) : (
                                         <ShieldCheck size={72} className="text-white/5" />
                                     )}
                                 </div>
                             </div>
-                            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-white text-black px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl">
-                                {request?.status}
-                            </div>
                         </div>
 
-                        {/* Detailed Data Matrix */}
                         <div className="flex-1 space-y-10 w-full">
                             <div className="text-center lg:text-left space-y-2">
                                 <h2 className="text-5xl md:text-6xl font-black text-white tracking-tighter leading-tight uppercase italic">{details.fullName}</h2>
@@ -193,13 +186,6 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                                     <div className="flex items-center text-white font-bold text-sm">
                                         <Phone size={16} className="mr-3 text-indigo-500" />
                                         <span>{details.phone}</span>
-                                    </div>
-                                </div>
-                                <div className="p-8 bg-black/40 rounded-[2.5rem] border border-white/5 space-y-2 md:col-span-2">
-                                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.4em]">Residency Node</p>
-                                    <div className="flex items-start text-white font-bold text-sm">
-                                        <MapPin size={16} className="mr-3 mt-1 text-indigo-500" />
-                                        <span className="leading-relaxed">{details.permAddress || 'Global Node 2026'}</span>
                                     </div>
                                 </div>
                             </div>

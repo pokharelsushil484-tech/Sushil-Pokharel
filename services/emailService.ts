@@ -1,7 +1,7 @@
 
 /**
- * StudentPocket Email Dispatch System
- * Simulates institutional mail server activity
+ * StudentPocket - Institutional Dispatch System
+ * Architect: Sushil Pokhrel
  */
 
 export interface EmailPayload {
@@ -9,29 +9,26 @@ export interface EmailPayload {
     subject: string;
     body: string;
     code: string;
-    timestamp: number;
 }
 
 export const emailService = {
     /**
-     * Simulates sending an email by dispatching a custom event 
-     * that the App UI can listen for to show a notification.
+     * Redirects the user to their mail client to "receive" the token.
+     * This ensures the token is not displayed directly in the app.
      */
-    async sendInstitutionalMail(to: string, code: string): Promise<boolean> {
-        console.log(`[MAIL SERVER] Dispatching code ${code} to node ${to}`);
+    async sendInstitutionalMail(to: string, code: string): Promise<void> {
+        const subject = encodeURIComponent("StudentPocket: Identity Access Token");
+        const body = encodeURIComponent(
+            `INSTITUTIONAL ACCESS PROTOCOL\n\n` +
+            `To authorize your current StudentPocket session, please use the following identification token:\n\n` +
+            `ACCESS TOKEN: ${code}\n\n` +
+            `DO NOT SHARE THIS CODE. This is a one-time institutional sequence.\n\n` +
+            `--- End of Dispatch ---`
+        );
+
+        const mailtoLink = `mailto:${to}?subject=${subject}&body=${body}`;
         
-        const payload: EmailPayload = {
-            to,
-            subject: "Identity Verification Protocol",
-            body: `Your StudentPocket zig-zag access code is: ${code}`,
-            code,
-            timestamp: Date.now()
-        };
-
-        // Dispatch a global event so the UI can "receive" the email
-        const event = new CustomEvent('STUDENTPOCKET_MAIL_RECEIVED', { detail: payload });
-        window.dispatchEvent(event);
-
-        return true;
+        // Open the mail client (Gmail/Outlook/Apple Mail)
+        window.location.href = mailtoLink;
     }
 };

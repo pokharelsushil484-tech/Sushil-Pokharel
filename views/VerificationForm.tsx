@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest, View } from '../types';
-// Added missing Mail and Phone imports to resolve "Cannot find name" errors.
 import { ShieldCheck, Loader2, ArrowLeft, Send, User, Lock, Copy, Check, Globe, Cpu, Mail, Phone } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { SYSTEM_DOMAIN } from '../constants';
@@ -50,7 +49,6 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     }
     
     setSubmitting(true);
-    // Generate institutional link ID
     const linkId = Math.random().toString(36).substring(2, 9).toUpperCase();
     const generatedStudentId = `SP-${Math.floor(100000 + Math.random() * 900000)}`;
 
@@ -98,7 +96,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
              <div className="w-24 h-24 bg-white rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 text-black shadow-[0_0_60px_rgba(255,255,255,0.15)] transform -rotate-12">
                  <ShieldCheck size={44} />
              </div>
-             <h2 className="text-4xl font-black text-white uppercase mb-2 italic tracking-tighter">Protocol Logged</h2>
+             <h2 className="text-4xl font-black text-white uppercase mb-2 italic tracking-tighter">Identity Submission</h2>
              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.6em] mb-16">Institutional Audit Mode Active</p>
              
              <div className="space-y-8">
@@ -106,12 +104,12 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                         <Cpu size={100} />
                     </div>
-                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-4">Node Identity Assigned</p>
+                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-4">Assigned Node Identity</p>
                     <p className="font-mono text-4xl text-white font-bold tracking-widest">{successState.studentId}</p>
                 </div>
 
                 <div className="bg-white/5 p-8 rounded-[3rem] border border-white/10 text-left">
-                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-4">Authority Verification Link</p>
+                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-4">Authority Authorization Link</p>
                     <div className="flex items-center gap-4">
                         <div className="flex-1 p-5 bg-black rounded-2xl text-[10px] text-slate-400 font-mono break-all border border-white/5 shadow-inner">
                             {fullLink}
@@ -125,10 +123,10 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
 
              <div className="mt-16 flex items-center justify-center space-x-3 text-red-500 opacity-60">
                  <Globe size={14} />
-                 <p className="text-[9px] font-black uppercase tracking-[0.3em]">Institutional Clearance Pending: Administrator Action Required</p>
+                 <p className="text-[9px] font-black uppercase tracking-[0.3em]">Administrator Action Required for Clearance</p>
              </div>
 
-             <button onClick={() => window.location.href = '/'} className="btn-platinum w-full py-6 mt-12 text-sm">Return to Command Terminal</button>
+             <button onClick={() => window.location.href = '/'} className="btn-platinum w-full py-6 mt-12 text-sm">Return to Terminal</button>
         </div>
       </div>
     );
@@ -142,12 +140,12 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
 
       <div className="master-box border border-white/10 overflow-hidden bg-black/40">
         <div className="bg-white/[0.03] border-b border-white/10 p-12 flex items-center gap-8">
-            <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center text-black shadow-2xl transform rotate-3">
+            <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center text-black shadow-2xl">
                <ShieldCheck size={40} />
             </div>
             <div>
                <h2 className="text-4xl font-black text-white italic uppercase leading-none">Identity Intake</h2>
-               <p className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.5em] mt-2">Create Permanent Institutional Node</p>
+               <p className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.5em] mt-2">Generate Institutional Verification Link</p>
             </div>
         </div>
 
@@ -158,21 +156,14 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4 italic">Full Legal Identity</label>
                     <div className="relative">
                         <User className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-700" size={18} />
-                        <input value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full pl-16 pr-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white uppercase tracking-wider text-xs" placeholder="LEGAL SIGNATURE NAME" required />
+                        <input value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full pl-16 pr-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white uppercase tracking-wider text-xs" placeholder="SIGNATURE NAME" required />
                     </div>
                 </div>
                 <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4 italic">Digital Communication Node</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4 italic">Communication Node</label>
                     <div className="relative">
                         <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-700" size={18} />
-                        <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full pl-16 pr-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white text-xs" placeholder="INSTITUTIONAL EMAIL" required />
-                    </div>
-                </div>
-                <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4 italic">Communication Link</label>
-                    <div className="relative">
-                        <Phone className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-700" size={18} />
-                        <input type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full pl-16 pr-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white text-xs" placeholder="+977 TELECOM" required />
+                        <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full pl-16 pr-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white text-xs" placeholder="EMAIL" required />
                     </div>
                 </div>
             </div>
@@ -200,18 +191,9 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
             </div>
           </div>
 
-          <div className="bg-indigo-500/5 border border-indigo-500/20 p-8 rounded-[3rem] space-y-4">
-              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-3">
-                  <ShieldCheck size={16}/> Identity IntegritySync Enabled
-              </p>
-              <p className="text-[9px] text-slate-500 leading-relaxed font-medium">
-                  By committing this identity node, you authorize the institutional administrator to review your biometric and legal data for permanent clearance registration.
-              </p>
-          </div>
-
           <button type="submit" disabled={submitting} className="btn-platinum w-full py-6 text-xs flex items-center justify-center gap-4">
             {submitting ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
-            Synchronize Node Submission
+            Commit Node Submission
           </button>
         </form>
       </div>
