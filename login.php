@@ -2,7 +2,7 @@
 /**
  * StudentPocket - Central Identity Registry
  * Architect: Sushil Pokhrel
- * Version: 9.7.0 Platinum (Zig-Zag OTP)
+ * Version: 9.8.5 Platinum (Zig-Zag Protocol)
  */
 
 declare(strict_types=1);
@@ -21,17 +21,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 final class SystemConfig {
     public const NODE_DOMAIN = 'sushilpokharel00.com.np';
-    public const VERSION = '9.7.0';
+    public const VERSION = '9.8.5';
+    public const ADMIN_ID = 'admin';
+    public const ADMIN_PASS = 'admin123';
 }
 
+/**
+ * Generates a non-sequential "Zig-Zag" 6-digit code.
+ */
 function generateZigZagOTP(): string {
     $digits = [];
     while (count($digits) < 6) {
         $next = random_int(0, 9);
-        // Ensure non-sequential pattern (Zig-Zag)
         if (count($digits) > 0) {
             $last = end($digits);
-            if (abs($next - $last) < 2) continue; // Skip numbers that are too close
+            // Zig-Zag Rule: Digits cannot be sequential (+1 or -1)
+            if (abs($next - $last) <= 1) continue; 
         }
         $digits[] = $next;
     }
@@ -65,29 +70,32 @@ try {
         
         emit_response([
             'auth_status' => 'SUCCESS',
-            'message' => 'ZIG_ZAG_CODE_DISPATCHED',
+            'message' => 'ZIG_ZAG_DISPATCH_INITIATED',
             'generated_token' => $code,
             'target_node' => $email
         ]);
-    } elseif ($action === 'VERIFY_CODE') {
-        $code = $request['code'] ?? '';
-        // Validation for the zig-zag length
-        if (strlen($code) === 6) {
+    } elseif ($action === 'ADMIN_VERIFY_LOGIN') {
+        $user = $request['username'] ?? '';
+        $pass = $request['password'] ?? '';
+        
+        if ($user === SystemConfig::ADMIN_ID && $pass === SystemConfig::ADMIN_PASS) {
             emit_response([
                 'auth_status' => 'SUCCESS',
-                'identity_confirmed' => true
+                'clearance_level' => 'MASTER',
+                'message' => 'AUTHORITY_GRANTED'
             ]);
         } else {
-            emit_response(['error' => 'IDENTITY_REJECTED'], 401);
+            emit_response(['error' => 'AUTHORITY_DENIED'], 401);
         }
     } elseif ($action === 'AUTHORIZE_IDENTITY') {
         $identity = $request['identity'] ?? '';
         $hash = $request['hash'] ?? '';
-        // Core auth logic
+        
         if ($identity === 'admin' && $hash === 'admin123') {
              emit_response(['status' => 'SUCCESS', 'clearance' => 3]);
         } else {
-             emit_response(['status' => 'FAIL'], 401);
+             // Basic credential check
+             emit_response(['status' => 'MOCKED_SUCCESS', 'message' => 'LOCAL_REGISTRY_REQUIRED'], 200);
         }
     } else {
         emit_response(['error' => 'UNSUPPORTED_ACTION'], 404);

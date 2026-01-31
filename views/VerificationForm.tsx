@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest, View } from '../types';
-import { ShieldCheck, Loader2, ArrowLeft, Send, User, Lock, Copy, Check } from 'lucide-react';
+// Added missing Mail and Phone imports to resolve "Cannot find name" errors.
+import { ShieldCheck, Loader2, ArrowLeft, Send, User, Lock, Copy, Check, Globe, Cpu, Mail, Phone } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { SYSTEM_DOMAIN } from '../constants';
 
@@ -49,6 +50,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
     }
     
     setSubmitting(true);
+    // Generate institutional link ID
     const linkId = Math.random().toString(36).substring(2, 9).toUpperCase();
     const generatedStudentId = `SP-${Math.floor(100000 + Math.random() * 900000)}`;
 
@@ -85,44 +87,48 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
       updateUser(updatedProfile);
       setSuccessState({ studentId: generatedStudentId, linkId });
       setSubmitting(false);
-    }, 1500);
+    }, 2000);
   };
 
   if (successState) {
     const fullLink = `${window.location.origin}/?v=${successState.linkId}`;
     return (
-      <div className="max-w-xl mx-auto pt-16 animate-platinum pb-40">
-        <div className="master-box p-12 text-center border border-indigo-500/30">
-             <div className="w-24 h-24 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-indigo-500/20 text-indigo-500 shadow-[0_0_50px_rgba(79,70,229,0.2)]">
-                 <Lock size={44} />
+      <div className="max-w-2xl mx-auto pt-16 animate-platinum pb-40">
+        <div className="master-box p-12 sm:p-16 text-center border border-indigo-500/30 bg-black/40">
+             <div className="w-24 h-24 bg-white rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 text-black shadow-[0_0_60px_rgba(255,255,255,0.15)] transform -rotate-12">
+                 <ShieldCheck size={44} />
              </div>
-             <h2 className="text-3xl font-black text-white uppercase mb-2 italic tracking-tighter">Protocol Engaged</h2>
-             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.5em] mb-12">Administration Review Active</p>
+             <h2 className="text-4xl font-black text-white uppercase mb-2 italic tracking-tighter">Protocol Logged</h2>
+             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.6em] mb-16">Institutional Audit Mode Active</p>
              
-             <div className="space-y-6">
-                <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/5 text-left">
-                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-4">Permanent Node Identity</p>
-                    <p className="font-mono text-3xl text-white font-bold tracking-widest">{successState.studentId}</p>
+             <div className="space-y-8">
+                <div className="bg-white/5 p-8 rounded-[3rem] border border-white/10 text-left relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <Cpu size={100} />
+                    </div>
+                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-4">Node Identity Assigned</p>
+                    <p className="font-mono text-4xl text-white font-bold tracking-widest">{successState.studentId}</p>
                 </div>
 
-                <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/5 text-left">
-                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-4">Institutional Verification Link</p>
+                <div className="bg-white/5 p-8 rounded-[3rem] border border-white/10 text-left">
+                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-4">Authority Verification Link</p>
                     <div className="flex items-center gap-4">
-                        <div className="flex-1 p-4 bg-black rounded-xl text-[10px] text-slate-400 font-mono break-all border border-white/5 shadow-inner">
+                        <div className="flex-1 p-5 bg-black rounded-2xl text-[10px] text-slate-400 font-mono break-all border border-white/5 shadow-inner">
                             {fullLink}
                         </div>
-                        <button onClick={() => handleCopyLink(fullLink)} className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl hover:bg-white/10 transition-all border border-white/10 text-white">
+                        <button onClick={() => handleCopyLink(fullLink)} className="p-5 bg-white/5 hover:bg-white/10 rounded-2xl transition-all border border-white/10 text-white shadow-xl">
                             {copied ? <Check size={20} className="text-emerald-500"/> : <Copy size={20}/>}
                         </button>
                     </div>
                 </div>
              </div>
 
-             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-10 leading-relaxed">
-                 Warning: Your node will remain unverified until the administrator uses the link above to authorize your data.
-             </p>
+             <div className="mt-16 flex items-center justify-center space-x-3 text-red-500 opacity-60">
+                 <Globe size={14} />
+                 <p className="text-[9px] font-black uppercase tracking-[0.3em]">Institutional Clearance Pending: Administrator Action Required</p>
+             </div>
 
-             <button onClick={() => window.location.reload()} className="btn-platinum w-full py-6 mt-10">Return to Terminal</button>
+             <button onClick={() => window.location.href = '/'} className="btn-platinum w-full py-6 mt-12 text-sm">Return to Command Terminal</button>
         </div>
       </div>
     );
@@ -131,54 +137,81 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
   return (
     <div className="max-w-5xl mx-auto pb-40 animate-platinum">
       <button onClick={() => onNavigate(View.DASHBOARD)} className="flex items-center text-slate-500 hover:text-white font-black text-[10px] uppercase tracking-widest mb-10 transition-all group">
-        <ArrowLeft size={16} className="mr-3 group-hover:-translate-x-1 transition-transform" /> Cancel Protocol
+        <ArrowLeft size={16} className="mr-3 group-hover:-translate-x-1 transition-transform" /> Cancel Onboarding
       </button>
 
-      <div className="master-box border border-white/10 overflow-hidden">
+      <div className="master-box border border-white/10 overflow-hidden bg-black/40">
         <div className="bg-white/[0.03] border-b border-white/10 p-12 flex items-center gap-8">
-            <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center text-black shadow-2xl">
+            <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center text-black shadow-2xl transform rotate-3">
                <ShieldCheck size={40} />
             </div>
             <div>
                <h2 className="text-4xl font-black text-white italic uppercase leading-none">Identity Intake</h2>
-               <p className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.5em] mt-2">Institutional Node Registration</p>
+               <p className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.5em] mt-2">Create Permanent Institutional Node</p>
             </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-12 space-y-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            <div className="space-y-8">
+        <form onSubmit={handleSubmit} className="p-12 space-y-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
+            <div className="space-y-10">
                 <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Full Signature Name</label>
-                    <input value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full px-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-white/30 outline-none font-bold text-white placeholder:text-slate-800" placeholder="LEGAL NAME" required />
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4 italic">Full Legal Identity</label>
+                    <div className="relative">
+                        <User className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-700" size={18} />
+                        <input value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full pl-16 pr-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white uppercase tracking-wider text-xs" placeholder="LEGAL SIGNATURE NAME" required />
+                    </div>
                 </div>
                 <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Digital Mail Node</label>
-                    <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-white/30 outline-none font-bold text-white placeholder:text-slate-800" placeholder="EMAIL" required />
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4 italic">Digital Communication Node</label>
+                    <div className="relative">
+                        <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-700" size={18} />
+                        <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full pl-16 pr-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white text-xs" placeholder="INSTITUTIONAL EMAIL" required />
+                    </div>
                 </div>
                 <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Communication Link</label>
-                    <input type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-white/30 outline-none font-bold text-white placeholder:text-slate-800" placeholder="+977-PHONE" required />
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4 italic">Communication Link</label>
+                    <div className="relative">
+                        <Phone className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-700" size={18} />
+                        <input type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full pl-16 pr-6 py-5 bg-white/5 border border-white/10 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white text-xs" placeholder="+977 TELECOM" required />
+                    </div>
                 </div>
             </div>
 
             <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Biometric Profile Node</label>
-                <div className="h-full border-2 border-dashed border-white/10 rounded-[3rem] p-10 flex flex-col items-center justify-center relative group hover:bg-white/5 transition-all">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4 italic">Biometric Node Capture</label>
+                <div className="h-full border-2 border-dashed border-white/10 rounded-[4rem] p-12 flex flex-col items-center justify-center relative group hover:bg-white/5 transition-all shadow-inner">
                     {profileImage ? (
-                        <img src={profileImage} className="w-32 h-32 rounded-full object-cover border-2 border-white mb-4" alt="Profile" />
+                        <div className="relative">
+                            <img src={profileImage} className="w-40 h-40 rounded-[3rem] object-cover border-2 border-white shadow-2xl" alt="Capture" />
+                            <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-black p-2 rounded-xl shadow-lg">
+                                <ShieldCheck size={20} />
+                            </div>
+                        </div>
                     ) : (
-                        <User size={48} className="text-white/20 mb-4" />
+                        <>
+                            <div className="w-24 h-24 bg-white/5 rounded-[2.5rem] flex items-center justify-center mb-6 text-slate-700">
+                                <User size={48} />
+                            </div>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Initialize Capture</span>
+                        </>
                     )}
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Upload Capture</span>
                     <input type="file" accept="image/*" onChange={handleProfileUpload} className="absolute inset-0 opacity-0 cursor-pointer" required />
                 </div>
             </div>
           </div>
 
-          <button type="submit" disabled={submitting} className="btn-platinum w-full py-6 text-xs">
-            {submitting ? <Loader2 className="animate-spin mr-3" /> : <Send className="mr-3" />}
-            Commit Node Submission
+          <div className="bg-indigo-500/5 border border-indigo-500/20 p-8 rounded-[3rem] space-y-4">
+              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-3">
+                  <ShieldCheck size={16}/> Identity IntegritySync Enabled
+              </p>
+              <p className="text-[9px] text-slate-500 leading-relaxed font-medium">
+                  By committing this identity node, you authorize the institutional administrator to review your biometric and legal data for permanent clearance registration.
+              </p>
+          </div>
+
+          <button type="submit" disabled={submitting} className="btn-platinum w-full py-6 text-xs flex items-center justify-center gap-4">
+            {submitting ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
+            Synchronize Node Submission
           </button>
         </form>
       </div>
