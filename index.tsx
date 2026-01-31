@@ -1,7 +1,9 @@
 
+
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App';
+// Fix: Redirect import to the complete App component located in the views directory
+import App from './views/App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 const container = document.getElementById('root');

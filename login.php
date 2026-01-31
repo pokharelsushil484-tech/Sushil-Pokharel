@@ -40,7 +40,7 @@ if ($action === 'AUTHORIZE_IDENTITY') {
     $identity = $request['identity'] ?? '';
     $hash = $request['hash'] ?? '';
 
-    // Hardcoded Admin Logic
+    // Administrative access credentials
     if ($identity === SystemConfig::ADMIN_USER && $hash === SystemConfig::ADMIN_SECRET) {
         emit_response([
             'status' => 'SUCCESS',
