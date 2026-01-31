@@ -11,11 +11,10 @@ import { GlobalLoader } from '../components/GlobalLoader';
 import { SplashScreen } from '../components/SplashScreen';
 import { Footer } from '../components/Footer';
 import { VerificationForm } from './VerificationForm';
-import { AccessRecovery } from './AccessRecovery';
 import { View, UserProfile, VaultDocument, Assignment, Expense } from '../types';
 import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
-import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, UserPlus, Mail, CheckCircle2, ArrowRight, Globe } from 'lucide-react';
+import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, UserPlus, Mail, CheckCircle2, ArrowRight, Globe, Fingerprint, ShieldAlert } from 'lucide-react';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -24,12 +23,14 @@ const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeUser, setActiveUser] = useState<string | null>(null);
   const [authMode, setAuthMode] = useState<'LOGIN' | 'SIGNUP'>('LOGIN');
+  const [authStep, setAuthStep] = useState<'CREDENTIALS' | 'OTP'>('CREDENTIALS');
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
+  const [otpCode, setOtpCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
 
@@ -97,55 +98,72 @@ const App = () => {
     const inputId = userId.trim().toLowerCase();
     const inputPass = password.trim();
 
-    if (authMode === 'LOGIN') {
-        // 1. MASTER OVERRIDE
-        if (inputId === 'admin' && inputPass === 'admin123') {
-            sessionStorage.setItem('active_session_user', inputId);
-            setActiveUser(inputId);
-            await loadUserData(inputId);
-            setIsLoggedIn(true);
-            setIsLoading(false);
-            return;
-        }
+    if (authStep === 'CREDENTIALS') {
+        if (authMode === 'LOGIN') {
+            if (inputId === 'admin' && inputPass === 'admin123') {
+                sessionStorage.setItem('active_session_user', inputId);
+                setActiveUser(inputId);
+                await loadUserData(inputId);
+                setIsLoggedIn(true);
+                setIsLoading(false);
+                return;
+            }
 
-        // 2. GLOBAL REGISTRY ATTEMPT (Resolves "Find on any device")
-        let meshSuccess = false;
+            // Initiate OTP Flow for Login
+            try {
+                const res = await fetch('/login.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'SEND_VERIFICATION_CODE', email: inputId + "@" + SYSTEM_DOMAIN })
+                });
+                if (res.ok) setAuthStep('OTP');
+                else setAuthError('IDENTITY_SERVER_REJECTED');
+            } catch (err) {
+                setAuthStep('OTP'); // Fallback to simulated OTP
+            }
+        } else {
+            // SIGNUP - Initiate OTP
+            try {
+                const res = await fetch('/login.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'SEND_VERIFICATION_CODE', email: email })
+                });
+                if (res.ok) setAuthStep('OTP');
+                else setAuthError('NETWORK_REG_FAILED');
+            } catch (err) {
+                setAuthStep('OTP');
+            }
+        }
+    } else {
+        // OTP VERIFICATION STEP
         try {
             const res = await fetch('/login.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'AUTHORIZE_IDENTITY', identity: inputId, hash: inputPass })
+                body: JSON.stringify({ action: 'VERIFY_CODE', code: otpCode })
             });
             const data = await res.json();
             if (data.status === 'SUCCESS') {
-                meshSuccess = true;
+                if (authMode === 'SIGNUP') {
+                    await finalizeLocalRegistration(inputId);
+                } else {
+                    const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
+                    if (localUsers[inputId] && localUsers[inputId].password === inputPass) {
+                        sessionStorage.setItem('active_session_user', inputId);
+                        setActiveUser(inputId);
+                        await loadUserData(inputId);
+                        setIsLoggedIn(true);
+                    } else {
+                        setAuthError('AUTHORIZATION_DENIED');
+                        setAuthStep('CREDENTIALS');
+                    }
+                }
+            } else {
+                setAuthError('INVALID_VERIFICATION_CODE');
             }
         } catch (err) {
-            console.warn("Global Mesh Offline - Switching to Device Vault");
-        }
-
-        // 3. DEVICE VAULT FALLBACK
-        const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
-        if (meshSuccess || (localUsers[inputId] && localUsers[inputId].password === inputPass)) {
-            sessionStorage.setItem('active_session_user', inputId);
-            setActiveUser(inputId);
-            await loadUserData(inputId);
-            setIsLoggedIn(true);
-        } else {
-            setAuthError('AUTHORIZATION_DENIED');
-        }
-    } else {
-        // SIGNUP - Hybrid Mesh Provisioning
-        try {
-            const res = await fetch('/login.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'REGISTER_IDENTITY', identity: inputId })
-            });
-            await finalizeLocalRegistration(inputId);
-        } catch (err) {
-            // Local sync still succeeds if network fails, then auto-syncs later
-            await finalizeLocalRegistration(inputId);
+            setAuthError('COMMUNICATION_FAULT');
         }
     }
     setIsLoading(false);
@@ -162,7 +180,6 @@ const App = () => {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-6 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none opacity-20">
-          <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
           <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-indigo-900 rounded-full blur-[120px]"></div>
         </div>
         
@@ -174,80 +191,102 @@ const App = () => {
                         <CheckCircle2 size={48} className="text-indigo-500" />
                     </div>
                     <div className="space-y-3">
-                        <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter leading-none">Profile Mesh Created</h2>
-                        <p className="text-xs text-slate-400 font-bold tracking-[0.4em] uppercase">Node {userId.toUpperCase()} is Online.</p>
+                        <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter leading-none">Access Granted</h2>
+                        <p className="text-xs text-slate-400 font-bold tracking-[0.4em] uppercase">Node {userId.toUpperCase()} Security Pass Issued.</p>
                     </div>
                     <button 
-                        onClick={() => { setRegistrationSuccess(false); setAuthMode('LOGIN'); setUserId(''); setPassword(''); }}
+                        onClick={() => { setRegistrationSuccess(false); setAuthMode('LOGIN'); setAuthStep('CREDENTIALS'); setUserId(''); setPassword(''); }}
                         className="btn-platinum py-5 text-xs flex items-center justify-center gap-3 shadow-2xl"
                     >
-                        Authorize Access <ArrowRight size={18} />
+                        Return to Login <ArrowRight size={18} />
                     </button>
                 </div>
               ) : (
                 <>
                 <div className="text-center space-y-6">
                     <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-2xl">
-                        <ShieldCheck size={48} className="text-black" />
+                        {authStep === 'CREDENTIALS' ? <ShieldCheck size={48} className="text-black" /> : <Fingerprint size={48} className="text-black" />}
                     </div>
                     <div className="space-y-1">
                         <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">{APP_NAME}</h1>
                         <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.6em]">
-                            {authMode === 'LOGIN' ? 'Global Node Login' : 'Initialize Universal Profile'}
+                            {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'Authorized Access' : 'Create Profile') : 'Email Verification Required'}
                         </p>
                     </div>
                 </div>
 
                 <form onSubmit={handleAuth} className="space-y-6">
                     <div className="space-y-4">
-                    {authMode === 'SIGNUP' && (
+                    {authStep === 'CREDENTIALS' ? (
                         <>
+                        {authMode === 'SIGNUP' && (
+                            <>
+                            <div className="relative group">
+                                <ShieldCheck className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                                <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="LEGAL NAME" required />
+                            </div>
+                            <div className="relative group">
+                                <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="RECOVERY EMAIL" required />
+                            </div>
+                            </>
+                        )}
                         <div className="relative group">
-                            <ShieldCheck className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                            <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="LEGAL NAME" required />
+                            <Terminal className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                            <input type="text" value={userId} onChange={e => setUserId(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="USERNAME" required />
                         </div>
                         <div className="relative group">
-                            <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                            <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="RECOVERY EMAIL" required />
+                            <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                            <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-16 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="PASSWORD" required />
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
                         </div>
                         </>
+                    ) : (
+                        <div className="space-y-6">
+                            <div className="bg-indigo-500/10 border border-indigo-500/20 p-5 rounded-2xl flex items-center gap-4">
+                                <ShieldAlert size={20} className="text-indigo-500" />
+                                <p className="text-[10px] text-indigo-200 font-bold leading-relaxed">
+                                    A 6-digit security code was dispatched to your email node. Please commit it below to authorize.
+                                </p>
+                            </div>
+                            <input 
+                                type="text" 
+                                value={otpCode} 
+                                onChange={e => setOtpCode(e.target.value)} 
+                                maxLength={6}
+                                className="w-full p-6 bg-black/40 border-2 border-indigo-500/30 rounded-2xl text-center text-3xl font-mono font-bold tracking-[0.5em] text-white outline-none focus:border-indigo-500 transition-all"
+                                placeholder="000000"
+                                required
+                            />
+                        </div>
                     )}
-                    <div className="relative group">
-                        <Terminal className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input type="text" value={userId} onChange={e => setUserId(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="NODE IDENTITY (USERNAME)" required />
-                    </div>
-                    <div className="relative group">
-                        <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-16 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="SECURITY KEY" required />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                        </button>
-                    </div>
                     </div>
 
                     {authError && (
-                    <div className="text-[10px] font-black text-center uppercase tracking-widest py-4 rounded-xl border border-red-500/20 bg-red-500/5 text-red-500 animate-shake leading-relaxed">
+                    <div className="text-[10px] font-black text-center uppercase tracking-widest py-4 rounded-xl border border-red-500/20 bg-red-500/5 text-red-500 animate-shake">
                         {authError}
                     </div>
                     )}
 
                     <button type="submit" className="btn-platinum py-5 text-xs flex items-center justify-center gap-3 shadow-2xl">
-                        {authMode === 'LOGIN' ? <LogIn size={18} /> : <UserPlus size={18} />}
-                        {authMode === 'LOGIN' ? 'Authorize Mesh' : 'Commit Mesh Node'}
+                        {authStep === 'CREDENTIALS' ? <LogIn size={18} /> : <CheckCircle2 size={18} />}
+                        {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'Authorize' : 'Send Code') : 'Verify Identity'}
                     </button>
                 </form>
 
                 <div className="flex flex-col items-center space-y-6 pt-8 border-t border-white/5">
                     <button 
                         type="button" 
-                        onClick={() => { setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setAuthError(''); }}
+                        onClick={() => { setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setAuthStep('CREDENTIALS'); setAuthError(''); }}
                         className="text-[10px] font-black text-slate-500 hover:text-indigo-400 uppercase tracking-[0.4em] transition-all"
                     >
-                        {authMode === 'LOGIN' ? "Establish New Identity" : "Return to Global Login"}
+                        {authStep === 'OTP' ? "Return to Credentials" : (authMode === 'LOGIN' ? "Establish New Identity" : "Already Verified? Login")}
                     </button>
                     <div className="flex items-center space-x-3 opacity-30">
                         <Globe size={12} className="text-white" />
-                        <span className="text-[8px] font-black text-white uppercase tracking-[0.3em]">Institutional Mesh Sync Active</span>
+                        <span className="text-[8px] font-black text-white uppercase tracking-[0.3em]">Institutional Verification Active</span>
                     </div>
                 </div>
                 </>
@@ -265,7 +304,7 @@ const App = () => {
       case View.SETTINGS: return <Settings user={user} resetApp={() => { localStorage.clear(); window.location.reload(); }} onLogout={handleLogout} username={activeUser || ''} darkMode={true} toggleDarkMode={() => {}} updateUser={setUser} />;
       case View.SUPPORT: return <Support username={activeUser || ''} />;
       case View.VERIFY_LINK: return <StudyPlanner assignments={assignments} setAssignments={setAssignments} isAdmin={activeUser === ADMIN_USERNAME} />;
-      case View.ADMIN_DASHBOARD: return <AdminDashboard />;
+      case View.ADMIN_DASHBOARD: return <AdminDashboard onNavigate={setView} />;
       case View.VERIFICATION_FORM: return <VerificationForm user={user} username={activeUser || ''} updateUser={setUser} onNavigate={setView} />;
       default: return <Dashboard user={user} username={activeUser || ''} onNavigate={setView} />;
     }
@@ -288,10 +327,17 @@ const App = () => {
            <div className="flex items-center space-x-6">
               <div className="text-right hidden sm:block">
                   <div className="flex items-center justify-end space-x-2 mb-1">
-                     <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{activeUser === ADMIN_USERNAME ? 'Master Node' : 'Personnel Node'}</span>
-                     <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"></div>
+                     <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{activeUser === ADMIN_USERNAME ? 'Master Node' : 'Student Node'}</span>
+                     <div className={`w-2 h-2 rounded-full ${user.isVerified ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-red-500 animate-pulse'}`}></div>
                   </div>
-                  <p className="text-sm font-bold text-indigo-400">{user.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-indigo-400">{user.name}</p>
+                    {user.isVerified ? (
+                        <div className="bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border border-emerald-500/20">Verified</div>
+                    ) : (
+                        <div className="bg-red-500/10 text-red-500 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border border-red-500/20">Unverified</div>
+                    )}
+                  </div>
               </div>
               <div className="w-12 h-12 rounded-2xl border border-white/10 overflow-hidden bg-slate-900 shadow-2xl">
                 <img src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} className="w-full h-full object-cover" alt="User" />

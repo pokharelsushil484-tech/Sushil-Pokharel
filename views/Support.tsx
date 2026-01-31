@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { SupportTicket, TicketMessage } from '../types';
-import { LifeBuoy, Plus, MessageSquare, Send, CheckCircle, XCircle, Clock, ChevronRight, User, ShieldCheck } from 'lucide-react';
+import { LifeBuoy, Plus, MessageSquare, Send, CheckCircle, XCircle, Clock, ShieldCheck, X } from 'lucide-react';
 import { ADMIN_USERNAME } from '../constants';
 
 interface SupportProps {
@@ -32,11 +32,8 @@ export const Support: React.FC<SupportProps> = ({ username }) => {
     const stored = localStorage.getItem('studentpocket_tickets');
     if (stored) {
       const allTickets: SupportTicket[] = JSON.parse(stored);
-      // Filter for this user
       const myTickets = allTickets.filter(t => t.userId === username).sort((a, b) => b.updatedAt - a.updatedAt);
       setTickets(myTickets);
-      
-      // Update active ticket if exists (to show new messages)
       if (activeTicket) {
           const updatedActive = myTickets.find(t => t.id === activeTicket.id);
           if (updatedActive) setActiveTicket(updatedActive);
@@ -96,9 +93,6 @@ export const Support: React.FC<SupportProps> = ({ username }) => {
         if (ticketIndex !== -1) {
             allTickets[ticketIndex].messages.push(message);
             allTickets[ticketIndex].updatedAt = Date.now();
-            if (allTickets[ticketIndex].status === 'CLOSED') {
-                allTickets[ticketIndex].status = 'OPEN'; // Re-open if closed
-            }
             localStorage.setItem('studentpocket_tickets', JSON.stringify(allTickets));
             loadTickets();
             setReplyText('');
@@ -106,183 +100,83 @@ export const Support: React.FC<SupportProps> = ({ username }) => {
     }
   };
 
-  const closeTicket = () => {
-      if (!activeTicket) return;
-      if (!window.confirm("Are you sure you want to close this ticket?")) return;
-
-      const stored = localStorage.getItem('studentpocket_tickets');
-      if (stored) {
-          const allTickets: SupportTicket[] = JSON.parse(stored);
-          const ticketIndex = allTickets.findIndex(t => t.id === activeTicket.id);
-          if (ticketIndex !== -1) {
-              allTickets[ticketIndex].status = 'CLOSED';
-              allTickets[ticketIndex].updatedAt = Date.now();
-              localStorage.setItem('studentpocket_tickets', JSON.stringify(allTickets));
-              loadTickets();
-          }
-      }
-  };
-
   return (
     <div className="pb-24 animate-fade-in w-full max-w-5xl mx-auto space-y-8">
-      {/* Header */}
-      <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm">
+      <div className="flex justify-between items-center bg-white/5 p-8 rounded-[3rem] border border-white/10 backdrop-blur-xl">
         <div>
-           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">Help Center</h1>
-           <p className="text-[11px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Professional Support</p>
+           <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic">Institutional Support</h1>
+           <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.4em] mt-1">Personnel Help Desk</p>
         </div>
         <button 
             onClick={() => setShowNewTicket(true)}
-            className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-600/20 hover:scale-105 transition-transform"
+            className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-black shadow-2xl hover:bg-slate-200 transition-all"
         >
-            <Plus size={28} />
+            <Plus size={32} />
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-         {/* Ticket List */}
          <div className="lg:col-span-1 space-y-4">
-            {tickets.length === 0 && !showNewTicket && (
-                <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-[2rem] border border-dashed border-slate-200 dark:border-slate-800">
-                    <LifeBuoy className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">No tickets found</p>
-                </div>
-            )}
-            
             {tickets.map(ticket => (
                 <div 
                     key={ticket.id}
                     onClick={() => { setActiveTicket(ticket); setShowNewTicket(false); }}
-                    className={`p-6 rounded-[2rem] border cursor-pointer transition-all ${
-                        activeTicket?.id === ticket.id 
-                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-600/20' 
-                        : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-900'
-                    }`}
+                    className={`p-8 rounded-[2.5rem] border cursor-pointer transition-all ${activeTicket?.id === ticket.id ? 'bg-indigo-600 text-white' : 'bg-black/40 border-white/5 hover:border-white/10'}`}
                 >
-                    <div className="flex justify-between items-start mb-3">
-                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                            ticket.status === 'OPEN' 
-                            ? (activeTicket?.id === ticket.id ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-600') 
-                            : (activeTicket?.id === ticket.id ? 'bg-black/20 text-white/70' : 'bg-slate-100 text-slate-500')
-                        }`}>
-                            {ticket.status}
-                        </span>
-                        <span className={`text-[10px] font-mono ${activeTicket?.id === ticket.id ? 'text-indigo-200' : 'text-slate-400'}`}>
-                            #{ticket.id}
-                        </span>
+                    <div className="flex justify-between items-center mb-4">
+                        <span className={`px-3 py-0.5 rounded text-[8px] font-black uppercase ${ticket.status === 'OPEN' ? 'bg-emerald-500 text-black' : 'bg-slate-800'}`}>{ticket.status}</span>
+                        <span className="text-[9px] font-mono opacity-40">#{ticket.id}</span>
                     </div>
-                    <h3 className={`font-bold text-sm mb-1 ${activeTicket?.id === ticket.id ? 'text-white' : 'text-slate-800 dark:text-white'}`}>{ticket.subject}</h3>
-                    <p className={`text-xs truncate ${activeTicket?.id === ticket.id ? 'text-indigo-100' : 'text-slate-500'}`}>
-                        {ticket.messages[ticket.messages.length - 1].text}
-                    </p>
+                    <h3 className="font-bold text-sm italic">{ticket.subject}</h3>
                 </div>
             ))}
          </div>
 
-         {/* Content Area */}
          <div className="lg:col-span-2">
             {showNewTicket ? (
-                <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl animate-scale-up">
-                    <div className="flex justify-between items-center mb-8">
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">New Request</h2>
-                        <button onClick={() => setShowNewTicket(false)}><XCircle className="text-slate-400 hover:text-red-500 transition-colors" /></button>
+                <div className="master-box p-12 border-indigo-500/20 bg-black/40 animate-scale-up">
+                    <div className="flex justify-between items-center mb-10">
+                        <h2 className="text-2xl font-black text-white uppercase italic">Initialize Ticket</h2>
+                        <button onClick={() => setShowNewTicket(false)} className="text-slate-500 hover:text-white"><X size={24}/></button>
                     </div>
                     <form onSubmit={createTicket} className="space-y-6">
-                        <div>
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Topic</label>
-                            <input 
-                                type="text" 
-                                value={newSubject}
-                                onChange={(e) => setNewSubject(e.target.value)}
-                                className="w-full p-4 bg-slate-50 dark:bg-slate-950 border-2 border-transparent focus:border-indigo-500 rounded-2xl outline-none font-bold text-slate-800 dark:text-white transition-all"
-                                placeholder="What can we help with?"
-                            />
+                        <div className="space-y-2">
+                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-4">Subject Node</label>
+                            <input type="text" value={newSubject} onChange={e => setNewSubject(e.target.value)} className="w-full p-5 bg-black border border-white/5 rounded-2xl font-bold text-white outline-none focus:border-indigo-500 transition-all" placeholder="TOPIC IDENTIFIER" required />
                         </div>
-                        <div>
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Details</label>
-                            <textarea 
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                rows={6}
-                                className="w-full p-4 bg-slate-50 dark:bg-slate-950 border-2 border-transparent focus:border-indigo-500 rounded-2xl outline-none font-medium text-slate-800 dark:text-white resize-none transition-all"
-                                placeholder="Describe your issue..."
-                            />
+                        <div className="space-y-2">
+                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-4">Detailed Message</label>
+                            <textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} rows={5} className="w-full p-5 bg-black border border-white/5 rounded-2xl font-medium text-white outline-none focus:border-indigo-500 transition-all resize-none" placeholder="LOG THE ISSUE DETAILS..." required />
                         </div>
-                        <div className="flex justify-end">
-                             <button type="submit" className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center shadow-lg">
-                                <Send size={16} className="mr-2" /> Submit Ticket
-                             </button>
-                        </div>
+                        <button type="submit" className="w-full py-5 rounded-2xl bg-white text-black font-black text-[10px] uppercase tracking-widest shadow-2xl">Commit Request</button>
                     </form>
                 </div>
             ) : activeTicket ? (
-                <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col h-[600px] animate-fade-in">
-                    {/* Chat Header */}
-                    <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900">
-                        <div>
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{activeTicket.subject}</h2>
-                            <div className="flex items-center text-[10px] text-slate-400 font-bold uppercase tracking-wider space-x-3">
-                                <span className="flex items-center"><Clock size={12} className="mr-1"/> {new Date(activeTicket.createdAt).toLocaleDateString()}</span>
-                                <span className={`flex items-center ${activeTicket.status === 'OPEN' ? 'text-emerald-500' : 'text-slate-400'}`}>
-                                    {activeTicket.status === 'OPEN' ? <CheckCircle size={12} className="mr-1"/> : <XCircle size={12} className="mr-1"/>}
-                                    {activeTicket.status}
-                                </span>
-                            </div>
+                <div className="master-box flex flex-col h-[600px] border-white/10 bg-black/40 animate-fade-in">
+                    <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/5">
+                        <h3 className="text-xl font-black text-white italic">{activeTicket.subject}</h3>
+                        <div className="flex items-center space-x-3">
+                            {activeTicket.status === 'OPEN' ? <Clock className="text-amber-500" size={16}/> : <CheckCircle className="text-emerald-500" size={16}/>}
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">STATUS: {activeTicket.status}</span>
                         </div>
-                        {activeTicket.status === 'OPEN' && (
-                             <button onClick={closeTicket} className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-red-500 transition-colors">
-                                 Close Ticket
-                             </button>
-                        )}
                     </div>
-
-                    {/* Messages */}
-                    <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-slate-50 dark:bg-slate-950/30">
+                    <div className="flex-1 overflow-y-auto p-8 space-y-6 scroll-box">
                         {activeTicket.messages.map(msg => (
                             <div key={msg.id} className={`flex ${msg.sender === username ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[80%] ${msg.sender === username ? 'items-end' : 'items-start'} flex flex-col`}>
-                                    <div className={`p-4 rounded-2xl text-sm font-medium leading-relaxed shadow-sm ${
-                                        msg.sender === username 
-                                        ? 'bg-indigo-600 text-white rounded-br-none' 
-                                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-bl-none border border-slate-100 dark:border-slate-700'
-                                    }`}>
-                                        {msg.text}
-                                    </div>
-                                    <div className="flex items-center mt-2 space-x-2">
-                                        {msg.isAdmin && <ShieldCheck size={12} className="text-indigo-500" />}
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                            {msg.isAdmin ? 'Support Team' : 'You'} • {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                        </span>
-                                    </div>
+                                <div className={`max-w-[85%] p-5 rounded-[2rem] ${msg.sender === username ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white/5 text-slate-200 rounded-bl-none border border-white/5'}`}>
+                                    {msg.isAdmin && <div className="flex items-center gap-2 mb-2 text-[8px] font-black text-indigo-400 uppercase tracking-widest"><ShieldCheck size={10}/> Institutional Support</div>}
+                                    <p className="text-sm font-medium">{msg.text}</p>
+                                    <p className="text-[8px] opacity-40 mt-3 font-bold">{new Date(msg.timestamp).toLocaleTimeString()}</p>
                                 </div>
                             </div>
                         ))}
                         <div ref={messagesEndRef} />
-                        {activeTicket.status === 'CLOSED' && (
-                            <div className="flex justify-center my-6">
-                                <span className="bg-slate-200 dark:bg-slate-800 text-slate-500 px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">
-                                    Ticket Closed
-                                </span>
-                            </div>
-                        )}
                     </div>
-
-                    {/* Input */}
                     {activeTicket.status === 'OPEN' && (
-                        <div className="p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
+                        <div className="p-6 bg-slate-950/50 border-t border-white/5">
                             <form onSubmit={sendReply} className="relative">
-                                <input 
-                                    type="text" 
-                                    value={replyText}
-                                    onChange={(e) => setReplyText(e.target.value)}
-                                    className="w-full pl-6 pr-14 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl outline-none font-medium text-slate-800 dark:text-white focus:border-indigo-500 transition-all placeholder:text-slate-400"
-                                    placeholder="Type your reply..."
-                                />
-                                <button 
-                                    type="submit"
-                                    disabled={!replyText.trim()}
-                                    className="absolute right-2 top-2 bottom-2 aspect-square bg-indigo-600 rounded-xl flex items-center justify-center text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                                >
+                                <input value={replyText} onChange={e => setReplyText(e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-2xl py-5 pl-8 pr-16 text-xs text-white outline-none focus:border-indigo-500" placeholder="TYPE REPLY..." />
+                                <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white text-black rounded-xl hover:bg-slate-200">
                                     <Send size={18} />
                                 </button>
                             </form>
@@ -290,10 +184,9 @@ export const Support: React.FC<SupportProps> = ({ username }) => {
                     )}
                 </div>
             ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center p-12 opacity-50">
-                    <MessageSquare className="w-16 h-16 text-slate-300 mb-4" />
-                    <h3 className="text-xl font-black text-slate-400">Select a Ticket</h3>
-                    <p className="text-sm text-slate-400 mt-2">View conversation history or create a new request.</p>
+                <div className="h-[400px] flex flex-col items-center justify-center opacity-20">
+                    <LifeBuoy size={64} className="mb-6" />
+                    <p className="text-xs font-black uppercase tracking-[0.4em]">Select Node Communication</p>
                 </div>
             )}
          </div>

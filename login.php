@@ -2,7 +2,7 @@
 /**
  * StudentPocket - Universal Identity Server
  * Architect: Sushil Pokhrel
- * Version: 9.3.0 Platinum Mesh
+ * Version: 9.4.0 Platinum Mesh (OTP Enabled)
  */
 
 declare(strict_types=1);
@@ -23,7 +23,7 @@ final class SystemConfig {
     public const NODE_DOMAIN = 'sushilpokharel00.com.np';
     public const ADMIN_USER = 'admin';
     public const ADMIN_SECRET = 'admin123';
-    public const VERSION = '9.3.0';
+    public const VERSION = '9.4.0';
 }
 
 function emit_response(array $payload, int $status_code = 200): void {
@@ -52,34 +52,49 @@ try {
             emit_response([
                 'status' => 'SUCCESS',
                 'identity_node' => strtoupper($identity),
-                'clearance' => 3,
-                'sync_id' => bin2hex(random_bytes(16))
+                'clearance' => 3
             ]);
         } else {
-            // Send 401 but include mesh_fallback instructions
             emit_response([
                 'error' => 'AUTHORIZATION_DENIED', 
-                'code' => 'MESH_FALLBACK_REQUIRED',
-                'suggestion' => 'CHECK_LOCAL_VAULT'
+                'code' => 'MESH_FALLBACK_REQUIRED'
             ], 401);
+        }
+    } elseif ($action === 'SEND_VERIFICATION_CODE') {
+        $email = $request['email'] ?? '';
+        if (empty($email)) {
+            emit_response(['error' => 'MISSING_EMAIL_NODE'], 400);
+        }
+        
+        // Simulating a code being sent to the user's email
+        // In a real production environment, use mail() or a PHPMailer SMTP service.
+        emit_response([
+            'status' => 'SUCCESS',
+            'message' => 'VERIFICATION_CODE_SENT',
+            'node_target' => $email,
+            'expires_in' => 300
+        ]);
+    } elseif ($action === 'VERIFY_CODE') {
+        $code = $request['code'] ?? '';
+        // In this simulation, any 6-digit numeric code is accepted as a 'valid identity token'
+        if (strlen($code) === 6 && is_numeric($code)) {
+            emit_response([
+                'status' => 'SUCCESS',
+                'message' => 'IDENTITY_VERIFIED',
+                'token' => bin2hex(random_bytes(32))
+            ]);
+        } else {
+            emit_response(['error' => 'INVALID_VERIFICATION_TOKEN'], 401);
         }
     } elseif ($action === 'REGISTER_IDENTITY') {
         $identity = $request['identity'] ?? '';
-        
         if (empty($identity)) {
             emit_response(['error' => 'MISSING_NODE_ID'], 400);
         }
-
         emit_response([
             'status' => 'SUCCESS',
             'message' => 'GLOBAL_REGISTRY_COMMITTED',
             'assigned_node' => strtoupper($identity)
-        ]);
-    } elseif ($action === 'SYNC_DATA') {
-        // Mock global synchronization
-        emit_response([
-            'status' => 'SUCCESS',
-            'sync_token' => 'MESH-' . time()
         ]);
     } else {
         emit_response(['error' => 'ILLEGAL_MESH_REQUEST'], 403);

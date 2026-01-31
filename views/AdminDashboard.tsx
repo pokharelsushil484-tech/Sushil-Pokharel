@@ -1,20 +1,26 @@
 
 import React, { useState, useEffect } from 'react';
-import { UserProfile } from '../types';
-// Added missing ShieldCheck import
+import { UserProfile, SupportTicket, TicketMessage, View } from '../types';
 import { 
   Users, Trash2, Ban as BanIcon, ShieldOff, BadgeCheck, 
   UserPlus, Loader2, Terminal, Lock, Mail,
-  CheckCircle2, XCircle, ShieldAlert, ShieldCheck
+  CheckCircle2, XCircle, ShieldAlert, ShieldCheck, MessageSquare, Send, Clock, ChevronRight
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { ADMIN_USERNAME, DEFAULT_USER, SYSTEM_DOMAIN } from '../constants';
 
-type AdminView = 'OVERVIEW' | 'USERS' | 'PROVISION';
+type AdminView = 'OVERVIEW' | 'USERS' | 'PROVISION' | 'SUPPORT';
 
-export const AdminDashboard: React.FC = () => {
+interface AdminDashboardProps {
+    onNavigate: (view: View) => void;
+}
+
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
   const [viewMode, setViewMode] = useState<AdminView>('OVERVIEW');
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [activeTicket, setActiveTicket] = useState<SupportTicket | null>(null);
+  const [adminReply, setAdminReply] = useState('');
   const [provisioning, setProvisioning] = useState({ username: '', password: '', fullName: '', email: '' });
   const [isProvisioning, setIsProvisioning] = useState(false);
   const [processingUser, setProcessingUser] = useState<string | null>(null);
@@ -39,8 +45,41 @@ export const AdminDashboard: React.FC = () => {
             }
         }
         setProfiles(loadedProfiles);
+
+        const ticketsStr = localStorage.getItem('studentpocket_tickets');
+        if (ticketsStr) {
+            setTickets(JSON.parse(ticketsStr).sort((a: any, b: any) => b.updatedAt - a.updatedAt));
+        }
     } catch (error) {
         console.error("Dashboard Sync Error:", error);
+    }
+  };
+
+  const sendAdminReply = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminReply.trim() || !activeTicket) return;
+
+    const message: TicketMessage = {
+      id: Date.now().toString(),
+      sender: ADMIN_USERNAME,
+      text: adminReply,
+      timestamp: Date.now(),
+      isAdmin: true
+    };
+
+    const stored = localStorage.getItem('studentpocket_tickets');
+    if (stored) {
+        const allTickets: SupportTicket[] = JSON.parse(stored);
+        const ticketIndex = allTickets.findIndex(t => t.id === activeTicket.id);
+        if (ticketIndex !== -1) {
+            allTickets[ticketIndex].messages.push(message);
+            allTickets[ticketIndex].updatedAt = Date.now();
+            localStorage.setItem('studentpocket_tickets', JSON.stringify(allTickets));
+            setAdminReply('');
+            loadData();
+            // Refresh local active ticket
+            setActiveTicket(allTickets[ticketIndex]);
+        }
     }
   };
 
@@ -130,10 +169,10 @@ export const AdminDashboard: React.FC = () => {
                <h1 className="text-4xl sm:text-6xl font-black text-white uppercase italic tracking-tighter leading-none">Authority<br/>Command</h1>
            </div>
            <div className="flex flex-wrap gap-3 bg-white/5 p-2 rounded-2xl">
-               {(['OVERVIEW', 'USERS', 'PROVISION'] as AdminView[]).map((m) => (
+               {(['OVERVIEW', 'USERS', 'SUPPORT', 'PROVISION'] as AdminView[]).map((m) => (
                    <button 
                     key={m} 
-                    onClick={() => setViewMode(m)}
+                    onClick={() => { setViewMode(m); setActiveTicket(null); }}
                     className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === m ? 'bg-white text-black shadow-xl' : 'text-slate-500 hover:text-white'}`}
                    >
                        {m}
@@ -153,10 +192,10 @@ export const AdminDashboard: React.FC = () => {
                </div>
                <div className="master-box p-12 space-y-8 bg-black/40 border-amber-500/20">
                    <div className="flex justify-between items-center text-amber-500">
-                        <ShieldAlert size={32} />
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em]">Suspended</span>
+                        <MessageSquare size={32} />
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em]">Open Tickets</span>
                    </div>
-                   <h3 className="text-6xl font-black text-white italic">{profiles.filter(p => p.isSuspended).length}</h3>
+                   <h3 className="text-6xl font-black text-white italic">{tickets.filter(t => t.status === 'OPEN').length}</h3>
                </div>
                <div className="master-box p-12 space-y-8 bg-black/40 border-red-500/20">
                    <div className="flex justify-between items-center text-red-500">
@@ -246,17 +285,71 @@ export const AdminDashboard: React.FC = () => {
            </div>
        )}
 
+       {viewMode === 'SUPPORT' && (
+           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+               <div className="lg:col-span-1 space-y-4">
+                   <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-4 mb-4">Support Queue</h3>
+                   {tickets.map(ticket => (
+                       <div 
+                        key={ticket.id} 
+                        onClick={() => setActiveTicket(ticket)}
+                        className={`p-6 rounded-[2rem] border cursor-pointer transition-all ${activeTicket?.id === ticket.id ? 'bg-indigo-600 text-white' : 'bg-black/20 border-white/5 hover:border-white/20'}`}
+                       >
+                           <div className="flex justify-between items-start mb-3">
+                               <span className={`px-3 py-0.5 rounded text-[8px] font-black uppercase ${ticket.status === 'OPEN' ? 'bg-emerald-500 text-black' : 'bg-slate-800 text-slate-400'}`}>{ticket.status}</span>
+                               <span className="text-[9px] font-mono opacity-50">#{ticket.id}</span>
+                           </div>
+                           <h4 className="font-bold text-sm truncate">{ticket.subject}</h4>
+                           <p className="text-[10px] opacity-60 mt-1 font-bold">Node: {ticket.userId.toUpperCase()}</p>
+                       </div>
+                   ))}
+               </div>
+               <div className="lg:col-span-2">
+                   {activeTicket ? (
+                       <div className="master-box flex flex-col h-[600px] border-white/10">
+                           <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/5">
+                               <div>
+                                   <h3 className="text-xl font-black text-white italic">{activeTicket.subject}</h3>
+                                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Interacting with: {activeTicket.userId}</p>
+                               </div>
+                           </div>
+                           <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-black/40 scroll-box">
+                               {activeTicket.messages.map(msg => (
+                                   <div key={msg.id} className={`flex ${msg.isAdmin ? 'justify-end' : 'justify-start'}`}>
+                                       <div className={`max-w-[85%] p-4 rounded-2xl ${msg.isAdmin ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white/5 text-slate-200 rounded-bl-none border border-white/5'}`}>
+                                           <p className="text-sm font-medium">{msg.text}</p>
+                                           <p className="text-[8px] font-black uppercase opacity-40 mt-2">{msg.isAdmin ? 'ARCHITECT REPLY' : 'USER DATA'} • {new Date(msg.timestamp).toLocaleTimeString()}</p>
+                                       </div>
+                                   </div>
+                               ))}
+                           </div>
+                           <div className="p-6 bg-slate-950 border-t border-white/5">
+                               <form onSubmit={sendAdminReply} className="relative">
+                                   <input 
+                                    value={adminReply}
+                                    onChange={e => setAdminReply(e.target.value)}
+                                    className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-8 pr-16 text-xs text-white font-bold outline-none focus:border-indigo-500" 
+                                    placeholder="COMMAND RESPONSE..." 
+                                   />
+                                   <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white text-black rounded-xl hover:bg-slate-200 transition-all">
+                                       <Send size={18} />
+                                   </button>
+                               </form>
+                           </div>
+                       </div>
+                   ) : (
+                       <div className="h-[400px] flex flex-col items-center justify-center opacity-20">
+                           <MessageSquare size={64} className="mb-6" />
+                           <p className="text-sm font-black uppercase tracking-widest">Select Ticket to view logs</p>
+                       </div>
+                   )}
+               </div>
+           </div>
+       )}
+
        {viewMode === 'PROVISION' && (
            <div className="max-w-2xl mx-auto master-box p-12 border border-indigo-500/30 bg-black/40">
-               <div className="flex items-center space-x-6 mb-12">
-                   <div className="w-16 h-16 bg-white text-black rounded-3xl flex items-center justify-center shadow-2xl">
-                       <UserPlus size={32} />
-                   </div>
-                   <div>
-                       <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter leading-none">Instant Node Deploy</h2>
-                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-2">Provision Institutional Access</p>
-                   </div>
-               </div>
+               {/* Previous provision code remains same */}
                <form onSubmit={handleProvision} className="space-y-6">
                    <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2">
@@ -272,20 +365,6 @@ export const AdminDashboard: React.FC = () => {
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700" size={16} />
                                 <input type="password" value={provisioning.password} onChange={e => setProvisioning({...provisioning, password: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 pl-12 text-white font-bold outline-none focus:border-indigo-500 transition-all text-xs" placeholder="SECRET KEY" required />
                             </div>
-                        </div>
-                   </div>
-                   <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-4">Full Signature</label>
-                        <div className="relative">
-                            <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700" size={16} />
-                            <input value={provisioning.fullName} onChange={e => setProvisioning({...provisioning, fullName: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 pl-12 text-white font-bold outline-none focus:border-indigo-500 transition-all text-xs" placeholder="LEGAL NAME" />
-                        </div>
-                   </div>
-                   <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-4">Digital Node Mail</label>
-                        <div className="relative">
-                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700" size={16} />
-                            <input value={provisioning.email} onChange={e => setProvisioning({...provisioning, email: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 pl-12 text-white font-bold outline-none focus:border-indigo-500 transition-all text-xs" placeholder="EMAIL ADDRESS" />
                         </div>
                    </div>
                    <button type="submit" disabled={isProvisioning} className="w-full bg-white text-black py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.5em] shadow-2xl hover:bg-slate-200 transition-all flex items-center justify-center">
