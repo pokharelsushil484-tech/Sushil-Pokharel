@@ -6,7 +6,6 @@
 
 declare(strict_types=1);
 
-// Prevent accidental output before headers
 ob_start();
 
 header('Content-Type: application/json; charset=UTF-8');
@@ -31,7 +30,8 @@ function emit_response(array $payload, int $status_code = 200): void {
     echo json_encode(array_merge([
         'node' => SystemConfig::NODE_DOMAIN,
         'timestamp' => time(),
-        'attribution' => 'StudentPocket – By Sushil'
+        'attribution' => 'StudentPocket – By Sushil',
+        'version' => '9.2.5'
     ], $payload));
     exit;
 }
@@ -52,25 +52,25 @@ try {
                 'clearance' => 3
             ]);
         } else {
-            emit_response(['error' => 'AUTHORIZATION_DENIED', 'code' => 'INVALID_CREDENTIALS'], 401);
+            // Force 401 so frontend knows to try local storage fallback
+            emit_response(['error' => 'AUTHORIZATION_DENIED', 'code' => 'INVALID_REMOTE_CREDENTIALS'], 401);
         }
     } elseif ($action === 'REGISTER_IDENTITY') {
         $identity = $request['identity'] ?? '';
-        $email = $request['email'] ?? '';
         
-        if (empty($identity) || empty($email)) {
-            emit_response(['error' => 'INCOMPLETE_DATA_STREAM'], 400);
+        if (empty($identity)) {
+            emit_response(['error' => 'MISSING_NODE_ID'], 400);
         }
 
         emit_response([
             'status' => 'SUCCESS',
-            'message' => 'IDENTITY_PROVISIONED',
+            'message' => 'IDENTITY_COMMITTED',
             'assigned_node' => strtoupper($identity)
         ]);
     } else {
-        emit_response(['error' => 'ILLEGAL_NODE_REQUEST'], 403);
+        emit_response(['error' => 'ILLEGAL_ACTION_REQUEST'], 403);
     }
 } catch (Exception $e) {
-    emit_response(['error' => 'SYSTEM_FAULT', 'details' => $e->getMessage()], 500);
+    emit_response(['error' => 'CORE_SYSTEM_FAULT'], 500);
 }
 ?>

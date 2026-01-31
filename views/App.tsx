@@ -14,10 +14,10 @@ import { Footer } from '../components/Footer';
 import { VerificationForm } from './VerificationForm';
 import { VerificationPending } from './VerificationPending';
 import { AccessRecovery } from './AccessRecovery';
-import { View, UserProfile, VaultDocument, Assignment } from '../types';
+import { View, UserProfile, VaultDocument, Assignment, Expense } from '../types';
 import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
-import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, UserPlus, Mail, CheckCircle2, ArrowRight, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, UserPlus, Mail, CheckCircle2, ArrowRight } from 'lucide-react';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -38,6 +38,7 @@ const App = () => {
   const [user, setUser] = useState<UserProfile>(DEFAULT_USER);
   const [vaultDocs, setVaultDocs] = useState<VaultDocument[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
 
   const loadUserData = useCallback(async (username: string) => {
     const stored = await storageService.getData(`architect_data_${username}`);
@@ -49,108 +50,111 @@ const App = () => {
             level: 3,
             verificationStatus: 'VERIFIED'
         });
-    } else if (stored && stored.user) {
-        setUser(stored.user);
+    } else if (stored) {
+        if (stored.user) setUser(stored.user);
         if (stored.vaultDocs) setVaultDocs(stored.vaultDocs);
         if (stored.assignments) setAssignments(stored.assignments);
+        if (stored.expenses) setExpenses(stored.expenses);
     }
   }, []);
+
+  const finalizeLocalRegistration = async (inputId: string) => {
+    try {
+        const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
+        if (localUsers[inputId]) {
+            setAuthError('NODE_ID_EXISTS');
+            return;
+        }
+        localUsers[inputId] = { password, email, name: fullName, verified: false };
+        localStorage.setItem('studentpocket_users', JSON.stringify(localUsers));
+
+        const profile: UserProfile = {
+            ...DEFAULT_USER,
+            name: fullName || inputId,
+            email: email || `user@${SYSTEM_DOMAIN}`,
+            isVerified: false,
+            verificationStatus: 'NONE',
+            level: 1,
+            studentId: `SP-${Math.floor(100000 + Math.random() * 900000)}`
+        };
+        await storageService.setData(`architect_data_${inputId}`, { 
+            user: profile, 
+            vaultDocs: [], 
+            assignments: [],
+            expenses: [],
+            notes: []
+        });
+        setRegistrationSuccess(true);
+    } catch (err) {
+        setAuthError('STORAGE_FAILURE');
+    }
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setAuthError('');
 
-    const inputId = userId.toLowerCase();
+    const inputId = userId.trim().toLowerCase();
+    const inputPass = password.trim();
 
-    try {
-        if (authMode === 'LOGIN') {
-            if (inputId === 'admin' && password === 'admin123') {
+    if (authMode === 'LOGIN') {
+        if (inputId === 'admin' && inputPass === 'admin123') {
+            sessionStorage.setItem('active_session_user', inputId);
+            setActiveUser(inputId);
+            await loadUserData(inputId);
+            setIsLoggedIn(true);
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            const res = await fetch('/login.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'AUTHORIZE_IDENTITY', identity: inputId, hash: inputPass })
+            });
+            const data = await res.json();
+            if (data.status === 'SUCCESS') {
                 sessionStorage.setItem('active_session_user', inputId);
                 setActiveUser(inputId);
-                setIsLoggedIn(true);
                 await loadUserData(inputId);
+                setIsLoggedIn(true);
                 setIsLoading(false);
                 return;
             }
-
-            try {
-                const res = await fetch('/login.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'AUTHORIZE_IDENTITY', identity: inputId, hash: password })
-                });
-                
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.status === 'SUCCESS') {
-                        sessionStorage.setItem('active_session_user', inputId);
-                        setActiveUser(inputId);
-                        setIsLoggedIn(true);
-                        await loadUserData(inputId);
-                        setIsLoading(false);
-                        return;
-                    }
-                }
-            } catch (netErr) {
-                console.warn("Network: Manual Local Fallback Engaged");
-            }
-
-            const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
-            const localUser = localUsers[inputId];
-            if (localUser && localUser.password === password) {
-                sessionStorage.setItem('active_session_user', inputId);
-                setActiveUser(inputId);
-                setIsLoggedIn(true);
-                await loadUserData(inputId);
-            } else {
-                setAuthError('AUTHORIZATION_DENIED');
-            }
-        } else {
-            // SIGNUP
-            try {
-                const res = await fetch('/login.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'REGISTER_IDENTITY', identity: inputId, email: email })
-                });
-
-                if (res.ok) {
-                    await finalizeLocalRegistration(inputId);
-                } else {
-                    setAuthError('REGISTRATION_REJECTED');
-                }
-            } catch (netErr) {
-                await finalizeLocalRegistration(inputId);
-            }
+        } catch (err) {
+            console.warn("Registry Offline - Local Access Engaged");
         }
-    } catch (err) {
-        setAuthError("COMMUNICATION_FAULT");
-    } finally {
-        setIsLoading(false);
-    }
-  };
 
-  const finalizeLocalRegistration = async (inputId: string) => {
-    const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
-    if (localUsers[inputId]) {
-        setAuthError('NODE_ID_TAKEN');
-        return;
+        // Local Storage Fallback
+        const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
+        if (localUsers[inputId] && localUsers[inputId].password === inputPass) {
+            sessionStorage.setItem('active_session_user', inputId);
+            setActiveUser(inputId);
+            await loadUserData(inputId);
+            setIsLoggedIn(true);
+        } else {
+            setAuthError('AUTHORIZATION_DENIED');
+        }
+    } else {
+        // SIGNUP Flow
+        try {
+            const res = await fetch('/login.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'REGISTER_IDENTITY', identity: inputId })
+            });
+            if (res.ok) {
+                await finalizeLocalRegistration(inputId);
+            } else {
+                setAuthError('NETWORK_REG_FAILED');
+            }
+        } catch (err) {
+            await finalizeLocalRegistration(inputId);
+        }
     }
-    localUsers[inputId] = { password, email, name: fullName, verified: false };
-    localStorage.setItem('studentpocket_users', JSON.stringify(localUsers));
-
-    const profile: UserProfile = {
-        ...DEFAULT_USER,
-        name: fullName || inputId,
-        email: email || `node@${SYSTEM_DOMAIN}`,
-        isVerified: false,
-        verificationStatus: 'NONE',
-        level: 1,
-        studentId: `SP-${Math.floor(100000 + Math.random() * 900000)}`
-    };
-    await storageService.setData(`architect_data_${inputId}`, { user: profile, vaultDocs: [], assignments: [] });
-    setRegistrationSuccess(true);
+    setIsLoading(false);
   };
 
   const handleLogout = () => {
@@ -177,13 +181,13 @@ const App = () => {
                     </div>
                     <div className="space-y-3">
                         <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">Identity Created</h2>
-                        <p className="text-sm text-slate-400 font-medium tracking-widest">Node {userId.toUpperCase()} provisioned.<br/>StudentPocket – By Sushil</p>
+                        <p className="text-sm text-slate-400 font-medium tracking-widest">Node {userId.toUpperCase()} Ready.<br/>StudentPocket – By Sushil</p>
                     </div>
                     <button 
-                        onClick={() => { setRegistrationSuccess(false); setAuthError(''); setAuthMode('LOGIN'); }}
+                        onClick={() => { setRegistrationSuccess(false); setAuthMode('LOGIN'); setUserId(''); setPassword(''); }}
                         className="btn-platinum py-5 text-xs flex items-center justify-center gap-3"
                     >
-                        Return to Authentication <ArrowRight size={18} />
+                        Proceed to Login <ArrowRight size={18} />
                     </button>
                 </div>
               ) : (
@@ -195,7 +199,7 @@ const App = () => {
                     <div className="space-y-1">
                         <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">{APP_NAME}</h1>
                         <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.6em]">
-                            {authMode === 'LOGIN' ? 'Authorized Node Access' : 'Initialize New Identity'}
+                            {authMode === 'LOGIN' ? 'Authorized Access' : 'Create New Profile'}
                         </p>
                     </div>
                 </div>
@@ -206,21 +210,21 @@ const App = () => {
                         <>
                         <div className="relative group">
                             <ShieldCheck className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                            <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="FULL LEGAL NAME" required />
+                            <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="FULL NAME" required />
                         </div>
                         <div className="relative group">
                             <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                            <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="NODE EMAIL" required />
+                            <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="EMAIL ADDRESS" required />
                         </div>
                         </>
                     )}
                     <div className="relative group">
                         <Terminal className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input type="text" value={userId} onChange={e => setUserId(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="NODE_IDENTIFIER" required />
+                        <input type="text" value={userId} onChange={e => setUserId(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="USERNAME" required />
                     </div>
                     <div className="relative group">
                         <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                        <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-16 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="SECURITY_TOKEN" required />
+                        <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 pl-16 pr-16 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="PASSWORD" required />
                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
@@ -228,14 +232,14 @@ const App = () => {
                     </div>
 
                     {authError && (
-                    <div className="text-[10px] font-black text-center uppercase tracking-widest py-4 rounded-xl border border-red-500/20 bg-red-500/5 text-red-500 animate-shake">
+                    <div className="text-[10px] font-black text-center uppercase tracking-widest py-4 rounded-xl border border-red-500/20 bg-red-500/5 text-red-500">
                         {authError}
                     </div>
                     )}
 
                     <button type="submit" className="btn-platinum py-5 text-xs flex items-center justify-center gap-3 shadow-2xl">
                         {authMode === 'LOGIN' ? <LogIn size={18} /> : <UserPlus size={18} />}
-                        {authMode === 'LOGIN' ? 'Authorize Access' : 'Commit Identity'}
+                        {authMode === 'LOGIN' ? 'Log In' : 'Sign Up'}
                     </button>
                 </form>
 
@@ -245,7 +249,7 @@ const App = () => {
                         onClick={() => { setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setAuthError(''); }}
                         className="text-[10px] font-black text-slate-500 hover:text-indigo-400 uppercase tracking-[0.4em] transition-all"
                     >
-                        {authMode === 'LOGIN' ? "Establish New Identity" : "Return to Log In"}
+                        {authMode === 'LOGIN' ? "Need an account? Sign Up" : "Have an account? Log In"}
                     </button>
                 </div>
                 </>

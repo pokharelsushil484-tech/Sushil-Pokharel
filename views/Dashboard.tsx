@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
-import { UserProfile, View, Note } from '../types';
+import React, { useState, useEffect } from 'react';
+import { UserProfile, View, Note, Expense } from '../types';
 import { 
   ShieldCheck, Database, 
   ChevronRight, RefreshCw,
-  CheckCircle2, Loader2, BadgeCheck, Send, Terminal, Activity, Cpu, Fingerprint, ShieldOff
+  CheckCircle2, Loader2, BadgeCheck, Send, Terminal, Activity, Wallet, ArrowUpRight, ArrowDownRight, TrendingDown
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 
@@ -15,28 +15,36 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate }) => {
-  const [integrityState, setIntegrityState] = useState<'IDLE' | 'SCANNING' | 'SECURE'>('IDLE');
   const [quickNote, setQuickNote] = useState('');
   const [isCommitting, setIsCommitting] = useState(false);
+  const [financials, setFinancials] = useState({ balance: 0, income: 0, expense: 0 });
 
-  const handleIntegrityCheck = () => {
-    setIntegrityState('SCANNING');
-    setTimeout(() => setIntegrityState('SECURE'), 2500);
-  };
+  useEffect(() => {
+    const fetchFinancials = async () => {
+        const stored = await storageService.getData(`architect_data_${username}`);
+        if (stored?.expenses) {
+            const exp: Expense[] = stored.expenses;
+            const income = exp.filter(e => e.type === 'INCOME').reduce((a, b) => a + b.amount, 0);
+            const expense = exp.filter(e => e.type === 'EXPENSE').reduce((a, b) => a + b.amount, 0);
+            setFinancials({ balance: income - expense, income, expense });
+        }
+    };
+    fetchFinancials();
+  }, [username]);
 
   const handleQuickCommit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!quickNote.trim() || user.isSuspended) return;
+    if (!quickNote.trim()) return;
     setIsCommitting(true);
     
     const newNote: Note = {
         id: Date.now().toString(),
-        title: "System Entry: " + quickNote.substring(0, 18) + "...",
+        title: "Manual Entry: " + quickNote.substring(0, 18),
         content: quickNote,
         date: new Date().toISOString(),
-        tags: ["MASTER_SYNC"],
-        status: 'COMPLETED',
-        author: 'admin'
+        tags: ["DASH_SYNC"],
+        status: 'PENDING',
+        author: 'user'
     };
 
     const stored = await storageService.getData(`architect_data_${username}`);
@@ -47,152 +55,111 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
     setTimeout(() => {
         setQuickNote('');
         setIsCommitting(false);
-    }, 800);
+    }, 600);
   };
 
   return (
-    <div className="space-y-12 sm:space-y-20 animate-platinum max-w-full">
-      {/* Executive Command Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10">
-        <div className="space-y-6 w-full">
-            <div className={`stark-badge inline-flex items-center space-x-4 ${user.isSuspended ? 'border-amber-500/30' : ''}`}>
-                <div className={`w-2 h-2 rounded-full animate-pulse shadow-[0_0_10px_current] ${user.isSuspended ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
-                <span>NODE: {username.toUpperCase()} {user.isSuspended ? '(LIMITED)' : ''}</span>
-            </div>
-            <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black text-white tracking-tighter uppercase italic leading-[0.85]">StudentPocket<br/><span className="text-indigo-600 not-italic">Infrastructure</span></h1>
-        </div>
+    <div className="space-y-10 animate-platinum max-w-full pb-20">
+      {/* Welcome Header */}
+      <div className="space-y-4">
+          <div className="stark-badge inline-flex items-center space-x-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+              <span>Session: {username.toUpperCase()}</span>
+          </div>
+          <h1 className="text-5xl sm:text-6xl font-black text-white tracking-tighter uppercase italic">
+            StudentPocket<br/><span className="text-indigo-600 not-italic">Dashboard</span>
+          </h1>
       </div>
 
-      {/* Suspension Alert if applicable */}
-      {user.isSuspended && (
-          <div className="p-8 bg-amber-500/10 border border-amber-500/20 rounded-[2.5rem] flex items-center justify-between">
-              <div className="flex items-center space-x-6">
-                  <div className="w-14 h-14 bg-amber-500/20 rounded-2xl flex items-center justify-center text-amber-500">
-                      <ShieldOff size={28} />
-                  </div>
-                  <div>
-                      <h4 className="text-white font-black uppercase italic tracking-widest leading-none mb-1 text-base">Node Functions Limited</h4>
-                      <p className="text-[10px] text-amber-500 font-bold uppercase tracking-[0.3em]">Pending Administrative Approval</p>
-                  </div>
+      {/* Financial Indicators - Professional Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="master-box p-8 bg-indigo-600 text-white border-none shadow-xl">
+              <div className="flex justify-between items-start mb-6">
+                  <Wallet size={24} />
+                  <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Liquidity</span>
               </div>
-              <button onClick={() => onNavigate(View.SUPPORT)} className="px-8 py-3 bg-amber-500 text-black font-black text-[10px] uppercase tracking-widest rounded-xl hover:scale-105 transition-transform">File Appeal</button>
+              <h3 className="text-3xl font-black italic">NPR {financials.balance.toLocaleString()}</h3>
+              <p className="text-[10px] font-bold uppercase tracking-widest mt-2 opacity-70">Total Available Funds</p>
           </div>
-      )}
+          <div className="master-box p-8 bg-white/5 border-emerald-500/20">
+              <div className="flex justify-between items-start mb-6">
+                  <ArrowUpRight size={24} className="text-emerald-500" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Inflow</span>
+              </div>
+              <h3 className="text-3xl font-black text-white italic">+{financials.income.toLocaleString()}</h3>
+              <p className="text-[10px] font-bold uppercase tracking-widest mt-2 text-emerald-500">Positive Delta</p>
+          </div>
+          <div className="master-box p-8 bg-white/5 border-red-500/20">
+              <div className="flex justify-between items-start mb-6">
+                  <TrendingDown size={24} className="text-red-500" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Outflow</span>
+              </div>
+              <h3 className="text-3xl font-black text-white italic">-{financials.expense.toLocaleString()}</h3>
+              <p className="text-[10px] font-bold uppercase tracking-widest mt-2 text-red-500">Expense Trend</p>
+          </div>
+      </div>
 
-      {/* Primary Intake Node */}
-      <div className={`master-box p-10 sm:p-20 relative group overflow-hidden ${user.isSuspended ? 'opacity-40 pointer-events-none' : ''}`}>
-        <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none">
-            <Fingerprint size={500} className="text-white" />
-        </div>
-        
-        <div className="relative z-10 space-y-12 sm:space-y-20">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-            <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center text-black shadow-2xl">
-                <BadgeCheck size={48} />
-            </div>
-            <div className="space-y-1">
-                <span className="inline-block bg-indigo-500/10 text-indigo-500 text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-[0.4em] border border-indigo-500/20">Clearance Level {user.level}</span>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">AUTHORIZED_ACCESS_GRANTED</p>
-            </div>
-          </div>
-          
+      {/* Primary Intake */}
+      <div className="master-box p-10 sm:p-16 relative overflow-hidden">
+        <div className="relative z-10 space-y-10">
           <div className="space-y-4">
-              <h2 className="text-5xl sm:text-7xl font-black tracking-tighter text-white leading-[0.85] uppercase">
-                System Active,<br/>
-                <span className="text-indigo-600 italic">{user.name.split(' ')[0]}</span>
+              <h2 className="text-4xl sm:text-5xl font-black tracking-tighter text-white uppercase leading-none">
+                Commit New<br/>
+                <span className="text-indigo-600 italic">Academic Entry</span>
               </h2>
           </div>
           
-          <form onSubmit={handleQuickCommit} className="max-w-3xl relative group">
-              <Terminal className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-700" size={24} />
+          <form onSubmit={handleQuickCommit} className="max-w-2xl relative group">
               <input 
                 type="text" 
                 value={quickNote}
                 onChange={e => setQuickNote(e.target.value)}
-                className="w-full bg-black/50 border border-white/10 rounded-2xl py-6 pl-16 pr-24 text-base font-bold text-white outline-none focus:border-indigo-500/50 transition-all placeholder:text-slate-800"
-                placeholder="EXECUTE DATA COMMAND..."
+                className="w-full bg-black/40 border border-white/10 rounded-2xl py-6 px-8 text-sm font-bold text-white outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800"
+                placeholder="TYPE A QUICK NOTE OR TASK..."
                 disabled={isCommitting}
               />
               <button 
                 type="submit" 
                 disabled={isCommitting || !quickNote.trim()}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white rounded-xl flex items-center justify-center text-black hover:bg-slate-200 disabled:opacity-10 transition-all shadow-xl"
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-xl flex items-center justify-center text-black hover:bg-slate-200 transition-all shadow-xl"
               >
-                {isCommitting ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
+                {isCommitting ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
               </button>
           </form>
 
           <div className="flex flex-wrap gap-4">
-             <button onClick={handleIntegrityCheck} className="px-10 py-5 bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] flex items-center justify-center hover:scale-105 transition-all shadow-xl">
-                <RefreshCw size={16} className="mr-4" /> Run System Audit
+             <button onClick={() => onNavigate(View.VERIFY_LINK)} className="px-8 py-4 bg-white text-black rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center hover:bg-slate-200 transition-all">
+                Plan My Day
              </button>
-             <button onClick={() => onNavigate(View.SUPPORT)} className="px-10 py-5 bg-white/5 text-white border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] flex items-center justify-center hover:bg-white/10 transition-all">
-                Access Support Node
+             <button onClick={() => onNavigate(View.FILE_HUB)} className="px-8 py-4 bg-white/5 text-white border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center hover:bg-white/10 transition-all">
+                Access Vault
              </button>
           </div>
         </div>
       </div>
 
-      {/* Grid Matrix */}
-      <div className={`grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 ${user.isSuspended ? 'grayscale blur-sm pointer-events-none' : ''}`}>
+      {/* Quick Navigation Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {[
-          { icon: Activity, title: "Strategic Roadmap", desc: "Global Milestones", view: View.VERIFY_LINK },
-          { icon: Database, title: "Secure Data Vault", desc: "Platinum Preservation", view: View.FILE_HUB }
+          { icon: Activity, title: "Study Planner", desc: "Track Assignments", view: View.VERIFY_LINK },
+          { icon: Database, title: "Data Fortress", desc: "Secure Files", view: View.FILE_HUB }
         ].map((item, idx) => (
           <div 
             key={idx} 
             onClick={() => onNavigate(item.view as View)}
-            className="master-box p-12 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40"
+            className="master-box p-10 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40"
           >
-            <div className="flex justify-between items-start mb-12 relative z-10">
-              <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white group-hover:text-black transition-all duration-500">
-                <item.icon size={28} />
+            <div className="flex justify-between items-center mb-8">
+              <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white group-hover:text-black transition-all">
+                <item.icon size={22} />
               </div>
-              <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
-                <ChevronRight size={20} className="text-white" />
-              </div>
+              <ChevronRight size={20} className="text-slate-700" />
             </div>
-            <div className="relative z-10 space-y-2">
-                <h3 className="text-3xl font-black text-white uppercase tracking-tighter italic">{item.title}</h3>
-                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.5em]">{item.desc}</p>
-            </div>
+            <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter">{item.title}</h3>
+            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">{item.desc}</p>
           </div>
         ))}
       </div>
-
-      {/* Audit Modal */}
-      {integrityState !== 'IDLE' && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-8 bg-black/95 backdrop-blur-xl">
-          <div className="w-full max-w-lg bg-slate-900 border border-white/10 rounded-[4rem] p-12 sm:p-20 text-center animate-scale-up shadow-2xl">
-             {integrityState === 'SCANNING' ? (
-               <div className="space-y-12">
-                 <div className="relative mx-auto w-24 h-24">
-                    <div className="absolute inset-0 border-4 border-indigo-500/10 rounded-full"></div>
-                    <div className="absolute inset-0 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <Cpu size={36} className="text-indigo-500 animate-pulse" />
-                    </div>
-                 </div>
-                 <div className="space-y-3">
-                    <h3 className="text-2xl font-black text-white uppercase italic">Infrastructure Scan</h3>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.5em] animate-pulse">Syncing Security Grid...</p>
-                 </div>
-               </div>
-             ) : (
-               <div className="space-y-12">
-                 <div className="w-20 h-20 bg-emerald-500/10 rounded-3xl flex items-center justify-center mx-auto text-emerald-500 border border-emerald-500/20">
-                    <CheckCircle2 size={40} />
-                 </div>
-                 <div className="space-y-2">
-                    <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter">Verified</h3>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.5em]">System Node v13.5 Stable</p>
-                 </div>
-                 <button onClick={() => setIntegrityState('IDLE')} className="btn-platinum py-5 shadow-xl">Dismiss</button>
-               </div>
-             )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
