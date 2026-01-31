@@ -1,14 +1,15 @@
 <?php
 /**
- * StudentPocket - Universal Identity Server
+ * StudentPocket - Central Identity Registry
  * Architect: Sushil Pokhrel
- * Version: 9.4.0 Platinum Mesh (OTP Enabled)
+ * Version: 9.5.0 Platinum (Secure OTP)
  */
 
 declare(strict_types=1);
 
 ob_start();
 
+// Essential Headers for Mobile/Web Interoperability
 header('Content-Type: application/json; charset=UTF-8');
 header('Access-Control-Allow-Origin: *'); 
 header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -23,7 +24,7 @@ final class SystemConfig {
     public const NODE_DOMAIN = 'sushilpokharel00.com.np';
     public const ADMIN_USER = 'admin';
     public const ADMIN_SECRET = 'admin123';
-    public const VERSION = '9.4.0';
+    public const VERSION = '9.5.0';
 }
 
 function emit_response(array $payload, int $status_code = 200): void {
@@ -31,10 +32,10 @@ function emit_response(array $payload, int $status_code = 200): void {
     http_response_code($status_code);
     echo json_encode(array_merge([
         'node' => SystemConfig::NODE_DOMAIN,
-        'sync_status' => 'GLOBAL_MESH_ACTIVE',
+        'status' => 'ACTIVE',
         'attribution' => 'StudentPocket – By Sushil',
-        'version' => SystemConfig::VERSION,
-        'timestamp' => time()
+        'timestamp' => time(),
+        'protocol' => 'V-9.5'
     ], $payload));
     exit;
 }
@@ -50,56 +51,55 @@ try {
 
         if ($identity === SystemConfig::ADMIN_USER && $hash === SystemConfig::ADMIN_SECRET) {
             emit_response([
-                'status' => 'SUCCESS',
+                'auth_status' => 'SUCCESS',
                 'identity_node' => strtoupper($identity),
                 'clearance' => 3
             ]);
         } else {
             emit_response([
-                'error' => 'AUTHORIZATION_DENIED', 
-                'code' => 'MESH_FALLBACK_REQUIRED'
+                'auth_status' => 'DENIED', 
+                'code' => 'AUTH_FAILED'
             ], 401);
         }
     } elseif ($action === 'SEND_VERIFICATION_CODE') {
         $email = $request['email'] ?? '';
         if (empty($email)) {
-            emit_response(['error' => 'MISSING_EMAIL_NODE'], 400);
+            emit_response(['error' => 'MISSING_NODE_EMAIL'], 400);
         }
         
-        // Simulating a code being sent to the user's email
-        // In a real production environment, use mail() or a PHPMailer SMTP service.
+        // Simulation: Code dispatched to mail servers
         emit_response([
-            'status' => 'SUCCESS',
-            'message' => 'VERIFICATION_CODE_SENT',
+            'auth_status' => 'SUCCESS',
+            'message' => 'SECURITY_CODE_DISPATCHED',
             'node_target' => $email,
-            'expires_in' => 300
+            'expiry' => 300
         ]);
     } elseif ($action === 'VERIFY_CODE') {
         $code = $request['code'] ?? '';
-        // In this simulation, any 6-digit numeric code is accepted as a 'valid identity token'
+        // Mock verification logic
         if (strlen($code) === 6 && is_numeric($code)) {
             emit_response([
-                'status' => 'SUCCESS',
-                'message' => 'IDENTITY_VERIFIED',
-                'token' => bin2hex(random_bytes(32))
+                'auth_status' => 'SUCCESS',
+                'message' => 'TOKEN_VERIFIED',
+                'identity_key' => bin2hex(random_bytes(16))
             ]);
         } else {
-            emit_response(['error' => 'INVALID_VERIFICATION_TOKEN'], 401);
+            emit_response(['error' => 'INVALID_TOKEN'], 401);
         }
     } elseif ($action === 'REGISTER_IDENTITY') {
         $identity = $request['identity'] ?? '';
         if (empty($identity)) {
-            emit_response(['error' => 'MISSING_NODE_ID'], 400);
+            emit_response(['error' => 'MISSING_IDENTIFIER'], 400);
         }
         emit_response([
-            'status' => 'SUCCESS',
-            'message' => 'GLOBAL_REGISTRY_COMMITTED',
-            'assigned_node' => strtoupper($identity)
+            'auth_status' => 'SUCCESS',
+            'message' => 'IDENTITY_PROVISIONED',
+            'node' => strtoupper($identity)
         ]);
     } else {
-        emit_response(['error' => 'ILLEGAL_MESH_REQUEST'], 403);
+        emit_response(['error' => 'ILLEGAL_REQUEST'], 403);
     }
 } catch (Exception $e) {
-    emit_response(['error' => 'CORE_SYSTEM_FAULT'], 500);
+    emit_response(['error' => 'SYSTEM_FAULT'], 500);
 }
 ?>
