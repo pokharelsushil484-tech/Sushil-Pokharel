@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, View } from '../types';
 import { ShieldCheck, User, Lock, RefreshCw, ArrowLeft, Mail, Phone, MapPin, KeyRound, AlertCircle, Terminal } from 'lucide-react';
@@ -129,8 +130,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
             <div className="bg-[#0a0a0a] backdrop-blur-3xl rounded-[4.5rem] shadow-2xl border border-white/10 overflow-hidden relative">
                 <div className={`absolute top-0 left-0 w-full h-2 ${request?.status === 'APPROVED' ? 'bg-emerald-500' : request?.status === 'REJECTED' ? 'bg-red-500' : 'bg-amber-500'}`}></div>
                 
-                {/* Master Scroll Box - Handles "many boxes" problem */}
-                <div className="scroll-box p-12 md:p-20">
+                <div className="p-12 md:p-20">
                     <div className="flex flex-col lg:flex-row items-center lg:items-start gap-16">
                         {/* Portrait Section */}
                         <div className="relative shrink-0">

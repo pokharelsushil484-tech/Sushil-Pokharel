@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest, View } from '../types';
 import { ShieldCheck, Loader2, ArrowLeft, Send, User, Lock, Copy, Check } from 'lucide-react';
@@ -74,7 +75,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
           verificationStatus: 'PENDING_APPROVAL',
           studentId: generatedStudentId,
           level: 0,
-          isVerified: false // Explicitly false until admin action
+          isVerified: false 
       };
       
       const dataKey = `architect_data_${username}`;
@@ -88,7 +89,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
   };
 
   if (successState) {
-    const fullLink = `https://www.${SYSTEM_DOMAIN}/v/${successState.linkId}`;
+    const fullLink = `${window.location.origin}/?v=${successState.linkId}`;
     return (
       <div className="max-w-xl mx-auto pt-16 animate-platinum pb-40">
         <div className="master-box p-12 text-center border border-indigo-500/30">
@@ -110,7 +111,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                         <div className="flex-1 p-4 bg-black rounded-xl text-[10px] text-slate-400 font-mono break-all border border-white/5 shadow-inner">
                             {fullLink}
                         </div>
-                        <button onClick={() => handleCopyLink(fullLink)} className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 transition-all border border-white/10 text-white">
+                        <button onClick={() => handleCopyLink(fullLink)} className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl hover:bg-white/10 transition-all border border-white/10 text-white">
                             {copied ? <Check size={20} className="text-emerald-500"/> : <Copy size={20}/>}
                         </button>
                     </div>
