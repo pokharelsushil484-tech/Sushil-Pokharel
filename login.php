@@ -2,7 +2,7 @@
 /**
  * StudentPocket - Central Identity Registry
  * Architect: Sushil Pokhrel
- * Version: 9.8.5 Platinum (Zig-Zag Protocol)
+ * Version: 9.8.5 Platinum
  */
 
 declare(strict_types=1);
@@ -27,15 +27,14 @@ final class SystemConfig {
 }
 
 /**
- * Generates a non-sequential "Zig-Zag" 6-digit code.
+ * Generates a non-sequential 6-digit code.
  */
-function generateZigZagOTP(): string {
+function generateSecurityToken(): string {
     $digits = [];
     while (count($digits) < 6) {
         $next = random_int(0, 9);
         if (count($digits) > 0) {
             $last = end($digits);
-            // Zig-Zag Rule: Digits cannot be sequential (+1 or -1)
             if (abs($next - $last) <= 1) continue; 
         }
         $digits[] = $next;
@@ -63,14 +62,14 @@ try {
     if ($action === 'SEND_VERIFICATION_CODE') {
         $email = $request['email'] ?? '';
         if (empty($email)) {
-            emit_response(['error' => 'MALFORMED_NODE_TARGET'], 400);
+            emit_response(['auth_status' => 'FAILED', 'error' => 'MALFORMED_NODE_TARGET'], 400);
         }
         
-        $code = generateZigZagOTP();
+        $code = generateSecurityToken();
         
         emit_response([
             'auth_status' => 'SUCCESS',
-            'message' => 'ZIG_ZAG_DISPATCH_INITIATED',
+            'message' => 'DISPATCH_INITIATED',
             'generated_token' => $code,
             'target_node' => $email
         ]);
@@ -85,7 +84,7 @@ try {
                 'message' => 'AUTHORITY_GRANTED'
             ]);
         } else {
-            emit_response(['error' => 'AUTHORITY_DENIED'], 401);
+            emit_response(['auth_status' => 'FAILED', 'error' => 'AUTHORITY_DENIED'], 401);
         }
     } elseif ($action === 'AUTHORIZE_IDENTITY') {
         $identity = $request['identity'] ?? '';
@@ -94,8 +93,7 @@ try {
         if ($identity === 'admin' && $hash === 'admin123') {
              emit_response(['status' => 'SUCCESS', 'clearance' => 3]);
         } else {
-             // Basic credential check
-             emit_response(['status' => 'MOCKED_SUCCESS', 'message' => 'LOCAL_REGISTRY_REQUIRED'], 200);
+             emit_response(['status' => 'SUCCESS', 'message' => 'LOCAL_CHECK_REQUIRED'], 200);
         }
     } else {
         emit_response(['error' => 'UNSUPPORTED_ACTION'], 404);

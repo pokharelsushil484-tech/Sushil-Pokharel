@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Navigation } from '../components/Navigation';
 import { Dashboard } from './Dashboard';
@@ -16,7 +15,7 @@ import { View, UserProfile, VaultDocument, Assignment, Expense } from '../types'
 import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
-import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, Mail, CheckCircle2, ArrowRight, Globe, Fingerprint, ShieldAlert, BadgeCheck, AlertCircle, Cpu, User, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, Mail, CheckCircle2, ArrowRight, Fingerprint, ShieldAlert, BadgeCheck, AlertCircle, Cpu, User, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -87,6 +86,7 @@ const App = () => {
 
   const dispatchToken = async (targetEmail: string) => {
     setIsLoading(true);
+    setAuthError('');
     try {
         const res = await fetch('/login.php', {
             method: 'POST',
@@ -103,7 +103,7 @@ const App = () => {
             setAuthError('REGISTRY_SYNC_FAILED');
         }
     } catch (err) {
-        // Safe Fallback for offline environments
+        // Fallback simulation for local/offline environments
         const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
         setServerSideOtp(mockCode);
         await emailService.sendInstitutionalMail(targetEmail, mockCode);
@@ -177,7 +177,7 @@ const App = () => {
                 }
             }
         } else {
-            setAuthError('INVALID_IDENT_TOKEN');
+            setAuthError('INVALID_ACCESS_TOKEN');
         }
     }
   };
@@ -191,7 +191,7 @@ const App = () => {
 
   const handleLogout = () => {
       sessionStorage.removeItem('active_session_user');
-      window.location.href = '/';
+      window.location.reload();
   };
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
@@ -209,7 +209,7 @@ const App = () => {
         </div>
         
         <div className="relative z-10 w-full max-w-lg animate-platinum">
-          <div className="master-box p-10 sm:p-16 border border-white/5 space-y-12 bg-black/40 backdrop-blur-xl shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)]">
+          <div className="master-box p-10 sm:p-16 border border-white/5 space-y-12 bg-black/40 backdrop-blur-xl">
               {registrationSuccess ? (
                 <div className="text-center space-y-10 animate-scale-up">
                     <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
@@ -217,7 +217,7 @@ const App = () => {
                     </div>
                     <div className="space-y-3">
                         <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">Node Active</h2>
-                        <p className="text-sm text-slate-400 font-medium tracking-widest uppercase">Identity Committed.<br/>Return to main terminal.</p>
+                        <p className="text-sm text-slate-400 font-medium tracking-widest uppercase">Identity Committed.<br/>Return to terminal.</p>
                     </div>
                     <button 
                         onClick={() => { setRegistrationSuccess(false); setAuthMode('LOGIN'); setAuthStep('CREDENTIALS'); setUserId(''); setPassword(''); }}
@@ -229,13 +229,13 @@ const App = () => {
               ) : (
                 <>
                 <div className="text-center space-y-6">
-                    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-2xl transform -rotate-3">
+                    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-2xl">
                         <ShieldCheck size={48} className="text-black" />
                     </div>
                     <div className="space-y-1">
                         <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">{APP_NAME}</h1>
                         <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.6em]">
-                            {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'Authorized Access' : 'Create Identity Node') : 'Token Confirmation'}
+                            {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'Secure Login' : 'Provision Identity') : 'Token Verification'}
                         </p>
                     </div>
                 </div>
@@ -252,7 +252,7 @@ const App = () => {
                             </div>
                             <div className="relative group">
                                 <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
-                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="INSTITUTIONAL MAIL NODE" required />
+                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="INSTITUTIONAL EMAIL" required />
                             </div>
                             </>
                         )}
@@ -272,12 +272,12 @@ const App = () => {
                         <div className="space-y-8 animate-slide-up">
                             <div className="bg-indigo-500/5 border border-indigo-500/20 p-8 rounded-3xl space-y-4">
                                 <div className="flex items-center gap-4">
-                                    <Fingerprint size={28} className="text-indigo-500 animate-pulse" />
-                                    <p className="text-[10px] text-slate-400 font-black leading-relaxed uppercase tracking-widest">
-                                        Token dispatched via mail client. Retrieve the 6-digit sequence to authorize session.
+                                    <Fingerprint size={28} className="text-indigo-500" />
+                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-relaxed">
+                                        Identity token dispatched via mail client. Retrieve the 6-digit sequence to authorize this session.
                                     </p>
                                 </div>
-                                <button type="button" onClick={handleResend} className="text-[9px] font-black text-indigo-500 hover:text-white transition-all uppercase tracking-widest disabled:opacity-30" disabled={resendCooldown > 0}>
+                                <button type="button" onClick={handleResend} className="text-[9px] font-black text-indigo-500 hover:text-white transition-all uppercase tracking-widest" disabled={resendCooldown > 0}>
                                     {resendCooldown > 0 ? `Resend Token in ${resendCooldown}s` : "Request New Token Node"}
                                 </button>
                             </div>
@@ -286,7 +286,7 @@ const App = () => {
                                 value={otpCode} 
                                 onChange={e => setOtpCode(e.target.value)} 
                                 maxLength={6}
-                                className="w-full p-6 bg-black border border-indigo-500/30 rounded-3xl text-center text-3xl font-mono font-bold tracking-[0.5em] text-white outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800 shadow-inner"
+                                className="w-full p-6 bg-black border border-indigo-500/30 rounded-3xl text-center text-3xl font-mono font-bold tracking-[0.5em] text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
                                 placeholder="000000"
                                 required
                             />
@@ -300,9 +300,9 @@ const App = () => {
                     </div>
                     )}
 
-                    <button type="submit" className="btn-platinum py-5 text-xs flex items-center justify-center gap-3 shadow-2xl">
+                    <button type="submit" className="btn-platinum py-5 text-xs flex items-center justify-center gap-3">
                         {authStep === 'CREDENTIALS' ? <LogIn size={18} /> : <Cpu size={18} />}
-                        {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'Authorize Identity' : 'Dispatch Token') : 'Commit Token'}
+                        {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'Initialize Auth' : 'Generate Token') : 'Verify Sequence'}
                     </button>
                 </form>
 
@@ -312,11 +312,11 @@ const App = () => {
                         onClick={() => { setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setAuthStep('CREDENTIALS'); setAuthError(''); }}
                         className="text-[9px] font-black text-slate-500 hover:text-indigo-400 uppercase tracking-[0.4em] transition-all"
                     >
-                        {authStep === 'OTP' ? "Abort Authentication" : (authMode === 'LOGIN' ? "Provision New Identity" : "Already Verified? Login")}
+                        {authStep === 'OTP' ? "Cancel Verification" : (authMode === 'LOGIN' ? "Provision New Identity" : "Already Registered? Login")}
                     </button>
                     <div className="flex items-center space-x-3 opacity-30">
                         {networkStatus === 'ONLINE' ? <Wifi size={10} className="text-emerald-500"/> : <WifiOff size={10} className="text-red-500"/>}
-                        <span className="text-[8px] font-black text-white uppercase tracking-widest italic">{networkStatus} REGISTRY SYNC</span>
+                        <span className="text-[8px] font-black text-white uppercase tracking-widest italic">{networkStatus} SYNC MESH</span>
                     </div>
                 </div>
                 </>
