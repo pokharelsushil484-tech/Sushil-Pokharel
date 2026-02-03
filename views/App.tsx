@@ -13,7 +13,7 @@ import { Footer } from '../components/Footer';
 import { VerificationForm } from './VerificationForm';
 import { LinkVerification } from './LinkVerification';
 import { View, UserProfile, VaultDocument, Assignment, Expense } from '../types';
-import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME } from '../constants';
+import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
 import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, Mail, CheckCircle2, ArrowRight, Fingerprint, ShieldAlert, BadgeCheck, AlertCircle, Cpu, User, Wifi, WifiOff, RefreshCw } from 'lucide-react';
@@ -49,7 +49,14 @@ const App = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const vLink = params.get('v');
+    const verifyNodeToken = params.get('verify_node');
+    
     if (vLink) setVerifyLinkId(vLink);
+    
+    // Auto-verify email node if token exists in URL
+    if (verifyNodeToken) {
+        handleEmailAutoVerify(verifyNodeToken);
+    }
 
     const updateStatus = () => setNetworkStatus(navigator.onLine ? 'ONLINE' : 'OFFLINE');
     window.addEventListener('online', updateStatus);
@@ -59,6 +66,20 @@ const App = () => {
         window.removeEventListener('offline', updateStatus);
     };
   }, []);
+
+  const handleEmailAutoVerify = async (token: string) => {
+      const username = sessionStorage.getItem('active_session_user');
+      if (username) {
+          const dataKey = `architect_data_${username}`;
+          const stored = await storageService.getData(dataKey);
+          if (stored && stored.user) {
+              stored.user.emailVerified = true;
+              await storageService.setData(dataKey, stored);
+              setUser(stored.user);
+              alert("Communication Node Verified Successfully.");
+          }
+      }
+  };
 
   useEffect(() => {
       if (resendCooldown > 0) {
@@ -99,7 +120,7 @@ const App = () => {
         const data = await res.json();
         if (data.auth_status === 'SUCCESS') {
             setServerSideOtp(data.generated_token);
-            await emailService.sendInstitutionalMail(data.target_node, data.generated_token);
+            await emailService.sendInstitutionalMail(data.target_node, data.generated_token, 'AUTH');
             setAuthStep('OTP');
         } else {
             setAuthError('REGISTRY_SYNC_FAILED');
@@ -107,7 +128,7 @@ const App = () => {
     } catch (err) {
         const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
         setServerSideOtp(mockCode);
-        await emailService.sendInstitutionalMail(targetEmail, mockCode);
+        await emailService.sendInstitutionalMail(targetEmail, mockCode, 'AUTH');
         setAuthStep('OTP');
     }
     setIsLoading(false);
@@ -162,18 +183,15 @@ const App = () => {
             return;
         }
         
-        // Registry Sync for existing users
         const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
         if (authMode === 'LOGIN') {
             if (localUsers[inputId] && localUsers[inputId].password === inputPass) {
-                // Trigger 2FA if enabled
                 const target = localUsers[inputId].email || inputId + "@" + SYSTEM_DOMAIN;
                 await dispatchToken(target);
             } else {
                 setAuthError('AUTH_DENIED: IDENTITY_MISMATCH');
             }
         } else {
-            // SIGNUP FLOW
             await dispatchToken(email);
         }
     } else {

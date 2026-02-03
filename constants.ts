@@ -1,36 +1,36 @@
 
-import { UserProfile } from './types';
+// Fix: Import View enum to support FOOTER_LINKS definition
+import { UserProfile, View } from './types';
 
 export const APP_NAME = "StudentPocket";
-export const APP_TAGLINE = "Platinum Institutional Ecosystem";
+export const APP_TAGLINE = "Titanium Privacy Infrastructure";
 export const CREATOR_NAME = "Sushil Pokhrel";
-export const APP_VERSION = "v14.0.0 Platinum Security Update";
+export const APP_VERSION = "v15.0.0 Titanium Update";
 export const BUILD_DATE = "2024 - 2026 Enterprise Cycle";
 
-export const COPYRIGHT_NOTICE = "© 2024 - 2026 StudentPocket Infrastructure. All Rights Reserved.";
-export const LEGAL_TERMS = "Institutional Data Protocol Active. Unauthorized access prohibited.";
+export const COPYRIGHT_NOTICE = "© 2024 - 2026 StudentPocket. All Rights Reserved.";
+export const LEGAL_TERMS = "Institutional Data Protocol Active. Privacy Secured via Titanium Mesh.";
 export const FOOTER_SIGNATURE = "System Architecture by Sushil Pokhrel";
 
-export const WATERMARK = "STP-PRO-SUSHIL-2026";
+export const WATERMARK = "STP-TITANIUM-SUSHIL-2026";
 export const ADMIN_USERNAME = "admin";
 export const ADMIN_SECRET = "admin123";
 export const ADMIN_EMAIL = "support@sushilpokharel00.com.np";
 export const SYSTEM_DOMAIN = "sushilpokharel00.com.np";
-export const SYSTEM_UPGRADE_TOKEN = "SP-PLATINUM-V14.0";
+export const SYSTEM_UPGRADE_TOKEN = "SP-TITANIUM-V15.0";
 
-export const VERIFIED_LABEL = "VERIFIED_INSTITUTIONAL_NODE";
-
+// Fix: Added missing FOOTER_LINKS export required by components/Footer.tsx
 export const FOOTER_LINKS = {
   internal: [
-    { label: "Executive Dashboard", view: "DASHBOARD" },
-    { label: "Secure Vault", view: "FILE_HUB" },
-    { label: "Admin Comms", view: "SUPPORT" },
-    { label: "System Config", view: "SETTINGS" }
+    { label: 'CONTROL CENTER', view: View.DASHBOARD },
+    { label: 'STRATEGIC MAP', view: View.VERIFY_LINK },
+    { label: 'DATA FORTRESS', view: View.FILE_HUB },
+    { label: 'COMMS RELAY', view: View.SUPPORT },
   ],
   academic: [
-    { label: "Digital Archive", href: `https://www.${SYSTEM_DOMAIN}/archive` },
-    { label: "Registrar Node", href: `https://www.${SYSTEM_DOMAIN}/registrar` },
-    { label: "Legal Matrix", href: `https://www.${SYSTEM_DOMAIN}/legal` }
+    { label: 'Research Gateway', href: 'https://scholar.google.com' },
+    { label: 'Institutional Library', href: '#' },
+    { label: 'Academic Archive', href: '#' }
   ]
 };
 
