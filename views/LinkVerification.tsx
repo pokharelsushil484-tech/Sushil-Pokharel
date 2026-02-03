@@ -81,6 +81,8 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
     
     if (stored && stored.user) {
         const targetEmail = stored.user.email;
+        const targetUsername = request.username; // Use username from the request object
+
         stored.user.isVerified = action === 'APPROVE';
         stored.user.verificationStatus = action === 'APPROVE' ? 'VERIFIED' : 'REJECTED';
         
@@ -93,8 +95,8 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
         localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
 
         if (action === 'APPROVE') {
-            // Dispatch success mail
-            await emailService.sendInstitutionalMail(targetEmail, 'NODE_ACTIVE', 'SUCCESS');
+            // Dispatch success mail with user email and auto-generated username
+            await emailService.sendInstitutionalMail(targetEmail, 'NODE_ACTIVE', 'SUCCESS', targetUsername);
         }
         
         alert(`NODE IDENTITY ${action === 'APPROVE' ? 'AUTHORIZED' : 'REJECTED'}. Dispatching Notification.`);
@@ -158,7 +160,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                     </div>
                 </div>
                 <button onClick={() => window.location.href = '/'} className="px-8 py-3 bg-white/5 text-slate-400 hover:text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.4em] border border-white/5 transition-all flex items-center group">
-                    <ArrowLeft size={16} className="mr-3 group-hover:-translate-x-1 transition-transform"/> Close Session
+                    <ArrowLeft size={16} className="mr-3 group-hover:-translate-x-1 transition-transform" /> Close Session
                 </button>
             </div>
 

@@ -119,6 +119,7 @@ const App = () => {
         const data = await res.json();
         if (data.auth_status === 'SUCCESS') {
             setServerSideOtp(data.generated_token);
+            // Ensure username is passed to greeting
             await emailService.sendInstitutionalMail(data.target_node, data.generated_token, 'AUTH', targetUsername);
             setAuthStep('OTP');
         } else {
