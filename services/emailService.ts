@@ -1,57 +1,105 @@
 
 /**
- * StudentPocket - Archon Identity Dispatch System
+ * StudentPocket - Archon Administrative Relay System
  * Architect: Sushil Pokhrel
  */
 import { ADMIN_EMAIL } from '../constants';
 
+export type DispatchType = 
+    | 'OTP_REQUEST' 
+    | 'VERIFY_REQUEST' 
+    | 'VERIFIED_NOTICE' 
+    | 'BAN_NOTICE' 
+    | 'TERMINATION_NOTICE' 
+    | 'DELETION_NOTICE' 
+    | 'SYSTEM_UPDATE';
+
 export const emailService = {
     /**
-     * Dispatches verification, auth tokens, or success notifications.
-     * VERIFY and AUTH (Request) types are sent TO the Admin for processing.
-     * SUCCESS notifications are composed for the User.
+     * Prepares institutional dispatches for the Administrator.
+     * All 'mailto' links are addressed exclusively to pokharelsushil242@gmail.com.
      */
-    async sendInstitutionalMail(to: string, code: string, type: 'AUTH' | 'VERIFY' | 'SUCCESS' = 'AUTH', username: string = 'Unknown'): Promise<void> {
+    async sendInstitutionalMail(
+        targetUserEmail: string, 
+        payload: string, 
+        type: DispatchType = 'OTP_REQUEST', 
+        username: string = 'Unknown Node'
+    ): Promise<void> {
         let subjectText = "";
         let bodyText = "";
-        let recipient = to;
-        
         const upperUser = username.toUpperCase();
+        
+        // As per instructions: The recipient is ONLY the admin's email.
+        const recipient = ADMIN_EMAIL;
 
-        if (type === 'VERIFY') {
-            // Student requesting verification FROM Admin
-            recipient = ADMIN_EMAIL;
-            subjectText = `AUDIT REQUIRED: Node Verification Request - ${upperUser}`;
-            bodyText = `INSTITUTIONAL AUDIT PROTOCOL\n\n` +
-                `ADMINISTRATOR ACTION REQUIRED\n\n` +
-                `Identity Intake Submission for:\n` +
-                `USERNAME: ${upperUser}\n` +
-                `CONTACT: ${to}\n\n` +
-                `VERIFICATION TOKEN: ${code}\n` +
-                `AUDIT LINK: ${window.location.origin}/?v=${code}\n\n` +
-                `Please authenticate via the Master Node to grant clearance.\n\n` +
-                `--- End of Dispatch ---`;
-        } else if (type === 'SUCCESS') {
-            // Admin notifying Student of success
-            subjectText = `CLEARANCE GRANTED: Institutional Node Verified - ${upperUser}`;
-            bodyText = `INSTITUTIONAL CLEARANCE NOTIFICATION\n\n` +
-                `Dear user ${upperUser},\n\n` +
-                `Your identity node has been authorized by the Master Architect (poojalsushil2424@gmail.com).\n\n` +
-                `STATUS: ACTIVE\n` +
-                `LEVEL: TITANIUM\n\n` +
-                `Your StudentPocket environment is now fully synchronized.\n\n` +
-                `--- End of Dispatch ---`;
-        } else {
-            // 2FA Auth token - Request sent TO Admin or User depending on local node state
-            // As per instruction: "The 'mail to' recipient is only the admin's email" for requests.
-            recipient = ADMIN_EMAIL;
-            subjectText = `SECURITY TOKEN REQUEST: Access Authorization - ${upperUser}`;
-            bodyText = `INSTITUTIONAL ACCESS PROTOCOL\n\n` +
-                `Dear user ${upperUser},\n\n` +
-                `A security access token has been generated for your node session.\n\n` +
-                `ACCESS TOKEN: ${code}\n\n` +
-                `Admin Authorization: poojalsushil2424@gmail.com\n\n` +
-                `--- End of Dispatch ---`;
+        // Core Greeting Header
+        const greeting = `INSTITUTIONAL DISPATCH PROTOCOL\n\nDear user ${upperUser},\n\n`;
+        const footer = `\n\nAuthorized Archive: pokharelsushil242@gmail.com\n--- End of Dispatch ---`;
+
+        switch (type) {
+            case 'OTP_REQUEST':
+                subjectText = `ACCESS TOKEN REQUEST: Authentication Node - ${upperUser}`;
+                bodyText = greeting +
+                    `A two-factor authentication sequence has been generated for your session.\n\n` +
+                    `VERIFICATION OTP: ${payload}\n\n` +
+                    `Please enter this sequence into your terminal to authorize access.` +
+                    footer;
+                break;
+
+            case 'VERIFY_REQUEST':
+                subjectText = `IDENTITY AUDIT: Intake Submission - ${upperUser}`;
+                bodyText = `ADMIN ACTION REQUIRED\n\n` +
+                    `The following node has submitted an identity intake form for verification:\n` +
+                    `USERNAME: ${upperUser}\n` +
+                    `CONTACT NODE: ${targetUserEmail}\n\n` +
+                    `VERIFICATION TOKEN: ${payload}\n` +
+                    `AUDIT LINK: ${window.location.origin}/?v=${payload}\n\n` +
+                    `Composition required by Master Node.` +
+                    footer;
+                break;
+
+            case 'VERIFIED_NOTICE':
+                subjectText = `CLEARANCE GRANTED: Node Verified - ${upperUser}`;
+                bodyText = greeting +
+                    `Your identity node has been successfully verified by the Master Architect.\n\n` +
+                    `STATUS: ACTIVE / PLATINUM\n` +
+                    `Your communication node ${targetUserEmail} is now fully synchronized.` +
+                    footer;
+                break;
+
+            case 'BAN_NOTICE':
+                subjectText = `PROTOCOL VIOLATION: Node Banned - ${upperUser}`;
+                bodyText = greeting +
+                    `Your access to the StudentPocket mesh has been restricted due to a protocol violation.\n\n` +
+                    `REASON: ${payload}\n` +
+                    `STATUS: BANNED` +
+                    footer;
+                break;
+
+            case 'TERMINATION_NOTICE':
+                subjectText = `CRITICAL FAILURE: Node Terminated - ${upperUser}`;
+                bodyText = greeting +
+                    `A critical security infraction has been detected. Your identity node has been terminated.\n\n` +
+                    `ACTION: SYSTEM PURGE\n` +
+                    `REASON: ${payload}` +
+                    footer;
+                break;
+
+            case 'DELETION_NOTICE':
+                subjectText = `REGISTRY CLEANUP: Node Deleted - ${upperUser}`;
+                bodyText = greeting +
+                    `Your identity node and all associated data segments have been permanently deleted from the central registry.\n\n` +
+                    `CONFIRMATION: ${payload}` +
+                    footer;
+                break;
+
+            case 'SYSTEM_UPDATE':
+                subjectText = `SYSTEM ANNOUNCEMENT: Mesh Update - ${upperUser}`;
+                bodyText = greeting +
+                    `The Master Architect has released a new system update for the StudentPocket infrastructure.\n\n` +
+                    `DETAILS: ${payload}` +
+                    footer;
+                break;
         }
 
         const subject = encodeURIComponent(subjectText);

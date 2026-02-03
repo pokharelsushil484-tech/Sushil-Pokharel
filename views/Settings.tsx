@@ -44,7 +44,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, onLogout, username, up
   const handleVerifyEmailNode = async () => {
       setIsVerifyingEmail(true);
       const verifyToken = Math.random().toString(36).substring(2, 8).toUpperCase();
-      await emailService.sendInstitutionalMail(user.email, verifyToken, 'VERIFY');
+      // Fix: Argument of type '"VERIFY"' is not assignable to parameter of type 'DispatchType'.
+      await emailService.sendInstitutionalMail(user.email, verifyToken, 'VERIFY_REQUEST');
       alert("Verification Protocol Dispatched to: " + user.email);
       setIsVerifyingEmail(false);
   };

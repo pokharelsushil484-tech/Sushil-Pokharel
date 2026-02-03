@@ -16,7 +16,7 @@ export const WATERMARK = "STP-TITANIUM-SUSHIL-2026";
 export const ADMIN_USERNAME = "admin";
 export const ADMIN_SECRET = "admin123";
 // Authorized Administrative Recipient
-export const ADMIN_EMAIL = "poojalsushil2424@gmail.com";
+export const ADMIN_EMAIL = "pokharelsushil242@gmail.com";
 export const SYSTEM_DOMAIN = "sushilpokharel00.com.np";
 export const SYSTEM_UPGRADE_TOKEN = "SP-TITANIUM-V15.2";
 

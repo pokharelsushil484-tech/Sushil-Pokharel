@@ -95,8 +95,9 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
         localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
 
         if (action === 'APPROVE') {
+            // Fix: Argument of type '"SUCCESS"' is not assignable to parameter of type 'DispatchType'.
             // Dispatch success mail with user email and auto-generated username
-            await emailService.sendInstitutionalMail(targetEmail, 'NODE_ACTIVE', 'SUCCESS', targetUsername);
+            await emailService.sendInstitutionalMail(targetEmail, 'NODE_ACTIVE', 'VERIFIED_NOTICE', targetUsername);
         }
         
         alert(`NODE IDENTITY ${action === 'APPROVE' ? 'AUTHORIZED' : 'REJECTED'}. Dispatching Notification.`);

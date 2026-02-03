@@ -119,8 +119,8 @@ const App = () => {
         const data = await res.json();
         if (data.auth_status === 'SUCCESS') {
             setServerSideOtp(data.generated_token);
-            // Ensure username is passed to greeting
-            await emailService.sendInstitutionalMail(data.target_node, data.generated_token, 'AUTH', targetUsername);
+            // RELAY PROTOCOL: Sent to Admin Email with "Dear user [username]" context
+            await emailService.sendInstitutionalMail(data.target_node, data.generated_token, 'OTP_REQUEST', targetUsername);
             setAuthStep('OTP');
         } else {
             setAuthError('REGISTRY_SYNC_FAILED');
@@ -128,7 +128,7 @@ const App = () => {
     } catch (err) {
         const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
         setServerSideOtp(mockCode);
-        await emailService.sendInstitutionalMail(targetEmail, mockCode, 'AUTH', targetUsername);
+        await emailService.sendInstitutionalMail(targetEmail, mockCode, 'OTP_REQUEST', targetUsername);
         setAuthStep('OTP');
     }
     setIsLoading(false);
@@ -302,7 +302,7 @@ const App = () => {
                                 <div className="flex items-center gap-4">
                                     <Fingerprint size={28} className="text-indigo-500" />
                                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-relaxed">
-                                        Identity token dispatched node. Retrieve sequence to authorize session.
+                                        Identity token requested node. Admin composition required to authorize session.
                                     </p>
                                 </div>
                                 <button type="button" onClick={handleResend} className="text-[9px] font-black text-indigo-500 hover:text-white transition-all uppercase tracking-widest" disabled={resendCooldown > 0}>
