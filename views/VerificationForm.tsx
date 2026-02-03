@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest, View } from '../types';
 import { ShieldCheck, Loader2, ArrowLeft, Send, User, Lock, Copy, Check, Globe, Cpu, Mail, Phone } from 'lucide-react';
@@ -168,8 +167,9 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
                 <div className="space-y-3">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4 italic">Communication Node</label>
                     <div className="relative">
-                        <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-700" size={18} />
-                        <input type="email" value={formData.email} onChange={e => setEmail(e.target.value)} className="w-full pl-16 pr-6 py-5 bg-white/5 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="EMAIL" required />
+                        <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                        {/* Fix: Use setFormData to update the email property in the state object as setEmail is not defined. */}
+                        <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full pl-16 pr-6 py-5 bg-white/5 border border-white/10 rounded-2xl py-5 pl-16 pr-6 text-white font-bold text-xs outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="EMAIL" required />
                     </div>
                 </div>
             </div>
