@@ -24,6 +24,9 @@ export interface UserProfile {
   email: string;
   phone: string;
   isVerified: boolean;
+  emailVerified: boolean;
+  twoFactorEnabled: boolean;
+  privacyLevel: 'STANDARD' | 'MAXIMUM' | 'STEALTH';
   isSuspended?: boolean;
   isSuspicious: boolean;
   level: number;

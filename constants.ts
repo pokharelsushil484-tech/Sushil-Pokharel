@@ -1,9 +1,10 @@
+
 import { UserProfile } from './types';
 
 export const APP_NAME = "StudentPocket";
 export const APP_TAGLINE = "Platinum Institutional Ecosystem";
 export const CREATOR_NAME = "Sushil Pokhrel";
-export const APP_VERSION = "v13.5.0 Platinum Unified";
+export const APP_VERSION = "v14.0.0 Platinum Security Update";
 export const BUILD_DATE = "2024 - 2026 Enterprise Cycle";
 
 export const COPYRIGHT_NOTICE = "© 2024 - 2026 StudentPocket Infrastructure. All Rights Reserved.";
@@ -15,9 +16,8 @@ export const ADMIN_USERNAME = "admin";
 export const ADMIN_SECRET = "admin123";
 export const ADMIN_EMAIL = "support@sushilpokharel00.com.np";
 export const SYSTEM_DOMAIN = "sushilpokharel00.com.np";
-export const SYSTEM_UPGRADE_TOKEN = "SP-PLATINUM-V13.5";
+export const SYSTEM_UPGRADE_TOKEN = "SP-PLATINUM-V14.0";
 
-// Added missing VERIFIED_LABEL to satisfy import in views/Dashboard.tsx
 export const VERIFIED_LABEL = "VERIFIED_INSTITUTIONAL_NODE";
 
 export const FOOTER_LINKS = {
@@ -39,6 +39,9 @@ export const DEFAULT_USER: UserProfile = {
   email: `user@${SYSTEM_DOMAIN}`,
   phone: "+977 0000000000",
   isVerified: false,
+  emailVerified: false,
+  twoFactorEnabled: true,
+  privacyLevel: 'STANDARD',
   isSuspicious: false,
   level: 1,
   verificationStatus: 'NONE',

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Navigation } from '../components/Navigation';
 import { Dashboard } from './Dashboard';
@@ -73,6 +74,7 @@ const App = () => {
             ...DEFAULT_USER,
             name: "Lead Architect",
             isVerified: true,
+            emailVerified: true,
             level: 3,
             verificationStatus: 'VERIFIED'
         });
@@ -103,7 +105,6 @@ const App = () => {
             setAuthError('REGISTRY_SYNC_FAILED');
         }
     } catch (err) {
-        // Fallback simulation for local/offline environments
         const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
         setServerSideOtp(mockCode);
         await emailService.sendInstitutionalMail(targetEmail, mockCode);
@@ -127,6 +128,8 @@ const App = () => {
             name: fullName || inputId,
             email: email || `node@${SYSTEM_DOMAIN}`,
             isVerified: false,
+            emailVerified: false,
+            twoFactorEnabled: true,
             verificationStatus: 'NONE',
             level: 1,
             studentId: `SP-${Math.floor(100000 + Math.random() * 900000)}`,
@@ -158,23 +161,30 @@ const App = () => {
             setIsLoggedIn(true);
             return;
         }
-        const target = authMode === 'SIGNUP' ? email : inputId + "@" + SYSTEM_DOMAIN;
-        await dispatchToken(target);
+        
+        // Registry Sync for existing users
+        const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
+        if (authMode === 'LOGIN') {
+            if (localUsers[inputId] && localUsers[inputId].password === inputPass) {
+                // Trigger 2FA if enabled
+                const target = localUsers[inputId].email || inputId + "@" + SYSTEM_DOMAIN;
+                await dispatchToken(target);
+            } else {
+                setAuthError('AUTH_DENIED: IDENTITY_MISMATCH');
+            }
+        } else {
+            // SIGNUP FLOW
+            await dispatchToken(email);
+        }
     } else {
         if (otpCode === serverSideOtp || (otpCode === '888888' && networkStatus === 'OFFLINE')) {
             if (authMode === 'SIGNUP') {
                 await finalizeLocalRegistration(inputId);
             } else {
-                const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
-                if (localUsers[inputId] && localUsers[inputId].password === inputPass) {
-                    sessionStorage.setItem('active_session_user', inputId);
-                    setActiveUser(inputId);
-                    await loadUserData(inputId);
-                    setIsLoggedIn(true);
-                } else {
-                    setAuthError('AUTH_DENIED: IDENTITY_MISMATCH');
-                    setAuthStep('CREDENTIALS');
-                }
+                sessionStorage.setItem('active_session_user', inputId);
+                setActiveUser(inputId);
+                await loadUserData(inputId);
+                setIsLoggedIn(true);
             }
         } else {
             setAuthError('INVALID_ACCESS_TOKEN');
@@ -229,13 +239,13 @@ const App = () => {
               ) : (
                 <>
                 <div className="text-center space-y-6">
-                    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-2xl">
+                    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-2xl transform -rotate-3">
                         <ShieldCheck size={48} className="text-black" />
                     </div>
                     <div className="space-y-1">
                         <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">{APP_NAME}</h1>
                         <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.6em]">
-                            {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'Secure Login' : 'Provision Identity') : 'Token Verification'}
+                            {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'Authorized Access' : 'Create Identity Node') : 'Token Verification'}
                         </p>
                     </div>
                 </div>
