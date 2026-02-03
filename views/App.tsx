@@ -53,7 +53,6 @@ const App = () => {
     
     if (vLink) setVerifyLinkId(vLink);
     
-    // Auto-verify email node if token exists in URL
     if (verifyNodeToken) {
         handleEmailAutoVerify(verifyNodeToken);
     }
@@ -107,7 +106,7 @@ const App = () => {
     }
   }, []);
 
-  const dispatchToken = async (targetEmail: string) => {
+  const dispatchToken = async (targetEmail: string, targetUsername: string) => {
     setIsLoading(true);
     setAuthError('');
     try {
@@ -120,7 +119,7 @@ const App = () => {
         const data = await res.json();
         if (data.auth_status === 'SUCCESS') {
             setServerSideOtp(data.generated_token);
-            await emailService.sendInstitutionalMail(data.target_node, data.generated_token, 'AUTH');
+            await emailService.sendInstitutionalMail(data.target_node, data.generated_token, 'AUTH', targetUsername);
             setAuthStep('OTP');
         } else {
             setAuthError('REGISTRY_SYNC_FAILED');
@@ -128,7 +127,7 @@ const App = () => {
     } catch (err) {
         const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
         setServerSideOtp(mockCode);
-        await emailService.sendInstitutionalMail(targetEmail, mockCode, 'AUTH');
+        await emailService.sendInstitutionalMail(targetEmail, mockCode, 'AUTH', targetUsername);
         setAuthStep('OTP');
     }
     setIsLoading(false);
@@ -186,13 +185,13 @@ const App = () => {
         const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
         if (authMode === 'LOGIN') {
             if (localUsers[inputId] && localUsers[inputId].password === inputPass) {
-                const target = localUsers[inputId].email || inputId + "@" + SYSTEM_DOMAIN;
-                await dispatchToken(target);
+                const targetEmail = localUsers[inputId].email || inputId + "@" + SYSTEM_DOMAIN;
+                await dispatchToken(targetEmail, inputId);
             } else {
                 setAuthError('AUTH_DENIED: IDENTITY_MISMATCH');
             }
         } else {
-            await dispatchToken(email);
+            await dispatchToken(email, inputId);
         }
     } else {
         if (otpCode === serverSideOtp || (otpCode === '888888' && networkStatus === 'OFFLINE')) {
@@ -213,8 +212,8 @@ const App = () => {
   const handleResend = () => {
     if (resendCooldown > 0) return;
     setResendCooldown(30);
-    const target = authMode === 'SIGNUP' ? email : userId.trim().toLowerCase() + "@" + SYSTEM_DOMAIN;
-    dispatchToken(target);
+    const targetEmail = authMode === 'SIGNUP' ? email : userId.trim().toLowerCase() + "@" + SYSTEM_DOMAIN;
+    dispatchToken(targetEmail, userId);
   };
 
   const handleLogout = () => {
@@ -302,7 +301,7 @@ const App = () => {
                                 <div className="flex items-center gap-4">
                                     <Fingerprint size={28} className="text-indigo-500" />
                                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-relaxed">
-                                        Identity token dispatched via mail client. Retrieve the 6-digit sequence to authorize this session.
+                                        Identity token dispatched node. Retrieve sequence to authorize session.
                                     </p>
                                 </div>
                                 <button type="button" onClick={handleResend} className="text-[9px] font-black text-indigo-500 hover:text-white transition-all uppercase tracking-widest" disabled={resendCooldown > 0}>

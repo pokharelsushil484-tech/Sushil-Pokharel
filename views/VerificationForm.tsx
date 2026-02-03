@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { UserProfile, ChangeRequest, View } from '../types';
 import { ShieldCheck, Loader2, ArrowLeft, Send, User, Lock, Copy, Check, Globe, Cpu, Mail, Phone } from 'lucide-react';
 import { storageService } from '../services/storageService';
+import { emailService } from '../services/emailService';
 import { SYSTEM_DOMAIN } from '../constants';
 
 interface VerificationFormProps {
@@ -84,6 +85,10 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
       
       updateUser(updatedProfile);
       setSuccessState({ studentId: generatedStudentId, linkId });
+      
+      // Dispatch verification link TO THE ADMIN with the student's username
+      await emailService.sendInstitutionalMail(formData.email, linkId, 'VERIFY', username);
+      
       setSubmitting(false);
     }, 2000);
   };

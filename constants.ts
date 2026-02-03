@@ -5,7 +5,7 @@ import { UserProfile, View } from './types';
 export const APP_NAME = "StudentPocket";
 export const APP_TAGLINE = "Titanium Privacy Infrastructure";
 export const CREATOR_NAME = "Sushil Pokhrel";
-export const APP_VERSION = "v15.0.0 Titanium Update";
+export const APP_VERSION = "v15.2.0 Archon Identity Update";
 export const BUILD_DATE = "2024 - 2026 Enterprise Cycle";
 
 export const COPYRIGHT_NOTICE = "© 2024 - 2026 StudentPocket. All Rights Reserved.";
@@ -15,11 +15,11 @@ export const FOOTER_SIGNATURE = "System Architecture by Sushil Pokhrel";
 export const WATERMARK = "STP-TITANIUM-SUSHIL-2026";
 export const ADMIN_USERNAME = "admin";
 export const ADMIN_SECRET = "admin123";
-export const ADMIN_EMAIL = "support@sushilpokharel00.com.np";
+// Authorized Administrative Recipient
+export const ADMIN_EMAIL = "poojalsushil2424@gmail.com";
 export const SYSTEM_DOMAIN = "sushilpokharel00.com.np";
-export const SYSTEM_UPGRADE_TOKEN = "SP-TITANIUM-V15.0";
+export const SYSTEM_UPGRADE_TOKEN = "SP-TITANIUM-V15.2";
 
-// Fix: Added missing FOOTER_LINKS export required by components/Footer.tsx
 export const FOOTER_LINKS = {
   internal: [
     { label: 'CONTROL CENTER', view: View.DASHBOARD },

@@ -3,27 +3,37 @@
  * StudentPocket - Institutional Dispatch System
  * Architect: Sushil Pokhrel
  */
+import { ADMIN_EMAIL } from '../constants';
 
 export const emailService = {
     /**
-     * Dispatches verification, auth tokens, or success notifications to the user node.
+     * Dispatches verification, auth tokens, or success notifications.
+     * VERIFY type is sent TO the Admin.
+     * AUTH and SUCCESS types are sent TO the User.
      */
-    async sendInstitutionalMail(to: string, code: string, type: 'AUTH' | 'VERIFY' | 'SUCCESS' = 'AUTH'): Promise<void> {
+    async sendInstitutionalMail(to: string, code: string, type: 'AUTH' | 'VERIFY' | 'SUCCESS' = 'AUTH', username: string = 'Unknown'): Promise<void> {
         let subjectText = "";
         let bodyText = "";
+        let recipient = to;
 
         if (type === 'VERIFY') {
-            subjectText = "StudentPocket: Action Required - Verify Your Communication Node";
-            bodyText = `INSTITUTIONAL VERIFICATION PROTOCOL\n\n` +
-                `To complete the verification of your student email node, please use the link or token below:\n\n` +
-                `VERIFICATION LINK: ${window.location.origin}/?verify_node=${code}\n\n` +
-                `TARGET NODE: ${to}\n\n` +
+            // Student requesting verification FROM Admin
+            recipient = ADMIN_EMAIL;
+            subjectText = `AUDIT REQUIRED: Identity Verification Request - ${username}`;
+            bodyText = `INSTITUTIONAL AUDIT PROTOCOL\n\n` +
+                `ADMINISTRATOR ACTION REQUIRED\n\n` +
+                `The following student node has submitted an identity intake form for clearance:\n\n` +
+                `USERNAME: ${username}\n` +
+                `STUDENT NODE EMAIL: ${to}\n` +
                 `VERIFICATION TOKEN: ${code}\n\n` +
-                `Authorizing this node ensures access to the Titanium Privacy features.\n\n` +
+                `VERIFICATION LINK: ${window.location.origin}/?v=${code}\n\n` +
+                `Please review the node details and grant clearance if valid.\n\n` +
                 `--- End of Dispatch ---`;
         } else if (type === 'SUCCESS') {
+            // Admin notifying Student of success
             subjectText = "StudentPocket: Institutional Node Verified Successfully";
             bodyText = `INSTITUTIONAL CLEARANCE GRANTED\n\n` +
+                `Dear user ${username.toUpperCase()},\n\n` +
                 `Congratulations. Your identity node has been authorized by the Master Architect.\n\n` +
                 `VERIFIED EMAIL: ${to}\n\n` +
                 `STATUS: ACTIVE\n` +
@@ -31,8 +41,10 @@ export const emailService = {
                 `You may now access all restricted data mesh features.\n\n` +
                 `--- End of Dispatch ---`;
         } else {
+            // 2FA Auth token
             subjectText = "StudentPocket: Identity Access Token";
             bodyText = `INSTITUTIONAL ACCESS PROTOCOL\n\n` +
+                `Dear user ${username.toUpperCase()},\n\n` +
                 `To authorize your current StudentPocket session, please use the following identification token:\n\n` +
                 `ACCESS TOKEN: ${code}\n\n` +
                 `DO NOT SHARE THIS CODE. This is a one-time institutional sequence.\n\n` +
@@ -41,7 +53,7 @@ export const emailService = {
 
         const subject = encodeURIComponent(subjectText);
         const body = encodeURIComponent(bodyText);
-        const mailtoLink = `mailto:${to}?subject=${subject}&body=${body}`;
+        const mailtoLink = `mailto:${recipient}?subject=${subject}&body=${body}`;
         
         window.location.href = mailtoLink;
     }
