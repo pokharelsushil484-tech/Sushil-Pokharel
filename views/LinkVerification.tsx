@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { ChangeRequest, View } from '../types';
-import { ShieldCheck, User, Lock, ArrowLeft, Mail, Phone, MapPin, KeyRound, BadgeCheck, XCircle } from 'lucide-react';
-import { ADMIN_USERNAME, SYSTEM_DOMAIN } from '../constants';
+import { ChangeRequest, View, UserProfile } from '../types';
+// Added BadgeCheck to the lucide-react imports to fix the "Cannot find name 'BadgeCheck'" error.
+import { ShieldCheck, User, Lock, ArrowLeft, Mail, Phone, KeyRound, CheckCircle2, XCircle, Cpu, ShieldAlert, Globe, Loader2, Copy, Check, BadgeCheck } from 'lucide-react';
+import { ADMIN_USERNAME, SYSTEM_DOMAIN, ADMIN_SECRET } from '../constants';
 import { storageService } from '../services/storageService';
+import { emailService } from '../services/emailService';
 
 interface LinkVerificationProps {
   linkId: string;
@@ -60,11 +62,11 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
             setAuthError('INVALID MASTER CREDENTIALS');
         }
     } catch (err) {
-        // Fallback for simulation
+        // Fallback for simulation if PHP server is not responding in this environment
         if (adminUser === 'admin' && adminPass === 'admin123') {
             setIsAdminAuth(true);
         } else {
-            setAuthError('AUTHORITY_DENIED: MESH OFFLINE');
+            setAuthError('AUTHORITY_DENIED: REGISTRY OFFLINE');
         }
     }
     setLoading(false);
@@ -76,16 +78,26 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
     
     const dataKey = `architect_data_${request.username}`;
     const stored = await storageService.getData(dataKey);
+    
     if (stored && stored.user) {
+        const targetEmail = stored.user.email;
         stored.user.isVerified = action === 'APPROVE';
         stored.user.verificationStatus = action === 'APPROVE' ? 'VERIFIED' : 'REJECTED';
+        
         await storageService.setData(dataKey, stored);
         
+        // Update request list
         const reqStr = localStorage.getItem('studentpocket_requests');
         const requests: ChangeRequest[] = JSON.parse(reqStr || '[]');
         const updatedRequests = requests.map(r => r.id === request.id ? { ...r, status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED' } : r);
         localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
+
+        if (action === 'APPROVE') {
+            // Dispatch success mail
+            await emailService.sendInstitutionalMail(targetEmail, 'NODE_ACTIVE', 'SUCCESS');
+        }
         
+        alert(`NODE IDENTITY ${action === 'APPROVE' ? 'AUTHORIZED' : 'REJECTED'}. Dispatching Notification.`);
         window.location.href = '/';
     }
     setActionProcessing(false);
@@ -98,27 +110,27 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
   );
 
   if (!isAdminAuth) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-black py-20 px-6 relative">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-950/20 via-black to-black pointer-events-none"></div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-black py-20 px-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-950/20 via-black to-black pointer-events-none opacity-50"></div>
         
-        <div className="relative z-10 text-center max-w-md w-full bg-[#0a0a0a] p-12 rounded-[4rem] border border-white/10 shadow-2xl">
+        <div className="relative z-10 text-center max-w-md w-full bg-[#0a0a0a] p-12 rounded-[4rem] border border-white/10 shadow-2xl animate-scale-up">
             <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center mx-auto mb-10 text-black shadow-[0_0_50px_rgba(255,255,255,0.1)] transform -rotate-12">
                 <Lock size={40} />
             </div>
-            <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-tighter italic">Authority Portal</h2>
-            <p className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.5em] mb-12">Master Credentials Required</p>
+            <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-tighter italic">Security Check</h2>
+            <p className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.5em] mb-12">Login to View Node Details</p>
             
             <form onSubmit={handleAdminAuth} className="space-y-6">
-                <div className="relative">
-                    <User className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
-                    <input type="text" value={adminUser} onChange={e => setAdminUser(e.target.value)} className="w-full pl-16 pr-6 py-5 bg-black border border-white/5 rounded-3xl outline-none text-xs font-bold text-white tracking-widest uppercase focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="MASTER IDENTITY" required />
+                <div className="relative group">
+                    <User className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                    <input type="text" value={adminUser} onChange={e => setAdminUser(e.target.value)} className="w-full pl-16 pr-6 py-5 bg-black border border-white/5 rounded-3xl outline-none text-xs font-bold text-white tracking-widest uppercase focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="ADMIN IDENTITY" required />
                 </div>
-                <div className="relative">
-                    <KeyRound className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
+                <div className="relative group">
+                    <KeyRound className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors" size={18} />
                     <input type="password" value={adminPass} onChange={e => setAdminPass(e.target.value)} className="w-full pl-16 pr-6 py-5 bg-black border border-white/5 rounded-3xl outline-none text-xs font-bold text-white tracking-widest uppercase focus:border-indigo-500 transition-all placeholder:text-slate-800" placeholder="MASTER KEY" required />
                 </div>
                 {authError && <p className="text-[9px] font-black text-red-500 uppercase tracking-widest animate-shake">{authError}</p>}
-                <button type="submit" className="w-full py-6 rounded-3xl bg-white text-black font-black text-[10px] uppercase tracking-[0.4em] shadow-xl hover:bg-slate-200 transition-all active:scale-95">Open Verification Node</button>
+                <button type="submit" className="w-full py-6 rounded-3xl bg-white text-black font-black text-[10px] uppercase tracking-[0.4em] shadow-xl hover:bg-slate-200 transition-all active:scale-95">Verify & View Details</button>
             </form>
         </div>
     </div>
@@ -129,7 +141,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
       const parsed = JSON.parse(request?.details || '{}');
       details = parsed.new || parsed;
   } catch (e) {
-      console.error("Critical: Detail Parsing Error", e);
+      console.error("Critical Detail Sync Error", e);
   }
 
   return (
@@ -137,16 +149,16 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
         <div className="max-w-4xl mx-auto animate-fade-in pb-40">
             <div className="flex flex-col sm:flex-row justify-between items-center mb-16 gap-8">
                 <div className="flex items-center space-x-6">
-                    <div className="w-16 h-16 bg-white/5 rounded-3xl flex items-center justify-center text-white border border-white/10 shadow-2xl">
+                    <div className="w-16 h-16 bg-indigo-600/10 rounded-3xl flex items-center justify-center text-indigo-400 border border-indigo-500/20 shadow-2xl">
                         <ShieldCheck size={32} />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic leading-none">Node Audit</h1>
-                        <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.5em] mt-2">Institutional Review Portal</p>
+                        <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic leading-none">Identity Audit</h1>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.5em] mt-2">Authenticated Review Mode</p>
                     </div>
                 </div>
                 <button onClick={() => window.location.href = '/'} className="px-8 py-3 bg-white/5 text-slate-400 hover:text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.4em] border border-white/5 transition-all flex items-center group">
-                    <ArrowLeft size={16} className="mr-3 group-hover:-translate-x-1 transition-transform"/> Exit Audit
+                    <ArrowLeft size={16} className="mr-3 group-hover:-translate-x-1 transition-transform"/> Close Session
                 </button>
             </div>
 
@@ -170,19 +182,19 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                         <div className="flex-1 space-y-10 w-full">
                             <div className="text-center lg:text-left space-y-2">
                                 <h2 className="text-5xl md:text-6xl font-black text-white tracking-tighter leading-tight uppercase italic">{details.fullName}</h2>
-                                <p className="text-indigo-500 text-xs font-black uppercase tracking-[0.5em] italic">Identity Key: {request?.generatedStudentId}</p>
+                                <p className="text-indigo-500 text-xs font-black uppercase tracking-[0.5em] italic">Assigned Node: {request?.generatedStudentId}</p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="p-8 bg-black/40 rounded-[2.5rem] border border-white/5 space-y-2">
-                                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.4em]">Email Node</p>
+                                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.4em]">Institutional Email</p>
                                     <div className="flex items-center text-white font-bold text-sm">
                                         <Mail size={16} className="mr-3 text-indigo-500" />
                                         <span className="truncate">{details.email}</span>
                                     </div>
                                 </div>
                                 <div className="p-8 bg-black/40 rounded-[2.5rem] border border-white/5 space-y-2">
-                                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.4em]">Telecom Link</p>
+                                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.4em]">Phone Record</p>
                                     <div className="flex items-center text-white font-bold text-sm">
                                         <Phone size={16} className="mr-3 text-indigo-500" />
                                         <span>{details.phone}</span>
@@ -199,24 +211,24 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                             <BadgeCheck size={28} />
                         </div>
                         <div>
-                            <span className="block text-xs font-black text-white uppercase tracking-widest">Authority Decision</span>
-                            <span className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.4em]">Commit Permanent Clearance</span>
+                            <span className="block text-xs font-black text-white uppercase tracking-widest">Admin Clearance</span>
+                            <span className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.4em]">Authorize Node Identity</span>
                         </div>
                     </div>
                     <div className="flex w-full md:w-auto gap-4">
                         <button 
                             onClick={() => handleAction('REJECT')} 
                             disabled={actionProcessing || request?.status !== 'PENDING'} 
-                            className="flex-1 md:px-10 py-5 rounded-2xl bg-white/5 text-red-500 font-black text-[10px] uppercase tracking-widest hover:bg-red-500/10 transition-all border border-white/5 disabled:opacity-20"
+                            className="flex-1 md:px-10 py-5 rounded-2xl bg-white/5 text-red-500 font-black text-[10px] uppercase tracking-widest hover:bg-red-500/10 transition-all border border-red-500/20 disabled:opacity-20"
                         >
-                            <XCircle className="inline mr-2" size={14}/> Reject Access
+                            Reject Identity
                         </button>
                         <button 
                             onClick={() => handleAction('APPROVE')} 
                             disabled={actionProcessing || request?.status !== 'PENDING'} 
                             className="flex-1 md:px-12 py-5 rounded-2xl bg-white text-black font-black text-[10px] uppercase tracking-widest shadow-2xl hover:bg-slate-200 transition-all disabled:opacity-20"
                         >
-                            <ShieldCheck className="inline mr-2" size={14}/> Authorize Node
+                            Authorize & Notify Email
                         </button>
                     </div>
                 </div>
