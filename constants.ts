@@ -5,7 +5,7 @@ import { UserProfile, View } from './types';
 export const APP_NAME = "StudentPocket";
 export const APP_TAGLINE = "Titanium Privacy Infrastructure";
 export const CREATOR_NAME = "Sushil Pokhrel";
-export const APP_VERSION = "v15.2.0 Archon Identity Update";
+export const APP_VERSION = "v16.0.0 Global Mesh Expansion";
 export const BUILD_DATE = "2024 - 2026 Enterprise Cycle";
 
 export const COPYRIGHT_NOTICE = "© 2024 - 2026 StudentPocket. All Rights Reserved.";
@@ -18,7 +18,7 @@ export const ADMIN_SECRET = "admin123";
 // Authorized Administrative Recipient
 export const ADMIN_EMAIL = "pokharelsushil242@gmail.com";
 export const SYSTEM_DOMAIN = "sushilpokharel00.com.np";
-export const SYSTEM_UPGRADE_TOKEN = "SP-TITANIUM-V15.2";
+export const SYSTEM_UPGRADE_TOKEN = "SP-TITANIUM-V16.0";
 
 export const FOOTER_LINKS = {
   internal: [

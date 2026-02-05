@@ -10,6 +10,8 @@ export enum View {
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
   REGISTER = 'REGISTER',
   ACADEMIC_LEDGER = 'ACADEMIC_LEDGER',
+  ATTENDANCE_TRACKER = 'ATTENDANCE_TRACKER',
+  CAMPUS_RADAR = 'CAMPUS_RADAR',
   ERROR = 'ERROR'
 }
 
@@ -27,6 +29,22 @@ export interface GradeRecord {
   total: number;
   semester: string;
   grade: string;
+  timestamp: number;
+}
+
+export interface AttendanceRecord {
+  id: string;
+  subject: string;
+  present: number;
+  absent: number;
+  lastUpdated: number;
+}
+
+export interface CampusNode {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
   timestamp: number;
 }
 
