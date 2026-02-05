@@ -4,13 +4,13 @@ import { UserProfile, SupportTicket, TicketMessage, View } from '../types';
 import { 
   Users, Trash2, Ban as BanIcon, ShieldOff, BadgeCheck, 
   UserPlus, Loader2, Terminal, Lock, Mail,
-  CheckCircle2, XCircle, ShieldAlert, ShieldCheck, MessageSquare, Send, Clock, ChevronRight, AlertOctagon, Gavel, Trash
+  CheckCircle2, XCircle, ShieldAlert, ShieldCheck, MessageSquare, Send, Clock, ChevronRight, AlertOctagon, Gavel, Trash, Radio, Megaphone
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { emailService, DispatchType } from '../services/emailService';
 import { ADMIN_USERNAME, DEFAULT_USER, SYSTEM_DOMAIN, ADMIN_EMAIL } from '../constants';
 
-type AdminView = 'OVERVIEW' | 'USERS' | 'SUPPORT' | 'COMMUNICATIONS';
+type AdminView = 'OVERVIEW' | 'USERS' | 'BROADCAST' | 'COMMUNICATIONS';
 
 interface AdminDashboardProps {
     onNavigate: (view: View) => void;
@@ -25,8 +25,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const [dispatchType, setDispatchType] = useState<DispatchType>('SYSTEM_UPDATE');
   const [customMessage, setCustomMessage] = useState('');
 
+  // Broadcast State
+  const [broadcastText, setBroadcastText] = useState('');
+
   useEffect(() => {
     loadData();
+    const current = localStorage.getItem('sp_global_broadcast');
+    if (current) setBroadcastText(current);
   }, []);
 
   const loadData = async () => {
@@ -58,6 +63,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     alert(`Dispatch prepared for ${node._username}. Proceed to composition.`);
   };
 
+  const handlePublishBroadcast = async () => {
+      if (!broadcastText.trim()) {
+          localStorage.removeItem('sp_global_broadcast');
+          alert("Broadcast Cleared.");
+      } else {
+          localStorage.setItem('sp_global_broadcast', broadcastText.trim());
+          // Optional: Prepare global email for admin to relay
+          await emailService.sendInstitutionalMail(ADMIN_EMAIL, broadcastText, 'SYSTEM_UPDATE', 'GLOBAL NODES');
+          alert("Broadcast Published to Mesh.");
+      }
+  };
+
   return (
     <div className="pb-32 animate-platinum space-y-10">
        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-10 border-b border-white/5 pb-10">
@@ -66,7 +83,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                <h1 className="text-4xl sm:text-6xl font-black text-white uppercase italic tracking-tighter leading-none">Authority<br/>Command</h1>
            </div>
            <div className="flex flex-wrap gap-3 bg-white/5 p-2 rounded-2xl">
-               {(['OVERVIEW', 'USERS', 'SUPPORT', 'COMMUNICATIONS'] as AdminView[]).map((m) => (
+               {(['OVERVIEW', 'USERS', 'BROADCAST', 'COMMUNICATIONS'] as AdminView[]).map((m) => (
                    <button 
                     key={m} 
                     onClick={() => setViewMode(m)}
@@ -77,6 +94,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                ))}
            </div>
        </div>
+
+       {viewMode === 'BROADCAST' && (
+           <div className="max-w-4xl mx-auto space-y-10 animate-slide-up">
+                <div className="master-box p-12 bg-black/40 border-indigo-500/20 space-y-12">
+                    <div className="flex items-center gap-6">
+                        <div className="p-4 bg-indigo-600 rounded-2xl text-white shadow-lg">
+                            <Radio size={32} className="animate-pulse" />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-black text-white uppercase italic">Mesh Broadcast Protocol</h2>
+                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Active Ticker Management</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-4">Announcement Content</label>
+                        <textarea 
+                            value={broadcastText}
+                            onChange={e => setBroadcastText(e.target.value)}
+                            rows={3}
+                            className="w-full p-8 bg-black border border-white/10 rounded-[2.5rem] font-bold text-lg text-indigo-400 outline-none focus:border-indigo-500 transition-all resize-none shadow-inner"
+                            placeholder="Enter global node update message..."
+                        />
+                        <p className="text-[8px] text-slate-600 font-black uppercase tracking-widest ml-4">Clear text to disable the broadcast ticker.</p>
+                    </div>
+
+                    <button 
+                        onClick={handlePublishBroadcast}
+                        className="w-full py-6 rounded-[2rem] bg-white text-black font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:bg-slate-200 transition-all flex items-center justify-center gap-4"
+                    >
+                        <Megaphone size={20} />
+                        Sync Broadcast to Mesh
+                    </button>
+                </div>
+           </div>
+       )}
 
        {viewMode === 'COMMUNICATIONS' && (
            <div className="max-w-4xl mx-auto space-y-10">

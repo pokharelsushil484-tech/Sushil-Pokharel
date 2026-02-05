@@ -3,9 +3,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { UserProfile, View, Note, Expense } from '../types';
 import { 
   ChevronRight, RefreshCw,
-  Loader2, Send, Wallet, ArrowUpRight, TrendingDown, Globe, Activity, Database
+  Loader2, Send, Wallet, ArrowUpRight, TrendingDown, Globe, Activity, Database, ShieldCheck, Fingerprint, BadgeCheck, AlertCircle, Radio
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
+import { APP_NAME, SYSTEM_DOMAIN } from '../constants';
 
 interface DashboardProps {
   user: UserProfile;
@@ -17,6 +18,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
   const [quickNote, setQuickNote] = useState('');
   const [isCommitting, setIsCommitting] = useState(false);
   const [rawExpenses, setRawExpenses] = useState<Expense[]>([]);
+  const [broadcast, setBroadcast] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFinancials = async () => {
@@ -26,9 +28,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
         }
     };
     fetchFinancials();
+    
+    // Load Global Broadcast
+    const activeBroadcast = localStorage.getItem('sp_global_broadcast');
+    if (activeBroadcast) setBroadcast(activeBroadcast);
   }, [username]);
 
-  // Performance Fix: Memoize financial calculations to resolve "heavy load"
   const financials = useMemo(() => {
     const income = rawExpenses.filter(e => e.type === 'INCOME').reduce((a, b) => a + b.amount, 0);
     const expense = rawExpenses.filter(e => e.type === 'EXPENSE').reduce((a, b) => a + b.amount, 0);
@@ -63,36 +68,74 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
 
   return (
     <div className="space-y-10 animate-platinum max-w-full pb-20">
+      {/* Global Broadcast Ticker */}
+      {broadcast && (
+        <div className="bg-indigo-600/10 border-y border-indigo-500/20 py-3 -mx-8 sm:-mx-12 overflow-hidden flex items-center">
+            <div className="flex items-center gap-3 px-8 bg-black z-10 border-r border-white/10 shrink-0">
+                <Radio size={14} className="text-indigo-500 animate-pulse" />
+                <span className="text-[9px] font-black text-white uppercase tracking-widest">Broadcast</span>
+            </div>
+            <div className="whitespace-nowrap animate-marquee flex items-center">
+                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest px-10">{broadcast}</span>
+                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest px-10">{broadcast}</span>
+                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest px-10">{broadcast}</span>
+            </div>
+        </div>
+      )}
+
       {/* Welcome Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start gap-6">
+      <div className="flex flex-col md:flex-row justify-between items-start gap-10">
           <div className="space-y-4">
               <div className="stark-badge inline-flex items-center space-x-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                  <span>Master Node: {username.toUpperCase()}</span>
+                  <span>Operational Node: {username.toUpperCase()}</span>
               </div>
-              <h1 className="text-5xl sm:text-6xl font-black text-white tracking-tighter uppercase italic">
+              <h1 className="text-5xl sm:text-7xl font-black text-white tracking-tighter uppercase italic leading-none">
                 StudentPocket<br/><span className="text-indigo-600 not-italic">Mesh Center</span>
               </h1>
           </div>
-          <div className="bg-white/5 border border-white/10 px-6 py-4 rounded-2xl flex items-center space-x-4">
-              <Globe size={20} className="text-indigo-500" />
-              <div>
-                  <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest">Global Mesh Status</span>
-                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center">
-                      <RefreshCw size={10} className="mr-1.5 animate-spin-slow" /> Active & Syncing
-                  </span>
-              </div>
+
+          {/* Institutional Mesh Badge */}
+          <div className="w-full md:w-80 group perspective-1000">
+             <div className="relative bg-gradient-to-br from-slate-900 to-black p-8 rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden transition-all duration-700 hover:rotate-y-12 hover:scale-105">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                 <div className="relative z-10 flex flex-col items-center">
+                    <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-white/20 mb-6 bg-slate-900 shadow-xl">
+                        <img src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} className="w-full h-full object-cover" alt="Node Avatar" />
+                    </div>
+                    <div className="text-center space-y-1">
+                        <h3 className="text-lg font-black text-white uppercase tracking-tight">{user.name}</h3>
+                        <p className="text-[9px] font-bold text-indigo-500 uppercase tracking-[0.4em]">{user.studentId || 'NO-ID-ASSIGNED'}</p>
+                    </div>
+                    
+                    <div className="mt-8 w-full pt-6 border-t border-white/5 flex items-center justify-between">
+                        <div className="space-y-1">
+                            <span className="block text-[8px] font-black text-slate-500 uppercase">Clearance</span>
+                            <span className={`text-[9px] font-black uppercase tracking-widest ${user.isVerified ? 'text-emerald-500' : 'text-red-500'}`}>
+                                {user.isVerified ? 'Verified' : 'Awaiting'}
+                            </span>
+                        </div>
+                        <div className="p-3 bg-white/5 rounded-xl text-slate-600">
+                            <Fingerprint size={18} />
+                        </div>
+                    </div>
+                 </div>
+                 {/* ID Watermark */}
+                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[8px] font-black text-white/5 uppercase tracking-[1em] whitespace-nowrap">
+                    {SYSTEM_DOMAIN}
+                 </div>
+             </div>
           </div>
       </div>
 
-      {/* Financial Indicators - Professional Grid */}
+      {/* Financial Indicators */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="master-box p-8 bg-indigo-600 text-white border-none shadow-xl group cursor-help">
+          <div className="master-box p-8 bg-indigo-600 text-white border-none shadow-xl group cursor-help transition-all hover:scale-[1.02]">
               <div className="flex justify-between items-start mb-6">
                   <Wallet size={24} />
                   <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Mesh Liquidity</span>
               </div>
-              <h3 className="text-3xl font-black italic">NPR {financials.balance.toLocaleString()}</h3>
+              <h3 className="text-4xl font-black italic tracking-tighter">NPR {financials.balance.toLocaleString()}</h3>
               <p className="text-[10px] font-bold uppercase tracking-widest mt-2 opacity-70">Total Multi-Device Balance</p>
           </div>
           <div className="master-box p-8 bg-white/5 border-emerald-500/20">
@@ -100,7 +143,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                   <ArrowUpRight size={24} className="text-emerald-500" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Inflow Trend</span>
               </div>
-              <h3 className="text-3xl font-black text-white italic">+{financials.income.toLocaleString()}</h3>
+              <h3 className="text-4xl font-black text-white italic tracking-tighter">+{financials.income.toLocaleString()}</h3>
               <p className="text-[10px] font-bold uppercase tracking-widest mt-2 text-emerald-500">Node Accumulation</p>
           </div>
           <div className="master-box p-8 bg-white/5 border-red-500/20">
@@ -108,13 +151,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                   <TrendingDown size={24} className="text-red-500" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Outflow Trend</span>
               </div>
-              <h3 className="text-3xl font-black text-white italic">-{financials.expense.toLocaleString()}</h3>
+              <h3 className="text-4xl font-black text-white italic tracking-tighter">-{financials.expense.toLocaleString()}</h3>
               <p className="text-[10px] font-bold uppercase tracking-widest mt-2 text-red-500">Resource Burn Rate</p>
           </div>
       </div>
 
       {/* Primary Global Entry */}
-      <div className="master-box p-10 sm:p-16 relative overflow-hidden bg-indigo-950/10">
+      <div className="master-box p-10 sm:p-16 relative overflow-hidden bg-indigo-950/10 border-indigo-500/10">
         <div className="relative z-10 space-y-10">
           <div className="space-y-4">
               <h2 className="text-4xl sm:text-5xl font-black tracking-tighter text-white uppercase leading-none">
@@ -128,14 +171,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                 type="text" 
                 value={quickNote}
                 onChange={e => setQuickNote(e.target.value)}
-                className="w-full bg-black/40 border border-white/10 rounded-2xl py-6 px-8 text-sm font-bold text-white outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800"
+                className="w-full bg-black/40 border border-white/10 rounded-2xl py-7 px-10 text-sm font-bold text-white outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800 shadow-2xl"
                 placeholder="COMMIT A NOTE TO ALL DEVICES..."
                 disabled={isCommitting}
               />
               <button 
                 type="submit" 
                 disabled={isCommitting || !quickNote.trim()}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-xl flex items-center justify-center text-black hover:bg-slate-200 transition-all shadow-xl"
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-black hover:bg-slate-200 transition-all shadow-xl"
               >
                 {isCommitting ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
               </button>
@@ -145,27 +188,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
 
       {/* Navigation Cluster */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div onClick={() => onNavigate(View.VERIFY_LINK)} className="master-box p-10 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40">
-            <div className="flex justify-between items-center mb-8">
-              <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white group-hover:text-black transition-all">
-                <Activity size={22} />
+        <div onClick={() => onNavigate(View.VERIFY_LINK)} className="master-box p-12 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40">
+            <div className="flex justify-between items-center mb-10">
+              <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white group-hover:text-black transition-all">
+                <Activity size={24} />
               </div>
-              <ChevronRight size={20} className="text-slate-700" />
+              <ChevronRight size={24} className="text-slate-700 group-hover:text-white transition-colors" />
             </div>
-            <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter">Strategic Planner</h3>
-            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">Multi-Device Task Sync</p>
+            <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter">Strategic Planner</h3>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Multi-Device Task Sync Protocol</p>
         </div>
-        <div onClick={() => onNavigate(View.FILE_HUB)} className="master-box p-10 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40">
-            <div className="flex justify-between items-center mb-8">
-              <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white group-hover:text-black transition-all">
-                <Database size={22} />
+        <div onClick={() => onNavigate(View.FILE_HUB)} className="master-box p-12 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40">
+            <div className="flex justify-between items-center mb-10">
+              <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white group-hover:text-black transition-all">
+                <Database size={24} />
               </div>
-              <ChevronRight size={20} className="text-slate-700" />
+              <ChevronRight size={24} className="text-slate-700 group-hover:text-white transition-colors" />
             </div>
-            <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter">Secure Data Mesh</h3>
-            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">Access Files Anywhere</p>
+            <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter">Secure Data Mesh</h3>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Institutional Storage Node</p>
         </div>
       </div>
+      
+      <style>{`
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+            display: inline-flex;
+            animation: marquee 30s linear infinite;
+        }
+      `}</style>
     </div>
   );
 };

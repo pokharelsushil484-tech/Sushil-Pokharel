@@ -16,7 +16,7 @@ import { View, UserProfile, VaultDocument, Assignment, Expense } from '../types'
 import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
-import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, Mail, CheckCircle2, ArrowRight, Fingerprint, ShieldAlert, BadgeCheck, AlertCircle, Cpu, User, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, Mail, CheckCircle2, ArrowRight, Fingerprint, ShieldAlert, BadgeCheck, AlertCircle, Cpu, User, Wifi, WifiOff, RefreshCw, XCircle } from 'lucide-react';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -224,6 +224,28 @@ const App = () => {
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
   
+  if (user.isBanned) {
+      return (
+          <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-center animate-platinum">
+              <div className="w-32 h-32 bg-red-500/10 rounded-full flex items-center justify-center mb-10 border-4 border-red-500/20 shadow-[0_0_80px_rgba(239,68,68,0.2)]">
+                  <XCircle size={64} className="text-red-500" />
+              </div>
+              <h1 className="text-5xl font-black text-white uppercase italic tracking-tighter mb-4">Node Terminated</h1>
+              <p className="text-sm text-slate-500 font-bold uppercase tracking-[0.4em] mb-12">Protocol Violation Detected</p>
+              <div className="bg-red-500/5 border border-red-500/10 p-10 rounded-[2.5rem] max-w-lg mb-12">
+                  <p className="text-xs text-red-200 leading-relaxed uppercase tracking-widest font-black">
+                      Dear user {activeUser?.toUpperCase()}, your identity node has been permanently purged from the registry.<br/><br/>
+                      Reason: {user.banReason || 'Administrative Purge'}<br/><br/>
+                      An official notification has been dispatched to your verified node.
+                  </p>
+              </div>
+              <button onClick={handleLogout} className="btn-platinum py-5 px-16 text-[10px] flex items-center gap-4">
+                  <RefreshCw size={18} /> Return to Terminal Entry
+              </button>
+          </div>
+      );
+  }
+
   if (verifyLinkId) {
       return <LinkVerification linkId={verifyLinkId} onNavigate={setView} currentUser={activeUser} />;
   }
@@ -302,7 +324,7 @@ const App = () => {
                                 <div className="flex items-center gap-4">
                                     <Fingerprint size={28} className="text-indigo-500" />
                                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-relaxed">
-                                        Identity token requested node. Admin composition required to authorize session.
+                                        Identity token requested node. Access Token has been requested via the Administrative Relay.
                                     </p>
                                 </div>
                                 <button type="button" onClick={handleResend} className="text-[9px] font-black text-indigo-500 hover:text-white transition-all uppercase tracking-widest" disabled={resendCooldown > 0}>
