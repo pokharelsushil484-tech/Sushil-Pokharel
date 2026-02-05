@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { UserProfile, View, Note, Expense } from '../types';
+import { UserProfile, View, Note, Expense, GradeRecord } from '../types';
 import { 
   ChevronRight, RefreshCw,
-  Loader2, Send, Wallet, ArrowUpRight, TrendingDown, Globe, Activity, Database, ShieldCheck, Fingerprint, BadgeCheck, AlertCircle, Radio
+  Loader2, Send, Wallet, ArrowUpRight, TrendingDown, Globe, Activity, Database, ShieldCheck, Fingerprint, BadgeCheck, AlertCircle, Radio, QrCode, TrendingUp, Trophy
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { APP_NAME, SYSTEM_DOMAIN } from '../constants';
@@ -18,14 +18,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
   const [quickNote, setQuickNote] = useState('');
   const [isCommitting, setIsCommitting] = useState(false);
   const [rawExpenses, setRawExpenses] = useState<Expense[]>([]);
+  const [grades, setGrades] = useState<GradeRecord[]>([]);
   const [broadcast, setBroadcast] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFinancials = async () => {
         const stored = await storageService.getData(`architect_data_${username}`);
-        if (stored?.expenses) {
-            setRawExpenses(stored.expenses);
-        }
+        if (stored?.expenses) setRawExpenses(stored.expenses);
+        if (stored?.grades) setGrades(stored.grades);
     };
     fetchFinancials();
     
@@ -39,6 +39,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
     const expense = rawExpenses.filter(e => e.type === 'EXPENSE').reduce((a, b) => a + b.amount, 0);
     return { balance: income - expense, income, expense };
   }, [rawExpenses]);
+
+  const avgPercentage = grades.length > 0 
+    ? (grades.reduce((acc, g) => acc + (g.score / g.total), 0) / grades.length) * 100 
+    : 0;
 
   const handleQuickCommit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,8 +104,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
              <div className="relative bg-gradient-to-br from-slate-900 to-black p-8 rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden transition-all duration-700 hover:rotate-y-12 hover:scale-105">
                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
                  <div className="relative z-10 flex flex-col items-center">
-                    <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-white/20 mb-6 bg-slate-900 shadow-xl">
-                        <img src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} className="w-full h-full object-cover" alt="Node Avatar" />
+                    <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-white/20 mb-6 bg-slate-900 shadow-xl relative group">
+                        <img src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} className="w-full h-full object-cover group-hover:opacity-10 transition-opacity" alt="Node Avatar" />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <QrCode size={40} className="text-indigo-400" />
+                        </div>
                     </div>
                     <div className="text-center space-y-1">
                         <h3 className="text-lg font-black text-white uppercase tracking-tight">{user.name}</h3>
@@ -128,8 +135,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
           </div>
       </div>
 
-      {/* Financial Indicators */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Primary Analytics Cluster */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="master-box p-8 bg-indigo-600 text-white border-none shadow-xl group cursor-help transition-all hover:scale-[1.02]">
               <div className="flex justify-between items-start mb-6">
                   <Wallet size={24} />
@@ -145,6 +152,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
               </div>
               <h3 className="text-4xl font-black text-white italic tracking-tighter">+{financials.income.toLocaleString()}</h3>
               <p className="text-[10px] font-bold uppercase tracking-widest mt-2 text-emerald-500">Node Accumulation</p>
+          </div>
+          <div className="master-box p-8 bg-white/5 border-indigo-500/20">
+              <div className="flex justify-between items-start mb-6">
+                  <TrendingUp size={24} className="text-indigo-500" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Academic Index</span>
+              </div>
+              <h3 className="text-4xl font-black text-white italic tracking-tighter">{avgPercentage.toFixed(1)}%</h3>
+              <p className="text-[10px] font-bold uppercase tracking-widest mt-2 text-indigo-400">Knowledge Progress</p>
           </div>
           <div className="master-box p-8 bg-white/5 border-red-500/20">
               <div className="flex justify-between items-start mb-6">
@@ -187,7 +202,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
       </div>
 
       {/* Navigation Cluster */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div onClick={() => onNavigate(View.ACADEMIC_LEDGER)} className="master-box p-12 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40">
+            <div className="flex justify-between items-center mb-10">
+              <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white group-hover:text-black transition-all">
+                <Trophy size={24} />
+              </div>
+              <ChevronRight size={24} className="text-slate-700 group-hover:text-white transition-colors" />
+            </div>
+            <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter">Academic Ledger</h3>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Grade Preservation Node</p>
+        </div>
         <div onClick={() => onNavigate(View.VERIFY_LINK)} className="master-box p-12 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40">
             <div className="flex justify-between items-center mb-10">
               <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white group-hover:text-black transition-all">

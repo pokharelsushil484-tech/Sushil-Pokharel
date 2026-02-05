@@ -9,6 +9,7 @@ export enum View {
   ACCESS_RECOVERY = 'ACCESS_RECOVERY',
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
   REGISTER = 'REGISTER',
+  ACADEMIC_LEDGER = 'ACADEMIC_LEDGER',
   ERROR = 'ERROR'
 }
 
@@ -17,6 +18,16 @@ export enum TaskPriority {
   MEDIUM = 'Medium',
   HIGH = 'High',
   URGENT = 'Urgent'
+}
+
+export interface GradeRecord {
+  id: string;
+  subject: string;
+  score: number;
+  total: number;
+  semester: string;
+  grade: string;
+  timestamp: number;
 }
 
 export interface UserProfile {

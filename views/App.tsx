@@ -7,6 +7,7 @@ import { Vault } from './Vault';
 import { Support } from './Support';
 import { StudyPlanner } from './StudyPlanner';
 import { AdminDashboard } from './AdminDashboard';
+import { AcademicLedger } from './AcademicLedger';
 import { GlobalLoader } from '../components/GlobalLoader';
 import { SplashScreen } from '../components/SplashScreen';
 import { Footer } from '../components/Footer';
@@ -386,6 +387,7 @@ const App = () => {
       case View.VERIFY_LINK: return <StudyPlanner assignments={assignments} setAssignments={setAssignments} isAdmin={activeUser === ADMIN_USERNAME} />;
       case View.ADMIN_DASHBOARD: return <AdminDashboard onNavigate={setView} />;
       case View.VERIFICATION_FORM: return <VerificationForm user={user} username={activeUser || ''} updateUser={setUser} onNavigate={setView} />;
+      case View.ACADEMIC_LEDGER: return <AcademicLedger username={activeUser || ''} />;
       default: return <Dashboard user={user} username={activeUser || ''} onNavigate={setView} />;
     }
   };
