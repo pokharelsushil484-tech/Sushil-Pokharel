@@ -75,7 +75,7 @@ const App = () => {
     if (username === ADMIN_USERNAME) {
         setUser({
             ...DEFAULT_USER,
-            name: CREATOR_NAME,
+            name: "Sushil Pokharel",
             email: ADMIN_EMAIL,
             isVerified: true,
             emailVerified: true,
@@ -90,7 +90,6 @@ const App = () => {
     }
   }, []);
 
-  // Fix: Implemented finalizeLocalRegistration to complete the signup flow and commit identity to mesh
   const finalizeLocalRegistration = async (username: string) => {
     const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
     localUsers[username] = { password, email, name: fullName, verified: true };
@@ -169,7 +168,7 @@ const App = () => {
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
   
   if (recoveryId) {
-      return <AccessRecovery onNavigate={setView} recoveryId={recoveryId} />;
+      return <AccessRecovery onNavigate={setView} recoveryId={recoveryId === 'NEW' ? null : recoveryId} />;
   }
 
   if (user.isBanned) {
@@ -179,17 +178,17 @@ const App = () => {
                   <XCircle size={64} className="text-red-500" />
               </div>
               <h1 className="text-5xl font-black text-white uppercase italic tracking-tighter mb-4">Node Terminated</h1>
-              <p className="text-sm text-slate-500 font-bold uppercase tracking-[0.4em] mb-12">Protocol Violation Detected</p>
+              <p className="text-sm text-slate-500 font-bold uppercase tracking-[0.4em] mb-12">Security Violation: Unauthorized Linguistic Activity</p>
               <div className="bg-red-500/5 border border-red-500/10 p-10 rounded-[2.5rem] max-w-lg mb-12">
                   <p className="text-xs text-red-200 leading-relaxed uppercase tracking-widest font-black">
-                      Dear user {activeUser?.toUpperCase()}, your identity node has been permanently purged from the registry.<br/><br/>
-                      Reason: {user.banReason || 'Negative Activity Pattern Detected'}<br/><br/>
-                      To appeal this decision, you must submit a restoration form.
+                      Identity node purged. Prohibited terminology detected.<br/><br/>
+                      Reason: {user.banReason || 'Linguistic Threat Pattern'}<br/><br/>
+                      File a formal appeal to Sushil Pokharel for restoration.
                   </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-6">
-                  <button onClick={handleLogout} className="btn-platinum py-5 px-12 text-[10px]">Return to Entry</button>
-                  <button onClick={() => setRecoveryId('NEW')} className="px-12 py-5 rounded-2xl bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest shadow-xl">File Appeal Form</button>
+                  <button onClick={handleLogout} className="btn-platinum py-5 px-12 text-[10px]">Back to Login</button>
+                  <button onClick={() => setRecoveryId('NEW')} className="px-12 py-5 rounded-2xl bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest shadow-xl">File Formal Appeal</button>
               </div>
           </div>
       );
@@ -273,7 +272,7 @@ const App = () => {
                                 <div className="flex items-center gap-4">
                                     <Fingerprint size={28} className="text-indigo-500" />
                                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-relaxed">
-                                        Identity token requested via the ${CREATOR_NAME} Relay.
+                                        Identity token requested via the SUSHIL POKHAREL Relay.
                                     </p>
                                 </div>
                                 <button type="button" onClick={() => dispatchToken(email, userId)} className="text-[9px] font-black text-indigo-500 hover:text-white transition-all uppercase tracking-widest" disabled={resendCooldown > 0}>

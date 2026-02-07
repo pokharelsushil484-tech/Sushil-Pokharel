@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { UserProfile, View, Note, Expense, GradeRecord } from '../types';
-// Fix: Added BookOpen to the lucide-react import list
 import { 
   ChevronRight, RefreshCw,
   Loader2, Send, Wallet, ArrowUpRight, TrendingDown, Globe, Activity, Database, ShieldCheck, Fingerprint, BadgeCheck, AlertCircle, Radio, QrCode, TrendingUp, Trophy, Lock,
-  BookOpen
+  BookOpen,
+  ShieldAlert
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { APP_NAME, SYSTEM_DOMAIN, APP_VERSION } from '../constants';
@@ -30,8 +30,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
         if (stored?.grades) setGrades(stored.grades);
     };
     fetchFinancials();
-    
-    // Load Global Broadcast
     const activeBroadcast = localStorage.getItem('sp_global_broadcast');
     if (activeBroadcast) setBroadcast(activeBroadcast);
   }, [username]);
@@ -51,6 +49,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
     if (!quickNote.trim()) return;
     setIsCommitting(true);
     
+    // SECURITY SCAN
+    const isTerminated = await storageService.scanAndProtect(username, quickNote);
+    if (isTerminated) {
+        window.location.reload(); // Immediate lockdown
+        return;
+    }
+
     const newNote: Note = {
         id: Date.now().toString(),
         title: "DASH_ENTRY: " + quickNote.substring(0, 18),
@@ -82,7 +87,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                 <span className="text-[9px] font-black text-white uppercase tracking-widest">Broadcast</span>
             </div>
             <div className="whitespace-nowrap animate-marquee flex items-center">
-                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest px-10">{broadcast}</span>
                 <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest px-10">{broadcast}</span>
                 <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest px-10">{broadcast}</span>
             </div>
@@ -138,7 +142,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                         </div>
                     </div>
                  </div>
-                 {/* ID Watermark */}
                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[8px] font-black text-white/5 uppercase tracking-[1em] whitespace-nowrap">
                     {SYSTEM_DOMAIN}
                  </div>
@@ -217,7 +220,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
         <div onClick={() => onNavigate(View.GROWTH_JOURNAL)} className="master-box p-12 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40">
             <div className="flex justify-between items-center mb-10">
               <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white group-hover:text-black transition-all">
-                {/* Fix: Added missing icon from lucide-react */}
                 <BookOpen size={24} />
               </div>
               <ChevronRight size={24} className="text-slate-700 group-hover:text-white transition-colors" />

@@ -33,7 +33,8 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
     } else {
       setPin('');
       setError("AUTHORIZATION DENIED.");
-      await storageService.recordViolation(activeUser, "Unauthorized Vault Access Attempt: Invalid Security PIN");
+      // Fix: Use enforceSecurityLockdown instead of non-existent recordViolation to log the security incident
+      await storageService.enforceSecurityLockdown(activeUser, "UNAUTHORIZED_VAULT_ACCESS", "Unauthorized Vault Access Attempt: Invalid Security PIN");
       const stored = await storageService.getData(`architect_data_${activeUser}`);
       if (stored && stored.user) {
           updateUser(stored.user);
