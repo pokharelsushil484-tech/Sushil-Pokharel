@@ -17,8 +17,9 @@ import { SplashScreen } from '../components/SplashScreen';
 import { Footer } from '../components/Footer';
 import { VerificationForm } from './VerificationForm';
 import { LinkVerification } from './LinkVerification';
+import { AccessRecovery } from './AccessRecovery';
 import { View, UserProfile, VaultDocument, Assignment, Expense } from '../types';
-import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN } from '../constants';
+import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN, CREATOR_NAME, ADMIN_EMAIL } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
 import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, Mail, CheckCircle2, ArrowRight, Fingerprint, ShieldAlert, BadgeCheck, AlertCircle, Cpu, User, Wifi, WifiOff, RefreshCw, XCircle } from 'lucide-react';
@@ -50,17 +51,15 @@ const App = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
   const [verifyLinkId, setVerifyLinkId] = useState<string | null>(null);
+  const [recoveryId, setRecoveryId] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const vLink = params.get('v');
-    const verifyNodeToken = params.get('verify_node');
+    const rLink = params.get('recovery');
     
     if (vLink) setVerifyLinkId(vLink);
-    
-    if (verifyNodeToken) {
-        handleEmailAutoVerify(verifyNodeToken);
-    }
+    if (rLink) setRecoveryId(rLink);
 
     const updateStatus = () => setNetworkStatus(navigator.onLine ? 'ONLINE' : 'OFFLINE');
     window.addEventListener('online', updateStatus);
@@ -71,33 +70,13 @@ const App = () => {
     };
   }, []);
 
-  const handleEmailAutoVerify = async (token: string) => {
-      const username = sessionStorage.getItem('active_session_user');
-      if (username) {
-          const dataKey = `architect_data_${username}`;
-          const stored = await storageService.getData(dataKey);
-          if (stored && stored.user) {
-              stored.user.emailVerified = true;
-              await storageService.setData(dataKey, stored);
-              setUser(stored.user);
-              alert("Communication Node Verified Successfully.");
-          }
-      }
-  };
-
-  useEffect(() => {
-      if (resendCooldown > 0) {
-          const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
-          return () => clearTimeout(timer);
-      }
-  }, [resendCooldown]);
-
   const loadUserData = useCallback(async (username: string) => {
     const stored = await storageService.getData(`architect_data_${username}`);
-    if (username.toLowerCase() === ADMIN_USERNAME) {
+    if (username === ADMIN_USERNAME) {
         setUser({
             ...DEFAULT_USER,
-            name: "Lead Architect",
+            name: CREATOR_NAME,
+            email: ADMIN_EMAIL,
             isVerified: true,
             emailVerified: true,
             level: 3,
@@ -111,76 +90,33 @@ const App = () => {
     }
   }, []);
 
-  const dispatchToken = async (targetEmail: string, targetUsername: string) => {
-    setIsLoading(true);
-    setAuthError('');
-    try {
-        const res = await fetch('/login.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'SEND_VERIFICATION_CODE', email: targetEmail })
-        });
-        
-        const data = await res.json();
-        if (data.auth_status === 'SUCCESS') {
-            setServerSideOtp(data.generated_token);
-            // RELAY PROTOCOL: Sent to Admin Email with "Dear user [username]" context
-            await emailService.sendInstitutionalMail(data.target_node, data.generated_token, 'OTP_REQUEST', targetUsername);
-            setAuthStep('OTP');
-        } else {
-            setAuthError('REGISTRY_SYNC_FAILED');
-        }
-    } catch (err) {
-        const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
-        setServerSideOtp(mockCode);
-        await emailService.sendInstitutionalMail(targetEmail, mockCode, 'OTP_REQUEST', targetUsername);
-        setAuthStep('OTP');
-    }
-    setIsLoading(false);
-  };
+  // Fix: Implemented finalizeLocalRegistration to complete the signup flow and commit identity to mesh
+  const finalizeLocalRegistration = async (username: string) => {
+    const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
+    localUsers[username] = { password, email, name: fullName, verified: true };
+    localStorage.setItem('studentpocket_users', JSON.stringify(localUsers));
 
-  const finalizeLocalRegistration = async (inputId: string) => {
-    try {
-        const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
-        if (localUsers[inputId]) {
-            setAuthError('NODE_IDENTITY_EXISTS');
-            return;
-        }
-        localUsers[inputId] = { password, email, name: fullName, verified: false };
-        localStorage.setItem('studentpocket_users', JSON.stringify(localUsers));
-
-        const profile: UserProfile = {
-            ...DEFAULT_USER,
-            name: fullName || inputId,
-            email: email || `node@${SYSTEM_DOMAIN}`,
-            isVerified: false,
-            emailVerified: false,
-            twoFactorEnabled: true,
-            verificationStatus: 'NONE',
-            level: 1,
-            studentId: `SP-${Math.floor(100000 + Math.random() * 900000)}`,
-            authorizedDevices: [navigator.userAgent.substring(0, 20)]
-        };
-        await storageService.setData(`architect_data_${inputId}`, { 
-            user: profile, 
-            vaultDocs: [], 
-            assignments: [],
-            expenses: [],
-            notes: []
-        });
-        setRegistrationSuccess(true);
-    } catch (err) {
-        setAuthError('VAULT_COMMIT_FAILURE');
-    }
+    const profile: UserProfile = {
+      ...DEFAULT_USER,
+      name: fullName || username,
+      email: email || `node@${SYSTEM_DOMAIN}`,
+      isVerified: true,
+      verificationStatus: 'VERIFIED',
+      level: 1,
+      studentId: `SP-${Math.floor(100000 + Math.random() * 900000)}`,
+      acceptedTermsVersion: SYSTEM_UPGRADE_TOKEN
+    };
+    await storageService.setData(`architect_data_${username}`, { user: profile, vaultDocs: [], assignments: [], expenses: [] });
+    setRegistrationSuccess(true);
   };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    const inputId = userId.trim().toLowerCase();
+    const inputId = userId.trim();
     const inputPass = password.trim();
 
     if (authStep === 'CREDENTIALS') {
-        if (inputId === 'admin' && inputPass === 'admin123') {
+        if (inputId === ADMIN_USERNAME && inputPass === 'admin123') {
             sessionStorage.setItem('active_session_user', inputId);
             setActiveUser(inputId);
             await loadUserData(inputId);
@@ -191,7 +127,7 @@ const App = () => {
         const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
         if (authMode === 'LOGIN') {
             if (localUsers[inputId] && localUsers[inputId].password === inputPass) {
-                const targetEmail = localUsers[inputId].email || inputId + "@" + SYSTEM_DOMAIN;
+                const targetEmail = localUsers[inputId].email;
                 await dispatchToken(targetEmail, inputId);
             } else {
                 setAuthError('AUTH_DENIED: IDENTITY_MISMATCH');
@@ -215,11 +151,14 @@ const App = () => {
     }
   };
 
-  const handleResend = () => {
-    if (resendCooldown > 0) return;
-    setResendCooldown(30);
-    const targetEmail = authMode === 'SIGNUP' ? email : userId.trim().toLowerCase() + "@" + SYSTEM_DOMAIN;
-    dispatchToken(targetEmail, userId);
+  const dispatchToken = async (targetEmail: string, targetUsername: string) => {
+    setIsLoading(true);
+    setAuthError('');
+    const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
+    setServerSideOtp(mockCode);
+    await emailService.sendInstitutionalMail(targetEmail, mockCode, 'OTP_REQUEST', targetUsername);
+    setAuthStep('OTP');
+    setIsLoading(false);
   };
 
   const handleLogout = () => {
@@ -229,6 +168,10 @@ const App = () => {
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
   
+  if (recoveryId) {
+      return <AccessRecovery onNavigate={setView} recoveryId={recoveryId} />;
+  }
+
   if (user.isBanned) {
       return (
           <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-center animate-platinum">
@@ -240,13 +183,14 @@ const App = () => {
               <div className="bg-red-500/5 border border-red-500/10 p-10 rounded-[2.5rem] max-w-lg mb-12">
                   <p className="text-xs text-red-200 leading-relaxed uppercase tracking-widest font-black">
                       Dear user {activeUser?.toUpperCase()}, your identity node has been permanently purged from the registry.<br/><br/>
-                      Reason: {user.banReason || 'Administrative Purge'}<br/><br/>
-                      An official notification has been dispatched to your verified node.
+                      Reason: {user.banReason || 'Negative Activity Pattern Detected'}<br/><br/>
+                      To appeal this decision, you must submit a restoration form.
                   </p>
               </div>
-              <button onClick={handleLogout} className="btn-platinum py-5 px-16 text-[10px] flex items-center gap-4">
-                  <RefreshCw size={18} /> Return to Terminal Entry
-              </button>
+              <div className="flex flex-col sm:flex-row gap-6">
+                  <button onClick={handleLogout} className="btn-platinum py-5 px-12 text-[10px]">Return to Entry</button>
+                  <button onClick={() => setRecoveryId('NEW')} className="px-12 py-5 rounded-2xl bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest shadow-xl">File Appeal Form</button>
+              </div>
           </div>
       );
   }
@@ -329,10 +273,10 @@ const App = () => {
                                 <div className="flex items-center gap-4">
                                     <Fingerprint size={28} className="text-indigo-500" />
                                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-relaxed">
-                                        Identity token requested node. Access Token has been requested via the Administrative Relay.
+                                        Identity token requested via the ${CREATOR_NAME} Relay.
                                     </p>
                                 </div>
-                                <button type="button" onClick={handleResend} className="text-[9px] font-black text-indigo-500 hover:text-white transition-all uppercase tracking-widest" disabled={resendCooldown > 0}>
+                                <button type="button" onClick={() => dispatchToken(email, userId)} className="text-[9px] font-black text-indigo-500 hover:text-white transition-all uppercase tracking-widest" disabled={resendCooldown > 0}>
                                     {resendCooldown > 0 ? `Resend Token in ${resendCooldown}s` : "Request New Token Node"}
                                 </button>
                             </div>

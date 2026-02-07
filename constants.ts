@@ -1,24 +1,23 @@
 
-// Fix: Import View enum to support FOOTER_LINKS definition
 import { UserProfile, View } from './types';
 
 export const APP_NAME = "StudentPocket";
-export const APP_TAGLINE = "Titanium Privacy Infrastructure";
+export const APP_TAGLINE = "Guardian Protocol Infrastructure";
 export const CREATOR_NAME = "Sushil Pokhrel";
-export const APP_VERSION = "v16.2.0 Secure Pulse";
-export const BUILD_DATE = "Daily Update: October 2024 Cycle";
+export const APP_VERSION = "v16.3.0 Guardian Protocol";
+export const BUILD_DATE = "2024 - 2026 Admin Cycle";
 
 export const COPYRIGHT_NOTICE = "© 2024 - 2026 StudentPocket. All Rights Reserved.";
-export const LEGAL_TERMS = "Institutional Data Protocol Active. Privacy Secured via Titanium Mesh.";
+export const LEGAL_TERMS = "Institutional Data Protocol Active. Privacy Secured via Sushil Pokhrel's Titanium Mesh.";
 export const FOOTER_SIGNATURE = "System Architecture by Sushil Pokhrel";
 
 export const WATERMARK = "STP-TITANIUM-SUSHIL-2026";
-export const ADMIN_USERNAME = "admin";
+export const ADMIN_USERNAME = "Sushil_Admin";
 export const ADMIN_SECRET = "admin123";
-// Authorized Administrative Recipient
 export const ADMIN_EMAIL = "pokharelsushil242@gmail.com";
+export const ADMIN_PHONE = "9765226385";
 export const SYSTEM_DOMAIN = "sushilpokharel00.com.np";
-export const SYSTEM_UPGRADE_TOKEN = "SP-TITANIUM-V16.2";
+export const SYSTEM_UPGRADE_TOKEN = "SP-GUARDIAN-V16.3";
 
 export const FOOTER_LINKS = {
   internal: [
