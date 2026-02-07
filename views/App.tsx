@@ -10,6 +10,8 @@ import { AdminDashboard } from './AdminDashboard';
 import { AcademicLedger } from './AcademicLedger';
 import { AttendanceTracker } from './AttendanceTracker';
 import { CampusRadar } from './CampusRadar';
+import { GrowthJournal } from './GrowthJournal';
+import { SecurityHeartbeat } from './SecurityHeartbeat';
 import { GlobalLoader } from '../components/GlobalLoader';
 import { SplashScreen } from '../components/SplashScreen';
 import { Footer } from '../components/Footer';
@@ -392,6 +394,8 @@ const App = () => {
       case View.ACADEMIC_LEDGER: return <AcademicLedger username={activeUser || ''} />;
       case View.ATTENDANCE_TRACKER: return <AttendanceTracker username={activeUser || ''} />;
       case View.CAMPUS_RADAR: return <CampusRadar username={activeUser || ''} />;
+      case View.GROWTH_JOURNAL: return <GrowthJournal username={activeUser || ''} />;
+      case View.SECURITY_HEARTBEAT: return <SecurityHeartbeat />;
       default: return <Dashboard user={user} username={activeUser || ''} onNavigate={setView} />;
     }
   };

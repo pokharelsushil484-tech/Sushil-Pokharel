@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { UserProfile, View, Note, Expense, GradeRecord } from '../types';
+// Fix: Added BookOpen to the lucide-react import list
 import { 
   ChevronRight, RefreshCw,
-  Loader2, Send, Wallet, ArrowUpRight, TrendingDown, Globe, Activity, Database, ShieldCheck, Fingerprint, BadgeCheck, AlertCircle, Radio, QrCode, TrendingUp, Trophy
+  Loader2, Send, Wallet, ArrowUpRight, TrendingDown, Globe, Activity, Database, ShieldCheck, Fingerprint, BadgeCheck, AlertCircle, Radio, QrCode, TrendingUp, Trophy, Lock,
+  BookOpen
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
-import { APP_NAME, SYSTEM_DOMAIN } from '../constants';
+import { APP_NAME, SYSTEM_DOMAIN, APP_VERSION } from '../constants';
 
 interface DashboardProps {
   user: UserProfile;
@@ -90,13 +92,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row justify-between items-start gap-10">
           <div className="space-y-4">
-              <div className="stark-badge inline-flex items-center space-x-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                  <span>Operational Node: {username.toUpperCase()}</span>
+              <div className="flex items-center gap-3">
+                <div className="stark-badge inline-flex items-center space-x-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span>Operational Node: {username.toUpperCase()}</span>
+                </div>
+                <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                    <Lock size={10}/> Security optimal
+                </div>
               </div>
               <h1 className="text-5xl sm:text-7xl font-black text-white tracking-tighter uppercase italic leading-none">
                 StudentPocket<br/><span className="text-indigo-600 not-italic">Mesh Center</span>
               </h1>
+              <div className="flex items-center gap-3 text-slate-600 font-black text-[9px] uppercase tracking-[0.4em]">
+                  <RefreshCw size={12} className="animate-spin-slow" />
+                  <span>Build Cycle: {APP_VERSION}</span>
+              </div>
           </div>
 
           {/* Institutional Mesh Badge */}
@@ -203,25 +214,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
 
       {/* Navigation Cluster */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div onClick={() => onNavigate(View.ACADEMIC_LEDGER)} className="master-box p-12 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40">
+        <div onClick={() => onNavigate(View.GROWTH_JOURNAL)} className="master-box p-12 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40">
             <div className="flex justify-between items-center mb-10">
               <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white group-hover:text-black transition-all">
-                <Trophy size={24} />
+                {/* Fix: Added missing icon from lucide-react */}
+                <BookOpen size={24} />
               </div>
               <ChevronRight size={24} className="text-slate-700 group-hover:text-white transition-colors" />
             </div>
-            <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter">Academic Ledger</h3>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Grade Preservation Node</p>
+            <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter">Growth Journal</h3>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Reflective Memory Node</p>
         </div>
-        <div onClick={() => onNavigate(View.VERIFY_LINK)} className="master-box p-12 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40">
+        <div onClick={() => onNavigate(View.SECURITY_HEARTBEAT)} className="master-box p-12 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40">
             <div className="flex justify-between items-center mb-10">
               <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white group-hover:text-black transition-all">
                 <Activity size={24} />
               </div>
               <ChevronRight size={24} className="text-slate-700 group-hover:text-white transition-colors" />
             </div>
-            <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter">Strategic Planner</h3>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Multi-Device Task Sync Protocol</p>
+            <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter">System Pulse</h3>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Real-time Integrity Monitor</p>
         </div>
         <div onClick={() => onNavigate(View.FILE_HUB)} className="master-box p-12 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40">
             <div className="flex justify-between items-center mb-10">
@@ -243,6 +255,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
         .animate-marquee {
             display: inline-flex;
             animation: marquee 30s linear infinite;
+        }
+        .animate-spin-slow {
+            animation: spin 8s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
       `}</style>
     </div>

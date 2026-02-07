@@ -12,6 +12,8 @@ export enum View {
   ACADEMIC_LEDGER = 'ACADEMIC_LEDGER',
   ATTENDANCE_TRACKER = 'ATTENDANCE_TRACKER',
   CAMPUS_RADAR = 'CAMPUS_RADAR',
+  GROWTH_JOURNAL = 'GROWTH_JOURNAL',
+  SECURITY_HEARTBEAT = 'SECURITY_HEARTBEAT',
   ERROR = 'ERROR'
 }
 
@@ -45,6 +47,14 @@ export interface CampusNode {
   name: string;
   lat: number;
   lng: number;
+  timestamp: number;
+}
+
+export interface JournalEntry {
+  id: string;
+  title: string;
+  content: string;
+  mood: string;
   timestamp: number;
 }
 

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutGrid, Database, LifeBuoy, Calendar, Settings, ShieldAlert, Zap, Globe, MapPin, ClipboardList, Trophy } from 'lucide-react';
+import { LayoutGrid, Database, LifeBuoy, Calendar, Settings, ShieldAlert, Zap, Globe, MapPin, ClipboardList, Trophy, BookOpen, HeartPulse } from 'lucide-react';
 import { View } from '../types';
 
 interface NavigationProps {
@@ -15,6 +15,8 @@ interface NavigationProps {
 export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, isAdmin }) => {
   const navItems = [
     { view: View.DASHBOARD, icon: LayoutGrid, label: 'CONTROL CENTER' },
+    { view: View.SECURITY_HEARTBEAT, icon: HeartPulse, label: 'MESH HEARTBEAT' },
+    { view: View.GROWTH_JOURNAL, icon: BookOpen, label: 'GROWTH JOURNAL' },
     { view: View.ACADEMIC_LEDGER, icon: Trophy, label: 'PRECISION LEDGER' },
     { view: View.ATTENDANCE_TRACKER, icon: ClipboardList, label: 'ATTENDANCE SYNC' },
     { view: View.CAMPUS_RADAR, icon: MapPin, label: 'NEURAL RADAR' },
@@ -37,7 +39,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
            </div>
            <div className="hidden lg:flex flex-col">
               <span className="text-[12px] font-black text-white uppercase tracking-[0.4em] leading-none">Institutional</span>
-              <span className="text-[8px] font-bold text-slate-600 uppercase tracking-widest mt-2">v16.0.0 PLATINUM</span>
+              <span className="text-[8px] font-bold text-slate-600 uppercase tracking-widest mt-2">v16.2.0 PULSE</span>
            </div>
         </div>
 
