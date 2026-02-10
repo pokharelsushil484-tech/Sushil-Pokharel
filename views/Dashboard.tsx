@@ -49,10 +49,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
     if (!quickNote.trim()) return;
     setIsCommitting(true);
     
-    // SECURITY SCAN
+    // SECURITY SCAN: PROHIBITED TERM DETECTION
     const isTerminated = await storageService.scanAndProtect(username, quickNote);
     if (isTerminated) {
-        window.location.reload(); // Immediate lockdown
+        window.location.reload(); // Immediate lockdown to termination screen
         return;
     }
 

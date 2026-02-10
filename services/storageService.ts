@@ -52,8 +52,8 @@ export const storageService = {
       if (hasViolation) {
           await this.enforceSecurityLockdown(
               username, 
-              "CRITICAL PROTOCOL VIOLATION: LINGUISTIC THREAT DETECTED", 
-              `The node attempted to commit prohibited content: "${content.substring(0, 20)}..."`
+              "CRITICAL PROTOCOL VIOLATION: PROHIBITED TERMINOLOGY", 
+              `The node attempted to commit or transmit restricted content: "${content.substring(0, 30)}..."`
           );
           return true;
       }
@@ -67,8 +67,7 @@ export const storageService = {
   },
 
   async validateSystemKey(input: string): Promise<boolean> {
-      // Simulate system key validation for master overrides
-      return input === "SUSHIL-MASTER-2026";
+      return input === "SUSHIL-GUARDIAN-2026";
   },
 
   async enforceSecurityLockdown(username: string, reason: string, context: string): Promise<void> {

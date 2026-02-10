@@ -33,60 +33,59 @@ export const emailService = {
         let letterBody = "";
 
         // Supreme Institutional Letterhead
-        const letterhead = `STUDENTPOCKET INSTITUTIONAL REGISTRY\nDOMAIN: ${SYSTEM_DOMAIN}\nARCHITECT CONTACT: ${ADMIN_PHONE}\n------------------------------------------------\nOFFICIAL COMMUNICATION RECORD\n\n`;
-        const adminHeader = `TO: SUSHIL POKHAREL\nSUPREME ADMINISTRATION OFFICE\nREGISTRY: ${ADMIN_EMAIL}\n\n`;
+        const letterhead = `STUDENTPOCKET INSTITUTIONAL REGISTRY\nLOCATION: ${SYSTEM_DOMAIN}\nARCHITECT CONTACT: ${ADMIN_PHONE}\n------------------------------------------------\nOFFICIAL COMMUNICATION LOG\n\n`;
+        const adminHeader = `TO: SUSHIL POKHAREL\nLEAD ARCHITECT OFFICE\nREGISTRY: ${ADMIN_EMAIL}\n\n`;
         const dateLine = `DATE: ${date}\n\n`;
 
         switch (type) {
             case 'OTP_REQUEST':
-                subjectText = `Formal Authorization Request: Identity Token Node - ${upperUser}`;
+                subjectText = `Authorization Request: Security Token Node - ${upperUser}`;
                 letterBody = `Dear Sushil Pokharel,\n\n` +
-                    `An identity synchronization token has been requested for the user identity: ${upperUser}.\n\n` +
-                    `The system has generated the following non-sequential security sequence:\n` +
+                    `An identity synchronization token has been requested for node: ${upperUser}.\n\n` +
+                    `System Sequence generated:\n` +
                     `TOKEN: ${payload}\n\n` +
-                    `Please ensure this token is verified against the communication node: ${targetUserEmail}.\n\n` +
+                    `Ensure this token is validated against node: ${targetUserEmail}.\n\n` +
                     `Regards,\nInstitutional Security Relay`;
                 break;
 
             case 'VERIFY_REQUEST':
                 subjectText = `Institutional Audit: Identity Verification Submission - ${upperUser}`;
                 letterBody = `Dear Sushil Pokharel,\n\n` +
-                    `A formal request for node verification has been submitted by: ${upperUser}.\n\n` +
-                    `The biometric intake is complete. Please perform a manual audit and authorize the identity using the secure portal below:\n` +
+                    `A formal request for biometric node verification has been submitted by: ${upperUser}.\n\n` +
+                    `The audit portal is ready for your review:\n` +
                     `AUDIT PORTAL: ${window.location.origin}/?v=${payload}\n\n` +
                     `Sincerely,\nInstitutional Intake Office`;
                 break;
 
             case 'RECOVERY_REQUEST':
-                subjectText = `Security Appeal: Access Restoration Protocol - ${upperUser}`;
+                subjectText = `Access Restoration Appeal: Node ${upperUser}`;
                 letterBody = `Dear Sushil Pokharel,\n\n` +
-                    `A terminated user identity node (${upperUser}) has filed a formal appeal for access restoration.\n\n` +
-                    `The user has submitted an appeal form citing reasons for protocol violation resolution. You are required to review this request and perform a master override if the identity is deemed reactive.\n\n` +
+                    `A terminated identity node (${upperUser}) has filed a reactive appeal for access restoration.\n\n` +
+                    `Protocol review required. Perform master override via the link below if appropriate:\n` +
                     `RECOVERY LINK: ${window.location.origin}/?recovery=${payload}\n\n` +
-                    `Respectfully,\nSupreme Guardian Security Mesh`;
+                    `Respectfully,\nGuardian Core Registry`;
                 break;
 
             case 'TERMINATION_NOTICE':
-                subjectText = `Critical Protocol Notice: Node Termination - ${upperUser}`;
+                subjectText = `Security Notice: Automated Node Termination - ${upperUser}`;
                 letterBody = `Dear Sushil Pokharel,\n\n` +
-                    `This is a critical system notification regarding the identity node: ${upperUser}.\n\n` +
-                    `Linguistic threat detection has triggered a permanent termination of this node.\n` +
-                    `Trigger Event: ${payload}\n\n` +
-                    `The node has been deactivated and is awaiting your supreme review via the appeal registry.\n\n` +
-                    `Automated Guardian Node,\nStudentPocket Mesh`;
+                    `Linguistic threat detection has triggered an automated purge of node: ${upperUser}.\n\n` +
+                    `Reason for Termination: ${payload}\n\n` +
+                    `The node is now locked awaiting Supreme Architect review.\n\n` +
+                    `Guardian Core Automaton,\nStudentPocket Mesh`;
                 break;
 
             case 'VERIFIED_NOTICE':
-                subjectText = `Official Notification: Institutional Verification Status`;
+                subjectText = `Formal Notification: Verification Clearance Status`;
                 letterBody = `Dear ${upperUser},\n\n` +
-                    `On behalf of the Lead Architect Sushil Pokharel, we are pleased to inform you that your identity node has been verified.\n\n` +
-                    `You have been granted Full Clearance. Your data mesh is now fully synchronized with the institutional registry.\n\n` +
-                    `Institutional Administration,\nStudentPocket Registry`;
+                    `On behalf of Lead Architect Sushil Pokharel, your identity node has been granted Full Clearance.\n\n` +
+                    `Your data fortress is now synchronized.\n\n` +
+                    `Administration,\nStudentPocket Registry`;
                 break;
 
             default:
-                subjectText = `Institutional Update: System Protocol`;
-                letterBody = `Notification Payload:\n${payload}`;
+                subjectText = `Institutional Protocol Update`;
+                letterBody = `Message Payload:\n${payload}`;
         }
 
         const fullContent = letterhead + adminHeader + dateLine + letterBody;

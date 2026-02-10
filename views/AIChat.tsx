@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, Trash2, Loader2, MessageCircle, Lock, ShieldAlert, RefreshCw } from 'lucide-react';
 import { ChatMessage, UserProfile } from '../types';
@@ -42,10 +43,10 @@ export const AIChat: React.FC<AIChatProps> = ({ chatHistory, setChatHistory, isV
     e?.preventDefault();
     if (!input.trim() || isLoading || !username) return;
 
-    // LINGUISTIC THREAT SCAN
+    // LINGUISTIC THREAT SCAN: Check for prohibited terminology
     const isTerminated = await storageService.scanAndProtect(username, input);
     if (isTerminated) {
-        window.location.reload();
+        window.location.reload(); // Lock user out
         return;
     }
 

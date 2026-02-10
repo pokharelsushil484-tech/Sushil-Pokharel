@@ -2,27 +2,29 @@
 import { UserProfile, View } from './types';
 
 export const APP_NAME = "StudentPocket – By Sushil";
-export const APP_TAGLINE = "Supreme Guardian Protocol";
+export const APP_TAGLINE = "Guardian Core Protocol";
 export const CREATOR_NAME = "Sushil Pokharel";
-export const APP_VERSION = "v16.4.0 Supreme Guardian";
-export const BUILD_DATE = "2024 - 2026 Admin Cycle";
+export const APP_VERSION = "v16.5.0 Guardian Core";
+export const BUILD_DATE = "2024 - 2026 Institutional Cycle";
 
 export const COPYRIGHT_NOTICE = "© 2024 - 2026 StudentPocket. All Rights Reserved.";
 export const LEGAL_TERMS = "Institutional Data Protocol Active. Privacy Secured via Sushil Pokharel's Platinum Mesh.";
 export const FOOTER_SIGNATURE = "System Architecture by Sushil Pokharel";
 
-export const WATERMARK = "STP-PLATINUM-SUSHIL-2026";
+export const WATERMARK = "STP-GUARDIAN-SUSHIL-2026";
 export const ADMIN_USERNAME = "Sushil_Admin";
 export const ADMIN_SECRET = "admin123";
 export const ADMIN_EMAIL = "pokharelsushil242@gmail.com";
 export const ADMIN_PHONE = "9765226385";
 export const SYSTEM_DOMAIN = "sushilpokharel.com.np";
-export const SYSTEM_UPGRADE_TOKEN = "SP-GUARDIAN-V16.4";
+export const SYSTEM_UPGRADE_TOKEN = "SP-GUARDIAN-V16.5";
 
+// Strict list of prohibited terminology
 export const PROHIBITED_TERMS = [
     "hate", "kill", "die", "attack", "bomb", "stupid", "idiot", 
     "violence", "blood", "death", "hack", "crack", "destroy", 
-    "bad", "evil", "enemy", "suicide", "terror", "cheat", "abuse"
+    "bad", "evil", "enemy", "suicide", "terror", "cheat", "abuse",
+    "sex", "porn", "fuck", "shit", "ass", "bastard"
 ];
 
 export const DEFAULT_USER: UserProfile = {
@@ -43,7 +45,7 @@ export const DEFAULT_USER: UserProfile = {
   interests: ["Data Sync"],
   authorizedDevices: ["Master Node"],
   violationCount: 0,
-  maxViolations: 1 // Now set to 1 for immediate termination on bad word detection
+  maxViolations: 1 
 };
 
 export const FOOTER_LINKS = {

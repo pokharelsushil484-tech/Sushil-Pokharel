@@ -129,7 +129,7 @@ const App = () => {
                 const targetEmail = localUsers[inputId].email;
                 await dispatchToken(targetEmail, inputId);
             } else {
-                setAuthError('AUTH_DENIED: IDENTITY_MISMATCH');
+                setAuthError('AUTHORIZATION_DENIED');
             }
         } else {
             await dispatchToken(email, inputId);
@@ -145,7 +145,7 @@ const App = () => {
                 setIsLoggedIn(true);
             }
         } else {
-            setAuthError('INVALID_ACCESS_TOKEN');
+            setAuthError('INVALID_TOKEN');
         }
     }
   };
@@ -178,17 +178,17 @@ const App = () => {
                   <XCircle size={64} className="text-red-500" />
               </div>
               <h1 className="text-5xl font-black text-white uppercase italic tracking-tighter mb-4">Node Terminated</h1>
-              <p className="text-sm text-slate-500 font-bold uppercase tracking-[0.4em] mb-12">Security Violation: Unauthorized Linguistic Activity</p>
+              <p className="text-sm text-slate-500 font-bold uppercase tracking-[0.4em] mb-12">Security Violation: Unauthorized Content Detected</p>
               <div className="bg-red-500/5 border border-red-500/10 p-10 rounded-[2.5rem] max-w-lg mb-12">
                   <p className="text-xs text-red-200 leading-relaxed uppercase tracking-widest font-black">
-                      Identity node purged. Prohibited terminology detected.<br/><br/>
-                      Reason: {user.banReason || 'Linguistic Threat Pattern'}<br/><br/>
-                      File a formal appeal to Sushil Pokharel for restoration.
+                      Identity node purged from registry. Restricted terminology pattern detected.<br/><br/>
+                      Reason: {user.banReason || 'Linguistic Security Pattern'}<br/><br/>
+                      To reactivate this node, you must submit a formal appeal to Sushil Pokharel.
                   </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-6">
-                  <button onClick={handleLogout} className="btn-platinum py-5 px-12 text-[10px]">Back to Login</button>
-                  <button onClick={() => setRecoveryId('NEW')} className="px-12 py-5 rounded-2xl bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest shadow-xl">File Formal Appeal</button>
+                  <button onClick={handleLogout} className="btn-platinum py-5 px-12 text-[10px]">Back to Entrance</button>
+                  <button onClick={() => setRecoveryId('NEW')} className="px-12 py-5 rounded-2xl bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest shadow-xl">Submit Appeal Letter</button>
               </div>
           </div>
       );
@@ -233,7 +233,7 @@ const App = () => {
                     <div className="space-y-1">
                         <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">{APP_NAME}</h1>
                         <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.6em]">
-                            {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'Authorized Access' : 'Create Identity Node') : 'Token Verification'}
+                            {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'Secure Login' : 'Register Identity') : 'Token Sync'}
                         </p>
                     </div>
                 </div>
@@ -300,7 +300,7 @@ const App = () => {
 
                     <button type="submit" className="btn-platinum py-5 text-xs flex items-center justify-center gap-3">
                         {authStep === 'CREDENTIALS' ? <LogIn size={18} /> : <Cpu size={18} />}
-                        {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'Initialize Auth' : 'Generate Token') : 'Verify Sequence'}
+                        {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'Initialize Auth' : 'Generate Token') : 'Verify Identity'}
                     </button>
                 </form>
 
@@ -310,7 +310,7 @@ const App = () => {
                         onClick={() => { setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setAuthStep('CREDENTIALS'); setAuthError(''); }}
                         className="text-[9px] font-black text-slate-500 hover:text-indigo-400 uppercase tracking-[0.4em] transition-all"
                     >
-                        {authStep === 'OTP' ? "Cancel Verification" : (authMode === 'LOGIN' ? "Provision New Identity" : "Already Registered? Login")}
+                        {authStep === 'OTP' ? "Cancel Verification" : (authMode === 'LOGIN' ? "Create New Node" : "Already Registered? Login")}
                     </button>
                     <div className="flex items-center space-x-3 opacity-30">
                         {networkStatus === 'ONLINE' ? <Wifi size={10} className="text-emerald-500"/> : <WifiOff size={10} className="text-red-500"/>}
