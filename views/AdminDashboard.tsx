@@ -6,13 +6,13 @@ import {
   Users, Trash2, Ban as BanIcon, ShieldOff, BadgeCheck, 
   UserPlus, Loader2, Terminal, Lock, Mail,
   CheckCircle2, XCircle, ShieldAlert, ShieldCheck, MessageSquare, Send, Clock, ChevronRight, AlertOctagon, Gavel, Trash, Radio, Megaphone, CheckCircle, X, ShieldCheck as AdminIcon,
-  RefreshCw
+  RefreshCw, Zap
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { emailService, DispatchType } from '../services/emailService';
 import { ADMIN_USERNAME, DEFAULT_USER, SYSTEM_DOMAIN, ADMIN_EMAIL, CREATOR_NAME } from '../constants';
 
-type AdminView = 'OVERVIEW' | 'NODES' | 'SUPPORT' | 'BROADCAST' | 'RECOVERY';
+type AdminView = 'OVERVIEW' | 'NODES' | 'SUPPORT' | 'BROADCAST' | 'RECOVERY' | 'INTEGRITY';
 
 interface AdminDashboardProps {
     onNavigate: (view: View) => void;
@@ -58,6 +58,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     if (stored && stored.user) {
         stored.user.isBanned = false;
         stored.user.violationCount = 0;
+        stored.user.integrityScore = 100; // Reset integrity on reactivation
         stored.user.verificationStatus = 'VERIFIED';
         await storageService.setData(dataKey, stored);
         
@@ -65,6 +66,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         alert("NODE REACTIVATED.");
         loadData();
     }
+  };
+
+  const handleResetIntegrity = async (username: string) => {
+      if (!confirm(`RESET INTEGRITY FOR NODE: ${username.toUpperCase()}?`)) return;
+      const dataKey = `architect_data_${username}`;
+      const stored = await storageService.getData(dataKey);
+      if (stored && stored.user) {
+          stored.user.integrityScore = 100;
+          stored.user.sanctions = [];
+          await storageService.setData(dataKey, stored);
+          alert("INTEGRITY RESTORED.");
+          loadData();
+      }
   };
 
   const handlePublishBroadcast = async () => {
@@ -109,7 +123,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                <h1 className="text-4xl sm:text-6xl font-black text-white uppercase italic tracking-tighter leading-none">Command<br/>Center</h1>
            </div>
            <div className="flex flex-wrap gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/10">
-               {(['OVERVIEW', 'NODES', 'SUPPORT', 'BROADCAST', 'RECOVERY'] as AdminView[]).map((m) => (
+               {(['OVERVIEW', 'NODES', 'SUPPORT', 'BROADCAST', 'INTEGRITY'] as AdminView[]).map((m) => (
                    <button 
                     key={m} 
                     onClick={() => setViewMode(m)}
@@ -137,6 +151,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                             <h3 className="text-lg font-black text-white uppercase italic truncate">{p.name}</h3>
                             <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">ID: {p._username.toUpperCase()}</p>
                         </div>
+                        <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+                            <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Integrity</span>
+                            <span className={`text-xs font-black italic ${p.integrityScore < 50 ? 'text-red-500' : 'text-emerald-500'}`}>{p.integrityScore}%</span>
+                        </div>
                         {p.isBanned && (
                             <button onClick={() => handleUnblockNode(p._username)} className="w-full py-4 bg-indigo-600 rounded-xl text-[9px] font-black text-white uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center justify-center gap-3">
                                 <RefreshCw size={14} /> Reactivate Node
@@ -144,6 +162,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                         )}
                     </div>
                 ))}
+           </div>
+       )}
+
+       {viewMode === 'INTEGRITY' && (
+           <div className="space-y-6">
+               {profiles.filter(p => p.integrityScore < 100 || (p.sanctions && p.sanctions.length > 0)).map(p => (
+                   <div key={p._username} className="master-box p-10 bg-black/40 border-white/5">
+                       <div className="flex flex-col md:flex-row justify-between items-center gap-8">
+                            <div className="flex items-center gap-6">
+                                <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-amber-500 border border-amber-500/20">
+                                    <Zap size={32} />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-white uppercase italic">{p.name}</h3>
+                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Violations Logged: {p.sanctions?.length || 0}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-6">
+                                <div className="text-right">
+                                    <span className="block text-[8px] font-black text-slate-600 uppercase">Current Mesh Score</span>
+                                    <span className={`text-3xl font-black italic ${p.integrityScore < 50 ? 'text-red-500' : 'text-amber-500'}`}>{p.integrityScore}%</span>
+                                </div>
+                                <button onClick={() => handleResetIntegrity(p._username)} className="px-8 py-4 bg-white text-black rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-slate-200">Reset Integrity</button>
+                            </div>
+                       </div>
+                       
+                       <div className="mt-8 space-y-4">
+                           {p.sanctions?.map(s => (
+                               <div key={s.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 flex justify-between items-center">
+                                   <div className="flex items-center gap-4">
+                                       <span className="px-2 py-0.5 bg-red-500/20 text-red-500 rounded text-[7px] font-black">{s.type}</span>
+                                       <span className="text-[10px] text-slate-400">{s.context}</span>
+                                   </div>
+                                   <span className="text-[8px] text-slate-600 uppercase">{new Date(s.timestamp).toLocaleString()}</span>
+                               </div>
+                           ))}
+                       </div>
+                   </div>
+               ))}
            </div>
        )}
 

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { UserProfile, VaultDocument, View } from '../types';
 import { 
@@ -33,8 +34,10 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
     } else {
       setPin('');
       setError("AUTHORIZATION DENIED.");
-      // Fix: Use enforceSecurityLockdown instead of non-existent recordViolation to log the security incident
-      await storageService.enforceSecurityLockdown(activeUser, "UNAUTHORIZED_VAULT_ACCESS", "Unauthorized Vault Access Attempt: Invalid Security PIN");
+      
+      // APPLY SANCTION: Invalid Security PIN attempt
+      await storageService.recordViolation(activeUser, "PIN_FAILURE", "Unauthorized Vault Access Attempt: Invalid Security PIN");
+      
       const stored = await storageService.getData(`architect_data_${activeUser}`);
       if (stored && stored.user) {
           updateUser(stored.user);
@@ -101,11 +104,17 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
             type="password" 
             value={pin}
             onChange={e => setPin(e.target.value)}
-            className="w-full p-6 bg-black border-2 border-transparent focus:border-indigo-500 rounded-[2rem] text-center text-3xl font-black tracking-[0.6em] outline-none mb-12 text-white shadow-inner"
+            className="w-full p-6 bg-black border-2 border-transparent focus:border-indigo-500 rounded-[2rem] text-center text-3xl font-black tracking-[0.6em] outline-none mb-4 text-white shadow-inner"
             placeholder="••••"
             maxLength={4}
             autoFocus
           />
+          <div className="mb-8 flex flex-col items-center">
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">Node Integrity</p>
+            <div className="w-48 h-1 bg-white/5 rounded-full overflow-hidden">
+                <div className={`h-full transition-all duration-1000 ${user.integrityScore > 70 ? 'bg-emerald-500' : user.integrityScore > 40 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${user.integrityScore}%` }}></div>
+            </div>
+          </div>
           {error && <p className="text-red-600 text-[10px] font-black uppercase mb-8 tracking-widest animate-shake leading-none">{error}</p>}
           <button onClick={handleUnlock} className="w-full bg-white text-black py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:bg-slate-200 transition-all active:scale-95">Open Safe</button>
         </div>

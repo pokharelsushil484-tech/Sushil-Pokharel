@@ -45,7 +45,9 @@ export const DEFAULT_USER: UserProfile = {
   interests: ["Data Sync"],
   authorizedDevices: ["Master Node"],
   violationCount: 0,
-  maxViolations: 1 
+  maxViolations: 1,
+  integrityScore: 100,
+  sanctions: []
 };
 
 export const FOOTER_LINKS = {

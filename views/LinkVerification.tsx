@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, View, UserProfile } from '../types';
-// Added BadgeCheck to the lucide-react imports to fix the "Cannot find name 'BadgeCheck'" error.
 import { ShieldCheck, User, Lock, ArrowLeft, Mail, Phone, KeyRound, CheckCircle2, XCircle, Cpu, ShieldAlert, Globe, Loader2, Copy, Check, BadgeCheck } from 'lucide-react';
 import { ADMIN_USERNAME, SYSTEM_DOMAIN, ADMIN_SECRET } from '../constants';
 import { storageService } from '../services/storageService';
@@ -44,30 +43,12 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
     setLoading(true);
     setAuthError('');
     
-    try {
-        const res = await fetch('/login.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                action: 'ADMIN_VERIFY_LOGIN', 
-                username: adminUser, 
-                password: adminPass 
-            })
-        });
-        
-        const data = await res.json();
-        if (data.auth_status === 'SUCCESS') {
-            setIsAdminAuth(true);
-        } else {
-            setAuthError('INVALID MASTER CREDENTIALS');
-        }
-    } catch (err) {
-        // Fallback for simulation if PHP server is not responding in this environment
-        if (adminUser === 'admin' && adminPass === 'admin123') {
-            setIsAdminAuth(true);
-        } else {
-            setAuthError('AUTHORITY_DENIED: REGISTRY OFFLINE');
-        }
+    // Simulate high-security admin auth
+    await new Promise(r => setTimeout(r, 1000));
+    if (adminUser === ADMIN_USERNAME && adminPass === ADMIN_SECRET) {
+        setIsAdminAuth(true);
+    } else {
+        setAuthError('AUTHORITY_DENIED: INVALID MASTER KEY');
     }
     setLoading(false);
   };
@@ -81,26 +62,26 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
     
     if (stored && stored.user) {
         const targetEmail = stored.user.email;
-        const targetUsername = request.username; // Use username from the request object
+        const targetUsername = request.username;
 
         stored.user.isVerified = action === 'APPROVE';
         stored.user.verificationStatus = action === 'APPROVE' ? 'VERIFIED' : 'REJECTED';
         
         await storageService.setData(dataKey, stored);
         
-        // Update request list
+        // Update request status in local storage
         const reqStr = localStorage.getItem('studentpocket_requests');
         const requests: ChangeRequest[] = JSON.parse(reqStr || '[]');
         const updatedRequests = requests.map(r => r.id === request.id ? { ...r, status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED' } : r);
         localStorage.setItem('studentpocket_requests', JSON.stringify(updatedRequests));
 
         if (action === 'APPROVE') {
-            // Fix: Argument of type '"SUCCESS"' is not assignable to parameter of type 'DispatchType'.
-            // Dispatch success mail with user email and auto-generated username
-            await emailService.sendInstitutionalMail(targetEmail, 'NODE_ACTIVE', 'VERIFIED_NOTICE', targetUsername);
+            // DISPATCH: The specific formal TFA Confirmation requested
+            const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+            await emailService.sendInstitutionalMail(targetEmail, otpCode, 'TFA_CONFIRMATION', targetUsername);
         }
         
-        alert(`NODE IDENTITY ${action === 'APPROVE' ? 'AUTHORIZED' : 'REJECTED'}. Dispatching Notification.`);
+        alert(`IDENTITY NODE ${action === 'APPROVE' ? 'AUTHORIZED' : 'REJECTED'}. Dispatching Formal Notification.`);
         window.location.href = '/';
     }
     setActionProcessing(false);
@@ -121,7 +102,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                 <Lock size={40} />
             </div>
             <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-tighter italic">Security Check</h2>
-            <p className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.5em] mb-12">Login to View Node Details</p>
+            <p className="text-[10px] text-indigo-500 font-black uppercase tracking-0.5em mb-12">Login to View Node Details</p>
             
             <form onSubmit={handleAdminAuth} className="space-y-6">
                 <div className="relative group">
@@ -142,7 +123,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
   let details = { fullName: 'Unknown Personnel', email: 'N/A', phone: 'N/A', permAddress: 'N/A', _profileImage: null };
   try {
       const parsed = JSON.parse(request?.details || '{}');
-      details = parsed.new || parsed;
+      details = parsed;
   } catch (e) {
       console.error("Critical Detail Sync Error", e);
   }
@@ -229,7 +210,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
                         <button 
                             onClick={() => handleAction('APPROVE')} 
                             disabled={actionProcessing || request?.status !== 'PENDING'} 
-                            className="flex-1 md:px-12 py-5 rounded-2xl bg-white text-black font-black text-[10px] uppercase tracking-widest shadow-2xl hover:bg-slate-200 transition-all disabled:opacity-20"
+                            className="flex-1 md:px-12 py-5 rounded-2xl bg-white text-black font-black text-[10px] uppercase tracking-[0.4em] shadow-2xl hover:bg-slate-200 transition-all disabled:opacity-20"
                         >
                             Authorize & Notify Email
                         </button>

@@ -22,7 +22,7 @@ import { View, UserProfile, VaultDocument, Assignment, Expense } from '../types'
 import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME, SYSTEM_UPGRADE_TOKEN, CREATOR_NAME, ADMIN_EMAIL } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
-import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, Mail, CheckCircle2, ArrowRight, Fingerprint, ShieldAlert, BadgeCheck, AlertCircle, Cpu, User, Wifi, WifiOff, RefreshCw, XCircle } from 'lucide-react';
+import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, Mail, CheckCircle2, ArrowRight, Fingerprint, ShieldAlert, BadgeCheck, AlertCircle, Cpu, User, Wifi, WifiOff, RefreshCw, XCircle, Zap } from 'lucide-react';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -192,6 +192,30 @@ const App = () => {
               </div>
           </div>
       );
+  }
+
+  // PUNISHMENT UI: Low Integrity Sanction
+  if (user.integrityScore < 50 && view !== View.ACCESS_RECOVERY && view !== View.SUPPORT) {
+    return (
+        <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-center animate-platinum">
+            <div className="w-24 h-24 bg-amber-500/10 rounded-full flex items-center justify-center mb-10 border border-amber-500/20 shadow-[0_0_40px_rgba(245,158,11,0.15)]">
+                <Zap size={48} className="text-amber-500 animate-pulse" />
+            </div>
+            <h1 className="text-3xl font-black text-white uppercase italic tracking-tighter mb-2">Unstable Node</h1>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.4em] mb-12">Integrity Level: {user.integrityScore}%</p>
+            <div className="bg-amber-500/5 border border-amber-500/10 p-8 rounded-3xl max-w-md mb-12">
+                <p className="text-xs text-amber-200 leading-relaxed uppercase tracking-widest font-bold">
+                    Node integrity has dropped below safety threshold. Protocols are partially restricted.<br/><br/>
+                    Submit an integrity restoration request or contact comms relay.
+                </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4">
+                <button onClick={() => setView(View.SUPPORT)} className="px-10 py-4 rounded-xl bg-white/5 text-slate-400 font-black text-[10px] uppercase tracking-widest">Open Relay</button>
+                <button onClick={() => setRecoveryId('NEW')} className="px-10 py-4 rounded-xl bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest shadow-xl">Appeal Sanction</button>
+            </div>
+            <p className="mt-12 text-[8px] font-black text-slate-700 uppercase tracking-widest">Guardian Core: Sushil Pokharel Architecture</p>
+        </div>
+    );
   }
 
   if (verifyLinkId) {

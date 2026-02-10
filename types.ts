@@ -91,6 +91,16 @@ export interface UserProfile {
   vaultPin?: string;
   violationCount: number;
   maxViolations: number;
+  integrityScore: number; // 0 - 100
+  sanctions: SanctionRecord[];
+}
+
+export interface SanctionRecord {
+  id: string;
+  type: 'UI_FAULT' | 'PIN_FAILURE' | 'LINGUISTIC' | 'UNSTABLE';
+  severity: 'LOW' | 'MEDIUM' | 'HIGH';
+  timestamp: number;
+  context: string;
 }
 
 export interface Assignment {
@@ -128,7 +138,7 @@ export interface ChangeRequest {
   id: string;
   userId: string;
   username: string;
-  type: 'VERIFICATION' | 'DATA_CHANGE' | 'RECOVERY' | 'REACTIVATION';
+  type: 'VERIFICATION' | 'DATA_CHANGE' | 'RECOVERY' | 'REACTIVATION' | 'RESTORE_INTEGRITY';
   details: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: number;

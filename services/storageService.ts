@@ -1,5 +1,5 @@
 
-import { ActivityLog, UserProfile } from '../types';
+import { ActivityLog, UserProfile, SanctionRecord } from '../types';
 import { DEFAULT_USER, PROHIBITED_TERMS } from '../constants';
 
 const DB_NAME = 'StudentPocketDB';
@@ -42,9 +42,6 @@ export const storageService = {
     });
   },
 
-  /**
-   * Scans content for prohibited terms. If detected, triggers immediate node termination.
-   */
   async scanAndProtect(username: string, content: string): Promise<boolean> {
       const lower = content.toLowerCase();
       const hasViolation = PROHIBITED_TERMS.some(term => lower.includes(term));
@@ -58,6 +55,41 @@ export const storageService = {
           return true;
       }
       return false;
+  },
+
+  async recordViolation(username: string, type: SanctionRecord['type'], context: string): Promise<void> {
+      const dataKey = `architect_data_${username}`;
+      const storedData = await this.getData(dataKey);
+      if (storedData && storedData.user) {
+          // Point deduction logic
+          const deduction = type === 'PIN_FAILURE' ? 10 : type === 'UI_FAULT' ? 5 : 20;
+          const newScore = Math.max(0, (storedData.user.integrityScore || 100) - deduction);
+          
+          const sanction: SanctionRecord = {
+              id: generateUUID(),
+              type,
+              severity: deduction > 15 ? 'HIGH' : deduction > 8 ? 'MEDIUM' : 'LOW',
+              timestamp: Date.now(),
+              context
+          };
+
+          storedData.user.integrityScore = newScore;
+          storedData.user.sanctions = [...(storedData.user.sanctions || []), sanction];
+          
+          if (newScore === 0) {
+              await this.enforceSecurityLockdown(username, "INTEGRITY_DEPLETED", "System integrity reached 0%. Automated node purge executed.");
+          } else {
+              await this.setData(dataKey, storedData);
+          }
+          
+          await this.logActivity({
+              actor: 'SYSTEM-GUARDIAN',
+              targetUser: username,
+              actionType: 'SANCTION',
+              description: `Integrity Deducted: ${type}`,
+              metadata: context
+          });
+      }
   },
 
   async logActivity(log: Omit<ActivityLog, 'id' | 'timestamp'>): Promise<void> {
@@ -78,6 +110,7 @@ export const storageService = {
           storedData.user.verificationStatus = 'TERMINATED';
           storedData.user.banReason = reason;
           storedData.user.adminFeedback = context;
+          storedData.user.integrityScore = 0;
           await this.setData(dataKey, storedData);
           await this.logActivity({
             actor: 'SYSTEM-GUARDIAN',

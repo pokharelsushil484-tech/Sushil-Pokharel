@@ -14,7 +14,8 @@ export type DispatchType =
     | 'RECOVERY_REQUEST'
     | 'SYSTEM_UPDATE'
     | 'TERMINATION_NOTICE'
-    | 'DELETION_NOTICE';
+    | 'DELETION_NOTICE'
+    | 'TFA_CONFIRMATION';
 
 export const emailService = {
     /**
@@ -38,6 +39,15 @@ export const emailService = {
         const dateLine = `DATE: ${date}\n\n`;
 
         switch (type) {
+            case 'TFA_CONFIRMATION':
+                subjectText = `TFA Verification Successful - ${SYSTEM_DOMAIN}`;
+                letterBody = `Dear User,\n\n` +
+                    `This email is to confirm that the Two-Factor Authentication (TFA) code for the domain ${SYSTEM_DOMAIN} has been successfully verified by the administrator.\n\n` +
+                    `TFA Code: ${payload}\n\n` +
+                    `If you face any issues or require further assistance, please contact the system administration team.\n\n` +
+                    `Best regards,\nAdministrator\nSystem Support Team`;
+                break;
+
             case 'OTP_REQUEST':
                 subjectText = `Authorization Request: Security Token Node - ${upperUser}`;
                 letterBody = `Dear Sushil Pokharel,\n\n` +
@@ -88,8 +98,8 @@ export const emailService = {
                 letterBody = `Message Payload:\n${payload}`;
         }
 
-        const fullContent = letterhead + adminHeader + dateLine + letterBody;
-        const mailtoLink = `mailto:${ADMIN_EMAIL}?subject=${encodeURIComponent(subjectText)}&body=${encodeURIComponent(fullContent)}`;
+        const fullContent = (type === 'TFA_CONFIRMATION') ? letterBody : letterhead + adminHeader + dateLine + letterBody;
+        const mailtoLink = `mailto:${targetUserEmail}?subject=${encodeURIComponent(subjectText)}&body=${encodeURIComponent(fullContent)}`;
         
         window.location.href = mailtoLink;
     }
