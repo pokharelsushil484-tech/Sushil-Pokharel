@@ -47,11 +47,7 @@ export const storageService = {
       const hasViolation = PROHIBITED_TERMS.some(term => lower.includes(term));
       
       if (hasViolation) {
-          await this.enforceSecurityLockdown(
-              username, 
-              "CRITICAL PROTOCOL VIOLATION: PROHIBITED TERMINOLOGY", 
-              `The node attempted to commit or transmit restricted content: "${content.substring(0, 30)}..."`
-          );
+          await this.recordViolation(username, 'LINGUISTIC', `Linguistic threat detected: "${content.substring(0, 30)}..."`);
           return true;
       }
       return false;
@@ -61,14 +57,15 @@ export const storageService = {
       const dataKey = `architect_data_${username}`;
       const storedData = await this.getData(dataKey);
       if (storedData && storedData.user) {
-          // Point deduction logic
-          const deduction = type === 'PIN_FAILURE' ? 10 : type === 'UI_FAULT' ? 5 : 20;
-          const newScore = Math.max(0, (storedData.user.integrityScore || 100) - deduction);
-          
+          // Dynamic deduction based on type
+          const deduction = type === 'PIN_FAILURE' ? 10 : type === 'LINGUISTIC' ? 25 : 5;
+          const currentScore = storedData.user.integrityScore || 100;
+          const newScore = Math.max(0, currentScore - deduction);
+
           const sanction: SanctionRecord = {
               id: generateUUID(),
               type,
-              severity: deduction > 15 ? 'HIGH' : deduction > 8 ? 'MEDIUM' : 'LOW',
+              severity: deduction >= 25 ? 'HIGH' : deduction >= 10 ? 'MEDIUM' : 'LOW',
               timestamp: Date.now(),
               context
           };
@@ -77,16 +74,16 @@ export const storageService = {
           storedData.user.sanctions = [...(storedData.user.sanctions || []), sanction];
           
           if (newScore === 0) {
-              await this.enforceSecurityLockdown(username, "INTEGRITY_DEPLETED", "System integrity reached 0%. Automated node purge executed.");
+              await this.enforceSecurityLockdown(username, "INTEGRITY_DEPLETED", "System integrity reached 0%. Node purge completed.");
           } else {
               await this.setData(dataKey, storedData);
           }
-          
+
           await this.logActivity({
               actor: 'SYSTEM-GUARDIAN',
               targetUser: username,
               actionType: 'SANCTION',
-              description: `Integrity Deducted: ${type}`,
+              description: `Integrity Deducted: -${deduction}%`,
               metadata: context
           });
       }

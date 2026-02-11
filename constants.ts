@@ -16,7 +16,7 @@ export const ADMIN_USERNAME = "Sushil_Admin";
 export const ADMIN_SECRET = "admin123";
 export const ADMIN_EMAIL = "pokharelsushil242@gmail.com";
 export const ADMIN_PHONE = "9765226385";
-export const SYSTEM_DOMAIN = "sushilpokharel.com.np";
+export const SYSTEM_DOMAIN = "sushilpokharel00.com.np";
 export const SYSTEM_UPGRADE_TOKEN = "SP-GUARDIAN-V16.5";
 
 // Strict list of prohibited terminology

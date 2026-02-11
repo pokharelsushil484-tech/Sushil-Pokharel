@@ -91,7 +91,7 @@ export interface UserProfile {
   vaultPin?: string;
   violationCount: number;
   maxViolations: number;
-  integrityScore: number; // 0 - 100
+  integrityScore: number; 
   sanctions: SanctionRecord[];
 }
 
