@@ -5,7 +5,6 @@ import { DEFAULT_USER, PROHIBITED_TERMS } from '../constants';
 const DB_NAME = 'StudentPocketDB';
 const STORE_NAME = 'user_data';
 const LOGS_STORE_NAME = 'activity_logs';
-const SYSTEM_STORE_NAME = 'system_config'; 
 const DB_VERSION = 4; 
 
 const initDB = (): Promise<IDBDatabase> => {
@@ -18,7 +17,6 @@ const initDB = (): Promise<IDBDatabase> => {
         const logStore = db.createObjectStore(LOGS_STORE_NAME, { keyPath: 'id' });
         logStore.createIndex('timestamp', 'timestamp', { unique: false });
       }
-      if (!db.objectStoreNames.contains(SYSTEM_STORE_NAME)) db.createObjectStore(SYSTEM_STORE_NAME);
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -43,11 +41,13 @@ export const storageService = {
   },
 
   async scanAndProtect(username: string, content: string): Promise<boolean> {
+      console.log(`[SHIELD] Scanning content for node: ${username}`);
       const lower = content.toLowerCase();
-      const hasViolation = PROHIBITED_TERMS.some(term => lower.includes(term));
+      const hasViolation = PROHIBITED_TERMS.some(term => lower.includes(term.toLowerCase()));
       
       if (hasViolation) {
-          await this.recordViolation(username, 'LINGUISTIC', `Inappropriate language detected: "${content.substring(0, 30)}..."`);
+          console.warn(`[SHIELD] Security violation detected in content.`);
+          await this.recordViolation(username, 'LINGUISTIC', `Restricted term used: "${content.substring(0, 30)}..."`);
           return true;
       }
       return false;
@@ -57,19 +57,17 @@ export const storageService = {
       const dataKey = `architect_data_${username}`;
       const storedData = await this.getData(dataKey);
       if (storedData && storedData.user) {
-          // Point deduction logic based on severity
           let deduction = 5;
           if (type === 'PIN_FAILURE') deduction = 10;
           if (type === 'LINGUISTIC') deduction = 25;
-          if (type === 'UNSTABLE') deduction = 15;
 
-          const currentScore = storedData.user.integrityScore || 100;
+          const currentScore = storedData.user.integrityScore ?? 100;
           const newScore = Math.max(0, currentScore - deduction);
 
           const sanction: SanctionRecord = {
               id: generateUUID(),
               type,
-              severity: deduction >= 20 ? 'HIGH' : deduction >= 10 ? 'MEDIUM' : 'LOW',
+              severity: deduction >= 20 ? 'HIGH' : 'LOW',
               timestamp: Date.now(),
               context
           };
@@ -77,17 +75,19 @@ export const storageService = {
           storedData.user.integrityScore = newScore;
           storedData.user.sanctions = [...(storedData.user.sanctions || []), sanction];
           
-          if (newScore === 0) {
-              await this.enforceSecurityLockdown(username, "INTEGRITY_DEPLETED", "Automated system purge initiated. Mesh integrity reached zero.");
-          } else {
-              await this.setData(dataKey, storedData);
+          if (newScore <= 0 || type === 'LINGUISTIC') {
+              console.error(`[SECURITY] Automatic purge triggered for node: ${username}`);
+              storedData.user.isBanned = true;
+              storedData.user.banReason = "INTEGRITY_FAIL_OR_LINGUISTIC_SHIELD";
           }
+          
+          await this.setData(dataKey, storedData);
 
           await this.logActivity({
               actor: 'SYSTEM-GUARDIAN',
               targetUser: username,
               actionType: 'SANCTION',
-              description: `Integrity Deducted: -${deduction}% for ${type}`,
+              description: `Integrity Deducted: -${deduction}%`,
               metadata: context
           });
       }
@@ -101,25 +101,5 @@ export const storageService = {
 
   async validateSystemKey(input: string): Promise<boolean> {
       return input === "SUSHIL-GUARDIAN-2026";
-  },
-
-  async enforceSecurityLockdown(username: string, reason: string, context: string): Promise<void> {
-      const dataKey = `architect_data_${username}`;
-      const storedData = await this.getData(dataKey);
-      if (storedData && storedData.user) {
-          storedData.user.isBanned = true;
-          storedData.user.verificationStatus = 'TERMINATED';
-          storedData.user.banReason = reason;
-          storedData.user.adminFeedback = context;
-          storedData.user.integrityScore = 0;
-          await this.setData(dataKey, storedData);
-          await this.logActivity({
-            actor: 'SYSTEM-GUARDIAN',
-            targetUser: username,
-            actionType: 'TERMINATION',
-            description: `NODE PURGED: ${reason}`,
-            metadata: context
-          });
-      }
   }
 };
