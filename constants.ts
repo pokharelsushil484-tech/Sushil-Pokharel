@@ -1,35 +1,34 @@
 
 import { UserProfile, View } from './types';
 
-export const APP_NAME = "StudentPocket – By Sushil";
-export const APP_TAGLINE = "Guardian Core Protocol";
-export const CREATOR_NAME = "Sushil Pokharel";
-export const APP_VERSION = "v16.8.5 Platinum";
-export const BUILD_DATE = "2024 - 2026 Institutional Cycle";
+export const APP_NAME = "STUDENTPOCKET – BY SUSHIL";
+export const APP_TAGLINE = "GUARDIAN CORE PROTOCOL";
+export const CREATOR_NAME = "SUSHIL POKHAREL";
+export const APP_VERSION = "V16.8.5 PLATINUM";
+export const BUILD_DATE = "2024 - 2026 INSTITUTIONAL CYCLE";
 
-export const COPYRIGHT_NOTICE = "© 2024 - 2026 StudentPocket. All Rights Reserved.";
-export const LEGAL_TERMS = "Institutional Data Protocol Active. Privacy Secured via Sushil Pokharel's Platinum Mesh.";
-export const FOOTER_SIGNATURE = "System Architecture by Sushil Pokharel";
+export const COPYRIGHT_NOTICE = "© 2024 - 2026 STUDENTPOCKET. ALL RIGHTS RESERVED.";
+export const LEGAL_TERMS = "INSTITUTIONAL DATA PROTOCOL ACTIVE. PRIVACY SECURED VIA SUSHIL POKHAREL'S PLATINUM MESH.";
+export const FOOTER_SIGNATURE = "SYSTEM ARCHITECTURE BY SUSHIL POKHAREL";
 
 export const WATERMARK = "STP-GUARDIAN-SUSHIL-2026";
-export const ADMIN_USERNAME = "Sushil_Admin";
-export const ADMIN_SECRET = "admin123";
+export const ADMIN_USERNAME = "SUSHIL_ADMIN";
+export const ADMIN_SECRET = "ADMIN123";
 export const ADMIN_EMAIL = "pokharelsushil242@gmail.com";
 export const ADMIN_PHONE = "9765226385";
-export const SYSTEM_DOMAIN = "sushilpokharel00.com.np";
+export const SYSTEM_DOMAIN = "SUSHILPOKHAREL00.COM.NP";
 export const SYSTEM_UPGRADE_TOKEN = "SP-GUARDIAN-V16.8";
 
-// Strict list of prohibited terminology
 export const PROHIBITED_TERMS = [
-    "hate", "kill", "die", "attack", "bomb", "stupid", "idiot", 
-    "violence", "blood", "death", "hack", "crack", "destroy", 
-    "bad", "evil", "enemy", "suicide", "terror", "cheat", "abuse",
-    "sex", "porn", "fuck", "shit", "ass", "bastard"
+    "HATE", "KILL", "DIE", "ATTACK", "BOMB", "STUPID", "IDIOT", 
+    "VIOLENCE", "BLOOD", "DEATH", "HACK", "CRACK", "DESTROY", 
+    "BAD", "EVIL", "ENEMY", "SUICIDE", "TERROR", "CHEAT", "ABUSE",
+    "SEX", "PORN", "FUCK", "SHIT", "ASS", "BASTARD"
 ];
 
 export const DEFAULT_USER: UserProfile = {
-  name: "Personnel Node",
-  email: `user@${SYSTEM_DOMAIN}`,
+  name: "PERSONNEL NODE",
+  email: `USER@${SYSTEM_DOMAIN}`,
   phone: "+977 0000000000",
   isVerified: false,
   emailVerified: false,
@@ -41,9 +40,9 @@ export const DEFAULT_USER: UserProfile = {
   storageLimitGB: 100,
   storageUsedBytes: 0,
   totpEnabled: false,
-  skills: ["Standard Entry"],
-  interests: ["Data Sync"],
-  authorizedDevices: ["Master Node"],
+  skills: ["STANDARD ENTRY"],
+  interests: ["DATA SYNC"],
+  authorizedDevices: ["MASTER NODE"],
   violationCount: 0,
   maxViolations: 1,
   integrityScore: 100,
@@ -58,8 +57,8 @@ export const FOOTER_LINKS = {
     { label: 'COMMS RELAY', view: View.SUPPORT },
   ],
   academic: [
-    { label: 'Research Gateway', href: 'https://scholar.google.com' },
-    { label: 'Institutional Library', href: '#' },
-    { label: 'Academic Archive', href: '#' }
+    { label: 'RESEARCH GATEWAY', href: 'https://scholar.google.com' },
+    { label: 'INSTITUTIONAL LIBRARY', href: '#' },
+    { label: 'ACADEMIC ARCHIVE', href: '#' }
   ]
 };

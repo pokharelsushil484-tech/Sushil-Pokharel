@@ -5,21 +5,18 @@ import { Dashboard } from './Dashboard';
 import { Settings } from './Settings';
 import { Vault } from './Vault';
 import { Support } from './Support';
-import { StudyPlanner } from './StudyPlanner';
 import { AdminDashboard } from './AdminDashboard';
 import { AIChat } from './AIChat';
 import { SecurityHeartbeat } from './SecurityHeartbeat';
 import { GlobalLoader } from '../components/GlobalLoader';
 import { SplashScreen } from '../components/SplashScreen';
-import { VerificationForm } from './VerificationForm';
 import { LinkVerification } from './LinkVerification';
 import { AccessRecovery } from './AccessRecovery';
 import { View, UserProfile, VaultDocument, Assignment, ChatMessage } from '../types';
-import { DEFAULT_USER, APP_NAME, SYSTEM_DOMAIN, ADMIN_USERNAME, ADMIN_SECRET } from '../constants';
+import { DEFAULT_USER, APP_NAME, ADMIN_USERNAME, ADMIN_SECRET } from '../constants';
 import { storageService } from '../services/storageService';
-// Fix: Import emailService to resolve undefined reference errors in handleAuth
 import { emailService } from '../services/emailService';
-import { ShieldCheck, Lock, Terminal, Eye, EyeOff, LogIn, Mail, CheckCircle2, ArrowRight, Cpu, User, RefreshCw, XCircle } from 'lucide-react';
+import { ShieldCheck, Lock, CheckCircle2, User, XCircle } from 'lucide-react';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -37,7 +34,6 @@ const App = () => {
   const [fullName, setFullName] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [serverSideOtp, setServerSideOtp] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
 
   const [user, setUser] = useState<UserProfile>(DEFAULT_USER);
@@ -48,27 +44,24 @@ const App = () => {
   const [verifyLinkId, setVerifyLinkId] = useState<string | null>(null);
   const [recoveryId, setRecoveryId] = useState<string | null>(null);
 
-  // Load user data into state
   const loadUserData = useCallback(async (username: string) => {
     const dataKey = `architect_data_${username}`;
     const stored = await storageService.getData(dataKey);
     
-    if (username === ADMIN_USERNAME) {
+    if (username.toUpperCase() === ADMIN_USERNAME) {
         setUser({
             ...DEFAULT_USER,
-            name: "Sushil Pokharel",
+            name: "SUSHIL POKHAREL",
             isVerified: true,
             verificationStatus: 'VERIFIED'
         });
     } else if (stored && stored.user) {
         setUser(stored.user);
         if (stored.vaultDocs) setVaultDocs(stored.vaultDocs);
-        if (stored.assignments) setAssignments(stored.assignments);
         if (stored.chatHistory) setChatHistory(stored.chatHistory);
     }
   }, []);
 
-  // PERSISTENCE: Restore session on mount
   useEffect(() => {
     const savedUser = sessionStorage.getItem('active_session_user');
     const params = new URLSearchParams(window.location.search);
@@ -87,11 +80,10 @@ const App = () => {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    const inputId = userId.trim();
-    const inputPass = password.trim();
+    const inputId = userId.trim().toUpperCase();
+    const inputPass = password.trim().toUpperCase();
 
     if (authStep === 'CREDENTIALS') {
-        // Master Admin Check
         if (inputId === ADMIN_USERNAME && inputPass === ADMIN_SECRET) {
             sessionStorage.setItem('active_session_user', inputId);
             setActiveUser(inputId);
@@ -100,36 +92,33 @@ const App = () => {
             return;
         }
         
-        // Standard User Check
         const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
         if (authMode === 'LOGIN') {
-            if (localUsers[inputId] && localUsers[inputId].password === inputPass) {
+            if (localUsers[inputId] && localUsers[inputId].password.toUpperCase() === inputPass) {
                 const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
                 setServerSideOtp(mockCode);
                 await emailService.sendInstitutionalMail(localUsers[inputId].email, mockCode, 'OTP_REQUEST', inputId);
                 setAuthStep('OTP');
             } else {
-                setAuthError('AUTHORITY_DENIED');
+                setAuthError('AUTHORITY DENIED: INVALID CREDENTIALS');
             }
         } else {
-            // Signup flow: generate OTP
             const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
             setServerSideOtp(mockCode);
             await emailService.sendInstitutionalMail(email, mockCode, 'OTP_REQUEST', inputId);
             setAuthStep('OTP');
         }
     } else {
-        // OTP Step
         if (otpCode === serverSideOtp || otpCode === '123456') {
             if (authMode === 'SIGNUP') {
                 const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
-                localUsers[inputId] = { password, email, name: fullName };
+                localUsers[inputId] = { password: inputPass, email, name: fullName.toUpperCase() };
                 localStorage.setItem('studentpocket_users', JSON.stringify(localUsers));
                 
                 const profile: UserProfile = {
                   ...DEFAULT_USER,
-                  name: fullName,
-                  email: email,
+                  name: fullName.toUpperCase(),
+                  email: email.toUpperCase(),
                   studentId: `SP-${Math.floor(100000 + Math.random() * 900000)}`
                 };
                 await storageService.setData(`architect_data_${inputId}`, { user: profile });
@@ -141,7 +130,7 @@ const App = () => {
                 setIsLoggedIn(true);
             }
         } else {
-            setAuthError('INVALID_TOKEN');
+            setAuthError('INVALID TOKEN');
         }
     }
   };
@@ -155,10 +144,10 @@ const App = () => {
   
   if (user.isBanned) {
       return (
-          <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-center">
+          <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-center uppercase">
               <XCircle size={80} className="text-red-500 mb-8" />
-              <h1 className="text-4xl font-black text-white uppercase italic mb-4">Node Terminated</h1>
-              <p className="text-slate-500 mb-10">Security Violation: Integrity Purge Initiated</p>
+              <h1 className="text-4xl font-black text-white italic mb-4">Node Terminated</h1>
+              <p className="text-slate-500 mb-10 font-bold">Security Violation: Integrity Purge Initiated</p>
               <button onClick={handleLogout} className="btn-platinum py-5 px-12 text-xs">Return to Login</button>
           </div>
       );
@@ -169,7 +158,7 @@ const App = () => {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6">
+      <div className="min-h-screen bg-black flex items-center justify-center p-6 uppercase">
         <div className="w-full max-w-lg">
           <div className="master-box p-12 space-y-12 bg-black/40 border-white/5">
               {registrationSuccess ? (
@@ -182,33 +171,29 @@ const App = () => {
                 <form onSubmit={handleAuth} className="space-y-8">
                     <div className="text-center space-y-4">
                         <ShieldCheck size={48} className="mx-auto text-indigo-500" />
-                        <h1 className="text-3xl font-black text-white italic uppercase">{APP_NAME}</h1>
+                        <h1 className="text-3xl font-black text-white italic">{APP_NAME}</h1>
                     </div>
-                    
                     <div className="space-y-4">
                         {authStep === 'CREDENTIALS' ? (
                             <>
                             {authMode === 'SIGNUP' && (
-                                <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl py-5 px-8 text-white text-xs font-bold" placeholder="FULL NAME" required />
+                                <input type="text" value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} className="w-full bg-black border border-white/10 rounded-2xl py-5 px-8 text-white text-xs font-bold uppercase" placeholder="FULL NAME" required />
                             )}
-                            <input type="text" value={userId} onChange={e => setUserId(e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl py-5 px-8 text-white text-xs font-bold" placeholder="IDENTITY KEY" required />
-                            <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl py-5 px-8 text-white text-xs font-bold" placeholder="SECRET CODE" required />
+                            <input type="text" value={userId} onChange={e => setUserId(e.target.value.toUpperCase())} className="w-full bg-black border border-white/10 rounded-2xl py-5 px-8 text-white text-xs font-bold uppercase" placeholder="IDENTITY KEY" required />
+                            <input type="password" value={password} onChange={e => setPassword(e.target.value.toUpperCase())} className="w-full bg-black border border-white/10 rounded-2xl py-5 px-8 text-white text-xs font-bold uppercase" placeholder="SECRET CODE" required />
                             {authMode === 'SIGNUP' && (
-                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl py-5 px-8 text-white text-xs font-bold" placeholder="EMAIL" required />
+                                <input type="email" value={email} onChange={e => setEmail(e.target.value.toUpperCase())} className="w-full bg-black border border-white/10 rounded-2xl py-5 px-8 text-white text-xs font-bold uppercase" placeholder="EMAIL" required />
                             )}
                             </>
                         ) : (
                             <input type="text" value={otpCode} onChange={e => setOtpCode(e.target.value)} className="w-full bg-black border border-indigo-500/50 rounded-2xl py-6 text-center text-3xl font-mono text-white tracking-widest" placeholder="000000" required />
                         )}
                     </div>
-
-                    {authError && <p className="text-red-500 text-[10px] font-black uppercase text-center">{authError}</p>}
-                    
+                    {authError && <p className="text-red-500 text-[10px] font-black text-center">{authError}</p>}
                     <button type="submit" className="btn-platinum py-5">
                         {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'ACCESS NODE' : 'INITIALIZE NODE') : 'VERIFY TOKEN'}
                     </button>
-                    
-                    <button type="button" onClick={() => setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN')} className="w-full text-[9px] font-black text-slate-600 uppercase tracking-widest">
+                    <button type="button" onClick={() => setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN')} className="w-full text-[9px] font-black text-slate-600 tracking-widest">
                         {authMode === 'LOGIN' ? 'CREATE NEW IDENTITY' : 'ALREADY REGISTERED? LOGIN'}
                     </button>
                 </form>
@@ -220,7 +205,7 @@ const App = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
+    <div className="min-h-screen bg-black flex flex-col uppercase">
       <GlobalLoader isLoading={isLoading} />
       <div className="md:ml-24 lg:ml-80 transition-all flex-1 flex flex-col">
         <header className="bg-black/80 backdrop-blur-3xl border-b border-white/10 h-24 flex items-center justify-between px-8 sm:px-12 sticky top-0 z-40">
@@ -228,12 +213,12 @@ const App = () => {
               <div className="p-3 bg-white rounded-xl text-black">
                 <ShieldCheck size={24} />
               </div>
-              <h1 className="text-sm font-black text-white uppercase tracking-widest">{APP_NAME}</h1>
+              <h1 className="text-sm font-black text-white tracking-widest">{APP_NAME}</h1>
            </div>
            <div className="flex items-center space-x-6">
               <div className="text-right hidden sm:block">
                   <p className="text-xs font-black text-indigo-400">{user.name}</p>
-                  <p className="text-[8px] font-black text-slate-600 uppercase">{user.isVerified ? 'VERIFIED NODE' : 'PENDING CLEARANCE'}</p>
+                  <p className="text-[8px] font-black text-slate-600">{user.isVerified ? 'VERIFIED NODE' : 'PENDING CLEARANCE'}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl border border-white/10 overflow-hidden">
                 <img src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} className="w-full h-full object-cover" alt="User" />

@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
-import { View, ChangeRequest, UserProfile } from '../types';
-import { ShieldAlert, Send, ArrowLeft, KeyRound, Copy, Check, Lock, Mail, Loader2, User, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { View, ChangeRequest } from '../types';
+import { ShieldAlert, Send, ArrowLeft, KeyRound, Mail, Loader2, User, CheckCircle2, Lock } from 'lucide-react';
 import { SYSTEM_DOMAIN, ADMIN_EMAIL, ADMIN_USERNAME, ADMIN_SECRET, CREATOR_NAME } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
@@ -16,6 +16,7 @@ export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate, reco
   const [reason, setReason] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [recoveryId, setRecoveryId] = useState(initialId || '');
+  const [activationCode, setActivationCode] = useState('');
   
   // Admin Approval States
   const [adminUser, setAdminUser] = useState('');
@@ -27,17 +28,16 @@ export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate, reco
   const handleUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
-    // Create a new recovery node ID
     const newId = Math.random().toString(36).substring(2, 9).toUpperCase();
     
     setTimeout(async () => {
         const existingReqs = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
         const request: ChangeRequest = {
             id: 'REC-' + Date.now(),
-            userId: username,
-            username: username,
+            userId: username.toUpperCase(),
+            username: username.toUpperCase(),
             type: 'RECOVERY',
-            details: JSON.stringify({ reason }),
+            details: JSON.stringify({ reason: reason.toUpperCase() }),
             status: 'PENDING',
             createdAt: Date.now(),
             linkId: newId 
@@ -45,7 +45,6 @@ export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate, reco
         existingReqs.push(request);
         localStorage.setItem('studentpocket_requests', JSON.stringify(existingReqs));
         
-        // Dispatch formal recovery letter to Sushil Pokharel
         await emailService.sendInstitutionalMail(ADMIN_EMAIL, newId, 'RECOVERY_REQUEST', username);
         setRecoveryId(newId);
         setSubmitted(true);
@@ -53,11 +52,10 @@ export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate, reco
     }, 1200);
   };
 
-  const handleAdminApproval = async (e: React.FormEvent) => {
+  const handleAdminApproval = async (e: React.FormEvent, action: 'APPROVE' | 'REJECT') => {
     e.preventDefault();
     setAuthError('');
-    // Verify Master Node credentials (Sushil)
-    if (adminUser !== ADMIN_USERNAME || adminPass !== ADMIN_SECRET) {
+    if (adminUser.toUpperCase() !== ADMIN_USERNAME || adminPass.toUpperCase() !== ADMIN_SECRET) {
         setAuthError("AUTHORITY DENIED: INCORRECT MASTER CREDENTIALS");
         return;
     }
@@ -71,17 +69,18 @@ export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate, reco
         const dataKey = `architect_data_${targetReq.username}`;
         const stored = await storageService.getData(dataKey);
         if (stored && stored.user) {
-            // REACTIVE ACTION: UNBLOCK NODE
-            stored.user.isBanned = false;
-            stored.user.violationCount = 0;
-            stored.user.verificationStatus = 'VERIFIED';
-            await storageService.setData(dataKey, stored);
-            
-            // Update request status
-            const updated = requests.map(r => r.linkId === recoveryId ? { ...r, status: 'APPROVED' as const } : r);
-            localStorage.setItem('studentpocket_requests', JSON.stringify(updated));
-            
-            setIsApproved(true);
+            if (action === 'APPROVE') {
+                stored.user.isBanned = false;
+                stored.user.violationCount = 0;
+                stored.user.verificationStatus = 'VERIFIED';
+                await storageService.setData(dataKey, stored);
+                await emailService.sendInstitutionalMail(stored.user.email, "", 'RECOVERY_ACTIVATED', targetReq.username);
+                setIsApproved(true);
+            } else {
+                await emailService.sendInstitutionalMail(stored.user.email, "", 'RECOVERY_REJECTED', targetReq.username);
+                alert("NODE RECOVERY REJECTED. NOTIFICATION SENT.");
+                window.location.href = '/';
+            }
         }
     } else {
         setAuthError("ERROR: RECOVERY NODE NOT FOUND");
@@ -89,40 +88,34 @@ export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate, reco
     setIsProcessing(false);
   };
 
-  // If this is the admin review view (accessed via recoveryId link)
   if (initialId || (submitted && recoveryId)) {
       return (
-        <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 animate-platinum">
+        <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 animate-platinum uppercase">
             <div className="max-w-md w-full master-box p-12 bg-[#050505] border-white/5 space-y-12">
                 {isApproved ? (
                     <div className="text-center space-y-8 animate-scale-up">
                         <div className="w-20 h-20 bg-emerald-500/10 rounded-[2rem] flex items-center justify-center mx-auto text-emerald-500 border border-emerald-500/20">
                             <CheckCircle2 size={48} />
                         </div>
-                        <h2 className="text-2xl font-black text-white uppercase italic">Node Restored</h2>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Identity node synchronized. Return to terminal.</p>
+                        <h2 className="text-2xl font-black text-white italic">Node Restored</h2>
+                        <p className="text-[10px] text-slate-500 font-bold tracking-widest">Identity node synchronized. Return to terminal.</p>
                         <button onClick={() => window.location.href = '/'} className="btn-platinum py-4 text-xs">Return to Main</button>
                     </div>
                 ) : (
                     <>
                     <div className="text-center">
                         <Lock className="mx-auto text-indigo-500 mb-6" size={40} />
-                        <h2 className="text-2xl font-black text-white uppercase italic">Master Override</h2>
-                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-2">Sushil Pokharel Clearance Required</p>
+                        <h2 className="text-2xl font-black text-white italic">Master Override</h2>
+                        <p className="text-[9px] text-slate-500 font-bold tracking-widest mt-2">{CREATOR_NAME} Clearance Required</p>
                     </div>
-                    <form onSubmit={handleAdminApproval} className="space-y-6">
-                        <div className="relative group">
-                            <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
-                            <input type="text" value={adminUser} onChange={e => setAdminUser(e.target.value)} className="w-full pl-12 pr-5 py-4 bg-black border border-white/5 rounded-2xl text-xs text-white font-bold tracking-widest uppercase outline-none focus:border-indigo-500" placeholder="ADMIN ID" required />
+                    <form className="space-y-6">
+                        <input type="text" value={adminUser} onChange={e => setAdminUser(e.target.value.toUpperCase())} className="w-full p-4 bg-black border border-white/5 rounded-2xl text-xs text-white font-bold tracking-widest uppercase" placeholder="ADMIN ID" required />
+                        <input type="password" value={adminPass} onChange={e => setAdminPass(e.target.value.toUpperCase())} className="w-full p-4 bg-black border border-white/5 rounded-2xl text-xs text-white font-bold tracking-widest uppercase" placeholder="MASTER SECRET" required />
+                        {authError && <p className="text-[9px] font-black text-red-500 text-center">{authError}</p>}
+                        <div className="flex gap-4">
+                            <button onClick={(e) => handleAdminApproval(e, 'REJECT')} disabled={isProcessing} className="flex-1 py-4 rounded-xl bg-white/5 text-red-500 font-black text-[9px] uppercase tracking-widest border border-red-500/20">Reject</button>
+                            <button onClick={(e) => handleAdminApproval(e, 'APPROVE')} disabled={isProcessing} className="flex-1 py-4 rounded-xl bg-white text-black font-black text-[9px] uppercase tracking-widest shadow-xl">Activate</button>
                         </div>
-                        <div className="relative group">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
-                            <input type="password" value={adminPass} onChange={e => setAdminPass(e.target.value)} className="w-full pl-12 pr-5 py-4 bg-black border border-white/5 rounded-2xl text-xs text-white font-bold tracking-widest uppercase outline-none focus:border-indigo-500" placeholder="MASTER SECRET" required />
-                        </div>
-                        {authError && <p className="text-[9px] font-black text-red-500 text-center uppercase tracking-widest">{authError}</p>}
-                        <button type="submit" disabled={isProcessing} className="w-full py-5 rounded-2xl bg-white text-black font-black text-[10px] uppercase tracking-[0.4em]">
-                            {isProcessing ? 'Processing Override...' : 'Authorize Restoration'}
-                        </button>
                     </form>
                     </>
                 )}
@@ -131,44 +124,23 @@ export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate, reco
       );
   }
 
-  // Initial user appeal submission view
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 animate-platinum">
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 animate-platinum uppercase">
         <div className="max-w-lg w-full master-box p-12 bg-[#050505] border-white/5 space-y-12">
-            {submitted ? (
-                <div className="text-center space-y-10 animate-fade-in">
-                    <div className="w-20 h-20 bg-indigo-600/10 rounded-[2rem] flex items-center justify-center mx-auto text-indigo-500 border border-indigo-500/20">
-                        <Mail size={40} />
-                    </div>
-                    <div className="space-y-2">
-                        <h2 className="text-2xl font-black text-white uppercase italic">Appeal Dispatched</h2>
-                        <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                            Your institutional appeal has been sent to **{CREATOR_NAME}**. <br/>Awaiting master clearance decision.
-                        </p>
-                    </div>
-                    <button onClick={() => window.location.href = '/'} className="btn-platinum py-5 text-xs">Return to Login</button>
+            <div className="text-center">
+                <ShieldAlert size={48} className="text-red-500 mx-auto mb-6" />
+                <h1 className="text-3xl font-black text-white italic tracking-tighter">Node Appeal</h1>
+                <p className="text-[10px] text-slate-600 font-bold tracking-widest mt-2">Identity Restoration Registry</p>
+            </div>
+            <form onSubmit={handleUserSubmit} className="space-y-8">
+                <div className="space-y-4">
+                    <input type="text" value={username} onChange={e => setUsername(e.target.value.toUpperCase())} className="w-full p-5 bg-black border border-white/5 rounded-3xl text-white font-bold text-xs uppercase" placeholder="INSERT RECOVERY VALUE" required />
+                    <textarea value={reason} onChange={e => setReason(e.target.value.toUpperCase())} rows={4} className="w-full p-6 bg-black border border-white/5 rounded-[2rem] text-white text-sm uppercase resize-none" placeholder="Reason for protocol violation resolution..." required />
                 </div>
-            ) : (
-                <>
-                <div className="text-center">
-                    <ShieldAlert size={48} className="text-red-500 mx-auto mb-6" />
-                    <h1 className="text-3xl font-black text-white uppercase italic tracking-tighter">Node Appeal</h1>
-                    <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.4em] mt-2">Identity Restoration Registry</p>
-                </div>
-                <form onSubmit={handleUserSubmit} className="space-y-8">
-                    <div className="space-y-4">
-                        <div className="relative">
-                            <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-700" size={18} />
-                            <input type="text" value={username} onChange={e => setUsername(e.target.value)} className="w-full pl-14 pr-6 py-5 bg-black border border-white/5 rounded-3xl text-white font-bold text-xs uppercase outline-none focus:border-indigo-500 transition-all" placeholder="IDENTITY KEY" required />
-                        </div>
-                        <textarea value={reason} onChange={e => setReason(e.target.value)} rows={4} className="w-full p-6 bg-black border border-white/5 rounded-[2rem] text-white text-sm outline-none focus:border-indigo-500 transition-all resize-none" placeholder="Reason for protocol violation resolution..." required />
-                    </div>
-                    <button type="submit" disabled={isProcessing} className="w-full py-6 rounded-[2rem] bg-indigo-600 text-white font-black text-[10px] uppercase tracking-[0.4em] shadow-2xl hover:bg-indigo-700 transition-all">
-                        {isProcessing ? <Loader2 size={18} className="animate-spin" /> : 'Dispatch Appeal Node'}
-                    </button>
-                </form>
-                </>
-            )}
+                <button type="submit" disabled={isProcessing} className="w-full py-6 rounded-[2rem] bg-indigo-600 text-white font-black text-[10px] uppercase tracking-[0.4em] shadow-2xl">
+                    {isProcessing ? <Loader2 size={18} className="animate-spin" /> : 'Dispatch Appeal Node'}
+                </button>
+            </form>
         </div>
     </div>
   );
