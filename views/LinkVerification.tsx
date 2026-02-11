@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ChangeRequest, View, UserProfile } from '../types';
+import { ChangeRequest, View } from '../types';
 import { ShieldCheck, User, Lock, ArrowLeft, Mail, Phone, KeyRound, CheckCircle2, XCircle, Cpu, ShieldAlert, Globe, Loader2, Copy, Check, BadgeCheck } from 'lucide-react';
 import { ADMIN_USERNAME, SYSTEM_DOMAIN, ADMIN_SECRET } from '../constants';
 import { storageService } from '../services/storageService';

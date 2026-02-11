@@ -4,7 +4,7 @@ import { UserProfile, View } from './types';
 export const APP_NAME = "StudentPocket – By Sushil";
 export const APP_TAGLINE = "Guardian Core Protocol";
 export const CREATOR_NAME = "Sushil Pokharel";
-export const APP_VERSION = "v16.5.0 Guardian Core";
+export const APP_VERSION = "v16.8.5 Platinum";
 export const BUILD_DATE = "2024 - 2026 Institutional Cycle";
 
 export const COPYRIGHT_NOTICE = "© 2024 - 2026 StudentPocket. All Rights Reserved.";
@@ -17,7 +17,7 @@ export const ADMIN_SECRET = "admin123";
 export const ADMIN_EMAIL = "pokharelsushil242@gmail.com";
 export const ADMIN_PHONE = "9765226385";
 export const SYSTEM_DOMAIN = "sushilpokharel00.com.np";
-export const SYSTEM_UPGRADE_TOKEN = "SP-GUARDIAN-V16.5";
+export const SYSTEM_UPGRADE_TOKEN = "SP-GUARDIAN-V16.8";
 
 // Strict list of prohibited terminology
 export const PROHIBITED_TERMS = [

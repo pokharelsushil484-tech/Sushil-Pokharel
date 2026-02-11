@@ -47,7 +47,7 @@ export const storageService = {
       const hasViolation = PROHIBITED_TERMS.some(term => lower.includes(term));
       
       if (hasViolation) {
-          await this.recordViolation(username, 'LINGUISTIC', `Linguistic threat detected: "${content.substring(0, 30)}..."`);
+          await this.recordViolation(username, 'LINGUISTIC', `Inappropriate language detected: "${content.substring(0, 30)}..."`);
           return true;
       }
       return false;
@@ -57,15 +57,19 @@ export const storageService = {
       const dataKey = `architect_data_${username}`;
       const storedData = await this.getData(dataKey);
       if (storedData && storedData.user) {
-          // Dynamic deduction based on type
-          const deduction = type === 'PIN_FAILURE' ? 10 : type === 'LINGUISTIC' ? 25 : 5;
+          // Point deduction logic based on severity
+          let deduction = 5;
+          if (type === 'PIN_FAILURE') deduction = 10;
+          if (type === 'LINGUISTIC') deduction = 25;
+          if (type === 'UNSTABLE') deduction = 15;
+
           const currentScore = storedData.user.integrityScore || 100;
           const newScore = Math.max(0, currentScore - deduction);
 
           const sanction: SanctionRecord = {
               id: generateUUID(),
               type,
-              severity: deduction >= 25 ? 'HIGH' : deduction >= 10 ? 'MEDIUM' : 'LOW',
+              severity: deduction >= 20 ? 'HIGH' : deduction >= 10 ? 'MEDIUM' : 'LOW',
               timestamp: Date.now(),
               context
           };
@@ -74,7 +78,7 @@ export const storageService = {
           storedData.user.sanctions = [...(storedData.user.sanctions || []), sanction];
           
           if (newScore === 0) {
-              await this.enforceSecurityLockdown(username, "INTEGRITY_DEPLETED", "System integrity reached 0%. Node purge completed.");
+              await this.enforceSecurityLockdown(username, "INTEGRITY_DEPLETED", "Automated system purge initiated. Mesh integrity reached zero.");
           } else {
               await this.setData(dataKey, storedData);
           }
@@ -83,7 +87,7 @@ export const storageService = {
               actor: 'SYSTEM-GUARDIAN',
               targetUser: username,
               actionType: 'SANCTION',
-              description: `Integrity Deducted: -${deduction}%`,
+              description: `Integrity Deducted: -${deduction}% for ${type}`,
               metadata: context
           });
       }

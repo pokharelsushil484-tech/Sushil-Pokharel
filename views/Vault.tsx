@@ -4,7 +4,8 @@ import { UserProfile, VaultDocument, View } from '../types';
 import { 
   FileText, Search, Lock, 
   Box, UploadCloud, Download, Trash2, 
-  ShieldAlert, LayoutGrid, List, Database, Video
+  ShieldAlert, LayoutGrid, List, Database, Video,
+  Zap
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 
@@ -24,8 +25,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   
-  const isAdmin = localStorage.getItem('active_session_user') === 'admin'; 
-  const activeUser = localStorage.getItem('active_session_user') || 'Unknown';
+  const activeUser = sessionStorage.getItem('active_session_user') || 'Unknown';
 
   const handleUnlock = async () => {
     if (pin === (user.vaultPin || "1234")) {
@@ -35,9 +35,10 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
       setPin('');
       setError("AUTHORIZATION DENIED.");
       
-      // APPLY SANCTION: Invalid Security PIN attempt
-      await storageService.recordViolation(activeUser, "PIN_FAILURE", "Unauthorized Vault Access Attempt: Invalid Security PIN");
+      // FUNCTIONAL PENALTY: Log violation and deduct integrity
+      await storageService.recordViolation(activeUser, "PIN_FAILURE", "Unauthorized Vault Access: Invalid Security PIN");
       
+      // Sync local state with punishment
       const stored = await storageService.getData(`architect_data_${activeUser}`);
       if (stored && stored.user) {
           updateUser(stored.user);
@@ -49,7 +50,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!isAdmin && (user.storageUsedBytes + file.size > user.storageLimitGB * 1024 ** 3)) {
+    if (user.storageUsedBytes + file.size > user.storageLimitGB * 1024 ** 3) {
       alert("Storage space is full.");
       return;
     }
@@ -109,12 +110,20 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
             maxLength={4}
             autoFocus
           />
+          
           <div className="mb-8 flex flex-col items-center">
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">Node Integrity</p>
+            <div className="flex items-center gap-2 mb-2">
+                <Zap size={10} className={user.integrityScore < 50 ? 'text-red-500' : 'text-emerald-500'} />
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Node Integrity: {user.integrityScore}%</p>
+            </div>
             <div className="w-48 h-1 bg-white/5 rounded-full overflow-hidden">
-                <div className={`h-full transition-all duration-1000 ${user.integrityScore > 70 ? 'bg-emerald-500' : user.integrityScore > 40 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${user.integrityScore}%` }}></div>
+                <div 
+                    className={`h-full transition-all duration-1000 ${user.integrityScore > 70 ? 'bg-emerald-500' : user.integrityScore > 40 ? 'bg-amber-500' : 'bg-red-500'}`} 
+                    style={{ width: `${user.integrityScore}%` }}
+                ></div>
             </div>
           </div>
+
           {error && <p className="text-red-600 text-[10px] font-black uppercase mb-8 tracking-widest animate-shake leading-none">{error}</p>}
           <button onClick={handleUnlock} className="w-full bg-white text-black py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:bg-slate-200 transition-all active:scale-95">Open Safe</button>
         </div>

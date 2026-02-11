@@ -5,7 +5,8 @@ import {
   ChevronRight, RefreshCw,
   Loader2, Send, Wallet, ArrowUpRight, TrendingDown, Globe, Activity, Database, ShieldCheck, Fingerprint, BadgeCheck, AlertCircle, Radio, QrCode, TrendingUp, Trophy, Lock,
   BookOpen,
-  ShieldAlert
+  ShieldAlert,
+  Zap
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { APP_NAME, SYSTEM_DOMAIN, APP_VERSION } from '../constants';
@@ -101,8 +102,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
                     <span>Operational Node: {username.toUpperCase()}</span>
                 </div>
-                <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
-                    <Lock size={10}/> Security optimal
+                <div className={`px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-2 ${user.integrityScore < 50 ? 'text-red-500' : 'text-indigo-400'}`}>
+                    <Zap size={10}/> Integrity: {user.integrityScore || 100}%
                 </div>
               </div>
               <h1 className="text-5xl sm:text-7xl font-black text-white tracking-tighter uppercase italic leading-none">

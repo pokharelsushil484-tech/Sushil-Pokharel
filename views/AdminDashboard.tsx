@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, SupportTicket, TicketMessage, View } from '../types';
-// Fix: Add missing RefreshCw import from lucide-react to resolve the reference error on line 140
 import { 
   Users, Trash2, Ban as BanIcon, ShieldOff, BadgeCheck, 
   UserPlus, Loader2, Terminal, Lock, Mail,
@@ -9,10 +8,10 @@ import {
   RefreshCw, Zap
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
-import { emailService, DispatchType } from '../services/emailService';
+import { emailService } from '../services/emailService';
 import { ADMIN_USERNAME, DEFAULT_USER, SYSTEM_DOMAIN, ADMIN_EMAIL, CREATOR_NAME } from '../constants';
 
-type AdminView = 'OVERVIEW' | 'NODES' | 'SUPPORT' | 'BROADCAST' | 'RECOVERY' | 'INTEGRITY';
+type AdminView = 'OVERVIEW' | 'NODES' | 'SUPPORT' | 'BROADCAST' | 'INTEGRITY';
 
 interface AdminDashboardProps {
     onNavigate: (view: View) => void;
@@ -241,7 +240,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                <div className="master-box p-12 space-y-8 bg-black/40">
                    <div className="flex justify-between items-center text-indigo-500">
                         <Users size={32} />
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em]">Active Registry</span>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Active Registry</span>
                    </div>
                    <h3 className="text-6xl font-black text-white italic">{profiles.length}</h3>
                    <p className="text-[9px] font-black text-slate-700 uppercase tracking-[0.5em]">Identity Nodes Online</p>
@@ -249,7 +248,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                <div className="master-box p-12 space-y-8 bg-black/40 border-red-500/10">
                    <div className="flex justify-between items-center text-red-500">
                         <ShieldAlert size={32} />
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em]">Terminated Nodes</span>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Terminated Nodes</span>
                    </div>
                    <h3 className="text-6xl font-black text-white italic">{profiles.filter(p => p.isBanned).length}</h3>
                    <p className="text-[9px] font-black text-red-950 uppercase tracking-[0.5em]">Protocol Violations Locked</p>
