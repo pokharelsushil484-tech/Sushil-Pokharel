@@ -19,7 +19,7 @@ import { View, UserProfile, VaultDocument, ChatMessage } from '../types';
 import { DEFAULT_USER, APP_NAME, ADMIN_USERNAME, ADMIN_SECRET } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
-import { ShieldCheck, CheckCircle2, XCircle, KeyRound, ArrowRight } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, XCircle, KeyRound, Mail, ArrowRight, User, Lock } from 'lucide-react';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -87,8 +87,10 @@ const App = () => {
     const inputPass = password.trim().toUpperCase();
 
     if (authMode === 'FORGOT') {
+        setIsLoading(true);
         const token = Math.random().toString(36).substring(2, 9).toUpperCase();
         await emailService.sendInstitutionalMail(email.toUpperCase(), token, 'PASSWORD_RECOVERY_LINK', inputId);
+        setIsLoading(false);
         alert("RECOVERY NODE LINK DISPATCHED TO INSTITUTIONAL EMAIL.");
         setAuthMode('LOGIN');
         return;
@@ -169,26 +171,32 @@ const App = () => {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6 uppercase">
-        <div className="w-full max-w-lg">
-          <div className="master-box p-12 space-y-12 bg-black/40 border-white/5 shadow-[0_0_80px_rgba(0,0,0,1)]">
+      <div className="min-h-screen bg-black flex items-center justify-center p-6 uppercase relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-950/20 via-black to-black pointer-events-none opacity-50"></div>
+        
+        <div className="w-full max-w-lg relative z-10">
+          <div className="master-box p-12 space-y-12 bg-black/60 border-white/5 shadow-[0_0_100px_rgba(0,0,0,1)]">
               {registrationSuccess ? (
-                <div className="text-center space-y-10">
+                <div className="text-center space-y-10 animate-scale-up">
                     <CheckCircle2 size={80} className="text-emerald-500 mx-auto" />
-                    <h2 className="text-3xl font-black text-white italic">Node Activated</h2>
-                    <button onClick={() => window.location.reload()} className="btn-platinum py-5">Access Node</button>
+                    <h2 className="text-3xl font-black text-white italic">Node Authorized</h2>
+                    <button onClick={() => window.location.reload()} className="btn-platinum py-5">Access Terminal</button>
                 </div>
               ) : (
-                <form onSubmit={handleAuth} className="space-y-10">
+                <form onSubmit={handleAuth} className="space-y-12">
                     <div className="text-center space-y-4">
-                        <ShieldCheck size={56} className="mx-auto text-indigo-500" />
+                        <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-black shadow-2xl">
+                            <ShieldCheck size={44} />
+                        </div>
                         <h1 className="text-3xl font-black text-white italic tracking-tighter leading-none">{APP_NAME}</h1>
+                        <p className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.5em]">Supreme Academic Gateway</p>
                     </div>
-                    <div className="space-y-5">
+
+                    <div className="space-y-6">
                         {authStep === 'CREDENTIALS' ? (
                             <>
                             {authMode === 'SIGNUP' && (
-                                <input type="text" value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} className="w-full bg-black border border-white/10 rounded-2xl py-6 px-10 text-white text-xs font-black tracking-widest uppercase" placeholder="FULL LEGAL NAME" required />
+                                <input type="text" value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} className="w-full bg-black border border-white/10 rounded-2xl py-6 px-10 text-white text-xs font-black tracking-widest uppercase" placeholder="LEGAL SIGNATURE NAME" required />
                             )}
                             <input type="text" value={userId} onChange={e => setUserId(e.target.value.toUpperCase())} className="w-full bg-black border border-white/10 rounded-2xl py-6 px-10 text-white text-xs font-black tracking-widest uppercase" placeholder="IDENTITY KEY / NUMBER" required />
                             {authMode !== 'FORGOT' && (
@@ -199,19 +207,25 @@ const App = () => {
                             )}
                             </>
                         ) : (
-                            <input type="text" value={otpCode} onChange={e => setOtpCode(e.target.value)} className="w-full bg-black border border-indigo-500/50 rounded-3xl py-7 text-center text-4xl font-black text-white tracking-[0.4em]" placeholder="000000" required />
+                            <div className="space-y-4">
+                                <p className="text-center text-[9px] font-black text-slate-500 uppercase tracking-widest">Awaiting Security Dispatch</p>
+                                <input type="text" value={otpCode} onChange={e => setOtpCode(e.target.value)} className="w-full bg-black border border-indigo-500/50 rounded-3xl py-7 text-center text-4xl font-black text-white tracking-[0.4em]" placeholder="000000" required />
+                            </div>
                         )}
                     </div>
-                    {authError && <p className="text-red-500 text-[10px] font-black text-center tracking-widest">{authError}</p>}
-                    <button type="submit" className="btn-platinum py-6">
-                        {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'ACCESS NODE' : authMode === 'FORGOT' ? 'DISPATCH RECOVERY' : 'INITIALIZE NODE') : 'VERIFY SECURITY'}
+
+                    {authError && <p className="text-red-500 text-[10px] font-black text-center tracking-widest uppercase animate-shake">{authError}</p>}
+                    
+                    <button type="submit" className="btn-platinum py-6 shadow-[0_20px_40px_rgba(255,255,255,0.1)]">
+                        {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'ACCESS NODE' : authMode === 'FORGOT' ? 'REQUEST RECOVERY' : 'INITIALIZE NODE') : 'VERIFY SECURITY'}
                     </button>
-                    <div className="flex flex-col gap-5 text-center">
-                        <button type="button" onClick={() => { setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setAuthError(''); }} className="text-[10px] font-black text-slate-500 hover:text-white transition-colors tracking-[0.2em]">
+
+                    <div className="flex flex-col gap-6 text-center">
+                        <button type="button" onClick={() => { setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setAuthError(''); }} className="text-[10px] font-black text-slate-600 hover:text-white transition-colors tracking-[0.3em] uppercase">
                             {authMode === 'LOGIN' ? 'CREATE NEW IDENTITY' : 'RETURN TO TERMINAL'}
                         </button>
                         {authMode === 'LOGIN' && (
-                            <button type="button" onClick={() => setAuthMode('FORGOT')} className="text-[10px] font-black text-indigo-400 hover:text-indigo-300 tracking-[0.2em]">
+                            <button type="button" onClick={() => setAuthMode('FORGOT')} className="text-[10px] font-black text-indigo-500/60 hover:text-indigo-400 tracking-[0.3em] uppercase">
                                 FORGOT ACCESS KEY? RECOVER NODE
                             </button>
                         )}
@@ -228,24 +242,27 @@ const App = () => {
     <div className="min-h-screen bg-black flex flex-col uppercase">
       <GlobalLoader isLoading={isLoading} />
       <div className="md:ml-24 lg:ml-80 transition-all flex-1 flex flex-col">
-        <header className="bg-black/80 backdrop-blur-3xl border-b border-white/10 h-28 flex items-center justify-between px-10 sm:px-16 sticky top-0 z-40">
-           <div className="flex items-center space-x-6">
-              <div className="p-4 bg-white rounded-2xl text-black shadow-xl">
-                <ShieldCheck size={28} />
+        <header className="bg-black/80 backdrop-blur-3xl border-b border-white/10 h-32 flex items-center justify-between px-10 sm:px-16 sticky top-0 z-40">
+           <div className="flex items-center space-x-8">
+              <div className="p-4 bg-white rounded-2xl text-black shadow-2xl">
+                <ShieldCheck size={32} />
               </div>
-              <h1 className="text-lg font-black text-white tracking-tighter italic">{APP_NAME}</h1>
+              <div className="text-left">
+                  <h1 className="text-xl font-black text-white tracking-tighter italic leading-none">{APP_NAME}</h1>
+                  <p className="text-[8px] font-black text-indigo-500 uppercase tracking-[0.6em] mt-2">Supreme Mesh Active</p>
+              </div>
            </div>
            <div className="flex items-center space-x-8">
               <div className="text-right hidden sm:block">
                   <p className="text-sm font-black text-indigo-400 leading-none">{user.name}</p>
-                  <p className="text-[9px] font-black text-slate-600 mt-2 tracking-widest">{user.isVerified ? 'VERIFIED NODE' : 'PENDING CLEARANCE'}</p>
+                  <p className="text-[9px] font-black text-slate-600 mt-2 tracking-widest">{user.isVerified ? 'VERIFIED PERSONNEL' : 'PENDING AUDIT'}</p>
               </div>
-              <div className="w-14 h-14 rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
-                <img src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} className="w-full h-full object-cover" alt="User" />
+              <div className="w-16 h-16 rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+                <img src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} className="w-full h-full object-cover" alt="Personnel" />
               </div>
            </div>
         </header>
-        <main className="flex-1 max-w-[1800px] mx-auto w-full pt-16 px-10 sm:px-16 pb-40 md:pb-20">
+        <main className="flex-1 max-w-[1800px] mx-auto w-full pt-16 px-10 sm:px-16 pb-44 md:pb-24">
             {view === View.DASHBOARD && <Dashboard user={user} username={activeUser || ''} onNavigate={setView} />}
             {view === View.FILE_HUB && <Vault user={user} documents={vaultDocs} saveDocuments={setVaultDocs} updateUser={setUser} onNavigate={setView} />}
             {view === View.SETTINGS && <Settings user={user} resetApp={handleLogout} onLogout={handleLogout} username={activeUser || ''} darkMode={true} toggleDarkMode={() => {}} updateUser={setUser} />}
@@ -256,6 +273,7 @@ const App = () => {
             {view === View.ACADEMIC_LEDGER && <AcademicLedger username={activeUser || ''} />}
             {view === View.ATTENDANCE_TRACKER && <AttendanceTracker username={activeUser || ''} />}
             {view === View.CAMPUS_RADAR && <CampusRadar username={activeUser || ''} />}
+            {view === View.VERIFY_LINK && <LinkVerification linkId="" onNavigate={setView} currentUser={activeUser} />}
         </main>
       </div>
       <Navigation currentView={view} setView={setView} isAdmin={activeUser === ADMIN_USERNAME} isVerified={user.isVerified} username={activeUser || ''} onLogout={handleLogout} />
