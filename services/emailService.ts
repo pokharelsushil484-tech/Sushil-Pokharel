@@ -1,5 +1,5 @@
 
-import { ADMIN_EMAIL, ADMIN_PHONE, SYSTEM_DOMAIN } from '../constants';
+import { ADMIN_EMAIL, ADMIN_PHONE, SYSTEM_DOMAIN, APP_NAME } from '../constants';
 
 export type DispatchType = 
     | 'OTP_REQUEST' 
@@ -12,6 +12,7 @@ export type DispatchType =
     | 'RECOVERY_REJECTED'
     | 'SYSTEM_UPDATE'
     | 'TERMINATION_NOTICE'
+    | 'PASSWORD_RECOVERY_LINK'
     | 'TFA_CONFIRMATION';
 
 export const emailService = {
@@ -19,17 +20,15 @@ export const emailService = {
         targetUserEmail: string, 
         payload: string, 
         type: DispatchType = 'OTP_REQUEST', 
-        username: string = 'UNKNOWN USER'
+        username: string = 'UNKNOWN PERSONNEL'
     ): Promise<void> {
         const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
         const upperUser = username.toUpperCase();
-        const targetEmail = targetUserEmail.toUpperCase();
         
         let subjectText = "";
         let letterBody = "";
 
-        const letterhead = `STUDENTPOCKET INSTITUTIONAL REGISTRY\nLOCATION: ${SYSTEM_DOMAIN}\nARCHITECT CONTACT: ${ADMIN_PHONE}\n------------------------------------------------\nOFFICIAL COMMUNICATION LOG\n\n`;
-        const adminHeader = `TO: SUSHIL POKHAREL\nLEAD ARCHITECT OFFICE\nREGISTRY: ${ADMIN_EMAIL}\n\n`;
+        const letterhead = `${APP_NAME} INSTITUTIONAL REGISTRY\nLOCATION: ${SYSTEM_DOMAIN}\nSECURITY CONTACT: ${ADMIN_PHONE}\n------------------------------------------------\nOFFICIAL COMMUNICATION LOG\n\n`;
         const dateLine = `DATE: ${date}\n\n`;
 
         switch (type) {
@@ -37,8 +36,8 @@ export const emailService = {
                 subjectText = `RECOVERY STATUS: ACTIVATED`;
                 letterBody = `DEAR USER,\n\n` +
                     `YOUR RECOVERY LINK HAS BEEN ACTIVATED. YOU HAVE SUCCESSFULLY ACTIVATED.\n\n` +
-                    `YOUR ACCOUNT ACCESS HAS BEEN RESTORED BY THE SYSTEM ARCHITECT.\n\n` +
-                    `REGARDS,\nSTUDENTPOCKET ADMINISTRATION`;
+                    `YOUR ACCOUNT ACCESS HAS BEEN RESTORED BY THE SYSTEM ARCHITECT SUSHIL POKHAREL.\n\n` +
+                    `REGARDS,\n${APP_NAME} ADMINISTRATION`;
                 break;
 
             case 'RECOVERY_REJECTED':
@@ -46,16 +45,23 @@ export const emailService = {
                 letterBody = `DEAR USER,\n\n` +
                     `YOUR EMAIL HAS BEEN REJECTED.\n\n` +
                     `THE RECOVERY REQUEST FOR NODE ${upperUser} FAILED INSTITUTIONAL AUDIT.\n\n` +
-                    `CONTACT THE ARCHITECT FOR MANUAL CLEARANCE.\n\n` +
-                    `REGARDS,\nSTUDENTPOCKET SECURITY`;
+                    `REGARDS,\n${APP_NAME} SECURITY`;
+                break;
+
+            case 'PASSWORD_RECOVERY_LINK':
+                subjectText = `SECURITY PROTOCOL: PASSWORD RECOVERY LINK`;
+                letterBody = `DEAR ${upperUser},\n\n` +
+                    `A PASSWORD RECOVERY REQUEST HAS BEEN INITIALIZED FOR YOUR IDENTITY KEY.\n\n` +
+                    `RECOVERY ACCESS PORTAL:\n${window.location.origin}/?recovery=${payload}\n\n` +
+                    `REGARDS,\n${APP_NAME} SECURITY UNIT`;
                 break;
 
             case 'OTP_REQUEST':
                 subjectText = `AUTHORIZATION REQUEST: SECURITY TOKEN - ${upperUser}`;
                 letterBody = `DEAR SUSHIL POKHAREL,\n\n` +
-                    `AN IDENTITY synchronization TOKEN HAS BEEN REQUESTED FOR NODE: ${upperUser}.\n\n` +
+                    `AN IDENTITY SYNCHRONIZATION TOKEN HAS BEEN REQUESTED FOR NODE: ${upperUser}.\n\n` +
                     `TOKEN: ${payload}\n\n` +
-                    `ENSURE THIS IS VALIDATED AGAINST: ${targetEmail}.`;
+                    `TARGET EMAIL: ${targetUserEmail.toUpperCase()}.`;
                 break;
 
             case 'VERIFY_REQUEST':
@@ -69,8 +75,17 @@ export const emailService = {
                 subjectText = `ACCESS RESTORATION APPEAL: ${upperUser}`;
                 letterBody = `DEAR SUSHIL POKHAREL,\n\n` +
                     `A TERMINATED NODE (${upperUser}) HAS FILED A RECOVERY APPEAL.\n\n` +
-                    `RECOVERY KEY: ${payload}\n` +
+                    `SLACK RECOVERY KEY: ${payload}\n\n` +
                     `REVIEW LINK: ${window.location.origin}/?recovery=${payload}`;
+                break;
+
+            // Added case for TFA_CONFIRMATION to handle authorized node identity notifications
+            case 'TFA_CONFIRMATION':
+                subjectText = `SECURITY PROTOCOL: TFA CONFIRMATION - ${upperUser}`;
+                letterBody = `DEAR ${upperUser},\n\n` +
+                    `YOUR IDENTITY HAS BEEN AUTHORIZED. USE THE FOLLOWING TOKEN FOR INITIAL LOGIN:\n\n` +
+                    `SECURITY TOKEN: ${payload}\n\n` +
+                    `REGARDS,\n${APP_NAME} SECURITY UNIT`;
                 break;
 
             default:
@@ -78,8 +93,8 @@ export const emailService = {
                 letterBody = `MESSAGE PAYLOAD: ${payload}`;
         }
 
-        const fullContent = (type.startsWith('RECOVERY')) ? letterBody : letterhead + adminHeader + dateLine + letterBody;
-        const mailtoLink = `mailto:${targetUserEmail}?subject=${encodeURIComponent(subjectText)}&body=${encodeURIComponent(fullContent.toUpperCase())}`;
+        const fullContent = letterhead + dateLine + letterBody.toUpperCase();
+        const mailtoLink = `mailto:${targetUserEmail}?subject=${encodeURIComponent(subjectText.toUpperCase())}&body=${encodeURIComponent(fullContent)}`;
         
         window.location.href = mailtoLink;
     }

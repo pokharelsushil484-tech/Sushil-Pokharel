@@ -6,17 +6,20 @@ import { Settings } from './Settings';
 import { Vault } from './Vault';
 import { Support } from './Support';
 import { AdminDashboard } from './AdminDashboard';
-import { AIChat } from './AIChat';
 import { SecurityHeartbeat } from './SecurityHeartbeat';
+import { GrowthJournal } from './GrowthJournal';
+import { AcademicLedger } from './AcademicLedger';
+import { AttendanceTracker } from './AttendanceTracker';
+import { CampusRadar } from './CampusRadar';
 import { GlobalLoader } from '../components/GlobalLoader';
 import { SplashScreen } from '../components/SplashScreen';
 import { LinkVerification } from './LinkVerification';
 import { AccessRecovery } from './AccessRecovery';
-import { View, UserProfile, VaultDocument, Assignment, ChatMessage } from '../types';
+import { View, UserProfile, VaultDocument, ChatMessage } from '../types';
 import { DEFAULT_USER, APP_NAME, ADMIN_USERNAME, ADMIN_SECRET } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
-import { ShieldCheck, Lock, CheckCircle2, User, XCircle } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, XCircle, KeyRound, ArrowRight } from 'lucide-react';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -24,7 +27,7 @@ const App = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeUser, setActiveUser] = useState<string | null>(null);
-  const [authMode, setAuthMode] = useState<'LOGIN' | 'SIGNUP'>('LOGIN');
+  const [authMode, setAuthMode] = useState<'LOGIN' | 'SIGNUP' | 'FORGOT'>('LOGIN');
   const [authStep, setAuthStep] = useState<'CREDENTIALS' | 'OTP'>('CREDENTIALS');
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   
@@ -38,20 +41,20 @@ const App = () => {
 
   const [user, setUser] = useState<UserProfile>(DEFAULT_USER);
   const [vaultDocs, setVaultDocs] = useState<VaultDocument[]>([]);
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
 
   const [verifyLinkId, setVerifyLinkId] = useState<string | null>(null);
   const [recoveryId, setRecoveryId] = useState<string | null>(null);
 
   const loadUserData = useCallback(async (username: string) => {
-    const dataKey = `architect_data_${username}`;
+    const dataKey = `architect_data_${username.toUpperCase()}`;
     const stored = await storageService.getData(dataKey);
     
     if (username.toUpperCase() === ADMIN_USERNAME) {
         setUser({
             ...DEFAULT_USER,
             name: "SUSHIL POKHAREL",
+            studentId: "SUSHIL-MASTER-NODE",
             isVerified: true,
             verificationStatus: 'VERIFIED'
         });
@@ -72,9 +75,9 @@ const App = () => {
     if (rLink) setRecoveryId(rLink);
 
     if (savedUser) {
-        setActiveUser(savedUser);
+        setActiveUser(savedUser.toUpperCase());
         setIsLoggedIn(true);
-        loadUserData(savedUser);
+        loadUserData(savedUser.toUpperCase());
     }
   }, [loadUserData]);
 
@@ -82,6 +85,14 @@ const App = () => {
     e.preventDefault();
     const inputId = userId.trim().toUpperCase();
     const inputPass = password.trim().toUpperCase();
+
+    if (authMode === 'FORGOT') {
+        const token = Math.random().toString(36).substring(2, 9).toUpperCase();
+        await emailService.sendInstitutionalMail(email.toUpperCase(), token, 'PASSWORD_RECOVERY_LINK', inputId);
+        alert("RECOVERY NODE LINK DISPATCHED TO INSTITUTIONAL EMAIL.");
+        setAuthMode('LOGIN');
+        return;
+    }
 
     if (authStep === 'CREDENTIALS') {
         if (inputId === ADMIN_USERNAME && inputPass === ADMIN_SECRET) {
@@ -100,7 +111,7 @@ const App = () => {
                 await emailService.sendInstitutionalMail(localUsers[inputId].email, mockCode, 'OTP_REQUEST', inputId);
                 setAuthStep('OTP');
             } else {
-                setAuthError('AUTHORITY DENIED: INVALID CREDENTIALS');
+                setAuthError('AUTHORITY DENIED: INVALID IDENTITY KEY');
             }
         } else {
             const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -112,14 +123,14 @@ const App = () => {
         if (otpCode === serverSideOtp || otpCode === '123456') {
             if (authMode === 'SIGNUP') {
                 const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
-                localUsers[inputId] = { password: inputPass, email, name: fullName.toUpperCase() };
+                localUsers[inputId] = { password: inputPass, email: email.toUpperCase(), name: fullName.toUpperCase() };
                 localStorage.setItem('studentpocket_users', JSON.stringify(localUsers));
                 
                 const profile: UserProfile = {
                   ...DEFAULT_USER,
                   name: fullName.toUpperCase(),
                   email: email.toUpperCase(),
-                  studentId: `SP-${Math.floor(100000 + Math.random() * 900000)}`
+                  studentId: `STP-${Math.floor(100000 + Math.random() * 900000)}`
                 };
                 await storageService.setData(`architect_data_${inputId}`, { user: profile });
                 setRegistrationSuccess(true);
@@ -130,7 +141,7 @@ const App = () => {
                 setIsLoggedIn(true);
             }
         } else {
-            setAuthError('INVALID TOKEN');
+            setAuthError('INVALID SECURITY TOKEN');
         }
     }
   };
@@ -160,42 +171,51 @@ const App = () => {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-6 uppercase">
         <div className="w-full max-w-lg">
-          <div className="master-box p-12 space-y-12 bg-black/40 border-white/5">
+          <div className="master-box p-12 space-y-12 bg-black/40 border-white/5 shadow-[0_0_80px_rgba(0,0,0,1)]">
               {registrationSuccess ? (
-                <div className="text-center space-y-8">
-                    <CheckCircle2 size={64} className="text-emerald-500 mx-auto" />
-                    <h2 className="text-3xl font-black text-white">Node Active</h2>
-                    <button onClick={() => window.location.reload()} className="btn-platinum py-5">Return to Login</button>
+                <div className="text-center space-y-10">
+                    <CheckCircle2 size={80} className="text-emerald-500 mx-auto" />
+                    <h2 className="text-3xl font-black text-white italic">Node Activated</h2>
+                    <button onClick={() => window.location.reload()} className="btn-platinum py-5">Access Node</button>
                 </div>
               ) : (
-                <form onSubmit={handleAuth} className="space-y-8">
+                <form onSubmit={handleAuth} className="space-y-10">
                     <div className="text-center space-y-4">
-                        <ShieldCheck size={48} className="mx-auto text-indigo-500" />
-                        <h1 className="text-3xl font-black text-white italic">{APP_NAME}</h1>
+                        <ShieldCheck size={56} className="mx-auto text-indigo-500" />
+                        <h1 className="text-3xl font-black text-white italic tracking-tighter leading-none">{APP_NAME}</h1>
                     </div>
-                    <div className="space-y-4">
+                    <div className="space-y-5">
                         {authStep === 'CREDENTIALS' ? (
                             <>
                             {authMode === 'SIGNUP' && (
-                                <input type="text" value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} className="w-full bg-black border border-white/10 rounded-2xl py-5 px-8 text-white text-xs font-bold uppercase" placeholder="FULL NAME" required />
+                                <input type="text" value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} className="w-full bg-black border border-white/10 rounded-2xl py-6 px-10 text-white text-xs font-black tracking-widest uppercase" placeholder="FULL LEGAL NAME" required />
                             )}
-                            <input type="text" value={userId} onChange={e => setUserId(e.target.value.toUpperCase())} className="w-full bg-black border border-white/10 rounded-2xl py-5 px-8 text-white text-xs font-bold uppercase" placeholder="IDENTITY KEY" required />
-                            <input type="password" value={password} onChange={e => setPassword(e.target.value.toUpperCase())} className="w-full bg-black border border-white/10 rounded-2xl py-5 px-8 text-white text-xs font-bold uppercase" placeholder="SECRET CODE" required />
-                            {authMode === 'SIGNUP' && (
-                                <input type="email" value={email} onChange={e => setEmail(e.target.value.toUpperCase())} className="w-full bg-black border border-white/10 rounded-2xl py-5 px-8 text-white text-xs font-bold uppercase" placeholder="EMAIL" required />
+                            <input type="text" value={userId} onChange={e => setUserId(e.target.value.toUpperCase())} className="w-full bg-black border border-white/10 rounded-2xl py-6 px-10 text-white text-xs font-black tracking-widest uppercase" placeholder="IDENTITY KEY / NUMBER" required />
+                            {authMode !== 'FORGOT' && (
+                                <input type="password" value={password} onChange={e => setPassword(e.target.value.toUpperCase())} className="w-full bg-black border border-white/10 rounded-2xl py-6 px-10 text-white text-xs font-black tracking-widest uppercase" placeholder="SECRET ACCESS CODE" required />
+                            )}
+                            {(authMode === 'SIGNUP' || authMode === 'FORGOT') && (
+                                <input type="email" value={email} onChange={e => setEmail(e.target.value.toUpperCase())} className="w-full bg-black border border-white/10 rounded-2xl py-6 px-10 text-white text-xs font-black tracking-widest uppercase" placeholder="INSTITUTIONAL EMAIL" required />
                             )}
                             </>
                         ) : (
-                            <input type="text" value={otpCode} onChange={e => setOtpCode(e.target.value)} className="w-full bg-black border border-indigo-500/50 rounded-2xl py-6 text-center text-3xl font-mono text-white tracking-widest" placeholder="000000" required />
+                            <input type="text" value={otpCode} onChange={e => setOtpCode(e.target.value)} className="w-full bg-black border border-indigo-500/50 rounded-3xl py-7 text-center text-4xl font-black text-white tracking-[0.4em]" placeholder="000000" required />
                         )}
                     </div>
-                    {authError && <p className="text-red-500 text-[10px] font-black text-center">{authError}</p>}
-                    <button type="submit" className="btn-platinum py-5">
-                        {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'ACCESS NODE' : 'INITIALIZE NODE') : 'VERIFY TOKEN'}
+                    {authError && <p className="text-red-500 text-[10px] font-black text-center tracking-widest">{authError}</p>}
+                    <button type="submit" className="btn-platinum py-6">
+                        {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'ACCESS NODE' : authMode === 'FORGOT' ? 'DISPATCH RECOVERY' : 'INITIALIZE NODE') : 'VERIFY SECURITY'}
                     </button>
-                    <button type="button" onClick={() => setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN')} className="w-full text-[9px] font-black text-slate-600 tracking-widest">
-                        {authMode === 'LOGIN' ? 'CREATE NEW IDENTITY' : 'ALREADY REGISTERED? LOGIN'}
-                    </button>
+                    <div className="flex flex-col gap-5 text-center">
+                        <button type="button" onClick={() => { setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setAuthError(''); }} className="text-[10px] font-black text-slate-500 hover:text-white transition-colors tracking-[0.2em]">
+                            {authMode === 'LOGIN' ? 'CREATE NEW IDENTITY' : 'RETURN TO TERMINAL'}
+                        </button>
+                        {authMode === 'LOGIN' && (
+                            <button type="button" onClick={() => setAuthMode('FORGOT')} className="text-[10px] font-black text-indigo-400 hover:text-indigo-300 tracking-[0.2em]">
+                                FORGOT ACCESS KEY? RECOVER NODE
+                            </button>
+                        )}
+                    </div>
                 </form>
               )}
           </div>
@@ -208,30 +228,34 @@ const App = () => {
     <div className="min-h-screen bg-black flex flex-col uppercase">
       <GlobalLoader isLoading={isLoading} />
       <div className="md:ml-24 lg:ml-80 transition-all flex-1 flex flex-col">
-        <header className="bg-black/80 backdrop-blur-3xl border-b border-white/10 h-24 flex items-center justify-between px-8 sm:px-12 sticky top-0 z-40">
-           <div className="flex items-center space-x-5">
-              <div className="p-3 bg-white rounded-xl text-black">
-                <ShieldCheck size={24} />
-              </div>
-              <h1 className="text-sm font-black text-white tracking-widest">{APP_NAME}</h1>
-           </div>
+        <header className="bg-black/80 backdrop-blur-3xl border-b border-white/10 h-28 flex items-center justify-between px-10 sm:px-16 sticky top-0 z-40">
            <div className="flex items-center space-x-6">
-              <div className="text-right hidden sm:block">
-                  <p className="text-xs font-black text-indigo-400">{user.name}</p>
-                  <p className="text-[8px] font-black text-slate-600">{user.isVerified ? 'VERIFIED NODE' : 'PENDING CLEARANCE'}</p>
+              <div className="p-4 bg-white rounded-2xl text-black shadow-xl">
+                <ShieldCheck size={28} />
               </div>
-              <div className="w-12 h-12 rounded-2xl border border-white/10 overflow-hidden">
+              <h1 className="text-lg font-black text-white tracking-tighter italic">{APP_NAME}</h1>
+           </div>
+           <div className="flex items-center space-x-8">
+              <div className="text-right hidden sm:block">
+                  <p className="text-sm font-black text-indigo-400 leading-none">{user.name}</p>
+                  <p className="text-[9px] font-black text-slate-600 mt-2 tracking-widest">{user.isVerified ? 'VERIFIED NODE' : 'PENDING CLEARANCE'}</p>
+              </div>
+              <div className="w-14 h-14 rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
                 <img src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} className="w-full h-full object-cover" alt="User" />
               </div>
            </div>
         </header>
-        <main className="flex-1 max-w-[1800px] mx-auto w-full pt-10 px-8 sm:px-12 pb-32 md:pb-16">
+        <main className="flex-1 max-w-[1800px] mx-auto w-full pt-16 px-10 sm:px-16 pb-40 md:pb-20">
             {view === View.DASHBOARD && <Dashboard user={user} username={activeUser || ''} onNavigate={setView} />}
             {view === View.FILE_HUB && <Vault user={user} documents={vaultDocs} saveDocuments={setVaultDocs} updateUser={setUser} onNavigate={setView} />}
             {view === View.SETTINGS && <Settings user={user} resetApp={handleLogout} onLogout={handleLogout} username={activeUser || ''} darkMode={true} toggleDarkMode={() => {}} updateUser={setUser} />}
             {view === View.SUPPORT && <Support username={activeUser || ''} />}
             {view === View.ADMIN_DASHBOARD && <AdminDashboard onNavigate={setView} />}
             {view === View.SECURITY_HEARTBEAT && <SecurityHeartbeat />}
+            {view === View.GROWTH_JOURNAL && <GrowthJournal username={activeUser || ''} />}
+            {view === View.ACADEMIC_LEDGER && <AcademicLedger username={activeUser || ''} />}
+            {view === View.ATTENDANCE_TRACKER && <AttendanceTracker username={activeUser || ''} />}
+            {view === View.CAMPUS_RADAR && <CampusRadar username={activeUser || ''} />}
         </main>
       </div>
       <Navigation currentView={view} setView={setView} isAdmin={activeUser === ADMIN_USERNAME} isVerified={user.isVerified} username={activeUser || ''} onLogout={handleLogout} />

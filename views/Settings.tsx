@@ -2,12 +2,12 @@
 import React, { useState } from 'react';
 import { UserProfile, View } from '../types';
 import { 
-  ShieldCheck, LogOut, Key, Lock, Edit3, 
-  Smartphone, Mail, Server, RefreshCw, Globe, 
-  CheckCircle2, Fingerprint, Bell, AppWindow,
-  Download, Database, Trash2, History, Phone, User
+  ShieldCheck, LogOut, Edit3, 
+  Mail, RefreshCw, Globe, 
+  CheckCircle2, Fingerprint, AppWindow,
+  Download, Database, Trash2, Phone, Hash
 } from 'lucide-react';
-import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, APP_VERSION } from '../constants';
+import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, APP_VERSION, APP_NAME } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
 
@@ -22,32 +22,28 @@ interface SettingsProps {
 }
 
 export const Settings: React.FC<SettingsProps> = ({ user, onLogout, username, updateUser }) => {
-  const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editForm, setEditForm] = useState({
       name: user.name,
       email: user.email,
       phone: user.phone,
-      education: user.education || ''
+      studentId: user.studentId || ''
   });
 
-  const isAdmin = username === ADMIN_USERNAME;
+  const isAdmin = username.toUpperCase() === ADMIN_USERNAME;
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     const updatedProfile = { ...user, ...editForm };
-    await storageService.setData(`architect_data_${username}`, { user: updatedProfile });
+    await storageService.setData(`architect_data_${username.toUpperCase()}`, { user: updatedProfile });
     updateUser(updatedProfile);
     setIsEditingProfile(false);
   };
 
-  const handleVerifyEmailNode = async () => {
-      setIsVerifyingEmail(true);
+  const handleVerifyNode = async () => {
       const verifyToken = Math.random().toString(36).substring(2, 8).toUpperCase();
-      // Fix: Argument of type '"VERIFY"' is not assignable to parameter of type 'DispatchType'.
-      await emailService.sendInstitutionalMail(user.email, verifyToken, 'VERIFY_REQUEST');
-      alert("Verification Protocol Dispatched to: " + user.email);
-      setIsVerifyingEmail(false);
+      await emailService.sendInstitutionalMail(user.email, verifyToken, 'VERIFY_REQUEST', username);
+      alert("IDENTITY AUDIT DISPATCHED TO: " + user.email);
   };
 
   const exportDataRegistry = () => {
@@ -56,12 +52,12 @@ export const Settings: React.FC<SettingsProps> = ({ user, onLogout, username, up
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `StudentPocket_Registry_${username}.json`;
+      a.download = `${APP_NAME}_REGISTRY_${username.toUpperCase()}.json`;
       a.click();
   };
 
   return (
-    <div className="pb-40 animate-fade-in w-full max-w-6xl mx-auto space-y-12">
+    <div className="pb-40 animate-fade-in w-full max-w-6xl mx-auto space-y-12 uppercase">
       {/* Executive Header */}
       <div className="bg-slate-900 rounded-[4rem] p-12 border border-white/5 relative overflow-hidden shadow-2xl">
         <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
@@ -79,12 +75,12 @@ export const Settings: React.FC<SettingsProps> = ({ user, onLogout, username, up
                 {isEditingProfile ? (
                     <form onSubmit={handleUpdateProfile} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="bg-black/50 border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-indigo-500" />
-                            <input value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} className="bg-black/50 border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-indigo-500" />
+                            <input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value.toUpperCase()})} className="bg-black/50 border border-white/10 rounded-xl p-4 text-white text-sm outline-none focus:border-indigo-500 uppercase font-black" placeholder="FULL NAME" />
+                            <input value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value.toUpperCase()})} className="bg-black/50 border border-white/10 rounded-xl p-4 text-white text-sm outline-none focus:border-indigo-500 uppercase font-black" placeholder="EMAIL" />
                         </div>
                         <div className="flex gap-3 justify-center md:justify-start">
-                            <button type="submit" className="px-6 py-3 bg-white text-black rounded-xl font-black text-[9px] uppercase tracking-widest">Commit Changes</button>
-                            <button type="button" onClick={() => setIsEditingProfile(false)} className="px-6 py-3 bg-white/10 text-white rounded-xl font-black text-[9px] uppercase tracking-widest">Cancel</button>
+                            <button type="submit" className="px-8 py-4 bg-white text-black rounded-xl font-black text-[9px] uppercase tracking-widest">Commit Changes</button>
+                            <button type="button" onClick={() => setIsEditingProfile(false)} className="px-8 py-4 bg-white/10 text-white rounded-xl font-black text-[9px] uppercase tracking-widest">Cancel</button>
                         </div>
                     </form>
                 ) : (
@@ -97,7 +93,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onLogout, username, up
                             ) : (
                                 <div className="flex items-center gap-3">
                                     <span className="stark-badge text-amber-500 border-amber-500/20 py-1">Awaiting Clearance</span>
-                                    <button onClick={handleVerifyEmailNode} className="text-[10px] font-black text-red-500 uppercase border-b border-red-500 pb-0.5 hover:text-white transition-colors">Verify Node Node</button>
+                                    <button onClick={handleVerifyNode} className="text-[10px] font-black text-red-500 uppercase border-b border-red-500 pb-0.5 hover:text-white transition-colors">Verify Node Node</button>
                                 </div>
                             )}
                         </div>
@@ -105,32 +101,41 @@ export const Settings: React.FC<SettingsProps> = ({ user, onLogout, username, up
                 )}
             </div>
             {!isEditingProfile && (
-                <button onClick={() => setIsEditingProfile(true)} className="p-5 bg-white/5 rounded-[2rem] hover:bg-white/10 transition-all border border-white/5">
-                    <Edit3 size={20} className="text-slate-400" />
+                <button onClick={() => setIsEditingProfile(true)} className="p-6 bg-white/5 rounded-[2.5rem] hover:bg-white/10 transition-all border border-white/5">
+                    <Edit3 size={24} className="text-slate-400" />
                 </button>
             )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Identity Matrix - New Section showing email/phone details */}
-          <div className="master-box p-10 bg-slate-900/40 border-white/5 space-y-10">
+          {/* Identity Matrix */}
+          <div className="master-box p-12 bg-slate-900/40 border-white/5 space-y-10">
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic">Identity Matrix</h3>
               <div className="space-y-6">
-                  <div className="flex items-center justify-between p-6 bg-black/40 rounded-3xl border border-white/5">
-                      <div className="flex items-center gap-4">
-                          <Mail className="text-indigo-400" size={20} />
+                  <div className="flex items-center justify-between p-8 bg-black/40 rounded-[2rem] border border-white/5">
+                      <div className="flex items-center gap-6">
+                          <Hash className="text-indigo-400" size={24} />
                           <div>
-                              <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Communication Email</p>
-                              <p className="text-sm font-bold text-white tracking-tight">{user.email}</p>
+                              <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Identity Key / Number</p>
+                              <p className="text-lg font-black text-white tracking-tight italic">{user.studentId || 'NOT ASSIGNED'}</p>
                           </div>
                       </div>
                   </div>
-                  <div className="flex items-center justify-between p-6 bg-black/40 rounded-3xl border border-white/5">
-                      <div className="flex items-center gap-4">
-                          <Phone className="text-indigo-400" size={20} />
+                  <div className="flex items-center justify-between p-8 bg-black/40 rounded-[2rem] border border-white/5">
+                      <div className="flex items-center gap-6">
+                          <Mail className="text-indigo-400" size={24} />
                           <div>
-                              <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Phone Record</p>
+                              <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Institutional Email</p>
+                              <p className="text-sm font-bold text-white tracking-tight uppercase">{user.email}</p>
+                          </div>
+                      </div>
+                  </div>
+                  <div className="flex items-center justify-between p-8 bg-black/40 rounded-[2rem] border border-white/5">
+                      <div className="flex items-center gap-6">
+                          <Phone className="text-indigo-400" size={24} />
+                          <div>
+                              <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Mobile Node</p>
                               <p className="text-sm font-bold text-white tracking-tight">{user.phone}</p>
                           </div>
                       </div>
@@ -139,57 +144,58 @@ export const Settings: React.FC<SettingsProps> = ({ user, onLogout, username, up
           </div>
 
           {/* Privacy Protocols */}
-          <div className="master-box p-10 bg-slate-900/40 border-white/5 space-y-10">
+          <div className="master-box p-12 bg-slate-900/40 border-white/5 space-y-10">
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic">Privacy Protocols</h3>
-              <div className="space-y-8">
+              <div className="space-y-10">
                   <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                          <Fingerprint className="text-indigo-400" size={20} />
-                          <span className="text-xs font-bold text-white uppercase italic">Two-Factor Security</span>
+                      <div className="flex items-center gap-6">
+                          <Fingerprint className="text-indigo-400" size={24} />
+                          <span className="text-xs font-black text-white uppercase italic tracking-widest">Two-Factor Security</span>
                       </div>
                       <button 
                         onClick={() => updateUser({...user, twoFactorEnabled: !user.twoFactorEnabled})}
-                        className={`w-14 h-8 rounded-full transition-all relative flex items-center px-1 ${user.twoFactorEnabled ? 'bg-indigo-600' : 'bg-slate-800'}`}
+                        className={`w-16 h-10 rounded-full transition-all relative flex items-center px-1 ${user.twoFactorEnabled ? 'bg-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'bg-slate-800'}`}
                       >
-                          <div className={`w-6 h-6 bg-white rounded-full transition-transform ${user.twoFactorEnabled ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                          <div className={`w-8 h-8 bg-white rounded-full transition-transform ${user.twoFactorEnabled ? 'translate-x-6' : 'translate-x-0'}`}></div>
                       </button>
                   </div>
                   <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                          <AppWindow className="text-slate-500" size={20} />
-                          <span className="text-xs font-bold text-white uppercase italic">Registry Stealth</span>
+                      <div className="flex items-center gap-6">
+                          <AppWindow className="text-slate-500" size={24} />
+                          <span className="text-xs font-black text-white uppercase italic tracking-widest">Registry Stealth</span>
                       </div>
                       <select 
                         value={user.privacyLevel} 
                         onChange={(e) => updateUser({...user, privacyLevel: e.target.value as any})}
-                        className="bg-black border border-white/10 rounded-xl px-4 py-2 text-[9px] font-black uppercase text-indigo-400"
+                        className="bg-black border border-white/10 rounded-xl px-6 py-3 text-[10px] font-black uppercase text-indigo-400"
                       >
                           <option value="STANDARD">STANDARD</option>
                           <option value="MAXIMUM">MAXIMUM</option>
+                          <option value="STEALTH">STEALTH</option>
                       </select>
                   </div>
               </div>
           </div>
 
           {/* Data Sovereignty */}
-          <div className="master-box p-10 bg-slate-900/40 border-white/5 space-y-10 lg:col-span-2">
+          <div className="master-box p-12 bg-slate-900/40 border-white/5 space-y-10 lg:col-span-2">
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic text-center">Data Sovereignty</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <button onClick={exportDataRegistry} className="p-8 bg-white/5 rounded-[2.5rem] border border-white/5 hover:bg-white/10 transition-all group flex flex-col items-center gap-4">
-                      <Download size={24} className="text-indigo-400 group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Export Node Registry</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <button onClick={exportDataRegistry} className="p-10 bg-white/5 rounded-[3rem] border border-white/5 hover:bg-white/10 transition-all group flex flex-col items-center gap-6">
+                      <Download size={32} className="text-indigo-400 group-hover:scale-110 transition-transform" />
+                      <span className="text-[10px] font-black text-white uppercase tracking-[0.4em]">Export Registry</span>
                   </button>
-                  <button onClick={() => { if(confirm("CRITICAL: This will purge all local data. Continue?")) { localStorage.clear(); window.location.reload(); } }} className="p-8 bg-red-500/5 rounded-[2.5rem] border border-red-500/10 hover:bg-red-500/10 transition-all group flex flex-col items-center gap-4">
-                      <Trash2 size={24} className="text-red-500 group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] font-black text-red-500 uppercase tracking-[0.3em]">Purge Identity Node</span>
+                  <button onClick={() => { if(confirm("CRITICAL: THIS WILL PURGE ALL LOCAL DATA. CONTINUE?")) { localStorage.clear(); window.location.reload(); } }} className="p-10 bg-red-500/5 rounded-[3rem] border border-red-500/10 hover:bg-red-500/10 transition-all group flex flex-col items-center gap-6">
+                      <Trash2 size={32} className="text-red-500 group-hover:scale-110 transition-transform" />
+                      <span className="text-[10px] font-black text-red-500 uppercase tracking-[0.4em]">Purge Node</span>
                   </button>
               </div>
           </div>
       </div>
 
-      <div className="flex flex-col items-center pt-20 pb-10 space-y-4 opacity-30">
-        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[1em]">{WATERMARK}</p>
-        <div className="flex items-center gap-6 text-[8px] text-slate-600 font-bold uppercase tracking-widest">
+      <div className="flex flex-col items-center pt-24 pb-12 space-y-6 opacity-30">
+        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[1.2em]">{WATERMARK}</p>
+        <div className="flex items-center gap-8 text-[9px] text-slate-600 font-black uppercase tracking-widest">
             <span>{COPYRIGHT_NOTICE}</span>
             <div className="w-1 h-1 bg-slate-800 rounded-full"></div>
             <span>{APP_VERSION}</span>
