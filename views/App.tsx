@@ -15,11 +15,13 @@ import { GlobalLoader } from '../components/GlobalLoader';
 import { SplashScreen } from '../components/SplashScreen';
 import { LinkVerification } from './LinkVerification';
 import { AccessRecovery } from './AccessRecovery';
+// Fix: Import VerificationForm which was missing causing a 'Cannot find name' error.
+import { VerificationForm } from './VerificationForm';
 import { View, UserProfile, VaultDocument, ChatMessage } from '../types';
 import { DEFAULT_USER, APP_NAME, ADMIN_USERNAME, ADMIN_SECRET } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
-import { ShieldCheck, CheckCircle2, XCircle, KeyRound, Mail, ArrowRight, User, Lock } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, XCircle, KeyRound, Mail, ArrowRight, User, Lock, Terminal } from 'lucide-react';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -91,7 +93,7 @@ const App = () => {
         const token = Math.random().toString(36).substring(2, 9).toUpperCase();
         await emailService.sendInstitutionalMail(email.toUpperCase(), token, 'PASSWORD_RECOVERY_LINK', inputId);
         setIsLoading(false);
-        alert("RECOVERY NODE LINK DISPATCHED TO INSTITUTIONAL EMAIL.");
+        alert("RECOVERY PROTOCOL DISPATCHED TO INSTITUTIONAL EMAIL.");
         setAuthMode('LOGIN');
         return;
     }
@@ -132,7 +134,7 @@ const App = () => {
                   ...DEFAULT_USER,
                   name: fullName.toUpperCase(),
                   email: email.toUpperCase(),
-                  studentId: `STP-${Math.floor(100000 + Math.random() * 900000)}`
+                  studentId: `SP-NODE-${Math.floor(100000 + Math.random() * 900000)}`
                 };
                 await storageService.setData(`architect_data_${inputId}`, { user: profile });
                 setRegistrationSuccess(true);
@@ -172,31 +174,31 @@ const App = () => {
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-6 uppercase relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-950/20 via-black to-black pointer-events-none opacity-50"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-950/30 via-black to-black pointer-events-none opacity-50"></div>
         
         <div className="w-full max-w-lg relative z-10">
-          <div className="master-box p-12 space-y-12 bg-black/60 border-white/5 shadow-[0_0_100px_rgba(0,0,0,1)]">
+          <div className="master-box p-12 space-y-12 bg-black/60 border-white/5 shadow-[0_0_120px_rgba(0,0,0,1)]">
               {registrationSuccess ? (
                 <div className="text-center space-y-10 animate-scale-up">
                     <CheckCircle2 size={80} className="text-emerald-500 mx-auto" />
-                    <h2 className="text-3xl font-black text-white italic">Node Authorized</h2>
+                    <h2 className="text-3xl font-black text-white italic tracking-tighter">Node Authorized</h2>
                     <button onClick={() => window.location.reload()} className="btn-platinum py-5">Access Terminal</button>
                 </div>
               ) : (
                 <form onSubmit={handleAuth} className="space-y-12">
                     <div className="text-center space-y-4">
                         <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-black shadow-2xl">
-                            <ShieldCheck size={44} />
+                            <Terminal size={40} />
                         </div>
                         <h1 className="text-3xl font-black text-white italic tracking-tighter leading-none">{APP_NAME}</h1>
-                        <p className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.5em]">Supreme Academic Gateway</p>
+                        <p className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.5em]">Supreme Academic Gateway V18</p>
                     </div>
 
                     <div className="space-y-6">
                         {authStep === 'CREDENTIALS' ? (
                             <>
                             {authMode === 'SIGNUP' && (
-                                <input type="text" value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} className="w-full bg-black border border-white/10 rounded-2xl py-6 px-10 text-white text-xs font-black tracking-widest uppercase" placeholder="LEGAL SIGNATURE NAME" required />
+                                <input type="text" value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} className="w-full bg-black border border-white/10 rounded-2xl py-6 px-10 text-white text-xs font-black tracking-widest uppercase" placeholder="LEGAL SIGNATURE" required />
                             )}
                             <input type="text" value={userId} onChange={e => setUserId(e.target.value.toUpperCase())} className="w-full bg-black border border-white/10 rounded-2xl py-6 px-10 text-white text-xs font-black tracking-widest uppercase" placeholder="IDENTITY KEY / NUMBER" required />
                             {authMode !== 'FORGOT' && (
@@ -249,7 +251,7 @@ const App = () => {
               </div>
               <div className="text-left">
                   <h1 className="text-xl font-black text-white tracking-tighter italic leading-none">{APP_NAME}</h1>
-                  <p className="text-[8px] font-black text-indigo-500 uppercase tracking-[0.6em] mt-2">Supreme Mesh Active</p>
+                  <p className="text-[8px] font-black text-indigo-500 uppercase tracking-[0.6em] mt-2">Supreme Mesh Active V18</p>
               </div>
            </div>
            <div className="flex items-center space-x-8">
@@ -273,7 +275,7 @@ const App = () => {
             {view === View.ACADEMIC_LEDGER && <AcademicLedger username={activeUser || ''} />}
             {view === View.ATTENDANCE_TRACKER && <AttendanceTracker username={activeUser || ''} />}
             {view === View.CAMPUS_RADAR && <CampusRadar username={activeUser || ''} />}
-            {view === View.VERIFY_LINK && <LinkVerification linkId="" onNavigate={setView} currentUser={activeUser} />}
+            {view === View.VERIFICATION_FORM && <VerificationForm user={user} username={activeUser || ''} updateUser={setUser} onNavigate={setView} />}
         </main>
       </div>
       <Navigation currentView={view} setView={setView} isAdmin={activeUser === ADMIN_USERNAME} isVerified={user.isVerified} username={activeUser || ''} onLogout={handleLogout} />

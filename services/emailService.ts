@@ -28,16 +28,15 @@ export const emailService = {
         let subjectText = "";
         let letterBody = "";
 
-        const letterhead = `${APP_NAME} | ${APP_VERSION}\nLOCATION: ${SYSTEM_DOMAIN}\nSECURITY CLEARANCE: LEVEL 4\n------------------------------------------------\nOFFICIAL COMMUNICATION LOG\n\n`;
-        const dateLine = `DISPATCH DATE: ${date}\n\n`;
+        const letterhead = `${APP_NAME} | ${APP_VERSION}\nLOCATION: ${SYSTEM_DOMAIN}\nIDENTITY STATUS: OFFICIAL LOG\n------------------------------------------------\nINSTITUTIONAL COMMUNICATION DISPATCH\n\n`;
+        const dateLine = `DISPATCH TIMESTAMP: ${date}\n\n`;
 
         switch (type) {
             case 'RECOVERY_ACTIVATED':
                 subjectText = `RECOVERY STATUS: ACTIVATED`;
                 letterBody = `DEAR USER,\n\n` +
                     `YOUR RECOVERY LINK HAS BEEN ACTIVATED. YOU HAVE SUCCESSFULLY ACTIVATED.\n\n` +
-                    `YOUR ACCOUNT ACCESS HAS BEEN RESTORED BY THE SYSTEM ARCHITECT SUSHIL POKHAREL.\n\n` +
-                    `LOGIN TO THE TERMINAL IMMEDIATELY TO SYNC DATA.\n\n` +
+                    `YOUR ACCESS TO THE PLATINUM SUPREME MESH HAS BEEN RESTORED BY SUSHIL POKHAREL.\n\n` +
                     `REGARDS,\n${APP_NAME} ADMINISTRATION`;
                 break;
 
@@ -45,17 +44,16 @@ export const emailService = {
                 subjectText = `RECOVERY STATUS: REJECTED`;
                 letterBody = `DEAR USER,\n\n` +
                     `YOUR EMAIL HAS BEEN REJECTED.\n\n` +
-                    `THE RECOVERY REQUEST FOR NODE ${upperUser} FAILED THE SUPREME INSTITUTIONAL AUDIT.\n\n` +
-                    `NO FURTHER ACTION WILL BE TAKEN AT THIS TIME.\n\n` +
+                    `THE RECOVERY REQUEST FOR NODE ${upperUser} FAILED THE SUPREME INSTITUTIONAL AUDIT PROTOCOL.\n\n` +
                     `REGARDS,\n${APP_NAME} SECURITY`;
                 break;
 
             case 'PASSWORD_RECOVERY_LINK':
-                subjectText = `SECURITY PROTOCOL: ACCESS KEY RECOVERY`;
+                subjectText = `SECURITY PROTOCOL: IDENTITY KEY RECOVERY`;
                 letterBody = `DEAR PERSONNEL ${upperUser},\n\n` +
                     `A PASSWORD RECOVERY REQUEST HAS BEEN INITIALIZED FOR YOUR IDENTITY KEY.\n\n` +
                     `SECURE RECOVERY PORTAL:\n${window.location.origin}/?recovery=${payload}\n\n` +
-                    `THIS LINK EXPIRES UPON USE OR AFTER 60 MINUTES.\n\n` +
+                    `FOLLOW THE LINK TO RE-SYNCHRONIZE YOUR NODE.\n\n` +
                     `REGARDS,\n${APP_NAME} SECURITY UNIT`;
                 break;
 
@@ -64,8 +62,7 @@ export const emailService = {
                 letterBody = `DEAR SUSHIL POKHAREL,\n\n` +
                     `AN IDENTITY SYNCHRONIZATION TOKEN HAS BEEN REQUESTED FOR NODE: ${upperUser}.\n\n` +
                     `TOKEN: ${payload}\n\n` +
-                    `TARGET EMAIL: ${targetUserEmail.toUpperCase()}.\n\n` +
-                    `VALIDATE THIS REQUEST AGAINST THE MASTER REGISTRY.`;
+                    `TARGET EMAIL: ${targetUserEmail.toUpperCase()}.`;
                 break;
 
             case 'VERIFY_REQUEST':
@@ -86,8 +83,7 @@ export const emailService = {
             case 'TFA_CONFIRMATION':
                 subjectText = `IDENTITY AUTHORIZED: ${upperUser}`;
                 letterBody = `DEAR ${upperUser},\n\n` +
-                    `YOUR IDENTITY NODE HAS BEEN AUTHORIZED BY SUSHIL POKHAREL.\n\n` +
-                    `USE THE FOLLOWING TOKEN FOR YOUR FIRST MESH SYNCHRONIZATION:\n\n` +
+                    `YOUR IDENTITY NODE HAS BEEN AUTHORIZED FOR SUPREME ACCESS.\n\n` +
                     `SECURITY TOKEN: ${payload}\n\n` +
                     `REGARDS,\n${APP_NAME} SECURITY UNIT`;
                 break;

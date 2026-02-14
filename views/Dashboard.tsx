@@ -6,7 +6,8 @@ import {
   Loader2, Send, Wallet, ArrowUpRight, TrendingDown, Globe, Activity, Database, ShieldCheck, Fingerprint, BadgeCheck, AlertCircle, Radio, QrCode, TrendingUp, Trophy, Lock,
   BookOpen,
   ShieldAlert,
-  Zap
+  Zap,
+  Terminal
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { APP_NAME, SYSTEM_DOMAIN, APP_VERSION } from '../constants';
@@ -50,19 +51,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
     if (!quickNote.trim()) return;
     setIsCommitting(true);
     
-    // SECURITY SCAN: PROHIBITED TERM DETECTION
     const isTerminated = await storageService.scanAndProtect(username, quickNote);
     if (isTerminated) {
-        window.location.reload(); // Immediate lockdown to termination screen
+        window.location.reload();
         return;
     }
 
     const newNote: Note = {
         id: Date.now().toString(),
-        title: "DASH_ENTRY: " + quickNote.substring(0, 18),
-        content: quickNote,
+        title: "MESH_COMMIT: " + quickNote.substring(0, 18).toUpperCase(),
+        content: quickNote.toUpperCase(),
         date: new Date().toISOString(),
-        tags: ["GLOBAL_SYNC"],
+        tags: ["SUPREME_SYNC"],
         status: 'PENDING',
         author: 'user'
     };
@@ -79,13 +79,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
   };
 
   return (
-    <div className="space-y-10 animate-platinum max-w-full pb-20">
+    <div className="space-y-12 animate-platinum max-w-full pb-24 uppercase">
       {/* Global Broadcast Ticker */}
       {broadcast && (
-        <div className="bg-indigo-600/10 border-y border-indigo-500/20 py-3 -mx-8 sm:-mx-12 overflow-hidden flex items-center">
+        <div className="bg-indigo-600/10 border-y border-indigo-500/20 py-4 -mx-8 sm:-mx-12 overflow-hidden flex items-center">
             <div className="flex items-center gap-3 px-8 bg-black z-10 border-r border-white/10 shrink-0">
                 <Radio size={14} className="text-indigo-500 animate-pulse" />
-                <span className="text-[9px] font-black text-white uppercase tracking-widest">Broadcast</span>
+                <span className="text-[9px] font-black text-white uppercase tracking-widest">Protocol Sync</span>
             </div>
             <div className="whitespace-nowrap animate-marquee flex items-center">
                 <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest px-10">{broadcast}</span>
@@ -95,158 +95,159 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
       )}
 
       {/* Welcome Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start gap-10">
-          <div className="space-y-4">
-              <div className="flex items-center gap-3">
+      <div className="flex flex-col md:flex-row justify-between items-start gap-12">
+          <div className="space-y-6">
+              <div className="flex items-center gap-4">
                 <div className="stark-badge inline-flex items-center space-x-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                    <span>Operational Node: {username.toUpperCase()}</span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                    <span>NODE ACTIVE: {username.toUpperCase()}</span>
                 </div>
-                <div className={`px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-2 ${user.integrityScore < 50 ? 'text-red-500' : 'text-indigo-400'}`}>
+                <div className={`px-4 py-1.5 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 ${user.integrityScore < 50 ? 'text-red-500' : 'text-indigo-400'}`}>
                     <Zap size={10}/> Integrity: {user.integrityScore || 100}%
                 </div>
               </div>
               <h1 className="text-5xl sm:text-7xl font-black text-white tracking-tighter uppercase italic leading-none">
-                StudentPocket<br/><span className="text-indigo-600 not-italic">Mesh Center</span>
+                Platinum<br/><span className="text-indigo-600 not-italic">Supreme Hub</span>
               </h1>
-              <div className="flex items-center gap-3 text-slate-600 font-black text-[9px] uppercase tracking-[0.4em]">
-                  <RefreshCw size={12} className="animate-spin-slow" />
-                  <span>Build Cycle: {APP_VERSION}</span>
+              <div className="flex items-center gap-4 text-slate-600 font-black text-[10px] uppercase tracking-[0.4em]">
+                  <Terminal size={14} className="text-indigo-500" />
+                  <span>Architecture Build: {APP_VERSION}</span>
               </div>
           </div>
 
-          {/* Institutional Mesh Badge */}
-          <div className="w-full md:w-80 group perspective-1000">
-             <div className="relative bg-gradient-to-br from-slate-900 to-black p-8 rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden transition-all duration-700 hover:rotate-y-12 hover:scale-105">
-                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          {/* Identity Matrix Badge */}
+          <div className="w-full md:w-96 group perspective-1000">
+             <div className="relative bg-gradient-to-br from-slate-900 via-black to-black p-10 rounded-[3.5rem] border border-white/10 shadow-[0_40px_100px_-20px_rgba(0,0,0,1)] overflow-hidden transition-all duration-700 hover:scale-105">
+                 <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
                  <div className="relative z-10 flex flex-col items-center">
-                    <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-white/20 mb-6 bg-slate-900 shadow-xl relative group">
-                        <img src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} className="w-full h-full object-cover group-hover:opacity-10 transition-opacity" alt="Node Avatar" />
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <QrCode size={40} className="text-indigo-400" />
-                        </div>
+                    <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-2 border-white/10 mb-8 bg-slate-950 shadow-2xl relative">
+                        <img src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} className="w-full h-full object-cover" alt="Identity" />
+                        {!user.isVerified && (
+                            <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-4 text-center">
+                                <span className="text-[7px] font-black text-red-500 tracking-widest leading-tight">UNVERIFIED IDENTITY</span>
+                            </div>
+                        )}
                     </div>
-                    <div className="text-center space-y-1">
-                        <h3 className="text-lg font-black text-white uppercase tracking-tight">{user.name}</h3>
-                        <p className="text-[9px] font-bold text-indigo-500 uppercase tracking-[0.4em]">{user.studentId || 'NO-ID-ASSIGNED'}</p>
+                    <div className="text-center space-y-2">
+                        <h3 className="text-2xl font-black text-white tracking-tight italic">{user.name}</h3>
+                        <div className="bg-white/5 py-2 px-4 rounded-xl border border-white/5 inline-block">
+                             <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.5em]">{user.studentId || 'IDENTITY PENDING'}</p>
+                        </div>
                     </div>
                     
-                    <div className="mt-8 w-full pt-6 border-t border-white/5 flex items-center justify-between">
+                    <div className="mt-10 w-full pt-8 border-t border-white/5 flex items-center justify-between">
                         <div className="space-y-1">
-                            <span className="block text-[8px] font-black text-slate-500 uppercase">Clearance</span>
-                            <span className={`text-[9px] font-black uppercase tracking-widest ${user.isVerified ? 'text-emerald-500' : 'text-red-500'}`}>
-                                {user.isVerified ? 'Verified' : 'Awaiting'}
+                            <span className="block text-[8px] font-black text-slate-500 uppercase">Mesh Status</span>
+                            <span className={`text-xs font-black uppercase tracking-widest ${user.isVerified ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                {user.isVerified ? 'AUTHORIZED' : 'AUDIT REQUIRED'}
                             </span>
                         </div>
-                        <div className="p-3 bg-white/5 rounded-xl text-slate-600">
-                            <Fingerprint size={18} />
-                        </div>
+                        {!user.isVerified && (
+                             <button onClick={() => onNavigate(View.VERIFICATION_FORM)} className="bg-white text-black px-4 py-2 rounded-lg text-[8px] font-black tracking-widest">Verify Now</button>
+                        )}
                     </div>
-                 </div>
-                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[8px] font-black text-white/5 uppercase tracking-[1em] whitespace-nowrap">
-                    {SYSTEM_DOMAIN}
                  </div>
              </div>
           </div>
       </div>
 
-      {/* Primary Analytics Cluster */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="master-box p-8 bg-indigo-600 text-white border-none shadow-xl group cursor-help transition-all hover:scale-[1.02]">
-              <div className="flex justify-between items-start mb-6">
-                  <Wallet size={24} />
-                  <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Mesh Liquidity</span>
+      {/* Analytics Matrix */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="master-box p-10 bg-indigo-600 text-white border-none shadow-2xl group transition-all hover:translate-y-[-8px]">
+              <div className="flex justify-between items-start mb-8">
+                  <Wallet size={28} />
+                  <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Node Capital</span>
               </div>
-              <h3 className="text-4xl font-black italic tracking-tighter">NPR {financials.balance.toLocaleString()}</h3>
-              <p className="text-[10px] font-bold uppercase tracking-widest mt-2 opacity-70">Total Multi-Device Balance</p>
+              <h3 className="text-5xl font-black italic tracking-tighter">NPR {financials.balance.toLocaleString()}</h3>
+              <p className="text-[10px] font-bold uppercase tracking-widest mt-3 opacity-80">Total Operational Mesh Balance</p>
           </div>
-          <div className="master-box p-8 bg-white/5 border-emerald-500/20">
-              <div className="flex justify-between items-start mb-6">
-                  <ArrowUpRight size={24} className="text-emerald-500" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Inflow Trend</span>
+          <div className="master-box p-10 bg-white/5 border-emerald-500/20">
+              <div className="flex justify-between items-start mb-8">
+                  <ArrowUpRight size={28} className="text-emerald-500" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Node Inflow</span>
               </div>
-              <h3 className="text-4xl font-black text-white italic tracking-tighter">+{financials.income.toLocaleString()}</h3>
-              <p className="text-[10px] font-bold uppercase tracking-widest mt-2 text-emerald-500">Node Accumulation</p>
+              <h3 className="text-5xl font-black text-white italic tracking-tighter">+{financials.income.toLocaleString()}</h3>
+              <p className="text-[10px] font-bold uppercase tracking-widest mt-3 text-emerald-500">Resource Accumulation</p>
           </div>
-          <div className="master-box p-8 bg-white/5 border-indigo-500/20">
-              <div className="flex justify-between items-start mb-6">
-                  <TrendingUp size={24} className="text-indigo-500" />
+          <div className="master-box p-10 bg-white/5 border-indigo-500/20">
+              <div className="flex justify-between items-start mb-8">
+                  <TrendingUp size={28} className="text-indigo-500" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Academic Index</span>
               </div>
-              <h3 className="text-4xl font-black text-white italic tracking-tighter">{avgPercentage.toFixed(1)}%</h3>
-              <p className="text-[10px] font-bold uppercase tracking-widest mt-2 text-indigo-400">Knowledge Progress</p>
+              <h3 className="text-5xl font-black text-white italic tracking-tighter">{avgPercentage.toFixed(1)}%</h3>
+              <p className="text-[10px] font-bold uppercase tracking-widest mt-3 text-indigo-400">Supreme Knowledge Growth</p>
           </div>
-          <div className="master-box p-8 bg-white/5 border-red-500/20">
-              <div className="flex justify-between items-start mb-6">
-                  <TrendingDown size={24} className="text-red-500" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Outflow Trend</span>
+          <div className="master-box p-10 bg-white/5 border-red-500/20">
+              <div className="flex justify-between items-start mb-8">
+                  <TrendingDown size={28} className="text-red-500" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Node Outflow</span>
               </div>
-              <h3 className="text-4xl font-black text-white italic tracking-tighter">-{financials.expense.toLocaleString()}</h3>
-              <p className="text-[10px] font-bold uppercase tracking-widest mt-2 text-red-500">Resource Burn Rate</p>
+              <h3 className="text-5xl font-black text-white italic tracking-tighter">-{financials.expense.toLocaleString()}</h3>
+              <p className="text-[10px] font-bold uppercase tracking-widest mt-3 text-red-500">Mesh Power consumption</p>
           </div>
       </div>
 
-      {/* Primary Global Entry */}
-      <div className="master-box p-10 sm:p-16 relative overflow-hidden bg-indigo-950/10 border-indigo-500/10">
-        <div className="relative z-10 space-y-10">
+      {/* Logic Entry Node */}
+      <div className="master-box p-12 sm:p-20 relative overflow-hidden bg-indigo-950/10 border-indigo-500/10">
+        <div className="relative z-10 space-y-12">
           <div className="space-y-4">
-              <h2 className="text-4xl sm:text-5xl font-black tracking-tighter text-white uppercase leading-none">
-                Global Node<br/>
-                <span className="text-indigo-600 italic">Identity Commit</span>
+              <h2 className="text-5xl sm:text-6xl font-black tracking-tighter text-white uppercase leading-none italic">
+                Node Logic<br/>
+                <span className="text-indigo-600 not-italic">Identity Commit</span>
               </h2>
           </div>
           
-          <form onSubmit={handleQuickCommit} className="max-w-2xl relative group">
+          <form onSubmit={handleQuickCommit} className="max-w-3xl relative group">
               <input 
                 type="text" 
                 value={quickNote}
-                onChange={e => setQuickNote(e.target.value)}
-                className="w-full bg-black/40 border border-white/10 rounded-2xl py-7 px-10 text-sm font-bold text-white outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800 shadow-2xl"
-                placeholder="COMMIT A NOTE TO ALL DEVICES..."
+                onChange={e => setQuickNote(e.target.value.toUpperCase())}
+                className="w-full bg-black/60 border border-white/10 rounded-[2.5rem] py-8 px-12 text-sm font-black text-white outline-none focus:border-indigo-500 transition-all placeholder:text-slate-800 shadow-3xl uppercase tracking-widest"
+                placeholder="COMMIT DATA TO CENTRAL MESH..."
                 disabled={isCommitting}
               />
               <button 
                 type="submit" 
                 disabled={isCommitting || !quickNote.trim()}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-black hover:bg-slate-200 transition-all shadow-xl"
+                className="absolute right-6 top-1/2 -translate-y-1/2 w-16 h-16 bg-white rounded-3xl flex items-center justify-center text-black hover:bg-slate-200 transition-all shadow-2xl"
               >
-                {isCommitting ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
+                {isCommitting ? <Loader2 className="animate-spin" size={24} /> : <Send size={24} />}
               </button>
           </form>
         </div>
       </div>
 
-      {/* Navigation Cluster */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div onClick={() => onNavigate(View.GROWTH_JOURNAL)} className="master-box p-12 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40">
-            <div className="flex justify-between items-center mb-10">
-              <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white group-hover:text-black transition-all">
-                <BookOpen size={24} />
+      {/* Strategic Cluster */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+        <div onClick={() => onNavigate(View.ACADEMIC_LEDGER)} className="master-box p-12 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40">
+            <div className="flex justify-between items-center mb-12">
+              <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white group-hover:text-black transition-all">
+                <Trophy size={28} />
               </div>
               <ChevronRight size={24} className="text-slate-700 group-hover:text-white transition-colors" />
             </div>
-            <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter">Growth Journal</h3>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Reflective Memory Node</p>
+            <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter">Precision Ledger</h3>
+            <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.5em] mt-2">Formal Academic Registry</p>
         </div>
-        <div onClick={() => onNavigate(View.SECURITY_HEARTBEAT)} className="master-box p-12 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40">
-            <div className="flex justify-between items-center mb-10">
-              <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white group-hover:text-black transition-all">
-                <Activity size={24} />
+        <div onClick={() => onNavigate(View.CAMPUS_RADAR)} className="master-box p-12 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40">
+            <div className="flex justify-between items-center mb-12">
+              <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white group-hover:text-black transition-all">
+                <Globe size={28} />
               </div>
               <ChevronRight size={24} className="text-slate-700 group-hover:text-white transition-colors" />
             </div>
-            <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter">System Pulse</h3>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Real-time Integrity Monitor</p>
+            <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter">Neural Radar</h3>
+            <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.5em] mt-2">Campus Proximity Mapping</p>
         </div>
         <div onClick={() => onNavigate(View.FILE_HUB)} className="master-box p-12 group cursor-pointer hover:border-indigo-500/30 transition-all border border-white/5 bg-black/40">
-            <div className="flex justify-between items-center mb-10">
-              <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white group-hover:text-black transition-all">
-                <Database size={24} />
+            <div className="flex justify-between items-center mb-12">
+              <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white group-hover:text-black transition-all">
+                <Database size={28} />
               </div>
               <ChevronRight size={24} className="text-slate-700 group-hover:text-white transition-colors" />
             </div>
-            <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter">Secure Data Mesh</h3>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Institutional Storage Node</p>
+            <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter">Data Fortress</h3>
+            <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.5em] mt-2">Institutional Asset Vault</p>
         </div>
       </div>
       
@@ -257,14 +258,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
         }
         .animate-marquee {
             display: inline-flex;
-            animation: marquee 30s linear infinite;
-        }
-        .animate-spin-slow {
-            animation: spin 8s linear infinite;
-        }
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+            animation: marquee 40s linear infinite;
         }
       `}</style>
     </div>
