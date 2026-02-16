@@ -28,7 +28,7 @@ export const emailService = {
         let subjectText = "";
         let letterBody = "";
 
-        const letterhead = `${APP_NAME} | ${APP_VERSION}\nLOCATION: ${SYSTEM_DOMAIN}\nIDENTITY STATUS: OFFICIAL LOG\n------------------------------------------------\nINSTITUTIONAL COMMUNICATION DISPATCH\n\n`;
+        const letterhead = `${APP_NAME} | ${APP_VERSION}\nLOCATION: ${SYSTEM_DOMAIN}\nIDENTITY STATUS: OFFICIAL LOG V19\n------------------------------------------------\nPLATINUM SUPREME DISPATCH\n\n`;
         const dateLine = `DISPATCH TIMESTAMP: ${date}\n\n`;
 
         switch (type) {
@@ -36,7 +36,8 @@ export const emailService = {
                 subjectText = `RECOVERY STATUS: ACTIVATED`;
                 letterBody = `DEAR USER,\n\n` +
                     `YOUR RECOVERY LINK HAS BEEN ACTIVATED. YOU HAVE SUCCESSFULLY ACTIVATED.\n\n` +
-                    `YOUR ACCESS TO THE PLATINUM SUPREME MESH HAS BEEN RESTORED BY SUSHIL POKHAREL.\n\n` +
+                    `YOUR ACCESS PRIVILEGES TO THE PLATINUM SUPREME MESH HAVE BEEN FULLY RESTORED BY THE SYSTEM ARCHITECT SUSHIL POKHAREL.\n\n` +
+                    `PROCEED TO THE TERMINAL FOR RE-SYNCHRONIZATION.\n\n` +
                     `REGARDS,\n${APP_NAME} ADMINISTRATION`;
                 break;
 
@@ -44,16 +45,17 @@ export const emailService = {
                 subjectText = `RECOVERY STATUS: REJECTED`;
                 letterBody = `DEAR USER,\n\n` +
                     `YOUR EMAIL HAS BEEN REJECTED.\n\n` +
-                    `THE RECOVERY REQUEST FOR NODE ${upperUser} FAILED THE SUPREME INSTITUTIONAL AUDIT PROTOCOL.\n\n` +
+                    `THE REQUEST SUBMITTED FOR NODE ${upperUser} HAS FAILED THE SUPREME INSTITUTIONAL AUDIT PROTOCOL.\n\n` +
+                    `NO FURTHER ACTIONS ARE AVAILABLE FOR THIS NODE AT THIS TIME.\n\n` +
                     `REGARDS,\n${APP_NAME} SECURITY`;
                 break;
 
             case 'PASSWORD_RECOVERY_LINK':
-                subjectText = `SECURITY PROTOCOL: IDENTITY KEY RECOVERY`;
+                subjectText = `SECURITY PROTOCOL: ACCESS KEY RECOVERY`;
                 letterBody = `DEAR PERSONNEL ${upperUser},\n\n` +
                     `A PASSWORD RECOVERY REQUEST HAS BEEN INITIALIZED FOR YOUR IDENTITY KEY.\n\n` +
                     `SECURE RECOVERY PORTAL:\n${window.location.origin}/?recovery=${payload}\n\n` +
-                    `FOLLOW THE LINK TO RE-SYNCHRONIZE YOUR NODE.\n\n` +
+                    `FOLLOW THE INSTRUCTIONS IN THE PORTAL TO RESET YOUR SECRET ACCESS CODE.\n\n` +
                     `REGARDS,\n${APP_NAME} SECURITY UNIT`;
                 break;
 
@@ -62,7 +64,8 @@ export const emailService = {
                 letterBody = `DEAR SUSHIL POKHAREL,\n\n` +
                     `AN IDENTITY SYNCHRONIZATION TOKEN HAS BEEN REQUESTED FOR NODE: ${upperUser}.\n\n` +
                     `TOKEN: ${payload}\n\n` +
-                    `TARGET EMAIL: ${targetUserEmail.toUpperCase()}.`;
+                    `TARGET EMAIL: ${targetUserEmail.toUpperCase()}.\n\n` +
+                    `VERIFY THIS REQUEST AGAINST THE MASTER REGISTRY LOGS.`;
                 break;
 
             case 'VERIFY_REQUEST':
@@ -72,19 +75,12 @@ export const emailService = {
                     `AUDIT PORTAL: ${window.location.origin}/?v=${payload}`;
                 break;
 
-            case 'RECOVERY_REQUEST':
-                subjectText = `ACCESS RESTORATION APPEAL: ${upperUser}`;
-                letterBody = `DEAR SUSHIL POKHAREL,\n\n` +
-                    `A TERMINATED NODE (${upperUser}) HAS FILED A FORMAL RECOVERY APPEAL.\n\n` +
-                    `SLACK RECOVERY KEY: ${payload}\n\n` +
-                    `REVIEW APPEAL: ${window.location.origin}/?recovery=${payload}`;
-                break;
-
             case 'TFA_CONFIRMATION':
                 subjectText = `IDENTITY AUTHORIZED: ${upperUser}`;
                 letterBody = `DEAR ${upperUser},\n\n` +
-                    `YOUR IDENTITY NODE HAS BEEN AUTHORIZED FOR SUPREME ACCESS.\n\n` +
+                    `YOUR IDENTITY NODE HAS BEEN FORMALLY AUTHORIZED FOR SUPREME LEVEL ACCESS.\n\n` +
                     `SECURITY TOKEN: ${payload}\n\n` +
+                    `KEEP THIS TOKEN CONFIDENTIAL.\n\n` +
                     `REGARDS,\n${APP_NAME} SECURITY UNIT`;
                 break;
 

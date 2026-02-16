@@ -15,13 +15,12 @@ import { GlobalLoader } from '../components/GlobalLoader';
 import { SplashScreen } from '../components/SplashScreen';
 import { LinkVerification } from './LinkVerification';
 import { AccessRecovery } from './AccessRecovery';
-// Fix: Import VerificationForm which was missing causing a 'Cannot find name' error.
 import { VerificationForm } from './VerificationForm';
 import { View, UserProfile, VaultDocument, ChatMessage } from '../types';
 import { DEFAULT_USER, APP_NAME, ADMIN_USERNAME, ADMIN_SECRET } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
-import { ShieldCheck, CheckCircle2, XCircle, KeyRound, Mail, ArrowRight, User, Lock, Terminal } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, XCircle, KeyRound, Mail, ArrowRight, User, Lock, Terminal, ShieldAlert } from 'lucide-react';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -160,10 +159,10 @@ const App = () => {
   if (user.isBanned) {
       return (
           <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-center uppercase">
-              <XCircle size={80} className="text-red-500 mb-8" />
+              <ShieldAlert size={80} className="text-red-500 mb-8 animate-pulse" />
               <h1 className="text-4xl font-black text-white italic mb-4">Node Terminated</h1>
-              <p className="text-slate-500 mb-10 font-bold">Security Violation: Integrity Purge Initiated</p>
-              <button onClick={handleLogout} className="btn-platinum py-5 px-12 text-xs">Return to Login</button>
+              <p className="text-slate-500 mb-10 font-bold tracking-[0.3em]">Security Violation: V19 Integrity Purge Active</p>
+              <button onClick={handleLogout} className="btn-platinum py-5 px-12 text-xs">Return to Terminal</button>
           </div>
       );
   }
@@ -174,10 +173,10 @@ const App = () => {
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-6 uppercase relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-950/30 via-black to-black pointer-events-none opacity-50"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-950/40 via-black to-black pointer-events-none opacity-50"></div>
         
         <div className="w-full max-w-lg relative z-10">
-          <div className="master-box p-12 space-y-12 bg-black/60 border-white/5 shadow-[0_0_120px_rgba(0,0,0,1)]">
+          <div className="master-box p-12 space-y-12 bg-black/60 border-white/5 shadow-[0_0_150px_rgba(0,0,0,1)] animate-platinum">
               {registrationSuccess ? (
                 <div className="text-center space-y-10 animate-scale-up">
                     <CheckCircle2 size={80} className="text-emerald-500 mx-auto" />
@@ -191,7 +190,7 @@ const App = () => {
                             <Terminal size={40} />
                         </div>
                         <h1 className="text-3xl font-black text-white italic tracking-tighter leading-none">{APP_NAME}</h1>
-                        <p className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.5em]">Supreme Academic Gateway V18</p>
+                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.5em]">Supreme Academic Registry V19</p>
                     </div>
 
                     <div className="space-y-6">
@@ -219,7 +218,7 @@ const App = () => {
                     {authError && <p className="text-red-500 text-[10px] font-black text-center tracking-widest uppercase animate-shake">{authError}</p>}
                     
                     <button type="submit" className="btn-platinum py-6 shadow-[0_20px_40px_rgba(255,255,255,0.1)]">
-                        {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'ACCESS NODE' : authMode === 'FORGOT' ? 'REQUEST RECOVERY' : 'INITIALIZE NODE') : 'VERIFY SECURITY'}
+                        {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'ACCESS NODE' : authMode === 'FORGOT' ? 'RECOVER NODE' : 'INITIALIZE NODE') : 'VERIFY SECURITY'}
                     </button>
 
                     <div className="flex flex-col gap-6 text-center">
@@ -251,7 +250,7 @@ const App = () => {
               </div>
               <div className="text-left">
                   <h1 className="text-xl font-black text-white tracking-tighter italic leading-none">{APP_NAME}</h1>
-                  <p className="text-[8px] font-black text-indigo-500 uppercase tracking-[0.6em] mt-2">Supreme Mesh Active V18</p>
+                  <p className="text-[8px] font-black text-indigo-500 uppercase tracking-[0.6em] mt-2">Supreme Mesh V19 Active</p>
               </div>
            </div>
            <div className="flex items-center space-x-8">
