@@ -17,10 +17,10 @@ import { LinkVerification } from './LinkVerification';
 import { AccessRecovery } from './AccessRecovery';
 import { VerificationForm } from './VerificationForm';
 import { View, UserProfile, VaultDocument, ChatMessage } from '../types';
-import { DEFAULT_USER, APP_NAME, ADMIN_USERNAME, ADMIN_SECRET } from '../constants';
+import { DEFAULT_USER, APP_NAME, ADMIN_USERNAME, ADMIN_SECRET, APP_VERSION } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
-import { ShieldCheck, CheckCircle2, XCircle, KeyRound, Mail, ArrowRight, User, Lock, Terminal, ShieldAlert, Cpu } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, XCircle, KeyRound, Mail, ArrowRight, User, Lock, Terminal, ShieldAlert, Cpu, Crown } from 'lucide-react';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -55,7 +55,7 @@ const App = () => {
         setUser({
             ...DEFAULT_USER,
             name: "SUSHIL POKHAREL",
-            studentId: "SUSHIL-ULTRA-NODE",
+            studentId: "SUSHIL-ULTRA-MAX",
             isVerified: true,
             verificationStatus: 'VERIFIED'
         });
@@ -92,7 +92,7 @@ const App = () => {
         const token = Math.random().toString(36).substring(2, 9).toUpperCase();
         await emailService.sendInstitutionalMail(email.toUpperCase(), token, 'PASSWORD_RECOVERY_LINK', inputId);
         setIsLoading(false);
-        alert("ULTRA RECOVERY PROTOCOL DISPATCHED.");
+        alert("V21 RECOVERY PROTOCOL DISPATCHED.");
         setAuthMode('LOGIN');
         return;
     }
@@ -114,7 +114,7 @@ const App = () => {
                 await emailService.sendInstitutionalMail(localUsers[inputId].email, mockCode, 'OTP_REQUEST', inputId);
                 setAuthStep('OTP');
             } else {
-                setAuthError('AUTHORITY DENIED: ULTRA IDENTITY MISMATCH');
+                setAuthError('ACCESS DENIED: V21 CREDENTIAL MISMATCH');
             }
         } else {
             const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -133,7 +133,7 @@ const App = () => {
                   ...DEFAULT_USER,
                   name: fullName.toUpperCase(),
                   email: email.toUpperCase(),
-                  studentId: `SP-ULTRA-${Math.floor(100000 + Math.random() * 900000)}`
+                  studentId: `SP-ULTRA-P-${Math.floor(100000 + Math.random() * 900000)}`
                 };
                 await storageService.setData(`architect_data_${inputId}`, { user: profile });
                 setRegistrationSuccess(true);
@@ -144,7 +144,7 @@ const App = () => {
                 setIsLoggedIn(true);
             }
         } else {
-            setAuthError('INVALID SECURITY TOKEN');
+            setAuthError('INVALID V21 SECURITY TOKEN');
         }
     }
   };
@@ -159,10 +159,10 @@ const App = () => {
   if (user.isBanned) {
       return (
           <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-center uppercase">
-              <ShieldAlert size={80} className="text-red-500 mb-8 animate-pulse shadow-[0_0_50px_rgba(239,68,68,0.2)]" />
-              <h1 className="text-4xl font-black text-white italic mb-4 tracking-tighter">Node Terminated</h1>
-              <p className="text-slate-500 mb-10 font-bold tracking-[0.5em]">Security Violation: V20 Ultra Integrity Purge</p>
-              <button onClick={handleLogout} className="btn-platinum py-5 px-12 text-xs">Return to Terminal</button>
+              <ShieldAlert size={80} className="text-red-500 mb-8 animate-pulse shadow-[0_0_80px_rgba(239,68,68,0.3)]" />
+              <h1 className="text-4xl font-black text-white italic mb-4 tracking-tighter">Gateway Closed</h1>
+              <p className="text-slate-500 mb-10 font-bold tracking-[0.5em]">Security Infraction: V21 Ultra Purge Effective</p>
+              <button onClick={handleLogout} className="btn-platinum py-5 px-12 text-xs">Reset Terminal</button>
           </div>
       );
   }
@@ -174,23 +174,24 @@ const App = () => {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-6 uppercase relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-950/60 via-black to-black pointer-events-none opacity-50"></div>
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 pointer-events-none"></div>
         
         <div className="w-full max-w-lg relative z-10">
-          <div className="master-box p-12 space-y-12 bg-black/80 border-white/5 shadow-[0_0_200px_rgba(0,0,0,1)] animate-platinum">
+          <div className="master-box p-12 space-y-12 bg-black/80 border-white/5 shadow-[0_0_250px_rgba(0,0,0,1)] animate-platinum border-t-indigo-500/20">
               {registrationSuccess ? (
                 <div className="text-center space-y-10 animate-scale-up">
                     <CheckCircle2 size={80} className="text-emerald-500 mx-auto" />
-                    <h2 className="text-3xl font-black text-white italic tracking-tighter">Node Registered</h2>
-                    <button onClick={() => window.location.reload()} className="btn-platinum py-5">Access Terminal</button>
+                    <h2 className="text-3xl font-black text-white italic tracking-tighter">Registration Optimized</h2>
+                    <button onClick={() => window.location.reload()} className="btn-platinum py-5">Enter V21 Hub</button>
                 </div>
               ) : (
                 <form onSubmit={handleAuth} className="space-y-12">
                     <div className="text-center space-y-4">
-                        <div className="w-20 h-20 bg-white rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 text-black shadow-[0_20px_60px_rgba(255,255,255,0.1)]">
-                            <Cpu size={40} />
+                        <div className="w-20 h-20 bg-white rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 text-black shadow-[0_20px_60px_rgba(255,255,255,0.15)]">
+                            <Cpu size={40} className="animate-spin-slow" />
                         </div>
                         <h1 className="text-3xl font-black text-white italic tracking-tighter leading-none">{APP_NAME}</h1>
-                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.6em]">Ultra Executive Portal V20</p>
+                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.6em]">Ultra Executive Plus V21</p>
                     </div>
 
                     <div className="space-y-6">
@@ -209,7 +210,7 @@ const App = () => {
                             </>
                         ) : (
                             <div className="space-y-4">
-                                <p className="text-center text-[9px] font-black text-slate-500 uppercase tracking-widest">Awaiting Security Dispatch</p>
+                                <p className="text-center text-[9px] font-black text-slate-500 uppercase tracking-widest">V21 Security Dispatching...</p>
                                 <input type="text" value={otpCode} onChange={e => setOtpCode(e.target.value)} className="w-full bg-black border border-indigo-500/50 rounded-3xl py-7 text-center text-4xl font-black text-white tracking-[0.4em]" placeholder="000000" required />
                             </div>
                         )}
@@ -217,17 +218,17 @@ const App = () => {
 
                     {authError && <p className="text-red-500 text-[10px] font-black text-center tracking-widest uppercase animate-shake">{authError}</p>}
                     
-                    <button type="submit" className="btn-platinum py-6 shadow-[0_30px_60px_rgba(255,255,255,0.05)]">
-                        {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'ACCESS NODE' : authMode === 'FORGOT' ? 'RECOVER NODE' : 'INITIALIZE NODE') : 'VERIFY SECURITY'}
+                    <button type="submit" className="btn-platinum py-6 shadow-[0_30px_80px_rgba(255,255,255,0.08)] transition-all transform hover:scale-[1.02]">
+                        {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'ACCESS GATEWAY' : authMode === 'FORGOT' ? 'RECOVER PROTOCOL' : 'INITIALIZE NODE') : 'SYNC SECURITY'}
                     </button>
 
                     <div className="flex flex-col gap-6 text-center">
                         <button type="button" onClick={() => { setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setAuthError(''); }} className="text-[10px] font-black text-slate-600 hover:text-white transition-colors tracking-[0.3em] uppercase">
-                            {authMode === 'LOGIN' ? 'CREATE NEW IDENTITY' : 'RETURN TO TERMINAL'}
+                            {authMode === 'LOGIN' ? 'CREATE NEW IDENTITY V21' : 'RETURN TO GATEWAY'}
                         </button>
                         {authMode === 'LOGIN' && (
                             <button type="button" onClick={() => setAuthMode('FORGOT')} className="text-[10px] font-black text-indigo-500/60 hover:text-indigo-400 tracking-[0.3em] uppercase">
-                                FORGOT ACCESS KEY? RECOVER NODE
+                                FORGOT KEY? RECOVER IDENTITY
                             </button>
                         )}
                     </div>
@@ -250,15 +251,18 @@ const App = () => {
               </div>
               <div className="text-left">
                   <h1 className="text-xl font-black text-white tracking-tighter italic leading-none">{APP_NAME}</h1>
-                  <p className="text-[8px] font-black text-indigo-500 uppercase tracking-[0.7em] mt-2">Ultra Mesh V20 Active</p>
+                  <p className="text-[8px] font-black text-indigo-500 uppercase tracking-[0.8em] mt-2">Ultra Mesh V21 Plus Active</p>
               </div>
            </div>
            <div className="flex items-center space-x-8">
               <div className="text-right hidden sm:block">
-                  <p className="text-sm font-black text-indigo-400 leading-none">{user.name}</p>
-                  <p className="text-[9px] font-black text-slate-600 mt-2 tracking-widest">{user.isVerified ? 'ULTRA CLEARANCE' : 'PENDING AUDIT'}</p>
+                  <div className="flex items-center gap-2">
+                     {user.isVerified && <Crown size={14} className="text-amber-500 animate-pulse" />}
+                     <p className="text-sm font-black text-indigo-400 leading-none">{user.name}</p>
+                  </div>
+                  <p className="text-[9px] font-black text-slate-600 mt-2 tracking-widest">{user.isVerified ? 'ULTRA EXECUTIVE PLUS' : 'PENDING AUDIT'}</p>
               </div>
-              <div className="w-16 h-16 rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+              <div className="w-16 h-16 rounded-2xl border border-white/10 overflow-hidden shadow-2xl ring-2 ring-indigo-500/20">
                 <img src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} className="w-full h-full object-cover" alt="Personnel" />
               </div>
            </div>
@@ -278,6 +282,15 @@ const App = () => {
         </main>
       </div>
       <Navigation currentView={view} setView={setView} isAdmin={activeUser === ADMIN_USERNAME} isVerified={user.isVerified} username={activeUser || ''} onLogout={handleLogout} />
+      <style>{`
+        .animate-spin-slow {
+          animation: spin 8s linear infinite;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }

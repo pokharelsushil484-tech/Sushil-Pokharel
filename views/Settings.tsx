@@ -5,9 +5,9 @@ import {
   ShieldCheck, LogOut, Edit3, 
   Mail, RefreshCw, Globe, 
   CheckCircle2, Fingerprint, AppWindow,
-  Download, Database, Trash2, Phone, Hash
+  Download, Database, Trash2, Phone, Hash, Crown, Award
 } from 'lucide-react';
-import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, APP_VERSION, APP_NAME } from '../constants';
+import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, APP_VERSION, APP_NAME, MAX_PROFESSIONAL_LEVEL, PROFESSIONAL_TIER } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
 
@@ -43,7 +43,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, onLogout, username, up
   const handleVerifyNode = async () => {
       const verifyToken = Math.random().toString(36).substring(2, 8).toUpperCase();
       await emailService.sendInstitutionalMail(user.email, verifyToken, 'VERIFY_REQUEST', username);
-      alert("IDENTITY AUDIT DISPATCHED TO: " + user.email);
+      alert("IDENTITY AUDIT DISPATCHED: V21 PROTOCOL");
   };
 
   const exportDataRegistry = () => {
@@ -60,13 +60,14 @@ export const Settings: React.FC<SettingsProps> = ({ user, onLogout, username, up
     <div className="pb-40 animate-fade-in w-full max-w-6xl mx-auto space-y-12 uppercase">
       {/* Executive Header */}
       <div className="bg-slate-900 rounded-[4rem] p-12 border border-white/5 relative overflow-hidden shadow-2xl">
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-transparent opacity-30"></div>
         <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
-            <div className="w-32 h-32 rounded-[3rem] bg-black p-1 border border-white/10 relative">
+            <div className="w-32 h-32 rounded-[3rem] bg-black p-1 border border-white/10 relative shadow-2xl">
                 <img src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} 
                      className="w-full h-full object-cover rounded-[2.8rem]" alt="Avatar" />
                 {user.isVerified && (
-                    <div className="absolute -top-1 -right-1 bg-emerald-500 text-black p-1.5 rounded-lg shadow-xl border-4 border-slate-900">
-                        <CheckCircle2 size={12} />
+                    <div className="absolute -top-1 -right-1 bg-amber-500 text-black p-1.5 rounded-lg shadow-xl border-4 border-slate-900">
+                        <Crown size={12} />
                     </div>
                 )}
             </div>
@@ -87,13 +88,13 @@ export const Settings: React.FC<SettingsProps> = ({ user, onLogout, username, up
                     <>
                         <h2 className="text-5xl font-black text-white italic uppercase tracking-tighter">{user.name}</h2>
                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                            <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.4em]">{isAdmin ? 'Master Architect' : 'Student Node Identity'}</span>
+                            <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.4em]">{isAdmin ? 'Lead Architect Plus' : `Student Node Level ${MAX_PROFESSIONAL_LEVEL}`}</span>
                             {user.isVerified ? (
-                                <span className="stark-badge text-emerald-500 border-emerald-500/20 py-1 flex items-center gap-2"><CheckCircle2 size={10}/> Institutional Verified</span>
+                                <span className="stark-badge text-emerald-500 border-emerald-500/20 py-1 flex items-center gap-2"><Crown size={10}/> {PROFESSIONAL_TIER}</span>
                             ) : (
                                 <div className="flex items-center gap-3">
-                                    <span className="stark-badge text-amber-500 border-amber-500/20 py-1">Awaiting Clearance</span>
-                                    <button onClick={handleVerifyNode} className="text-[10px] font-black text-red-500 uppercase border-b border-red-500 pb-0.5 hover:text-white transition-colors">Verify Node Node</button>
+                                    <span className="stark-badge text-amber-500 border-amber-500/20 py-1">Awaiting Supreme Clearance</span>
+                                    <button onClick={handleVerifyNode} className="text-[10px] font-black text-red-500 uppercase border-b border-red-500 pb-0.5 hover:text-white transition-colors">Apply V21 Audit</button>
                                 </div>
                             )}
                         </div>
@@ -109,16 +110,38 @@ export const Settings: React.FC<SettingsProps> = ({ user, onLogout, username, up
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Professional Protocol Matrix */}
+          <div className="master-box p-12 bg-slate-900/40 border-white/5 space-y-10 lg:col-span-2">
+              <div className="flex items-center justify-center gap-6">
+                <Award className="text-amber-500" size={32} />
+                <h3 className="text-[12px] font-black text-white uppercase tracking-[0.6em] italic">Professional Protocol Level</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="p-8 bg-black/60 rounded-3xl border border-white/5 text-center">
+                    <p className="text-[8px] font-black text-slate-600 uppercase mb-2">Current Tier</p>
+                    <p className="text-xl font-black text-indigo-400 tracking-widest">{PROFESSIONAL_TIER}</p>
+                  </div>
+                  <div className="p-8 bg-black/60 rounded-3xl border border-white/5 text-center">
+                    <p className="text-[8px] font-black text-slate-600 uppercase mb-2">Architecture Integrity</p>
+                    <p className="text-xl font-black text-emerald-500 tracking-widest">MAXIMUM</p>
+                  </div>
+                  <div className="p-8 bg-black/60 rounded-3xl border border-white/5 text-center">
+                    <p className="text-[8px] font-black text-slate-600 uppercase mb-2">Protocol Build</p>
+                    <p className="text-xl font-black text-white tracking-widest">V21.0.0</p>
+                  </div>
+              </div>
+          </div>
+
           {/* Identity Matrix */}
           <div className="master-box p-12 bg-slate-900/40 border-white/5 space-y-10">
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic">Identity Matrix</h3>
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic">Identity Registry</h3>
               <div className="space-y-6">
                   <div className="flex items-center justify-between p-8 bg-black/40 rounded-[2rem] border border-white/5">
                       <div className="flex items-center gap-6">
                           <Hash className="text-indigo-400" size={24} />
                           <div>
-                              <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Identity Key / Number</p>
-                              <p className="text-lg font-black text-white tracking-tight italic">{user.studentId || 'NOT ASSIGNED'}</p>
+                              <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Identity V21 Key</p>
+                              <p className="text-lg font-black text-white tracking-tight italic">{user.studentId || 'AUTHENTICATING'}</p>
                           </div>
                       </div>
                   </div>
@@ -126,35 +149,26 @@ export const Settings: React.FC<SettingsProps> = ({ user, onLogout, username, up
                       <div className="flex items-center gap-6">
                           <Mail className="text-indigo-400" size={24} />
                           <div>
-                              <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Institutional Email</p>
+                              <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Professional Mesh Email</p>
                               <p className="text-sm font-bold text-white tracking-tight uppercase">{user.email}</p>
-                          </div>
-                      </div>
-                  </div>
-                  <div className="flex items-center justify-between p-8 bg-black/40 rounded-[2rem] border border-white/5">
-                      <div className="flex items-center gap-6">
-                          <Phone className="text-indigo-400" size={24} />
-                          <div>
-                              <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Mobile Node</p>
-                              <p className="text-sm font-bold text-white tracking-tight">{user.phone}</p>
                           </div>
                       </div>
                   </div>
               </div>
           </div>
 
-          {/* Privacy Protocols */}
+          {/* Security Environment */}
           <div className="master-box p-12 bg-slate-900/40 border-white/5 space-y-10">
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic">Privacy Protocols</h3>
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic">Security Environment</h3>
               <div className="space-y-10">
                   <div className="flex items-center justify-between">
                       <div className="flex items-center gap-6">
                           <Fingerprint className="text-indigo-400" size={24} />
-                          <span className="text-xs font-black text-white uppercase italic tracking-widest">Two-Factor Security</span>
+                          <span className="text-xs font-black text-white uppercase italic tracking-widest">Biometric Ultra Sync</span>
                       </div>
                       <button 
                         onClick={() => updateUser({...user, twoFactorEnabled: !user.twoFactorEnabled})}
-                        className={`w-16 h-10 rounded-full transition-all relative flex items-center px-1 ${user.twoFactorEnabled ? 'bg-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'bg-slate-800'}`}
+                        className={`w-16 h-10 rounded-full transition-all relative flex items-center px-1 ${user.twoFactorEnabled ? 'bg-indigo-600 shadow-[0_0_20px_rgba(79,70,229,0.6)]' : 'bg-slate-800'}`}
                       >
                           <div className={`w-8 h-8 bg-white rounded-full transition-transform ${user.twoFactorEnabled ? 'translate-x-6' : 'translate-x-0'}`}></div>
                       </button>
@@ -162,42 +176,27 @@ export const Settings: React.FC<SettingsProps> = ({ user, onLogout, username, up
                   <div className="flex items-center justify-between">
                       <div className="flex items-center gap-6">
                           <AppWindow className="text-slate-500" size={24} />
-                          <span className="text-xs font-black text-white uppercase italic tracking-widest">Registry Stealth</span>
+                          <span className="text-xs font-black text-white uppercase italic tracking-widest">V21 Mesh Stealth</span>
                       </div>
                       <select 
                         value={user.privacyLevel} 
                         onChange={(e) => updateUser({...user, privacyLevel: e.target.value as any})}
-                        className="bg-black border border-white/10 rounded-xl px-6 py-3 text-[10px] font-black uppercase text-indigo-400"
+                        className="bg-black border border-white/10 rounded-xl px-6 py-3 text-[10px] font-black uppercase text-indigo-400 outline-none"
                       >
                           <option value="STANDARD">STANDARD</option>
                           <option value="MAXIMUM">MAXIMUM</option>
-                          <option value="STEALTH">STEALTH</option>
+                          <option value="STEALTH">STEALTH PLUS</option>
                       </select>
                   </div>
-              </div>
-          </div>
-
-          {/* Data Sovereignty */}
-          <div className="master-box p-12 bg-slate-900/40 border-white/5 space-y-10 lg:col-span-2">
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic text-center">Data Sovereignty</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <button onClick={exportDataRegistry} className="p-10 bg-white/5 rounded-[3rem] border border-white/5 hover:bg-white/10 transition-all group flex flex-col items-center gap-6">
-                      <Download size={32} className="text-indigo-400 group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] font-black text-white uppercase tracking-[0.4em]">Export Registry</span>
-                  </button>
-                  <button onClick={() => { if(confirm("CRITICAL: THIS WILL PURGE ALL LOCAL DATA. CONTINUE?")) { localStorage.clear(); window.location.reload(); } }} className="p-10 bg-red-500/5 rounded-[3rem] border border-red-500/10 hover:bg-red-500/10 transition-all group flex flex-col items-center gap-6">
-                      <Trash2 size={32} className="text-red-500 group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] font-black text-red-500 uppercase tracking-[0.4em]">Purge Node</span>
-                  </button>
               </div>
           </div>
       </div>
 
       <div className="flex flex-col items-center pt-24 pb-12 space-y-6 opacity-30">
-        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[1.2em]">{WATERMARK}</p>
+        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[1.5em]">{WATERMARK}</p>
         <div className="flex items-center gap-8 text-[9px] text-slate-600 font-black uppercase tracking-widest">
             <span>{COPYRIGHT_NOTICE}</span>
-            <div className="w-1 h-1 bg-slate-800 rounded-full"></div>
+            <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div>
             <span>{APP_VERSION}</span>
         </div>
       </div>
