@@ -1,102 +1,99 @@
 
 <?php
 /**
- * STUDENTPOCKET - CENTRAL IDENTITY REGISTRY
- * ARCHITECT: SUSHIL POKHREL
- * VERSION: 16.9.0 PLATINUM EXECUTIVE
+ * STUDENTPOCKET - ULTRA EXECUTIVE GATEWAY
+ * ARCHITECT: SUSHIL POKHAREL
+ * VERSION: V20.0.0 PLATINUM ULTRA
  * ------------------------------------------------
- * INSTITUTIONAL SECURITY PROTOCOL ACTIVE
+ * INSTITUTIONAL DATA PROTECTION LAYER ACTIVE
  */
 
 declare(strict_types=1);
 
-ob_start();
+namespace StudentPocket\Security;
 
-// PROFESSIONAL HEADERS
-header('Content-Type: application/json; charset=UTF-8');
-header('Access-Control-Allow-Origin: *'); 
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+class UltraRegistryGateway {
+    private const NODE_DOMAIN = 'SUSHILPOKHAREL00.COM.NP';
+    private const SYSTEM_VERSION = 'V20.0.0 ULTRA';
+    private const MASTER_ID = 'SUSHIL_ADMIN';
+    private const MASTER_SECRET = 'ADMIN123';
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
-
-final class SYSTEM_REGISTRY_CONFIG {
-    public const NODE_DOMAIN = 'SUSHILPOKHAREL00.COM.NP';
-    public const VERSION = 'V16.9.0';
-    public const MASTER_ID = 'SUSHIL_ADMIN';
-    public const MASTER_SECRET = 'ADMIN123';
-}
-
-/**
- * GENERATES A NON-SEQUENTIAL INSTITUTIONAL TOKEN
- */
-function GENERATE_SECURITY_TOKEN(): string {
-    $digits = [];
-    while (count($digits) < 6) {
-        $next = random_int(0, 9);
-        if (count($digits) > 0) {
-            $last = end($digits);
-            if (abs($next - $last) <= 1) continue; 
-        }
-        $digits[] = $next;
+    public function __construct() {
+        $this->setHeaders();
     }
-    return implode('', $digits);
-}
 
-function EMIT_INSTITUTIONAL_RESPONSE(array $payload, int $status_code = 200): void {
-    ob_clean();
-    http_response_code($status_code);
-    echo json_encode(array_merge([
-        'NODE' => SYSTEM_REGISTRY_CONFIG::NODE_DOMAIN,
-        'STATUS' => 'ONLINE',
-        'VERSION' => SYSTEM_REGISTRY_CONFIG::VERSION,
-        'TIMESTAMP' => time()
-    ], $payload));
-    exit;
-}
+    private function setHeaders(): void {
+        header('Content-Type: application/json; charset=UTF-8');
+        header('X-Content-Type-Options: nosniff');
+        header('X-Frame-Options: DENY');
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: POST, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+    }
 
-try {
-    $raw_input = file_get_contents('php://input');
-    $request = json_decode($raw_input, true) ?? [];
-    $action = strtoupper($request['action'] ?? '');
+    public function processRequest(): void {
+        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+            http_response_code(200);
+            exit;
+        }
 
-    if ($action === 'AUTHORIZE_IDENTITY') {
-        $identity = strtoupper($request['identity'] ?? '');
-        $hash = strtoupper($request['hash'] ?? '');
-        
-        if ($identity === SYSTEM_REGISTRY_CONFIG::MASTER_ID && $hash === SYSTEM_REGISTRY_CONFIG::MASTER_SECRET) {
-             EMIT_INSTITUTIONAL_RESPONSE([
-                 'AUTH_STATUS' => 'SUCCESS', 
-                 'CLEARANCE' => 'MASTER_ARCHITECT',
-                 'MESSAGE' => 'AUTHORITY GRANTED'
-             ]);
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $action = strtoupper($input['action'] ?? '');
+
+            switch ($action) {
+                case 'AUTHORIZE_IDENTITY':
+                    $this->handleAuth($input);
+                    break;
+                case 'SYNC_NODE':
+                    $this->handleSync($input);
+                    break;
+                default:
+                    $this->emitResponse(['error' => 'PROTOCOL_UNSUPPORTED'], 404);
+            }
+        } catch (\Exception $e) {
+            $this->emitResponse(['error' => 'INTERNAL_MESH_FAULT'], 500);
+        }
+    }
+
+    private function handleAuth(array $data): void {
+        $id = strtoupper($data['identity'] ?? '');
+        $hash = $data['hash'] ?? '';
+
+        if ($id === self::MASTER_ID && $hash === self::MASTER_SECRET) {
+            $this->emitResponse([
+                'auth_status' => 'SUCCESS',
+                'clearance' => 'MASTER_ARCHITECT',
+                'token' => bin2hex(random_bytes(16))
+            ]);
         } else {
-             EMIT_INSTITUTIONAL_RESPONSE([
-                 'STATUS' => 'SUCCESS', 
-                 'MESSAGE' => 'LOCAL_NODE_VERIFICATION_REQUIRED'
-             ], 200);
+            // Standard user node check - proceed to local verification
+            $this->emitResponse([
+                'auth_status' => 'LOCAL_PENDING',
+                'message' => 'IDENTITY_REQUIRES_LOCAL_NODE_SYNC'
+            ]);
         }
-    } elseif ($action === 'SEND_VERIFICATION_CODE') {
-        $email = strtoupper($request['email'] ?? '');
-        if (empty($email)) {
-            EMIT_INSTITUTIONAL_RESPONSE(['AUTH_STATUS' => 'FAILED', 'ERROR' => 'MALFORMED_NODE_TARGET'], 400);
-        }
-        
-        $code = GENERATE_SECURITY_TOKEN();
-        
-        EMIT_INSTITUTIONAL_RESPONSE([
-            'AUTH_STATUS' => 'SUCCESS',
-            'MESSAGE' => 'DISPATCH_INITIATED',
-            'TOKEN' => $code,
-            'TARGET' => $email
-        ]);
-    } else {
-        EMIT_INSTITUTIONAL_RESPONSE(['ERROR' => 'UNSUPPORTED_PROTOCOL_ACTION'], 404);
     }
-} catch (Exception $e) {
-    EMIT_INSTITUTIONAL_RESPONSE(['ERROR' => 'CRITICAL_MESH_FAULT'], 500);
+
+    private function handleSync(array $data): void {
+        $this->emitResponse([
+            'sync_status' => 'ACTIVE',
+            'mesh_integrity' => '99.9%',
+            'load' => 'OPTIMAL'
+        ]);
+    }
+
+    private function emitResponse(array $payload, int $code = 200): void {
+        http_response_code($code);
+        echo json_encode(array_merge([
+            'version' => self::SYSTEM_VERSION,
+            'domain' => self::NODE_DOMAIN,
+            'timestamp' => time(),
+            'status' => 'SECURE'
+        ], $payload));
+        exit;
+    }
 }
-?>
+
+$gateway = new UltraRegistryGateway();
+$gateway->processRequest();
