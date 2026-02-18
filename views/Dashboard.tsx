@@ -8,18 +8,20 @@ import {
   ShieldAlert,
   Zap,
   Terminal,
-  Cpu
+  Cpu,
+  LogOut
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
-import { APP_NAME, SYSTEM_DOMAIN, APP_VERSION } from '../constants';
+import { APP_NAME, SYSTEM_DOMAIN, APP_VERSION, PROFESSIONAL_TIER } from '../constants';
 
 interface DashboardProps {
   user: UserProfile;
   username: string;
   onNavigate: (view: View) => void;
+  onLogout: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate, onLogout }) => {
   const [quickNote, setQuickNote] = useState('');
   const [isCommitting, setIsCommitting] = useState(false);
   const [rawExpenses, setRawExpenses] = useState<Expense[]>([]);
@@ -47,46 +49,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
     ? (grades.reduce((acc, g) => acc + (g.score / g.total), 0) / grades.length) * 100 
     : 0;
 
-  const handleQuickCommit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!quickNote.trim()) return;
-    setIsCommitting(true);
-    
-    const isTerminated = await storageService.scanAndProtect(username, quickNote);
-    if (isTerminated) {
-        window.location.reload();
-        return;
-    }
-
-    const newNote: Note = {
-        id: Date.now().toString(),
-        title: "ULTRA_MESH_COMMIT: " + quickNote.substring(0, 18).toUpperCase(),
-        content: quickNote.toUpperCase(),
-        date: new Date().toISOString(),
-        tags: ["ULTRA_SYNC"],
-        status: 'PENDING',
-        author: 'user'
-    };
-
-    const stored = await storageService.getData(`architect_data_${username}`);
-    const notes = stored?.notes || [];
-    notes.unshift(newNote);
-    await storageService.setData(`architect_data_${username}`, { ...stored, notes });
-
-    setTimeout(() => {
-        setQuickNote('');
-        setIsCommitting(false);
-    }, 800);
-  };
-
   return (
     <div className="space-y-16 animate-platinum max-w-full pb-32 uppercase">
-      {/* Global Ultra Broadcast */}
+      {/* Global Quantum Broadcast */}
       {broadcast && (
         <div className="bg-indigo-600/20 border-y border-indigo-500/30 py-6 -mx-8 sm:-mx-16 overflow-hidden flex items-center shadow-[0_0_30px_rgba(79,70,229,0.1)]">
             <div className="flex items-center gap-4 px-10 bg-black z-10 border-r border-white/10 shrink-0">
                 <Cpu size={18} className="text-indigo-400 animate-pulse" />
-                <span className="text-[10px] font-black text-white uppercase tracking-[0.6em]">Ultra Link</span>
+                <span className="text-[10px] font-black text-white uppercase tracking-[0.6em]">Quantum Link</span>
             </div>
             <div className="whitespace-nowrap animate-marquee flex items-center">
                 <span className="text-xs font-bold text-slate-200 uppercase tracking-widest px-12">{broadcast}</span>
@@ -95,29 +65,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
         </div>
       )}
 
-      {/* Ultra Welcome Matrix */}
+      {/* Quantum Welcome Matrix */}
       <div className="flex flex-col xl:flex-row justify-between items-start gap-16">
           <div className="space-y-8 flex-1">
               <div className="flex items-center gap-6">
                 <div className="stark-badge inline-flex items-center space-x-4 bg-indigo-600/10 border-indigo-500/30 px-6 py-2">
                     <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
-                    <span className="text-indigo-400">ULTRA NODE: {username.toUpperCase()}</span>
+                    <span className="text-indigo-400">QUANTUM NODE: {username.toUpperCase()}</span>
                 </div>
                 <div className="px-5 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-[0.3em] flex items-center gap-3 text-slate-400">
                     <Activity size={14} className="text-indigo-500" />
-                    Sync Status: {user.integrityScore || 100}%
+                    Mesh Integrity: {user.integrityScore || 100}%
                 </div>
               </div>
               <h1 className="text-6xl sm:text-8xl font-black text-white tracking-tighter uppercase italic leading-[0.9]">
-                Platinum<br/><span className="text-indigo-600 not-italic">Ultra Hub</span>
+                Quantum<br/><span className="text-indigo-600 not-italic">Executive Hub</span>
               </h1>
               <div className="flex items-center gap-6 text-slate-600 font-black text-xs uppercase tracking-[0.5em]">
                   <Terminal size={18} className="text-indigo-500" />
-                  <span>V20 Executive Architecture Build</span>
+                  <span>V22 Platinum Architecture Build</span>
               </div>
           </div>
 
-          {/* Prestige Identity Card */}
+          {/* Identity Card with Logout Node */}
           <div className="w-full xl:w-[450px] group">
              <div className="relative bg-gradient-to-br from-slate-900 via-black to-black p-12 rounded-[4rem] border border-white/10 shadow-[0_50px_100px_-20px_rgba(0,0,0,1)] overflow-hidden transition-all duration-700 hover:scale-[1.02] hover:border-indigo-500/40">
                  <div className="absolute -top-20 -right-20 w-64 h-64 bg-indigo-600/20 rounded-full blur-[80px]"></div>
@@ -138,23 +108,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                         </div>
                     </div>
                     
-                    <div className="mt-12 w-full pt-10 border-t border-white/5 flex items-center justify-between">
+                    <div className="mt-12 w-full pt-10 border-t border-white/5 grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <span className="block text-[10px] font-black text-slate-600 uppercase tracking-widest">Protocol Level</span>
-                            <span className={`text-sm font-black uppercase tracking-[0.3em] ${user.isVerified ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                {user.isVerified ? 'Authorized Executive' : 'Audit Pending'}
+                            <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${user.isVerified ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                {user.isVerified ? PROFESSIONAL_TIER : 'Audit Pending'}
                             </span>
                         </div>
-                        {!user.isVerified && (
-                             <button onClick={() => onNavigate(View.VERIFICATION_FORM)} className="bg-white text-black px-6 py-3 rounded-2xl text-[10px] font-black tracking-widest shadow-xl hover:bg-slate-100 transition-all">Verify Node</button>
-                        )}
+                        <button 
+                            onClick={onLogout}
+                            className="flex items-center justify-center gap-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 py-3 rounded-2xl transition-all"
+                        >
+                            <LogOut size={16} />
+                            <span className="text-[9px] font-black tracking-widest">TERMINATE</span>
+                        </button>
                     </div>
                  </div>
              </div>
           </div>
       </div>
 
-      {/* Ultra Analytics Matrix */}
+      {/* Quantum Analytics Matrix */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="master-box p-10 bg-indigo-600 text-white border-none shadow-[0_30px_60px_rgba(79,70,229,0.2)] group transition-all hover:-translate-y-3">
               <div className="flex justify-between items-start mb-10">
@@ -199,7 +173,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
               </div>
               <ChevronRight size={28} className="text-slate-800 group-hover:text-white transition-colors" />
             </div>
-            <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter">Ultra Ledger</h3>
+            <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter">Quantum Ledger</h3>
             <p className="text-[10px] text-indigo-500 font-bold uppercase tracking-[0.6em] mt-3">Formal Registry Access</p>
         </div>
         <div onClick={() => onNavigate(View.CAMPUS_RADAR)} className="master-box p-14 group cursor-pointer hover:bg-white/[0.02] hover:border-white/20 transition-all border border-white/5 bg-black/40 shadow-2xl">
@@ -219,7 +193,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
               </div>
               <ChevronRight size={28} className="text-slate-800 group-hover:text-white transition-colors" />
             </div>
-            <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter">Ultra Vault</h3>
+            <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter">Quantum Vault</h3>
             <p className="text-[10px] text-indigo-500 font-bold uppercase tracking-[0.6em] mt-3">Asset Preservation Matrix</p>
         </div>
       </div>

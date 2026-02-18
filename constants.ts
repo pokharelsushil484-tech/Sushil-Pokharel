@@ -2,26 +2,25 @@
 import { UserProfile, View } from './types';
 
 export const APP_NAME = "STUDENTPOCKET – BY SUSHIL";
-export const APP_TAGLINE = "V21 PLATINUM ULTRA EXECUTIVE PLUS";
+export const APP_TAGLINE = "V22 PLATINUM QUANTUM EXECUTIVE";
 export const CREATOR_NAME = "SUSHIL POKHAREL";
-export const APP_VERSION = "V21.0.0 PLATINUM ULTRA PLUS (RELEASE OCT 2024)";
-export const BUILD_DATE = "OCTOBER 2024 - 2028 SUPREME CYCLE";
+export const APP_VERSION = "V22.0.0 PLATINUM QUANTUM (OCT 2024)";
+export const BUILD_DATE = "OCTOBER 2024 - 2029 QUANTUM CYCLE";
 
-export const COPYRIGHT_NOTICE = "© 2024 - 2028 STUDENTPOCKET. ALL RIGHTS RESERVED.";
-export const LEGAL_TERMS = "INSTITUTIONAL DATA PROTOCOL V21 ACTIVE. MAXIMUM PROFESSIONAL CLEARANCE ENABLED.";
-export const FOOTER_SIGNATURE = "SYSTEM ARCHITECTURE BY SUSHIL POKHAREL";
+export const COPYRIGHT_NOTICE = "© 2024 - 2029 STUDENTPOCKET. ALL RIGHTS RESERVED.";
+export const LEGAL_TERMS = "INSTITUTIONAL QUANTUM PROTOCOL V22 ACTIVE. MAXIMUM PROFESSIONAL CLEARANCE AUTHORIZED.";
+export const FOOTER_SIGNATURE = "QUANTUM SYSTEMS BY SUSHIL POKHAREL";
 
-export const WATERMARK = "STP-ULTRA-V21-SUSHIL-2024";
+export const WATERMARK = "STP-QUANTUM-V22-SUSHIL-2024";
 export const ADMIN_USERNAME = "SUSHIL_ADMIN";
 export const ADMIN_SECRET = "ADMIN123";
 export const ADMIN_EMAIL = "pokharelsushil242@gmail.com";
 export const ADMIN_PHONE = "9765226385";
 export const SYSTEM_DOMAIN = "SUSHILPOKHAREL00.COM.NP";
-export const SYSTEM_UPGRADE_TOKEN = "SP-ULTRA-V21.0.0-PLUS";
+export const SYSTEM_UPGRADE_TOKEN = "SP-QUANTUM-V22.0.0";
 
-// Maximum Professional Level Constant
 export const MAX_PROFESSIONAL_LEVEL = 100;
-export const PROFESSIONAL_TIER = "EXECUTIVE PLUS";
+export const PROFESSIONAL_TIER = "QUANTUM MASTER";
 
 export const PROHIBITED_TERMS = [
     "HATE", "KILL", "DIE", "ATTACK", "BOMB", "STUPID", "IDIOT", 
@@ -39,14 +38,14 @@ export const DEFAULT_USER: UserProfile = {
   twoFactorEnabled: true,
   privacyLevel: 'STANDARD',
   isSuspicious: false,
-  level: MAX_PROFESSIONAL_LEVEL, // Set to Maximum Professional Level
+  level: MAX_PROFESSIONAL_LEVEL,
   verificationStatus: 'NONE',
-  storageLimitGB: 500,
+  storageLimitGB: 1000,
   storageUsedBytes: 0,
   totpEnabled: false,
-  skills: ["ULTRA EXECUTIVE ENTRY"],
-  interests: ["QUANTUM DATA SYNC"],
-  authorizedDevices: ["MASTER ULTRA NODE V21"],
+  skills: ["QUANTUM EXECUTIVE ENTRY"],
+  interests: ["DEEP MESH SYNC"],
+  authorizedDevices: ["MASTER QUANTUM NODE"],
   violationCount: 0,
   maxViolations: 1,
   integrityScore: 100,
@@ -55,14 +54,14 @@ export const DEFAULT_USER: UserProfile = {
 
 export const FOOTER_LINKS = {
   internal: [
-    { label: 'ULTRA COMMAND', view: View.DASHBOARD },
-    { label: 'STRATEGIC GRID', view: View.VERIFY_LINK },
-    { label: 'DATA FORTRESS V21', view: View.FILE_HUB },
+    { label: 'QUANTUM CONTROL', view: View.DASHBOARD },
+    { label: 'SECURITY HUB', view: View.SECURITY_HEARTBEAT },
+    { label: 'ULTRA VAULT', view: View.FILE_HUB },
     { label: 'SECURE COMMMS', view: View.SUPPORT },
   ],
   academic: [
-    { label: 'QUANTUM RESEARCH', href: 'https://scholar.google.com' },
-    { label: 'ULTRA ARCHIVE', href: '#' },
+    { label: 'ELITE RESEARCH', href: 'https://scholar.google.com' },
+    { label: 'QUANTUM LIBRARY', href: '#' },
     { label: 'ACADEMIC REPOSITORY', href: '#' }
   ]
 };
