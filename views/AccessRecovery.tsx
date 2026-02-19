@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, ChangeRequest } from '../types';
-import { ShieldAlert, Send, ArrowLeft, KeyRound, Mail, Loader2, User, CheckCircle2, Lock } from 'lucide-react';
+import { ShieldAlert, Send, ArrowLeft, KeyRound, Mail, Loader2, User, CheckCircle2, Lock, ShieldCheck, RefreshCw } from 'lucide-react';
 import { SYSTEM_DOMAIN, ADMIN_EMAIL, ADMIN_USERNAME, ADMIN_SECRET, CREATOR_NAME, APP_NAME } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
@@ -13,17 +13,32 @@ interface AccessRecoveryProps {
 
 export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate, recoveryId: initialId }) => {
   const [username, setUsername] = useState('');
-  const [reason, setReason] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [recoveryId, setRecoveryId] = useState(initialId || '');
   
+  // Reset Form State
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [requestNode, setRequestNode] = useState<ChangeRequest | null>(null);
+
+  // Admin Verification State (for Reset Portal access)
   const [adminUser, setAdminUser] = useState('');
   const [adminPass, setAdminPass] = useState('');
-  const [isApproved, setIsApproved] = useState(false);
+  const [isAdminAuth, setIsAdminAuth] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [authError, setAuthError] = useState('');
 
-  const handleUserSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (initialId) {
+        const reqStr = localStorage.getItem('studentpocket_requests');
+        const requests: ChangeRequest[] = JSON.parse(reqStr || '[]');
+        const match = requests.find(r => r.linkId === initialId);
+        if (match) setRequestNode(match);
+    }
+  }, [initialId]);
+
+  const handleIntakeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
     const newId = Math.random().toString(36).substring(2, 9).toUpperCase();
@@ -35,7 +50,7 @@ export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate, reco
             userId: username.toUpperCase(),
             username: username.toUpperCase(),
             type: 'RECOVERY',
-            details: JSON.stringify({ reason: reason.toUpperCase() }),
+            details: JSON.stringify({ reason: 'ACCESS_KEY_RECOVERY_V23' }),
             status: 'PENDING',
             createdAt: Date.now(),
             linkId: newId 
@@ -50,96 +65,131 @@ export const AccessRecovery: React.FC<AccessRecoveryProps> = ({ onNavigate, reco
     }, 1200);
   };
 
-  const handleAdminAction = async (e: React.FormEvent, action: 'APPROVE' | 'REJECT') => {
-    e.preventDefault();
-    setAuthError('');
-    if (adminUser.toUpperCase() !== ADMIN_USERNAME || adminPass !== ADMIN_SECRET) {
-        setAuthError("AUTHORITY DENIED: INCORRECT MASTER SECRET");
-        return;
-    }
+  const handleResetSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (newPassword !== confirmPassword) {
+          setAuthError("PROTOCOL ERROR: PASSWORDS DO NOT MATCH");
+          return;
+      }
+      if (!requestNode) return;
 
-    setIsProcessing(true);
-    const reqStr = localStorage.getItem('studentpocket_requests');
-    const requests: ChangeRequest[] = JSON.parse(reqStr || '[]');
-    const targetReq = requests.find(r => r.linkId === recoveryId);
+      setIsProcessing(true);
+      const userStoreStr = localStorage.getItem('studentpocket_users');
+      const users = JSON.parse(userStoreStr || '{}');
+      
+      if (users[requestNode.username]) {
+          users[requestNode.username].password = newPassword.toUpperCase();
+          localStorage.setItem('studentpocket_users', JSON.stringify(users));
+          
+          // Update request status to APPROVED (Completed)
+          const reqStr = localStorage.getItem('studentpocket_requests');
+          const requests: ChangeRequest[] = JSON.parse(reqStr || '[]');
+          const updated = requests.map(r => r.id === requestNode.id ? { ...r, status: 'APPROVED' } : r);
+          localStorage.setItem('studentpocket_requests', JSON.stringify(updated));
 
-    if (targetReq) {
-        const dataKey = `architect_data_${targetReq.username.toUpperCase()}`;
-        const stored = await storageService.getData(dataKey);
-        if (stored && stored.user) {
-            if (action === 'APPROVE') {
-                stored.user.isBanned = false;
-                stored.user.integrityScore = 100;
-                stored.user.verificationStatus = 'VERIFIED';
-                await storageService.setData(dataKey, stored);
-                await emailService.sendInstitutionalMail(stored.user.email, "", 'RECOVERY_ACTIVATED', targetReq.username);
-                setIsApproved(true);
-            } else {
-                await emailService.sendInstitutionalMail(stored.user.email, "", 'RECOVERY_REJECTED', targetReq.username);
-                alert("NODE RECOVERY REJECTED. FORMAL REJECTION DISPATCHED.");
-                window.location.href = '/';
-            }
-        }
-    } else {
-        setAuthError("ERROR: RECOVERY NODE NOT FOUND IN REGISTRY");
-    }
-    setIsProcessing(false);
+          setResetSuccess(true);
+      } else {
+          setAuthError("IDENTITY ERROR: NODE NOT FOUND IN MASTER STORE");
+      }
+      setIsProcessing(false);
   };
 
-  if (initialId || (submitted && recoveryId)) {
+  const handleAdminAuth = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (adminUser.toUpperCase() === ADMIN_USERNAME && adminPass === ADMIN_SECRET) {
+        setIsAdminAuth(true);
+    } else {
+        setAuthError("AUTHORITY DENIED: MASTER LOGIC MISMATCH");
+    }
+  };
+
+  // State: Reset Link Portal
+  if (initialId) {
+      if (resetSuccess) {
+          return (
+            <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 uppercase">
+                <div className="master-box p-12 text-center bg-slate-900/60 border-emerald-500/20 shadow-2xl animate-scale-up">
+                    <CheckCircle2 size={64} className="text-emerald-500 mx-auto mb-8" />
+                    <h2 className="text-2xl font-black text-white italic">Identity Restored</h2>
+                    <p className="text-[10px] text-slate-500 tracking-widest mt-2 mb-10">Secret access key synchronized</p>
+                    <button onClick={() => window.location.href = '/'} className="btn-platinum py-5 text-[10px]">Access Gateway</button>
+                </div>
+            </div>
+          );
+      }
+
+      if (!isAdminAuth) {
+          return (
+              <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 uppercase">
+                  <div className="master-box p-12 text-center max-w-md w-full bg-[#050505] border-white/5 space-y-10">
+                      <Lock size={48} className="mx-auto text-indigo-500" />
+                      <h2 className="text-2xl font-black text-white italic">Audit Required</h2>
+                      <p className="text-[9px] text-slate-600 tracking-widest uppercase">Approving Authority Authorization</p>
+                      <form onSubmit={handleAdminAuth} className="space-y-4">
+                          <input type="text" value={adminUser} onChange={e => setAdminUser(e.target.value.toUpperCase())} className="w-full p-5 bg-black border border-white/5 rounded-2xl text-xs text-white uppercase font-black" placeholder="ADMIN IDENTITY" required />
+                          <input type="password" value={adminPass} onChange={e => setAdminPass(e.target.value)} className="w-full p-5 bg-black border border-white/5 rounded-2xl text-xs text-white uppercase font-black" placeholder="MASTER SECRET" required />
+                          {authError && <p className="text-[9px] text-red-500 font-bold">{authError}</p>}
+                          <button type="submit" className="w-full py-5 bg-white text-black rounded-2xl text-[10px] font-black tracking-widest">Verify Authority</button>
+                      </form>
+                  </div>
+              </div>
+          );
+      }
+
       return (
-        <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 animate-platinum uppercase">
-            <div className="max-w-md w-full master-box p-12 bg-[#050505] border-white/5 space-y-12">
-                {isApproved ? (
-                    <div className="text-center space-y-8 animate-scale-up">
-                        <div className="w-20 h-20 bg-emerald-500/10 rounded-[2rem] flex items-center justify-center mx-auto text-emerald-500 border border-emerald-500/20">
-                            <CheckCircle2 size={48} />
-                        </div>
-                        <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">Node Restored</h2>
-                        <p className="text-[10px] text-slate-500 font-bold tracking-[0.4em]">Identity Node Re-Synchronized</p>
-                        <button onClick={() => window.location.href = '/'} className="btn-platinum py-4 text-xs">Return to Terminal</button>
+        <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 uppercase">
+            <div className="master-box p-12 max-w-lg w-full bg-[#050505] border-indigo-500/30 space-y-12 shadow-2xl animate-platinum">
+                <div className="text-center">
+                    <RefreshCw size={48} className="mx-auto text-indigo-400 mb-6 animate-spin-slow" />
+                    <h2 className="text-3xl font-black text-white italic tracking-tighter">Restore Identity</h2>
+                    <p className="text-[9px] text-slate-500 tracking-widest mt-2 uppercase">Personnel Node: {requestNode?.username}</p>
+                </div>
+                <form onSubmit={handleResetSubmit} className="space-y-6">
+                    <div className="space-y-4">
+                        <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full p-6 bg-black border border-white/5 rounded-2xl text-white font-black text-xs tracking-[0.5em] text-center" placeholder="NEW SECRET KEY" required />
+                        <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full p-6 bg-black border border-white/5 rounded-2xl text-white font-black text-xs tracking-[0.5em] text-center" placeholder="RE-ENTER SECRET KEY" required />
                     </div>
-                ) : (
-                    <>
-                    <div className="text-center">
-                        <Lock className="mx-auto text-indigo-500 mb-6" size={40} />
-                        <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">Master Override</h2>
-                        <p className="text-[9px] text-slate-500 font-bold tracking-widest mt-2 uppercase">{CREATOR_NAME} Clearance Level Required</p>
-                    </div>
-                    <form className="space-y-6">
-                        <input type="text" value={adminUser} onChange={e => setAdminUser(e.target.value.toUpperCase())} className="w-full p-5 bg-black border border-white/5 rounded-2xl text-xs text-white font-black tracking-widest uppercase" placeholder="ADMIN IDENTITY" required />
-                        <input type="password" value={adminPass} onChange={e => setAdminPass(e.target.value)} className="w-full p-5 bg-black border border-white/5 rounded-2xl text-xs text-white font-black tracking-widest uppercase" placeholder="MASTER SECRET" required />
-                        {authError && <p className="text-[9px] font-black text-red-500 text-center uppercase tracking-widest">{authError}</p>}
-                        <div className="flex gap-4">
-                            <button onClick={(e) => handleAdminAction(e, 'REJECT')} disabled={isProcessing} className="flex-1 py-4 rounded-xl bg-white/5 text-red-500 font-black text-[9px] uppercase tracking-widest border border-red-500/20">Reject Node</button>
-                            <button onClick={(e) => handleAdminAction(e, 'APPROVE')} disabled={isProcessing} className="flex-1 py-4 rounded-xl bg-white text-black font-black text-[9px] uppercase tracking-widest shadow-xl">Activate Node</button>
-                        </div>
-                    </form>
-                    </>
-                )}
+                    {authError && <p className="text-[10px] text-red-500 font-black text-center tracking-widest">{authError}</p>}
+                    <button type="submit" disabled={isProcessing} className="w-full py-6 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:bg-indigo-700 transition-all">
+                        {isProcessing ? <Loader2 className="animate-spin" size={20} /> : 'Finalize Identity Re-Sync'}
+                    </button>
+                </form>
             </div>
         </div>
       );
   }
 
+  // State: Intake Submission
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 animate-platinum uppercase">
         <div className="max-w-lg w-full master-box p-12 bg-[#050505] border-white/5 space-y-12">
-            <div className="text-center">
-                <ShieldAlert size={48} className="text-red-500 mx-auto mb-6" />
-                <h1 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none">Node Recovery</h1>
-                <p className="text-[10px] text-slate-600 font-bold tracking-widest mt-2 uppercase">Institutional Appeal Registry</p>
-            </div>
-            <form onSubmit={handleUserSubmit} className="space-y-8">
-                <div className="space-y-4">
-                    <input type="text" value={username} onChange={e => setUsername(e.target.value.toUpperCase())} className="w-full p-5 bg-black border border-white/5 rounded-3xl text-white font-black text-xs uppercase tracking-widest" placeholder="INSERT RECOVERY IDENTITY" required />
-                    <textarea value={reason} onChange={e => setReason(e.target.value.toUpperCase())} rows={4} className="w-full p-6 bg-black border border-white/5 rounded-[2rem] text-white text-sm uppercase resize-none font-medium" placeholder="STATE REASON FOR ACCESS RESTORATION..." required />
+            {submitted ? (
+                <div className="text-center space-y-8 animate-scale-up">
+                    <CheckCircle2 size={64} className="text-indigo-500 mx-auto" />
+                    <h2 className="text-2xl font-black text-white italic">Appeal Logged</h2>
+                    <p className="text-sm text-slate-500 font-medium normal-case tracking-normal">Your recovery request has been submitted to the Master Architect. You will receive an official reset link upon authorization.</p>
+                    <button onClick={() => window.location.href = '/'} className="btn-platinum py-5 text-[10px]">Return to Terminal</button>
                 </div>
-                <button type="submit" disabled={isProcessing} className="w-full py-6 rounded-[2rem] bg-indigo-600 text-white font-black text-[10px] uppercase tracking-[0.4em] shadow-2xl">
-                    {isProcessing ? <Loader2 size={18} className="animate-spin" /> : 'Dispatch Appeal Node'}
-                </button>
-            </form>
-            <button onClick={() => window.location.href = '/'} className="w-full text-[9px] font-black text-slate-700 uppercase tracking-widest text-center hover:text-white transition-colors">Abort Recovery Process</button>
+            ) : (
+                <>
+                <div className="text-center">
+                    <ShieldAlert size={48} className="text-red-500 mx-auto mb-6" />
+                    <h1 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none">Identity Recovery</h1>
+                    <p className="text-[10px] text-slate-600 font-bold tracking-widest mt-2 uppercase">Institutional Restoration Registry</p>
+                </div>
+                <form onSubmit={handleIntakeSubmit} className="space-y-8">
+                    <div className="space-y-2">
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-4">Personnel Identity Node</label>
+                        <input type="text" value={username} onChange={e => setUsername(e.target.value.toUpperCase())} className="w-full p-5 bg-black border border-white/5 rounded-3xl text-white font-black text-xs uppercase tracking-widest" placeholder="ENTER IDENTITY KEY" required />
+                    </div>
+                    {authError && <p className="text-[9px] text-red-500 font-black text-center">{authError}</p>}
+                    <button type="submit" disabled={isProcessing} className="w-full py-6 rounded-[2rem] bg-indigo-600 text-white font-black text-[10px] uppercase tracking-[0.4em] shadow-2xl">
+                        {isProcessing ? <Loader2 size={18} className="animate-spin" /> : 'Request Restoration Token'}
+                    </button>
+                </form>
+                <button onClick={() => window.location.href = '/'} className="w-full text-[9px] font-black text-slate-700 uppercase tracking-widest text-center hover:text-white transition-colors">Abort Recovery Process</button>
+                </>
+            )}
         </div>
     </div>
   );

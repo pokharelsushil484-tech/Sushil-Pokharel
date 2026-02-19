@@ -16,7 +16,7 @@ import { SplashScreen } from '../components/SplashScreen';
 import { LinkVerification } from './LinkVerification';
 import { AccessRecovery } from './AccessRecovery';
 import { VerificationForm } from './VerificationForm';
-import { View, UserProfile, VaultDocument, ChatMessage } from '../types';
+import { View, UserProfile, VaultDocument, ChatMessage, ChangeRequest } from '../types';
 import { DEFAULT_USER, APP_NAME, ADMIN_USERNAME, ADMIN_SECRET, APP_VERSION } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
@@ -55,7 +55,7 @@ const App = () => {
         setUser({
             ...DEFAULT_USER,
             name: "SUSHIL POKHAREL",
-            studentId: "SUSHIL-QUANTUM-MAX",
+            studentId: "SUSHIL-ELITE-MAX",
             isVerified: true,
             verificationStatus: 'VERIFIED'
         });
@@ -88,11 +88,30 @@ const App = () => {
     const inputPass = password.trim().toUpperCase();
 
     if (authMode === 'FORGOT') {
+        if (!inputId) {
+            setAuthError("IDENTITY KEY REQUIRED FOR RECOVERY INTAKE");
+            return;
+        }
         setIsLoading(true);
-        const token = Math.random().toString(36).substring(2, 9).toUpperCase();
-        await emailService.sendInstitutionalMail(email.toUpperCase(), token, 'PASSWORD_RECOVERY_LINK', inputId);
+        const newId = Math.random().toString(36).substring(2, 9).toUpperCase();
+        
+        // Create formal recovery request in registry
+        const existingReqs = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
+        const request: ChangeRequest = {
+            id: 'RESET-REQ-' + Date.now(),
+            userId: inputId,
+            username: inputId,
+            type: 'RECOVERY',
+            details: JSON.stringify({ reason: 'PASSWORD_LOST_V23' }),
+            status: 'PENDING',
+            createdAt: Date.now(),
+            linkId: newId 
+        };
+        existingReqs.push(request);
+        localStorage.setItem('studentpocket_requests', JSON.stringify(existingReqs));
+        
         setIsLoading(false);
-        alert("QUANTUM RECOVERY DISPATCHED.");
+        alert(`RECOVERY NODE ${newId} DISPATCHED. AWAITING MASTER VERDICT.`);
         setAuthMode('LOGIN');
         return;
     }
@@ -114,7 +133,7 @@ const App = () => {
                 await emailService.sendInstitutionalMail(localUsers[inputId].email, mockCode, 'OTP_REQUEST', inputId);
                 setAuthStep('OTP');
             } else {
-                setAuthError('ACCESS DENIED: QUANTUM IDENTITY ERROR');
+                setAuthError('ACCESS DENIED: ELITE CREDENTIAL ERROR');
             }
         } else {
             const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -133,7 +152,7 @@ const App = () => {
                   ...DEFAULT_USER,
                   name: fullName.toUpperCase(),
                   email: email.toUpperCase(),
-                  studentId: `SP-QUANTUM-${Math.floor(100000 + Math.random() * 900000)}`
+                  studentId: `SP-ELITE-${Math.floor(100000 + Math.random() * 900000)}`
                 };
                 await storageService.setData(`architect_data_${inputId}`, { user: profile });
                 setRegistrationSuccess(true);
@@ -161,8 +180,9 @@ const App = () => {
           <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-center uppercase">
               <ShieldAlert size={80} className="text-red-500 mb-8 animate-pulse shadow-[0_0_80px_rgba(239,68,68,0.3)]" />
               <h1 className="text-4xl font-black text-white italic mb-4 tracking-tighter">Gateway Closed</h1>
-              <p className="text-slate-500 mb-10 font-bold tracking-[0.5em]">Security Infraction: V22 Quantum Purge</p>
-              <button onClick={handleLogout} className="btn-platinum py-5 px-12 text-xs">Reset Terminal</button>
+              <p className="text-slate-500 mb-10 font-bold tracking-[0.5em]">Security Infraction: V23 Elite Purge</p>
+              <button onClick={() => setAuthMode('FORGOT')} className="btn-platinum py-5 px-12 text-xs">Request Identity Recovery</button>
+              <button onClick={handleLogout} className="text-slate-700 text-[9px] mt-8 tracking-widest font-black uppercase">Return to Terminal</button>
           </div>
       );
   }
@@ -174,7 +194,6 @@ const App = () => {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-6 uppercase relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-950/60 via-black to-black pointer-events-none opacity-50"></div>
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 pointer-events-none"></div>
         
         <div className="w-full max-w-lg relative z-10">
           <div className="master-box p-12 space-y-12 bg-black/80 border-white/5 shadow-[0_0_250px_rgba(0,0,0,1)] animate-platinum border-t-indigo-500/20">
@@ -182,7 +201,7 @@ const App = () => {
                 <div className="text-center space-y-10 animate-scale-up">
                     <CheckCircle2 size={80} className="text-emerald-500 mx-auto" />
                     <h2 className="text-3xl font-black text-white italic tracking-tighter">Node Registered</h2>
-                    <button onClick={() => window.location.reload()} className="btn-platinum py-5">Enter Quantum Hub</button>
+                    <button onClick={() => window.location.reload()} className="btn-platinum py-5">Enter Elite Hub</button>
                 </div>
               ) : (
                 <form onSubmit={handleAuth} className="space-y-12">
@@ -191,7 +210,7 @@ const App = () => {
                             <Cpu size={40} className="animate-spin-slow" />
                         </div>
                         <h1 className="text-3xl font-black text-white italic tracking-tighter leading-none">{APP_NAME}</h1>
-                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.6em]">Quantum Executive V22</p>
+                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.6em]">Elite Executive V23</p>
                     </div>
 
                     <div className="space-y-6">
@@ -204,7 +223,7 @@ const App = () => {
                             {authMode !== 'FORGOT' && (
                                 <input type="password" value={password} onChange={e => setPassword(e.target.value.toUpperCase())} className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 px-10 text-white text-xs font-black tracking-widest uppercase outline-none focus:border-indigo-500" placeholder="SECRET ACCESS CODE" required />
                             )}
-                            {(authMode === 'SIGNUP' || authMode === 'FORGOT') && (
+                            {(authMode === 'SIGNUP') && (
                                 <input type="email" value={email} onChange={e => setEmail(e.target.value.toUpperCase())} className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 px-10 text-white text-xs font-black tracking-widest uppercase outline-none focus:border-indigo-500" placeholder="INSTITUTIONAL EMAIL" required />
                             )}
                             </>
@@ -219,12 +238,12 @@ const App = () => {
                     {authError && <p className="text-red-500 text-[10px] font-black text-center tracking-widest uppercase animate-shake">{authError}</p>}
                     
                     <button type="submit" className="btn-platinum py-6 shadow-[0_30px_80px_rgba(255,255,255,0.08)] transition-all transform hover:scale-[1.02]">
-                        {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'ACCESS GATEWAY' : authMode === 'FORGOT' ? 'RECOVER PROTOCOL' : 'INITIALIZE NODE') : 'SYNC SECURITY'}
+                        {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'ACCESS GATEWAY' : authMode === 'FORGOT' ? 'RECOVER IDENTITY' : 'INITIALIZE NODE') : 'SYNC SECURITY'}
                     </button>
 
                     <div className="flex flex-col gap-6 text-center">
                         <button type="button" onClick={() => { setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setAuthError(''); }} className="text-[10px] font-black text-slate-600 hover:text-white transition-colors tracking-[0.3em] uppercase">
-                            {authMode === 'LOGIN' ? 'CREATE NEW IDENTITY V22' : 'RETURN TO GATEWAY'}
+                            {authMode === 'LOGIN' ? 'CREATE NEW IDENTITY V23' : 'RETURN TO GATEWAY'}
                         </button>
                         {authMode === 'LOGIN' && (
                             <button type="button" onClick={() => setAuthMode('FORGOT')} className="text-[10px] font-black text-indigo-500/60 hover:text-indigo-400 tracking-[0.3em] uppercase">
@@ -251,7 +270,7 @@ const App = () => {
               </div>
               <div className="text-left">
                   <h1 className="text-xl font-black text-white tracking-tighter italic leading-none">{APP_NAME}</h1>
-                  <p className="text-[8px] font-black text-indigo-500 uppercase tracking-[0.8em] mt-2">Quantum Mesh V22 Active</p>
+                  <p className="text-[8px] font-black text-indigo-500 uppercase tracking-[0.8em] mt-2">Elite Mesh V23 Active</p>
               </div>
            </div>
            <div className="flex items-center space-x-8">
@@ -260,7 +279,7 @@ const App = () => {
                      {user.isVerified && <Crown size={14} className="text-amber-500 animate-pulse" />}
                      <p className="text-sm font-black text-indigo-400 leading-none">{user.name}</p>
                   </div>
-                  <p className="text-[9px] font-black text-slate-600 mt-2 tracking-widest">{user.isVerified ? 'QUANTUM EXECUTIVE' : 'PENDING AUDIT'}</p>
+                  <p className="text-[9px] font-black text-slate-600 mt-2 tracking-widest">{user.isVerified ? 'QUANTUM ELITE' : 'PENDING AUDIT'}</p>
               </div>
               <button 
                 onClick={handleLogout}
@@ -286,18 +305,10 @@ const App = () => {
             {view === View.ATTENDANCE_TRACKER && <AttendanceTracker username={activeUser || ''} />}
             {view === View.CAMPUS_RADAR && <CampusRadar username={activeUser || ''} />}
             {view === View.VERIFICATION_FORM && <VerificationForm user={user} username={activeUser || ''} updateUser={setUser} onNavigate={setView} />}
+            {view === View.ACCESS_RECOVERY && <AccessRecovery onNavigate={setView} />}
         </main>
       </div>
       <Navigation currentView={view} setView={setView} isAdmin={activeUser === ADMIN_USERNAME} isVerified={user.isVerified} username={activeUser || ''} onLogout={handleLogout} />
-      <style>{`
-        .animate-spin-slow {
-          animation: spin 8s linear infinite;
-        }
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }

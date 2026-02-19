@@ -2,25 +2,25 @@
 import { UserProfile, View } from './types';
 
 export const APP_NAME = "STUDENTPOCKET – BY SUSHIL";
-export const APP_TAGLINE = "V22 PLATINUM QUANTUM EXECUTIVE";
+export const APP_TAGLINE = "V23 PLATINUM QUANTUM ELITE";
 export const CREATOR_NAME = "SUSHIL POKHAREL";
-export const APP_VERSION = "V22.0.0 PLATINUM QUANTUM (OCT 2024)";
-export const BUILD_DATE = "OCTOBER 2024 - 2029 QUANTUM CYCLE";
+export const APP_VERSION = "V23.0.0 PLATINUM ELITE (OCT 2024)";
+export const BUILD_DATE = "OCTOBER 2024 - 2030 ELITE CYCLE";
 
-export const COPYRIGHT_NOTICE = "© 2024 - 2029 STUDENTPOCKET. ALL RIGHTS RESERVED.";
-export const LEGAL_TERMS = "INSTITUTIONAL QUANTUM PROTOCOL V22 ACTIVE. MAXIMUM PROFESSIONAL CLEARANCE AUTHORIZED.";
-export const FOOTER_SIGNATURE = "QUANTUM SYSTEMS BY SUSHIL POKHAREL";
+export const COPYRIGHT_NOTICE = "© 2024 - 2030 STUDENTPOCKET. ALL RIGHTS RESERVED.";
+export const LEGAL_TERMS = "INSTITUTIONAL QUANTUM PROTOCOL V23 ACTIVE. DEEP IDENTITY RESTORATION AUTHORIZED.";
+export const FOOTER_SIGNATURE = "ELITE ARCHITECTURE BY SUSHIL POKHAREL";
 
-export const WATERMARK = "STP-QUANTUM-V22-SUSHIL-2024";
+export const WATERMARK = "STP-ELITE-V23-SUSHIL-2024";
 export const ADMIN_USERNAME = "SUSHIL_ADMIN";
 export const ADMIN_SECRET = "ADMIN123";
 export const ADMIN_EMAIL = "pokharelsushil242@gmail.com";
 export const ADMIN_PHONE = "9765226385";
 export const SYSTEM_DOMAIN = "SUSHILPOKHAREL00.COM.NP";
-export const SYSTEM_UPGRADE_TOKEN = "SP-QUANTUM-V22.0.0";
+export const SYSTEM_UPGRADE_TOKEN = "SP-ELITE-V23.0.0";
 
 export const MAX_PROFESSIONAL_LEVEL = 100;
-export const PROFESSIONAL_TIER = "QUANTUM MASTER";
+export const PROFESSIONAL_TIER = "QUANTUM ELITE";
 
 export const PROHIBITED_TERMS = [
     "HATE", "KILL", "DIE", "ATTACK", "BOMB", "STUPID", "IDIOT", 
@@ -40,12 +40,12 @@ export const DEFAULT_USER: UserProfile = {
   isSuspicious: false,
   level: MAX_PROFESSIONAL_LEVEL,
   verificationStatus: 'NONE',
-  storageLimitGB: 1000,
+  storageLimitGB: 1500,
   storageUsedBytes: 0,
   totpEnabled: false,
-  skills: ["QUANTUM EXECUTIVE ENTRY"],
-  interests: ["DEEP MESH SYNC"],
-  authorizedDevices: ["MASTER QUANTUM NODE"],
+  skills: ["QUANTUM ELITE ENTRY"],
+  interests: ["NEURAL DATA SYNC"],
+  authorizedDevices: ["MASTER ELITE NODE"],
   violationCount: 0,
   maxViolations: 1,
   integrityScore: 100,
@@ -54,10 +54,10 @@ export const DEFAULT_USER: UserProfile = {
 
 export const FOOTER_LINKS = {
   internal: [
-    { label: 'QUANTUM CONTROL', view: View.DASHBOARD },
+    { label: 'ELITE CONTROL', view: View.DASHBOARD },
     { label: 'SECURITY HUB', view: View.SECURITY_HEARTBEAT },
     { label: 'ULTRA VAULT', view: View.FILE_HUB },
-    { label: 'SECURE COMMMS', view: View.SUPPORT },
+    { label: 'RECOVERY PORTAL', view: View.ACCESS_RECOVERY },
   ],
   academic: [
     { label: 'ELITE RESEARCH', href: 'https://scholar.google.com' },
