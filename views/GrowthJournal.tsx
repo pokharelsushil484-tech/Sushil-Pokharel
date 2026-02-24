@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { JournalEntry } from '../types';
-import { BookOpen, Plus, Sparkles, Trash2, Calendar, Save, X, Smile, Target, CloudRain } from 'lucide-react';
+import { BookOpen, Plus, Sparkles, Trash2, Calendar, Save, X, Smile, Target, CloudRain, PenTool } from 'lucide-react';
 import { storageService } from '../services/storageService';
 
 export const GrowthJournal: React.FC<{ username: string }> = ({ username }) => {
@@ -38,87 +39,131 @@ export const GrowthJournal: React.FC<{ username: string }> = ({ username }) => {
     setEntries(updated);
   };
 
-  return (
-    <div className="space-y-10 animate-platinum pb-24 max-w-4xl mx-auto">
-      <div className="flex justify-between items-center bg-white/5 p-10 rounded-[3rem] border border-white/10">
-        <div>
-            <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Growth Journal</h1>
-            <p className="text-[10px] text-indigo-500 font-bold uppercase tracking-[0.5em] mt-2">Mindset & Soft Skills Mesh</p>
-        </div>
-        <button onClick={() => setShowAdd(true)} className="w-16 h-16 bg-white text-black rounded-2xl flex items-center justify-center hover:scale-105 transition-transform shadow-2xl">
-            <Plus size={32} />
-        </button>
-      </div>
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
 
-      <div className="grid grid-cols-1 gap-6">
+  const item = {
+    hidden: { y: 20, opacity: 0 },
+    show: { y: 0, opacity: 1 }
+  };
+
+  return (
+    <motion.div 
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="space-y-10 pb-24 max-w-4xl mx-auto"
+    >
+      <motion.div variants={item} className="flex justify-between items-center glass-card p-10">
+        <div>
+            <h1 className="text-3xl font-display italic tracking-tight text-white">Growth Journal</h1>
+            <p className="text-[10px] text-indigo-400 font-semibold uppercase tracking-widest mt-2">Mindset & Soft Skills Mesh</p>
+        </div>
+        <button 
+            onClick={() => setShowAdd(true)} 
+            className="btn-premium w-14 h-14 rounded-2xl flex items-center justify-center"
+        >
+            <Plus size={24} />
+        </button>
+      </motion.div>
+
+      <motion.div variants={item} className="grid grid-cols-1 gap-6">
         {entries.length === 0 && (
-            <div className="py-40 text-center opacity-20 flex flex-col items-center">
-                <BookOpen size={64} className="mb-6" />
-                <p className="text-xs font-black uppercase tracking-[0.5em]">No reflections logged today</p>
+            <div className="py-40 text-center opacity-30 flex flex-col items-center">
+                <BookOpen size={64} className="mb-6 text-white" />
+                <p className="text-xs font-semibold uppercase tracking-widest text-white/60">No reflections logged today</p>
             </div>
         )}
-        {entries.map(entry => (
-            <div key={entry.id} className="master-box p-10 bg-slate-900/40 hover:border-indigo-500/30 transition-all group">
-                <div className="flex justify-between items-start mb-6">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-white/5 rounded-xl text-indigo-400">
-                            {entry.mood === 'SMILE' ? <Smile size={20}/> : entry.mood === 'RAIN' ? <CloudRain size={20}/> : <Target size={20}/>}
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-black text-white uppercase italic tracking-tight">{entry.title || 'DAILY REFLECTION'}</h3>
-                            <div className="flex items-center gap-2 text-slate-500 text-[9px] font-bold uppercase tracking-widest mt-1">
-                                <Calendar size={10} />
-                                {new Date(entry.timestamp).toLocaleDateString()}
+        <AnimatePresence>
+            {entries.map(entry => (
+                <motion.div 
+                    key={entry.id} 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="glass-card p-10 hover:border-indigo-500/30 transition-all group"
+                >
+                    <div className="flex justify-between items-start mb-6">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-white/5 rounded-xl text-indigo-400 border border-white/5">
+                                {entry.mood === 'SMILE' ? <Smile size={20}/> : entry.mood === 'RAIN' ? <CloudRain size={20}/> : <Target size={20}/>}
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-display italic text-white tracking-tight">{entry.title || 'Daily Reflection'}</h3>
+                                <div className="flex items-center gap-2 text-white/40 text-[10px] font-semibold uppercase tracking-widest mt-1">
+                                    <Calendar size={12} />
+                                    {new Date(entry.timestamp).toLocaleDateString()}
+                                </div>
                             </div>
                         </div>
+                        <button onClick={() => deleteEntry(entry.id)} className="text-white/20 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all p-2">
+                            <Trash2 size={18} />
+                        </button>
                     </div>
-                    <button onClick={() => deleteEntry(entry.id)} className="text-slate-700 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                        <Trash2 size={18} />
-                    </button>
-                </div>
-                <p className="text-sm text-slate-300 leading-relaxed font-medium whitespace-pre-wrap">{entry.content}</p>
-            </div>
-        ))}
-      </div>
+                    <p className="text-sm text-white/80 leading-relaxed font-medium whitespace-pre-wrap">{entry.content}</p>
+                </motion.div>
+            ))}
+        </AnimatePresence>
+      </motion.div>
 
-      {showAdd && (
-        <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-2xl flex items-center justify-center p-6 animate-fade-in">
-            <div className="master-box w-full max-w-2xl bg-slate-900 p-12 space-y-8">
-                <div className="flex justify-between items-center">
-                    <h2 className="text-2xl font-black text-white uppercase italic">Capture Moment</h2>
-                    <button onClick={() => setShowAdd(false)} className="text-slate-500 hover:text-white"><X size={32}/></button>
-                </div>
-                <div className="space-y-6">
-                    <input 
-                        type="text" 
-                        value={newEntry.title}
-                        onChange={e => setNewEntry({...newEntry, title: e.target.value.toUpperCase()})}
-                        className="w-full bg-black border border-white/10 p-5 rounded-2xl text-white font-bold text-xs uppercase outline-none focus:border-indigo-500"
-                        placeholder="ENTRY TITLE IDENTIFIER..."
-                    />
-                    <div className="flex gap-4">
-                        {(['SMILE', 'RAIN', 'TARGET']).map(m => (
-                            <button 
-                                key={m} 
-                                onClick={() => setNewEntry({...newEntry, mood: m})}
-                                className={`flex-1 py-4 rounded-xl border transition-all ${newEntry.mood === m ? 'bg-white text-black border-white shadow-xl' : 'bg-white/5 text-slate-500 border-white/5'}`}
-                            >
-                                <span className="text-[10px] font-black uppercase tracking-widest">{m}</span>
-                            </button>
-                        ))}
+      <AnimatePresence>
+        {showAdd && (
+            <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-xl flex items-center justify-center p-6"
+            >
+                <motion.div 
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.95, opacity: 0 }}
+                    className="glass-card w-full max-w-2xl p-12 space-y-8 shadow-2xl"
+                >
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-2xl font-display italic text-white">Capture Moment</h2>
+                        <button onClick={() => setShowAdd(false)} className="text-white/40 hover:text-white transition-colors"><X size={24}/></button>
                     </div>
-                    <textarea 
-                        rows={6}
-                        value={newEntry.content}
-                        onChange={e => setNewEntry({...newEntry, content: e.target.value})}
-                        className="w-full bg-black border border-white/10 p-5 rounded-2xl text-white font-medium text-sm outline-none focus:border-indigo-500 resize-none"
-                        placeholder="Write your academic or personal thoughts here..."
-                    />
-                    <button onClick={saveEntry} className="w-full py-6 rounded-2xl bg-indigo-600 text-white font-black text-xs uppercase tracking-[0.4em] shadow-2xl">Commit Entry to Mesh</button>
-                </div>
-            </div>
-        </div>
-      )}
-    </div>
+                    <div className="space-y-6">
+                        <div className="relative">
+                            <PenTool className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                            <input 
+                                type="text" 
+                                value={newEntry.title}
+                                onChange={e => setNewEntry({...newEntry, title: e.target.value})}
+                                className="w-full bg-white/5 border border-white/10 p-5 pl-12 rounded-2xl text-white font-medium text-sm outline-none focus:border-white/20 placeholder:text-white/20 transition-all"
+                                placeholder="Entry title identifier..."
+                            />
+                        </div>
+                        <div className="flex gap-4">
+                            {(['SMILE', 'RAIN', 'TARGET']).map(m => (
+                                <button 
+                                    key={m} 
+                                    onClick={() => setNewEntry({...newEntry, mood: m})}
+                                    className={`flex-1 py-4 rounded-xl border transition-all ${newEntry.mood === m ? 'bg-white text-black border-white shadow-xl' : 'bg-white/5 text-white/40 border-white/5 hover:bg-white/10'}`}
+                                >
+                                    <span className="text-[10px] font-bold uppercase tracking-widest">{m}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <textarea 
+                            rows={6}
+                            value={newEntry.content}
+                            onChange={e => setNewEntry({...newEntry, content: e.target.value})}
+                            className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-white font-medium text-sm outline-none focus:border-white/20 resize-none placeholder:text-white/20 transition-all"
+                            placeholder="Write your academic or personal thoughts here..."
+                        />
+                        <button onClick={saveEntry} className="btn-premium w-full py-4 text-xs">Commit Entry to Mesh</button>
+                    </div>
+                </motion.div>
+            </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };

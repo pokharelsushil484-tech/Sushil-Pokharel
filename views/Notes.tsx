@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Note } from '../types';
-import { Plus, Search, ChevronRight, Wand2, X, Lock, Trash2, RefreshCcw, Archive, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { Plus, Search, ChevronRight, Wand2, X, Lock, Trash2, RefreshCcw, Archive, CheckCircle2, Clock, AlertTriangle, FileText } from 'lucide-react';
 import { summarizeNote } from '../services/geminiService';
 
 interface NotesProps {
@@ -109,162 +110,202 @@ export const Notes: React.FC<NotesProps> = ({ notes, setNotes, isAdmin }) => {
   const activeNotes = notes.filter(n => !n.deletedAt);
   const deletedNotes = notes.filter(n => n.deletedAt);
 
-  if (isEditing) {
-    return (
-      <div className="fixed inset-0 bg-white z-50 flex flex-col animate-slide-up">
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
-          <button onClick={closeEditor} className="text-gray-500 font-medium hover:text-gray-800 p-2 -ml-2">
-             Cancel
-          </button>
-          <div className="flex space-x-3 items-center">
-             <button 
-              onClick={handleAISummary} 
-              disabled={loadingAI}
-              className={`flex items-center text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-full text-sm font-bold transition-colors ${loadingAI ? 'opacity-50' : ''}`}
-            >
-              <Wand2 size={16} className="mr-2" />
-              {loadingAI ? 'Summarizing...' : 'AI Summarize'}
-            </button>
-            <button 
-                onClick={handleSave} 
-                className="bg-indigo-600 text-white px-6 py-2 rounded-full font-bold text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all"
-            >
-                Save Note
-            </button>
-          </div>
-        </div>
-        <div className="p-6 flex-1 flex flex-col max-w-4xl mx-auto w-full">
-          <input 
-            type="text" 
-            placeholder="Title" 
-            className="text-4xl font-bold outline-none mb-6 w-full bg-transparent placeholder-gray-300 text-gray-800"
-            value={currentTitle}
-            onChange={e => setCurrentTitle(e.target.value)}
-            autoFocus
-          />
-          <textarea 
-            placeholder="Start typing your notes here..." 
-            className="flex-1 w-full outline-none resize-none text-lg text-gray-600 leading-relaxed bg-transparent placeholder-gray-300"
-            value={currentContent}
-            onChange={e => setCurrentContent(e.target.value)}
-          />
-        </div>
-      </div>
-    );
-  }
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const item = {
+    hidden: { y: 20, opacity: 0 },
+    show: { y: 0, opacity: 1 }
+  };
 
   return (
-    <div className="pb-24 animate-fade-in">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-             {showTrash ? 'Trash Bin' : 'My Notes'}
-           </h1>
-           {showTrash ? (
-               <p className="text-xs text-gray-400 mt-1">Only Admin can manage trash.</p>
-           ) : (
-               <p className="text-xs text-gray-400 mt-1">{activeNotes.length} notes found</p>
-           )}
+    <motion.div 
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="pb-24 relative min-h-[600px] flex flex-col space-y-8"
+    >
+      <motion.div variants={item} className="flex justify-between items-center glass-card p-8">
+        <div className="flex items-center gap-4">
+           <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10">
+             <FileText className="text-white" size={24} />
+           </div>
+           <div>
+             <h1 className="text-xl font-display italic tracking-tight flex items-center gap-2">
+               {showTrash ? 'Trash Bin' : 'My Notes'}
+             </h1>
+             <p className="text-[10px] text-white/40 font-semibold uppercase tracking-widest">
+               {showTrash ? 'Only Admin can manage trash' : `${activeNotes.length} notes found`}
+             </p>
+           </div>
         </div>
         
         <div className="flex space-x-2">
             {isAdmin && (
                 <button 
                     onClick={() => setShowTrash(!showTrash)}
-                    className={`p-3 rounded-2xl transition-all ${showTrash ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                    className={`p-3 rounded-xl transition-all border border-white/10 ${showTrash ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-white/5 text-white/40 hover:text-white hover:bg-white/10'}`}
                     title={showTrash ? "Back to Notes" : "View Trash"}
                 >
-                    {showTrash ? <Archive size={24} /> : <Trash2 size={24} />}
+                    {showTrash ? <Archive size={20} /> : <Trash2 size={20} />}
                 </button>
             )}
             
             {!showTrash && (
-            <button onClick={() => openEditor()} className="bg-indigo-600 text-white w-12 h-12 rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center">
-                <Plus size={28} />
+            <button onClick={() => openEditor()} className="btn-premium w-12 h-12 rounded-xl flex items-center justify-center">
+                <Plus size={24} />
             </button>
             )}
         </div>
-      </div>
+      </motion.div>
 
       {!showTrash && (
-        <div className="relative mb-8">
-            <Search className="absolute left-4 top-4 text-indigo-300" size={24} />
+        <motion.div variants={item} className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={20} />
             <input 
             type="text" 
             placeholder="Search your notes..." 
-            className="w-full bg-white py-4 pl-12 pr-4 rounded-2xl shadow-sm border-2 border-transparent focus:border-indigo-200 outline-none text-lg text-gray-700 placeholder-gray-300 transition-all"
+            className="w-full bg-white/5 py-4 pl-12 pr-4 rounded-xl border border-white/10 focus:border-white/20 outline-none text-sm text-white placeholder:text-white/20 transition-all backdrop-blur-sm"
             />
-        </div>
+        </motion.div>
       )}
 
-      <div className="grid grid-cols-2 gap-5">
+      <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {(showTrash ? deletedNotes : activeNotes).length === 0 && (
-             <div className="col-span-2 text-center py-16 text-gray-400 bg-white rounded-3xl border-2 border-dashed border-gray-200">
-                <p className="text-lg font-medium">{showTrash ? "Trash is empty." : "No notes created yet."}</p>
+             <div className="col-span-2 text-center py-24 opacity-30 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-3xl">
+                <FileText size={48} className="mb-4 text-white" />
+                <p className="text-sm font-semibold uppercase tracking-widest text-white/60">{showTrash ? "Trash is empty." : "No notes created yet."}</p>
             </div>
         )}
 
-        {(showTrash ? deletedNotes : activeNotes).map(note => (
-          <div 
-            key={note.id} 
-            onClick={() => !showTrash && openEditor(note)}
-            className={`p-5 rounded-2xl shadow-sm border flex flex-col h-56 relative group transition-all ${
-                showTrash 
-                ? 'bg-red-50 border-red-100 cursor-default opacity-80' 
-                : 'bg-yellow-50 border-yellow-100 cursor-pointer hover:shadow-lg hover:-translate-y-1'
-            }`}
-          >
-            <div className="flex justify-between items-start mb-2">
-                 <h3 className="font-bold text-gray-800 text-lg line-clamp-1 leading-tight flex-1">{note.title}</h3>
-                 {!showTrash && (
-                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center ${
-                         note.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                     }`}>
-                         {note.status === 'COMPLETED' ? <CheckCircle2 size={10} className="mr-1"/> : <Clock size={10} className="mr-1"/>}
-                         {note.status === 'COMPLETED' ? 'Done' : 'Pending'}
-                     </span>
-                 )}
-            </div>
+        <AnimatePresence>
+          {(showTrash ? deletedNotes : activeNotes).map(note => (
+            <motion.div 
+              key={note.id} 
+              layout
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={() => !showTrash && openEditor(note)}
+              className={`p-6 rounded-2xl border flex flex-col h-64 relative group transition-all glass-card ${
+                  showTrash 
+                  ? 'border-red-500/20 bg-red-500/5 cursor-default' 
+                  : 'hover:border-white/20 cursor-pointer hover:-translate-y-1'
+              }`}
+            >
+              <div className="flex justify-between items-start mb-4">
+                   <h3 className="font-display italic text-xl text-white line-clamp-1 leading-tight flex-1 pr-4">{note.title}</h3>
+                   {!showTrash && (
+                       <span className={`text-[9px] font-semibold px-2 py-1 rounded-md flex items-center border ${
+                           note.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                       }`}>
+                           {note.status === 'COMPLETED' ? <CheckCircle2 size={10} className="mr-1.5"/> : <Clock size={10} className="mr-1.5"/>}
+                           {note.status === 'COMPLETED' ? 'Done' : 'Pending'}
+                       </span>
+                   )}
+              </div>
 
-            <p className="text-sm text-gray-600 line-clamp-4 flex-1 font-medium opacity-80">{note.content}</p>
-            
-            <div className="mt-3 pt-3 border-t border-gray-200/20 flex justify-between items-center">
-                 <span className="text-xs text-gray-500 font-bold opacity-60">
-                     {showTrash ? `Deleted: ${new Date(note.deletedAt!).toLocaleDateString()}` : new Date(note.date).toLocaleDateString()}
-                 </span>
-                 
-                 {showTrash ? (
-                     isAdmin && (
-                        <div className="flex space-x-2">
-                             <button onClick={() => restoreNote(note.id)} className="p-1.5 bg-white text-green-600 rounded-lg shadow-sm hover:bg-green-50" title="Restore"><RefreshCcw size={14} /></button>
-                             <button onClick={() => permanentDeleteNote(note.id)} className="p-1.5 bg-white text-red-600 rounded-lg shadow-sm hover:bg-red-50" title="Delete Forever"><Trash2 size={14} /></button>
-                         </div>
-                     )
-                 ) : (
-                    <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                         {/* Allow deletion for admin or note owner */}
-                         {isAdmin || note.author === 'user' ? (
-                            <button 
-                                onClick={(e) => softDeleteNote(note.id, e)} 
-                                className="bg-white p-1.5 rounded-full shadow-sm text-red-400 hover:text-red-600"
-                                title="Delete Note"
-                            >
-                                <Trash2 size={14} />
-                            </button>
-                         ) : (
-                             <div title="Cannot delete system notes" className="bg-gray-100 p-1 rounded-full">
-                                <Lock size={12} className="text-gray-400" />
-                             </div>
-                         )}
-                         <div className="bg-white p-1.5 rounded-full shadow-sm">
-                            <ChevronRight size={14} className="text-yellow-600" />
-                        </div>
-                    </div>
-                 )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+              <p className="text-sm text-white/60 line-clamp-5 flex-1 font-medium leading-relaxed">{note.content}</p>
+              
+              <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
+                   <span className="text-[10px] text-white/20 font-semibold uppercase tracking-widest">
+                       {showTrash ? `Deleted: ${new Date(note.deletedAt!).toLocaleDateString()}` : new Date(note.date).toLocaleDateString()}
+                   </span>
+                   
+                   {showTrash ? (
+                       isAdmin && (
+                          <div className="flex space-x-2">
+                               <button onClick={() => restoreNote(note.id)} className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors" title="Restore"><RefreshCcw size={14} /></button>
+                               <button onClick={() => permanentDeleteNote(note.id)} className="p-2 bg-red-500/10 text-red-400 rounded-lg border border-red-500/20 hover:bg-red-500/20 transition-colors" title="Delete Forever"><Trash2 size={14} /></button>
+                           </div>
+                       )
+                   ) : (
+                      <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                           {/* Allow deletion for admin or note owner */}
+                           {isAdmin || note.author === 'user' ? (
+                              <button 
+                                  onClick={(e) => softDeleteNote(note.id, e)} 
+                                  className="bg-white/5 p-2 rounded-lg border border-white/10 text-white/40 hover:text-red-400 hover:bg-white/10 transition-colors"
+                                  title="Delete Note"
+                              >
+                                  <Trash2 size={14} />
+                              </button>
+                           ) : (
+                               <div title="Cannot delete system notes" className="bg-white/5 p-2 rounded-lg border border-white/10">
+                                  <Lock size={12} className="text-white/20" />
+                               </div>
+                           )}
+                           <div className="bg-white p-2 rounded-lg shadow-lg">
+                              <ChevronRight size={14} className="text-black" />
+                          </div>
+                      </div>
+                   )}
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </motion.div>
+
+      <AnimatePresence>
+        {isEditing && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4 backdrop-blur-xl"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="glass-card w-full max-w-4xl h-[80vh] flex flex-col shadow-2xl overflow-hidden"
+            >
+              <div className="flex justify-between items-center px-8 py-6 border-b border-white/5 bg-white/5">
+                <button onClick={closeEditor} className="text-white/40 font-medium hover:text-white transition-colors flex items-center gap-2 text-sm">
+                   <X size={16} /> Cancel
+                </button>
+                <div className="flex space-x-3 items-center">
+                   <button 
+                    onClick={handleAISummary} 
+                    disabled={loadingAI}
+                    className={`flex items-center text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-widest transition-colors ${loadingAI ? 'opacity-50' : ''}`}
+                  >
+                    <Wand2 size={14} className="mr-2" />
+                    {loadingAI ? 'Summarizing...' : 'AI Summarize'}
+                  </button>
+                  <button 
+                      onClick={handleSave} 
+                      className="btn-premium px-6 py-2 text-xs"
+                  >
+                      Save Note
+                  </button>
+                </div>
+              </div>
+              <div className="p-8 flex-1 flex flex-col overflow-y-auto">
+                <input 
+                  type="text" 
+                  placeholder="Title" 
+                  className="text-4xl font-display italic outline-none mb-8 w-full bg-transparent placeholder:text-white/10 text-white"
+                  value={currentTitle}
+                  onChange={e => setCurrentTitle(e.target.value)}
+                  autoFocus
+                />
+                <textarea 
+                  placeholder="Start typing your notes here..." 
+                  className="flex-1 w-full outline-none resize-none text-lg text-white/80 leading-relaxed bg-transparent placeholder:text-white/10 font-medium"
+                  value={currentContent}
+                  onChange={e => setCurrentContent(e.target.value)}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };

@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { AttendanceRecord } from '../types';
-import { CheckCircle2, XCircle, Plus, BookOpen, Trash2, TrendingUp, Info } from 'lucide-react';
+import { CheckCircle2, XCircle, Plus, BookOpen, Trash2, TrendingUp, Info, GraduationCap } from 'lucide-react';
 import { storageService } from '../services/storageService';
 
 export const AttendanceTracker: React.FC<{ username: string }> = ({ username }) => {
@@ -21,7 +22,7 @@ export const AttendanceTracker: React.FC<{ username: string }> = ({ username }) 
     if (!newSubject.trim()) return;
     const newRecord: AttendanceRecord = {
       id: Date.now().toString(),
-      subject: newSubject.toUpperCase(),
+      subject: newSubject,
       present: 0,
       absent: 0,
       lastUpdated: Date.now()
@@ -46,82 +47,108 @@ export const AttendanceTracker: React.FC<{ username: string }> = ({ username }) 
   };
 
   const deleteSubject = async (id: string) => {
-    if (!confirm("DELETE ATTENDANCE NODE?")) return;
+    if (!confirm("Delete attendance record?")) return;
     const updated = records.filter(r => r.id !== id);
     const stored = await storageService.getData(`architect_data_${username}`);
     await storageService.setData(`architect_data_${username}`, { ...stored, attendance: updated });
     setRecords(updated);
   };
 
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const item = {
+    hidden: { y: 20, opacity: 0 },
+    show: { y: 0, opacity: 1 }
+  };
+
   return (
-    <div className="space-y-10 animate-platinum pb-24">
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
+    <motion.div 
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="space-y-10 pb-24"
+    >
+      <motion.div variants={item} className="flex flex-col sm:flex-row justify-between items-center gap-6 glass-card p-8">
         <div>
-          <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Presence Hub</h1>
-          <p className="text-[10px] text-indigo-500 font-bold uppercase tracking-[0.5em] mt-1">Institutional Attendance Sync</p>
+          <h1 className="text-3xl font-display italic tracking-tight text-white">Presence Hub</h1>
+          <p className="text-[10px] text-indigo-400 font-semibold uppercase tracking-widest mt-1">Institutional Attendance Sync</p>
         </div>
-        <div className="flex bg-white/5 p-2 rounded-2xl border border-white/10 w-full sm:w-auto">
+        <div className="flex bg-white/5 p-2 rounded-xl border border-white/10 w-full sm:w-auto">
           <input 
             type="text" 
             value={newSubject}
             onChange={e => setNewSubject(e.target.value)}
-            className="bg-transparent px-6 py-3 text-[10px] font-black text-white uppercase outline-none placeholder:text-slate-700 min-w-0"
-            placeholder="ADD SUBJECT NODE..."
+            className="bg-transparent px-4 py-2 text-xs font-medium text-white outline-none placeholder:text-white/20 min-w-0 flex-1"
+            placeholder="Add subject node..."
           />
-          <button onClick={addSubject} className="p-3 bg-white text-black rounded-xl hover:bg-indigo-50 transition-all">
-            <Plus size={20} />
+          <button onClick={addSubject} className="p-2 bg-white text-black rounded-lg hover:bg-white/90 transition-all">
+            <Plus size={16} />
           </button>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {records.map(record => {
-          const total = record.present + record.absent;
-          const percent = total > 0 ? (record.present / total) * 100 : 0;
-          return (
-            <div key={record.id} className="master-box p-8 bg-black/40 border-white/5 group hover:border-indigo-500/30 transition-all">
-              <div className="flex justify-between items-start mb-10">
-                <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-indigo-500 border border-white/5">
-                  <BookOpen size={24} />
+      <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <AnimatePresence>
+          {records.map(record => {
+            const total = record.present + record.absent;
+            const percent = total > 0 ? (record.present / total) * 100 : 0;
+            return (
+              <motion.div 
+                key={record.id} 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="glass-card p-8 group hover:border-indigo-500/30 transition-all"
+              >
+                <div className="flex justify-between items-start mb-8">
+                  <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-indigo-400 border border-white/5">
+                    <GraduationCap size={20} />
+                  </div>
+                  <div className="text-right">
+                    <span className="block text-[8px] font-semibold text-white/40 uppercase tracking-widest">Score Rate</span>
+                    <span className={`text-3xl font-display italic ${percent < 75 ? 'text-red-400' : 'text-white'}`}>{percent.toFixed(0)}%</span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest">Score Rate</span>
-                  <span className={`text-4xl font-black italic ${percent < 75 ? 'text-red-500' : 'text-white'}`}>{percent.toFixed(0)}%</span>
+
+                <h3 className="text-lg font-display italic text-white tracking-tight mb-8 truncate">{record.subject}</h3>
+
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                  <button 
+                    onClick={() => updateAttendance(record.id, 'present')}
+                    className="flex flex-col items-center p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20 hover:bg-emerald-500/20 transition-all group/btn"
+                  >
+                    <span className="text-[8px] font-bold text-emerald-400 uppercase mb-2">Present</span>
+                    <span className="text-xl font-display italic text-white group-hover/btn:scale-110 transition-transform">{record.present}</span>
+                  </button>
+                  <button 
+                    onClick={() => updateAttendance(record.id, 'absent')}
+                    className="flex flex-col items-center p-4 bg-red-500/10 rounded-xl border border-red-500/20 hover:bg-red-500/20 transition-all group/btn"
+                  >
+                    <span className="text-[8px] font-bold text-red-400 uppercase mb-2">Absent</span>
+                    <span className="text-xl font-display italic text-white group-hover/btn:scale-110 transition-transform">{record.absent}</span>
+                  </button>
                 </div>
-              </div>
 
-              <h3 className="text-xl font-black text-white uppercase tracking-tight mb-8 truncate italic">{record.subject}</h3>
-
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <button 
-                  onClick={() => updateAttendance(record.id, 'present')}
-                  className="flex flex-col items-center p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
-                >
-                  <span className="text-[8px] font-black text-emerald-500 uppercase mb-2">Present</span>
-                  <span className="text-2xl font-black text-white">{record.present}</span>
-                </button>
-                <button 
-                  onClick={() => updateAttendance(record.id, 'absent')}
-                  className="flex flex-col items-center p-4 bg-red-500/10 rounded-2xl border border-red-500/20 hover:bg-red-500/20 transition-all"
-                >
-                  <span className="text-[8px] font-black text-red-500 uppercase mb-2">Absent</span>
-                  <span className="text-2xl font-black text-white">{record.absent}</span>
-                </button>
-              </div>
-
-              <div className="flex justify-between items-center pt-6 border-t border-white/5">
-                <div className="flex items-center gap-2 text-slate-600">
-                  <TrendingUp size={12} />
-                  <span className="text-[9px] font-bold uppercase">{total} SESSIONS LOGGED</span>
+                <div className="flex justify-between items-center pt-6 border-t border-white/5">
+                  <div className="flex items-center gap-2 text-white/40">
+                    <TrendingUp size={12} />
+                    <span className="text-[9px] font-semibold uppercase tracking-widest">{total} Sessions Logged</span>
+                  </div>
+                  <button onClick={() => deleteSubject(record.id)} className="text-white/20 hover:text-red-400 transition-colors p-2">
+                    <Trash2 size={16} />
+                  </button>
                 </div>
-                <button onClick={() => deleteSubject(record.id)} className="text-slate-800 hover:text-red-500 transition-colors">
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </motion.div>
+    </motion.div>
   );
 };
