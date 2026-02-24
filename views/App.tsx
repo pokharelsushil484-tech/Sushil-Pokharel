@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Navigation } from '../components/Navigation';
 import { Dashboard } from './Dashboard';
 import { Settings } from './Settings';
@@ -17,10 +18,23 @@ import { LinkVerification } from './LinkVerification';
 import { AccessRecovery } from './AccessRecovery';
 import { VerificationForm } from './VerificationForm';
 import { View, UserProfile, VaultDocument, ChatMessage, ChangeRequest } from '../types';
-import { DEFAULT_USER, APP_NAME, ADMIN_USERNAME, ADMIN_SECRET, APP_VERSION } from '../constants';
+import { DEFAULT_USER, APP_NAME, ADMIN_USERNAME, ADMIN_SECRET } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
-import { ShieldCheck, CheckCircle2, XCircle, KeyRound, Mail, ArrowRight, User, Lock, Terminal, ShieldAlert, Cpu, Crown, LogOut } from 'lucide-react';
+import { 
+  ShieldCheck, 
+  CheckCircle2, 
+  Mail, 
+  User, 
+  Lock, 
+  ShieldAlert, 
+  Cpu, 
+  Crown, 
+  LogOut,
+  ChevronRight,
+  Fingerprint,
+  Sparkles
+} from 'lucide-react';
 
 const App = () => {
   const [view, setView] = useState<View>(View.DASHBOARD);
@@ -54,8 +68,8 @@ const App = () => {
     if (username.toUpperCase() === ADMIN_USERNAME) {
         setUser({
             ...DEFAULT_USER,
-            name: "SUSHIL POKHAREL",
-            studentId: "SUSHIL-ELITE-MAX",
+            name: "Sushil Pokharel",
+            studentId: "ELITE-001",
             isVerified: true,
             verificationStatus: 'VERIFIED'
         });
@@ -85,24 +99,23 @@ const App = () => {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     const inputId = userId.trim().toUpperCase();
-    const inputPass = password.trim().toUpperCase();
+    const inputPass = password.trim();
 
     if (authMode === 'FORGOT') {
         if (!inputId) {
-            setAuthError("IDENTITY KEY REQUIRED FOR RECOVERY INTAKE");
+            setAuthError("Identity key required for recovery");
             return;
         }
         setIsLoading(true);
         const newId = Math.random().toString(36).substring(2, 9).toUpperCase();
         
-        // Create formal recovery request in registry
         const existingReqs = JSON.parse(localStorage.getItem('studentpocket_requests') || '[]');
         const request: ChangeRequest = {
             id: 'RESET-REQ-' + Date.now(),
             userId: inputId,
             username: inputId,
             type: 'RECOVERY',
-            details: JSON.stringify({ reason: 'PASSWORD_LOST_V23' }),
+            details: JSON.stringify({ reason: 'PASSWORD_LOST_V2.0' }),
             status: 'PENDING',
             createdAt: Date.now(),
             linkId: newId 
@@ -111,7 +124,7 @@ const App = () => {
         localStorage.setItem('studentpocket_requests', JSON.stringify(existingReqs));
         
         setIsLoading(false);
-        alert(`RECOVERY NODE ${newId} DISPATCHED. AWAITING MASTER VERDICT.`);
+        alert(`Recovery request ${newId} dispatched to master node.`);
         setAuthMode('LOGIN');
         return;
     }
@@ -127,13 +140,13 @@ const App = () => {
         
         const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
         if (authMode === 'LOGIN') {
-            if (localUsers[inputId] && localUsers[inputId].password.toUpperCase() === inputPass) {
+            if (localUsers[inputId] && localUsers[inputId].password === inputPass) {
                 const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
                 setServerSideOtp(mockCode);
                 await emailService.sendInstitutionalMail(localUsers[inputId].email, mockCode, 'OTP_REQUEST', inputId);
                 setAuthStep('OTP');
             } else {
-                setAuthError('ACCESS DENIED: ELITE CREDENTIAL ERROR');
+                setAuthError('Access Denied: Invalid credentials');
             }
         } else {
             const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -145,13 +158,13 @@ const App = () => {
         if (otpCode === serverSideOtp || otpCode === '123456') {
             if (authMode === 'SIGNUP') {
                 const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
-                localUsers[inputId] = { password: inputPass, email: email.toUpperCase(), name: fullName.toUpperCase() };
+                localUsers[inputId] = { password: inputPass, email: email, name: fullName };
                 localStorage.setItem('studentpocket_users', JSON.stringify(localUsers));
                 
                 const profile: UserProfile = {
                   ...DEFAULT_USER,
-                  name: fullName.toUpperCase(),
-                  email: email.toUpperCase(),
+                  name: fullName,
+                  email: email,
                   studentId: `SP-ELITE-${Math.floor(100000 + Math.random() * 900000)}`
                 };
                 await storageService.setData(`architect_data_${inputId}`, { user: profile });
@@ -163,7 +176,7 @@ const App = () => {
                 setIsLoggedIn(true);
             }
         } else {
-            setAuthError('INVALID SECURITY TOKEN');
+            setAuthError('Invalid security token');
         }
     }
   };
@@ -177,12 +190,18 @@ const App = () => {
   
   if (user.isBanned) {
       return (
-          <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-center uppercase">
-              <ShieldAlert size={80} className="text-red-500 mb-8 animate-pulse shadow-[0_0_80px_rgba(239,68,68,0.3)]" />
-              <h1 className="text-4xl font-black text-white italic mb-4 tracking-tighter">Gateway Closed</h1>
-              <p className="text-slate-500 mb-10 font-bold tracking-[0.5em]">Security Infraction: V23 Elite Purge</p>
-              <button onClick={() => setAuthMode('FORGOT')} className="btn-platinum py-5 px-12 text-xs">Request Identity Recovery</button>
-              <button onClick={handleLogout} className="text-slate-700 text-[9px] mt-8 tracking-widest font-black uppercase">Return to Terminal</button>
+          <div className="min-h-screen bg-obsidian flex flex-col items-center justify-center p-8 text-center">
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="glass-card p-12 max-w-md"
+              >
+                  <ShieldAlert size={80} className="text-red-500 mx-auto mb-8 animate-pulse" />
+                  <h1 className="text-4xl font-display mb-4 italic">Gateway Closed</h1>
+                  <p className="text-white/60 mb-10 font-medium">Security Infraction: Account Suspended</p>
+                  <button onClick={() => setAuthMode('FORGOT')} className="btn-premium w-full mb-4">Request Recovery</button>
+                  <button onClick={handleLogout} className="text-white/40 text-xs hover:text-white transition-colors">Return to Terminal</button>
+              </motion.div>
           </div>
       );
   }
@@ -192,123 +211,218 @@ const App = () => {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6 uppercase relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-950/60 via-black to-black pointer-events-none opacity-50"></div>
+      <div className="min-h-screen bg-obsidian flex items-center justify-center p-6 relative overflow-hidden">
+        {/* Background Atmosphere */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-white/5 rounded-full blur-[120px]"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-white/5 rounded-full blur-[120px]"></div>
+        </div>
         
-        <div className="w-full max-w-lg relative z-10">
-          <div className="master-box p-12 space-y-12 bg-black/80 border-white/5 shadow-[0_0_250px_rgba(0,0,0,1)] animate-platinum border-t-indigo-500/20">
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="w-full max-w-md relative z-10"
+        >
+          <div className="glass-card p-10 space-y-10 shadow-2xl">
               {registrationSuccess ? (
-                <div className="text-center space-y-10 animate-scale-up">
-                    <CheckCircle2 size={80} className="text-emerald-500 mx-auto" />
-                    <h2 className="text-3xl font-black text-white italic tracking-tighter">Node Registered</h2>
-                    <button onClick={() => window.location.reload()} className="btn-platinum py-5">Enter Elite Hub</button>
+                <div className="text-center space-y-8 py-6">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", damping: 12 }}
+                    >
+                      <CheckCircle2 size={80} className="text-white mx-auto" />
+                    </motion.div>
+                    <h2 className="text-3xl font-display italic">Node Registered</h2>
+                    <p className="text-white/60">Your elite identity has been established.</p>
+                    <button onClick={() => window.location.reload()} className="btn-premium w-full">Enter Elite Hub</button>
                 </div>
               ) : (
-                <form onSubmit={handleAuth} className="space-y-12">
-                    <div className="text-center space-y-4">
-                        <div className="w-20 h-20 bg-white rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 text-black shadow-[0_20px_60px_rgba(255,255,255,0.15)]">
-                            <Cpu size={40} className="animate-spin-slow" />
-                        </div>
-                        <h1 className="text-3xl font-black text-white italic tracking-tighter leading-none">{APP_NAME}</h1>
-                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.6em]">Elite Executive V23</p>
+                <form onSubmit={handleAuth} className="space-y-8">
+                    <div className="text-center space-y-2">
+                        <motion.div 
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                          className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 text-black shadow-xl"
+                        >
+                            <Cpu size={32} />
+                        </motion.div>
+                        <h1 className="text-3xl font-display italic tracking-tight">{APP_NAME}</h1>
+                        <p className="text-xs font-medium text-white/40 tracking-[0.3em] uppercase">Elite Executive Suite</p>
                     </div>
 
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         {authStep === 'CREDENTIALS' ? (
-                            <>
-                            {authMode === 'SIGNUP' && (
-                                <input type="text" value={fullName} onChange={e => setFullName(e.target.value.toUpperCase())} className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 px-10 text-white text-xs font-black tracking-widest uppercase outline-none focus:border-indigo-500" placeholder="LEGAL SIGNATURE" required />
-                            )}
-                            <input type="text" value={userId} onChange={e => setUserId(e.target.value.toUpperCase())} className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 px-10 text-white text-xs font-black tracking-widest uppercase outline-none focus:border-indigo-500" placeholder="IDENTITY KEY / NUMBER" required />
-                            {authMode !== 'FORGOT' && (
-                                <input type="password" value={password} onChange={e => setPassword(e.target.value.toUpperCase())} className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 px-10 text-white text-xs font-black tracking-widest uppercase outline-none focus:border-indigo-500" placeholder="SECRET ACCESS CODE" required />
-                            )}
-                            {(authMode === 'SIGNUP') && (
-                                <input type="email" value={email} onChange={e => setEmail(e.target.value.toUpperCase())} className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 px-10 text-white text-xs font-black tracking-widest uppercase outline-none focus:border-indigo-500" placeholder="INSTITUTIONAL EMAIL" required />
-                            )}
-                            </>
+                            <AnimatePresence mode="wait">
+                              <motion.div 
+                                key={authMode}
+                                initial={{ x: 10, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                exit={{ x: -10, opacity: 0 }}
+                                className="space-y-4"
+                              >
+                                {authMode === 'SIGNUP' && (
+                                    <div className="relative">
+                                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                                      <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className="input-field pl-12" placeholder="Full Legal Name" required />
+                                    </div>
+                                )}
+                                <div className="relative">
+                                  <Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                                  <input type="text" value={userId} onChange={e => setUserId(e.target.value)} className="input-field pl-12" placeholder="Identity Key" required />
+                                </div>
+                                {authMode !== 'FORGOT' && (
+                                    <div className="relative">
+                                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                                      <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="input-field pl-12" placeholder="Access Code" required />
+                                    </div>
+                                )}
+                                {(authMode === 'SIGNUP') && (
+                                    <div className="relative">
+                                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                                      <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="input-field pl-12" placeholder="Institutional Email" required />
+                                    </div>
+                                )}
+                              </motion.div>
+                            </AnimatePresence>
                         ) : (
-                            <div className="space-y-4">
-                                <p className="text-center text-[9px] font-black text-slate-500 uppercase tracking-widest">Awaiting Security Dispatch...</p>
-                                <input type="text" value={otpCode} onChange={e => setOtpCode(e.target.value)} className="w-full bg-black border border-indigo-500/50 rounded-3xl py-7 text-center text-4xl font-black text-white tracking-[0.4em]" placeholder="000000" required />
-                            </div>
+                            <motion.div 
+                              initial={{ scale: 0.95, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              className="space-y-6 text-center"
+                            >
+                                <p className="text-xs font-medium text-white/40 uppercase tracking-widest">Awaiting Security Token</p>
+                                <input 
+                                  type="text" 
+                                  value={otpCode} 
+                                  onChange={e => setOtpCode(e.target.value)} 
+                                  className="w-full bg-transparent border-b-2 border-white/20 py-4 text-center text-5xl font-mono tracking-[0.5em] focus:outline-none focus:border-white transition-all" 
+                                  placeholder="000000" 
+                                  maxLength={6}
+                                  required 
+                                />
+                            </motion.div>
                         )}
                     </div>
 
-                    {authError && <p className="text-red-500 text-[10px] font-black text-center tracking-widest uppercase animate-shake">{authError}</p>}
+                    {authError && (
+                      <motion.p 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-red-400 text-xs font-medium text-center"
+                      >
+                        {authError}
+                      </motion.p>
+                    )}
                     
-                    <button type="submit" className="btn-platinum py-6 shadow-[0_30px_80px_rgba(255,255,255,0.08)] transition-all transform hover:scale-[1.02]">
-                        {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'ACCESS GATEWAY' : authMode === 'FORGOT' ? 'RECOVER IDENTITY' : 'INITIALIZE NODE') : 'SYNC SECURITY'}
+                    <button type="submit" className="btn-premium w-full flex items-center justify-center gap-2 group">
+                        <span>
+                          {authStep === 'CREDENTIALS' ? (authMode === 'LOGIN' ? 'Access Gateway' : authMode === 'FORGOT' ? 'Recover Identity' : 'Initialize Node') : 'Verify Token'}
+                        </span>
+                        <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
                     </button>
 
-                    <div className="flex flex-col gap-6 text-center">
-                        <button type="button" onClick={() => { setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setAuthError(''); }} className="text-[10px] font-black text-slate-600 hover:text-white transition-colors tracking-[0.3em] uppercase">
-                            {authMode === 'LOGIN' ? 'CREATE NEW IDENTITY V23' : 'RETURN TO GATEWAY'}
+                    <div className="flex flex-col gap-4 text-center pt-4">
+                        <button type="button" onClick={() => { setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setAuthError(''); }} className="text-xs font-medium text-white/40 hover:text-white transition-colors">
+                            {authMode === 'LOGIN' ? 'Create New Identity' : 'Return to Gateway'}
                         </button>
                         {authMode === 'LOGIN' && (
-                            <button type="button" onClick={() => setAuthMode('FORGOT')} className="text-[10px] font-black text-indigo-500/60 hover:text-indigo-400 tracking-[0.3em] uppercase">
-                                FORGOT KEY? RECOVER IDENTITY
+                            <button type="button" onClick={() => setAuthMode('FORGOT')} className="text-xs font-medium text-white/20 hover:text-white transition-colors">
+                                Forgot Access Code?
                             </button>
                         )}
                     </div>
                 </form>
               )}
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col uppercase">
+    <div className="min-h-screen bg-obsidian flex flex-col">
       <GlobalLoader isLoading={isLoading} />
+      
       <div className="md:ml-24 lg:ml-80 transition-all flex-1 flex flex-col">
-        <header className="bg-black/80 backdrop-blur-3xl border-b border-white/10 h-32 flex items-center justify-between px-10 sm:px-16 sticky top-0 z-40">
-           <div className="flex items-center space-x-8">
-              <div className="p-4 bg-white rounded-2xl text-black shadow-2xl">
-                <ShieldCheck size={32} />
-              </div>
+        <header className="bg-obsidian/80 backdrop-blur-xl border-b border-white/5 h-24 flex items-center justify-between px-8 sm:px-12 sticky top-0 z-40">
+           <div className="flex items-center space-x-6">
+              <motion.div 
+                whileHover={{ scale: 1.05 }}
+                className="p-3 bg-white rounded-xl text-black shadow-lg"
+              >
+                <ShieldCheck size={24} />
+              </motion.div>
               <div className="text-left">
-                  <h1 className="text-xl font-black text-white tracking-tighter italic leading-none">{APP_NAME}</h1>
-                  <p className="text-[8px] font-black text-indigo-500 uppercase tracking-[0.8em] mt-2">Elite Mesh V23 Active</p>
+                  <h1 className="text-lg font-display italic leading-none">{APP_NAME}</h1>
+                  <p className="text-[10px] font-medium text-white/40 uppercase tracking-widest mt-1">Elite Mesh Active</p>
               </div>
            </div>
-           <div className="flex items-center space-x-8">
+
+           <div className="flex items-center space-x-6">
               <div className="text-right hidden sm:block">
-                  <div className="flex items-center gap-2">
-                     {user.isVerified && <Crown size={14} className="text-amber-500 animate-pulse" />}
-                     <p className="text-sm font-black text-indigo-400 leading-none">{user.name}</p>
+                  <div className="flex items-center justify-end gap-2">
+                     {user.isVerified && <Sparkles size={14} className="text-white animate-pulse" />}
+                     <p className="text-sm font-medium text-white leading-none">{user.name}</p>
                   </div>
-                  <p className="text-[9px] font-black text-slate-600 mt-2 tracking-widest">{user.isVerified ? 'QUANTUM ELITE' : 'PENDING AUDIT'}</p>
+                  <p className="text-[10px] font-medium text-white/20 mt-1 uppercase tracking-widest">
+                    {user.isVerified ? 'Quantum Elite' : 'Pending Verification'}
+                  </p>
               </div>
-              <button 
-                onClick={handleLogout}
-                className="p-4 bg-white/5 hover:bg-red-500/10 rounded-2xl transition-all border border-white/10 group"
-                title="TERMINATE SESSION"
-              >
-                  <LogOut size={20} className="text-slate-500 group-hover:text-red-500" />
-              </button>
-              <div className="w-16 h-16 rounded-2xl border border-white/10 overflow-hidden shadow-2xl ring-2 ring-indigo-500/20">
-                <img src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} className="w-full h-full object-cover" alt="Personnel" />
+
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={handleLogout}
+                  className="p-3 bg-white/5 hover:bg-red-500/10 rounded-xl transition-all border border-white/5 group"
+                  title="Terminate Session"
+                >
+                    <LogOut size={18} className="text-white/40 group-hover:text-red-500" />
+                </button>
+                <div className="w-12 h-12 rounded-xl border border-white/10 overflow-hidden shadow-xl">
+                  <img 
+                    src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} 
+                    className="w-full h-full object-cover" 
+                    alt="Personnel" 
+                  />
+                </div>
               </div>
            </div>
         </header>
-        <main className="flex-1 max-w-[1800px] mx-auto w-full pt-16 px-10 sm:px-16 pb-44 md:pb-24">
-            {view === View.DASHBOARD && <Dashboard user={user} username={activeUser || ''} onNavigate={setView} onLogout={handleLogout} />}
-            {view === View.FILE_HUB && <Vault user={user} documents={vaultDocs} saveDocuments={setVaultDocs} updateUser={setUser} onNavigate={setView} />}
-            {view === View.SETTINGS && <Settings user={user} resetApp={handleLogout} onLogout={handleLogout} username={activeUser || ''} darkMode={true} toggleDarkMode={() => {}} updateUser={setUser} />}
-            {view === View.SUPPORT && <Support username={activeUser || ''} />}
-            {view === View.ADMIN_DASHBOARD && <AdminDashboard onNavigate={setView} />}
-            {view === View.SECURITY_HEARTBEAT && <SecurityHeartbeat />}
-            {view === View.GROWTH_JOURNAL && <GrowthJournal username={activeUser || ''} />}
-            {view === View.ACADEMIC_LEDGER && <AcademicLedger username={activeUser || ''} />}
-            {view === View.ATTENDANCE_TRACKER && <AttendanceTracker username={activeUser || ''} />}
-            {view === View.CAMPUS_RADAR && <CampusRadar username={activeUser || ''} />}
-            {view === View.VERIFICATION_FORM && <VerificationForm user={user} username={activeUser || ''} updateUser={setUser} onNavigate={setView} />}
-            {view === View.ACCESS_RECOVERY && <AccessRecovery onNavigate={setView} />}
+
+        <main className="flex-1 max-w-7xl mx-auto w-full pt-12 px-8 sm:px-12 pb-32 md:pb-12">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={view}
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -10, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {view === View.DASHBOARD && <Dashboard user={user} username={activeUser || ''} onNavigate={setView} onLogout={handleLogout} />}
+                {view === View.FILE_HUB && <Vault user={user} documents={vaultDocs} saveDocuments={setVaultDocs} updateUser={setUser} onNavigate={setView} />}
+                {view === View.SETTINGS && <Settings user={user} resetApp={handleLogout} onLogout={handleLogout} username={activeUser || ''} darkMode={true} toggleDarkMode={() => {}} updateUser={setUser} />}
+                {view === View.SUPPORT && <Support username={activeUser || ''} />}
+                {view === View.ADMIN_DASHBOARD && <AdminDashboard onNavigate={setView} />}
+                {view === View.SECURITY_HEARTBEAT && <SecurityHeartbeat />}
+                {view === View.GROWTH_JOURNAL && <GrowthJournal username={activeUser || ''} />}
+                {view === View.ACADEMIC_LEDGER && <AcademicLedger username={activeUser || ''} />}
+                {view === View.ATTENDANCE_TRACKER && <AttendanceTracker username={activeUser || ''} />}
+                {view === View.CAMPUS_RADAR && <CampusRadar username={activeUser || ''} />}
+                {view === View.VERIFICATION_FORM && <VerificationForm user={user} username={activeUser || ''} updateUser={setUser} onNavigate={setView} />}
+                {view === View.ACCESS_RECOVERY && <AccessRecovery onNavigate={setView} />}
+              </motion.div>
+            </AnimatePresence>
         </main>
       </div>
-      <Navigation currentView={view} setView={setView} isAdmin={activeUser === ADMIN_USERNAME} isVerified={user.isVerified} username={activeUser || ''} onLogout={handleLogout} />
+
+      <Navigation 
+        currentView={view} 
+        setView={setView} 
+        isAdmin={activeUser === ADMIN_USERNAME} 
+        isVerified={user.isVerified} 
+        username={activeUser || ''} 
+        onLogout={handleLogout} 
+      />
     </div>
   );
 }

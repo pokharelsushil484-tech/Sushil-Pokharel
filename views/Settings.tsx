@@ -1,11 +1,19 @@
 
 import React, { useState } from 'react';
-import { UserProfile, View } from '../types';
+import { motion } from 'motion/react';
+import { UserProfile } from '../types';
 import { 
-  ShieldCheck, LogOut, Edit3, 
-  Mail, RefreshCw, Globe, 
-  CheckCircle2, Fingerprint, AppWindow,
-  Download, Database, Trash2, Phone, Hash, Crown, Award
+  ShieldCheck, 
+  Edit3, 
+  Mail, 
+  Crown, 
+  Award,
+  Fingerprint,
+  AppWindow,
+  Hash,
+  Sparkles,
+  ChevronRight,
+  User
 } from 'lucide-react';
 import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, APP_VERSION, APP_NAME, MAX_PROFESSIONAL_LEVEL, PROFESSIONAL_TIER } from '../constants';
 import { storageService } from '../services/storageService';
@@ -21,7 +29,7 @@ interface SettingsProps {
   updateUser: (u: UserProfile) => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ user, onLogout, username, updateUser }) => {
+export const Settings: React.FC<SettingsProps> = ({ user, username, updateUser }) => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editForm, setEditForm] = useState({
       name: user.name,
@@ -43,30 +51,38 @@ export const Settings: React.FC<SettingsProps> = ({ user, onLogout, username, up
   const handleVerifyNode = async () => {
       const verifyToken = Math.random().toString(36).substring(2, 8).toUpperCase();
       await emailService.sendInstitutionalMail(user.email, verifyToken, 'VERIFY_REQUEST', username);
-      alert("IDENTITY AUDIT DISPATCHED: V21 PROTOCOL");
+      alert("Identity audit dispatched. Please check your institutional mail.");
   };
 
-  const exportDataRegistry = () => {
-      const data = JSON.stringify(user, null, 2);
-      const blob = new Blob([data], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${APP_NAME}_REGISTRY_${username.toUpperCase()}.json`;
-      a.click();
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const item = {
+    hidden: { y: 20, opacity: 0 },
+    show: { y: 0, opacity: 1 }
   };
 
   return (
-    <div className="pb-40 animate-fade-in w-full max-w-6xl mx-auto space-y-12 uppercase">
-      {/* Executive Header */}
-      <div className="bg-slate-900 rounded-[4rem] p-12 border border-white/5 relative overflow-hidden shadow-2xl">
-        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-transparent opacity-30"></div>
-        <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
-            <div className="w-32 h-32 rounded-[3rem] bg-black p-1 border border-white/10 relative shadow-2xl">
+    <motion.div 
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="pb-20 space-y-12"
+    >
+      {/* Profile Hero */}
+      <motion.div variants={item} className="glass-card p-10 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
+            <div className="w-32 h-32 rounded-3xl overflow-hidden border border-white/10 relative shadow-2xl shrink-0">
                 <img src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} 
-                     className="w-full h-full object-cover rounded-[2.8rem]" alt="Avatar" />
+                     className="w-full h-full object-cover" alt="Avatar" />
                 {user.isVerified && (
-                    <div className="absolute -top-1 -right-1 bg-amber-500 text-black p-1.5 rounded-lg shadow-xl border-4 border-slate-900">
+                    <div className="absolute -top-1 -right-1 bg-white text-black p-1.5 rounded-lg shadow-xl border-4 border-obsidian">
                         <Crown size={12} />
                     </div>
                 )}
@@ -74,132 +90,142 @@ export const Settings: React.FC<SettingsProps> = ({ user, onLogout, username, up
             
             <div className="flex-1 space-y-4 text-center md:text-left">
                 {isEditingProfile ? (
-                    <form onSubmit={handleUpdateProfile} className="space-y-4">
+                    <form onSubmit={handleUpdateProfile} className="space-y-4 max-w-xl">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value.toUpperCase()})} className="bg-black/50 border border-white/10 rounded-xl p-4 text-white text-sm outline-none focus:border-indigo-500 uppercase font-black" placeholder="FULL NAME" />
-                            <input value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value.toUpperCase()})} className="bg-black/50 border border-white/10 rounded-xl p-4 text-white text-sm outline-none focus:border-indigo-500 uppercase font-black" placeholder="EMAIL" />
+                            <input 
+                              value={editForm.name} 
+                              onChange={e => setEditForm({...editForm, name: e.target.value})} 
+                              className="bg-white/5 border border-white/10 rounded-xl p-4 text-white text-sm outline-none focus:border-white/20" 
+                              placeholder="Full Name" 
+                            />
+                            <input 
+                              value={editForm.email} 
+                              onChange={e => setEditForm({...editForm, email: e.target.value})} 
+                              className="bg-white/5 border border-white/10 rounded-xl p-4 text-white text-sm outline-none focus:border-white/20" 
+                              placeholder="Email Address" 
+                            />
                         </div>
                         <div className="flex gap-3 justify-center md:justify-start">
-                            <button type="submit" className="px-8 py-4 bg-white text-black rounded-xl font-black text-[9px] uppercase tracking-widest">Commit Changes</button>
-                            <button type="button" onClick={() => setIsEditingProfile(false)} className="px-8 py-4 bg-white/10 text-white rounded-xl font-black text-[9px] uppercase tracking-widest">Cancel</button>
+                            <button type="submit" className="btn-premium py-3 px-8 text-xs">Commit Changes</button>
+                            <button type="button" onClick={() => setIsEditingProfile(false)} className="bg-white/5 text-white/40 hover:text-white px-8 py-3 rounded-xl text-xs transition-colors">Cancel</button>
                         </div>
                     </form>
                 ) : (
                     <>
-                        <h2 className="text-5xl font-black text-white italic uppercase tracking-tighter">{user.name}</h2>
+                        <h2 className="text-5xl font-display italic tracking-tight">{user.name}</h2>
                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                            <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.4em]">{isAdmin ? 'Lead Architect Plus' : `Student Node Level ${MAX_PROFESSIONAL_LEVEL}`}</span>
+                            <span className="text-[10px] font-semibold text-white/40 uppercase tracking-widest">
+                              {isAdmin ? 'Lead Architect' : `Elite Member • Level ${MAX_PROFESSIONAL_LEVEL}`}
+                            </span>
                             {user.isVerified ? (
-                                <span className="stark-badge text-emerald-500 border-emerald-500/20 py-1 flex items-center gap-2"><Crown size={10}/> {PROFESSIONAL_TIER}</span>
-                            ) : (
-                                <div className="flex items-center gap-3">
-                                    <span className="stark-badge text-amber-500 border-amber-500/20 py-1">Awaiting Supreme Clearance</span>
-                                    <button onClick={handleVerifyNode} className="text-[10px] font-black text-red-500 uppercase border-b border-red-500 pb-0.5 hover:text-white transition-colors">Apply V21 Audit</button>
+                                <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20 text-[10px] font-semibold uppercase tracking-widest">
+                                  <ShieldCheck size={12}/> Verified Elite
                                 </div>
+                            ) : (
+                                <button onClick={handleVerifyNode} className="text-[10px] font-semibold text-amber-400 uppercase tracking-widest border-b border-amber-400/20 hover:border-amber-400 transition-all">
+                                  Request Identity Audit
+                                </button>
                             )}
                         </div>
                     </>
                 )}
             </div>
             {!isEditingProfile && (
-                <button onClick={() => setIsEditingProfile(true)} className="p-6 bg-white/5 rounded-[2.5rem] hover:bg-white/10 transition-all border border-white/5">
-                    <Edit3 size={24} className="text-slate-400" />
+                <button onClick={() => setIsEditingProfile(true)} className="p-5 bg-white/5 rounded-2xl hover:bg-white/10 transition-all border border-white/5">
+                    <Edit3 size={20} className="text-white/40" />
                 </button>
             )}
         </div>
-      </div>
+      </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Professional Protocol Matrix */}
-          <div className="master-box p-12 bg-slate-900/40 border-white/5 space-y-10 lg:col-span-2">
-              <div className="flex items-center justify-center gap-6">
-                <Award className="text-amber-500" size={32} />
-                <h3 className="text-[12px] font-black text-white uppercase tracking-[0.6em] italic">Professional Protocol Level</h3>
+          {/* Status Matrix */}
+          <motion.div variants={item} className="glass-card p-10 space-y-8 lg:col-span-2">
+              <div className="flex items-center gap-4">
+                <Award className="text-white/20" size={24} />
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-white/40">Professional Protocol</h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div className="p-8 bg-black/60 rounded-3xl border border-white/5 text-center">
-                    <p className="text-[8px] font-black text-slate-600 uppercase mb-2">Current Tier</p>
-                    <p className="text-xl font-black text-indigo-400 tracking-widest">{PROFESSIONAL_TIER}</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="p-6 bg-white/5 rounded-2xl border border-white/5 text-center">
+                    <p className="text-[10px] font-semibold text-white/20 uppercase tracking-widest mb-2">Current Tier</p>
+                    <p className="text-lg font-display italic">{PROFESSIONAL_TIER}</p>
                   </div>
-                  <div className="p-8 bg-black/60 rounded-3xl border border-white/5 text-center">
-                    <p className="text-[8px] font-black text-slate-600 uppercase mb-2">Architecture Integrity</p>
-                    <p className="text-xl font-black text-emerald-500 tracking-widest">MAXIMUM</p>
+                  <div className="p-6 bg-white/5 rounded-2xl border border-white/5 text-center">
+                    <p className="text-[10px] font-semibold text-white/20 uppercase tracking-widest mb-2">Integrity</p>
+                    <p className="text-lg font-display italic text-emerald-400">Optimal</p>
                   </div>
-                  <div className="p-8 bg-black/60 rounded-3xl border border-white/5 text-center">
-                    <p className="text-[8px] font-black text-slate-600 uppercase mb-2">Protocol Build</p>
-                    <p className="text-xl font-black text-white tracking-widest">V21.0.0</p>
+                  <div className="p-6 bg-white/5 rounded-2xl border border-white/5 text-center">
+                    <p className="text-[10px] font-semibold text-white/20 uppercase tracking-widest mb-2">Build</p>
+                    <p className="text-lg font-display italic">v2.1.0</p>
                   </div>
               </div>
-          </div>
+          </motion.div>
 
-          {/* Identity Matrix */}
-          <div className="master-box p-12 bg-slate-900/40 border-white/5 space-y-10">
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic">Identity Registry</h3>
-              <div className="space-y-6">
-                  <div className="flex items-center justify-between p-8 bg-black/40 rounded-[2rem] border border-white/5">
-                      <div className="flex items-center gap-6">
-                          <Hash className="text-indigo-400" size={24} />
-                          <div>
-                              <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Identity V21 Key</p>
-                              <p className="text-lg font-black text-white tracking-tight italic">{user.studentId || 'AUTHENTICATING'}</p>
-                          </div>
+          {/* Identity Info */}
+          <motion.div variants={item} className="glass-card p-10 space-y-8">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-white/40">Identity Registry</h3>
+              <div className="space-y-4">
+                  <div className="flex items-center gap-6 p-6 bg-white/5 rounded-2xl border border-white/5">
+                      <Hash className="text-white/20" size={20} />
+                      <div>
+                          <p className="text-[10px] text-white/20 font-semibold uppercase tracking-widest">Student Identifier</p>
+                          <p className="text-sm font-medium">{user.studentId || 'Pending Verification'}</p>
                       </div>
                   </div>
-                  <div className="flex items-center justify-between p-8 bg-black/40 rounded-[2rem] border border-white/5">
-                      <div className="flex items-center gap-6">
-                          <Mail className="text-indigo-400" size={24} />
-                          <div>
-                              <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Professional Mesh Email</p>
-                              <p className="text-sm font-bold text-white tracking-tight uppercase">{user.email}</p>
-                          </div>
+                  <div className="flex items-center gap-6 p-6 bg-white/5 rounded-2xl border border-white/5">
+                      <Mail className="text-white/20" size={20} />
+                      <div>
+                          <p className="text-[10px] text-white/20 font-semibold uppercase tracking-widest">Institutional Mail</p>
+                          <p className="text-sm font-medium">{user.email}</p>
                       </div>
                   </div>
               </div>
-          </div>
+          </motion.div>
 
-          {/* Security Environment */}
-          <div className="master-box p-12 bg-slate-900/40 border-white/5 space-y-10">
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic">Security Environment</h3>
-              <div className="space-y-10">
+          {/* Security Config */}
+          <motion.div variants={item} className="glass-card p-10 space-y-8">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-white/40">Security Environment</h3>
+              <div className="space-y-8">
                   <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-6">
-                          <Fingerprint className="text-indigo-400" size={24} />
-                          <span className="text-xs font-black text-white uppercase italic tracking-widest">Biometric Ultra Sync</span>
+                      <div className="flex items-center gap-4">
+                          <Fingerprint className="text-white/20" size={20} />
+                          <span className="text-sm font-medium">Biometric Sync</span>
                       </div>
                       <button 
                         onClick={() => updateUser({...user, twoFactorEnabled: !user.twoFactorEnabled})}
-                        className={`w-16 h-10 rounded-full transition-all relative flex items-center px-1 ${user.twoFactorEnabled ? 'bg-indigo-600 shadow-[0_0_20px_rgba(79,70,229,0.6)]' : 'bg-slate-800'}`}
+                        className={`w-12 h-6 rounded-full transition-all relative flex items-center px-1 ${user.twoFactorEnabled ? 'bg-white' : 'bg-white/10'}`}
                       >
-                          <div className={`w-8 h-8 bg-white rounded-full transition-transform ${user.twoFactorEnabled ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                          <div className={`w-4 h-4 rounded-full transition-transform ${user.twoFactorEnabled ? 'translate-x-6 bg-black' : 'translate-x-0 bg-white/40'}`}></div>
                       </button>
                   </div>
                   <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-6">
-                          <AppWindow className="text-slate-500" size={24} />
-                          <span className="text-xs font-black text-white uppercase italic tracking-widest">V21 Mesh Stealth</span>
+                      <div className="flex items-center gap-4">
+                          <AppWindow className="text-white/20" size={20} />
+                          <span className="text-sm font-medium">Privacy Level</span>
                       </div>
                       <select 
                         value={user.privacyLevel} 
                         onChange={(e) => updateUser({...user, privacyLevel: e.target.value as any})}
-                        className="bg-black border border-white/10 rounded-xl px-6 py-3 text-[10px] font-black uppercase text-indigo-400 outline-none"
+                        className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-[10px] font-semibold uppercase tracking-widest outline-none text-white"
                       >
-                          <option value="STANDARD">STANDARD</option>
-                          <option value="MAXIMUM">MAXIMUM</option>
-                          <option value="STEALTH">STEALTH PLUS</option>
+                          <option value="STANDARD">Standard</option>
+                          <option value="MAXIMUM">Maximum</option>
+                          <option value="STEALTH">Stealth</option>
                       </select>
                   </div>
               </div>
-          </div>
+          </motion.div>
       </div>
 
-      <div className="flex flex-col items-center pt-24 pb-12 space-y-6 opacity-30">
-        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[1.5em]">{WATERMARK}</p>
-        <div className="flex items-center gap-8 text-[9px] text-slate-600 font-black uppercase tracking-widest">
+      <motion.div variants={item} className="flex flex-col items-center pt-20 pb-10 space-y-4 opacity-20">
+        <p className="text-[10px] font-semibold uppercase tracking-[1em]">{WATERMARK}</p>
+        <div className="flex items-center gap-6 text-[9px] font-semibold uppercase tracking-widest">
             <span>{COPYRIGHT_NOTICE}</span>
-            <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div>
+            <div className="w-1 h-1 bg-white rounded-full"></div>
             <span>{APP_VERSION}</span>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
+
