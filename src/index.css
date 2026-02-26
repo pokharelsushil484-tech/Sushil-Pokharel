@@ -1,15 +1,6 @@
-@import "tailwindcss";
-
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Playfair Display", serif;
-  --font-mono: "JetBrains Mono", monospace;
-
-  --color-obsidian: #050505;
-  --color-platinum: #E5E4E2;
-  --color-gold: #D4AF37;
-  --color-slate-950: #020617;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer base {
   body {
