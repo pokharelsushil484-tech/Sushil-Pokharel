@@ -18,10 +18,14 @@ import {
   Calendar,
   BookOpen,
   MapPin,
-  Target
+  Target,
+  Crown,
+  CheckCircle2,
+  Lock
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { APP_NAME } from '../constants';
+import { SubscriptionTier } from '../types';
 
 interface DashboardProps {
   user: UserProfile;
@@ -151,6 +155,54 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
               </div>
           </motion.div>
       </div>
+
+      {/* Pro Status Section */}
+      {user.subscriptionTier !== SubscriptionTier.PRO_LIFETIME && (
+        <motion.div variants={item} className="glass-card p-8 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
+          
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 relative z-10">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <Crown size={24} className="text-amber-400" />
+                <h2 className="text-2xl font-display italic">Quantum Elite Pro</h2>
+              </div>
+              <p className="text-white/60 text-sm max-w-xl">
+                {user.subscriptionTier === SubscriptionTier.PRO_TRIAL 
+                  ? "Trial Active. Complete tasks to secure permanent access." 
+                  : "Upgrade to unlock Mission Control, Vault, and Radar."}
+              </p>
+            </div>
+            
+            {user.subscriptionTier === SubscriptionTier.PRO_TRIAL && user.trialStartDate && (
+              <div className="bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-xl text-right">
+                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest block mb-1">Trial Expires In</span>
+                <span className="text-2xl font-mono font-bold text-white">
+                  {Math.max(0, Math.ceil((15 * 24 * 60 * 60 * 1000 - (Date.now() - user.trialStartDate)) / (1000 * 60 * 60 * 24)))} Days
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
+            {user.upgradeTasks.map(task => (
+              <div key={task.id} className={`p-4 rounded-xl border ${task.completed ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-white/5 border-white/10'}`}>
+                <div className="flex justify-between items-start mb-3">
+                  {task.completed ? <CheckCircle2 size={18} className="text-emerald-400" /> : <Lock size={18} className="text-white/20" />}
+                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{task.currentCount}/{task.targetCount}</span>
+                </div>
+                <p className="text-xs font-medium text-white/80 mb-2">{task.description}</p>
+                <div className="w-full bg-white/10 h-1 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full ${task.completed ? 'bg-emerald-500' : 'bg-amber-500'}`} 
+                    style={{ width: `${(task.currentCount / task.targetCount) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

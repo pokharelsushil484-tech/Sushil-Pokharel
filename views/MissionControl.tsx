@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mission, MissionTask } from '../types';
+import { Mission, MissionTask, UserProfile } from '../types';
 import { 
   Target, 
   CheckCircle2, 
@@ -14,8 +14,15 @@ import {
   Clock
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
+import { upgradeService } from '../services/upgradeService';
 
-export const MissionControl: React.FC<{ username: string }> = ({ username }) => {
+interface MissionControlProps {
+  username: string;
+  user: UserProfile;
+  updateUser: (user: UserProfile) => void;
+}
+
+export const MissionControl: React.FC<MissionControlProps> = ({ username, user, updateUser }) => {
   const [missions, setMissions] = useState<Mission[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newMission, setNewMission] = useState<Partial<Mission>>({
@@ -62,6 +69,7 @@ export const MissionControl: React.FC<{ username: string }> = ({ username }) => 
   };
 
   const toggleTask = async (missionId: string, taskId: string) => {
+    let missionCompleted = false;
     const updated = missions.map(m => {
       if (m.id === missionId) {
         const newTasks = m.tasks.map(t => 
@@ -69,11 +77,21 @@ export const MissionControl: React.FC<{ username: string }> = ({ username }) => 
         );
         const completedCount = newTasks.filter(t => t.completed).length;
         const progress = newTasks.length > 0 ? (completedCount / newTasks.length) * 100 : 0;
+        
+        if (progress === 100 && m.progress < 100) {
+          missionCompleted = true;
+        }
+
         return { ...m, tasks: newTasks, progress };
       }
       return m;
     });
     await saveMissions(updated);
+
+    if (missionCompleted) {
+      const updatedUser = await upgradeService.updateTaskProgress(user, username, 'MISSION');
+      updateUser(updatedUser);
+    }
   };
 
   const addTaskToNewMission = () => {

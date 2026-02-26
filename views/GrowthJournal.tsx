@@ -1,11 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { JournalEntry } from '../types';
+import { JournalEntry, UserProfile } from '../types';
 import { BookOpen, Plus, Sparkles, Trash2, Calendar, Save, X, Smile, Target, CloudRain, PenTool } from 'lucide-react';
 import { storageService } from '../services/storageService';
+import { upgradeService } from '../services/upgradeService';
 
-export const GrowthJournal: React.FC<{ username: string }> = ({ username }) => {
+interface GrowthJournalProps {
+  username: string;
+  user: UserProfile;
+  updateUser: (user: UserProfile) => void;
+}
+
+export const GrowthJournal: React.FC<GrowthJournalProps> = ({ username, user, updateUser }) => {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newEntry, setNewEntry] = useState({ title: '', content: '', mood: 'SMILE' });
@@ -30,6 +37,9 @@ export const GrowthJournal: React.FC<{ username: string }> = ({ username }) => {
     setEntries(updated);
     setShowAdd(false);
     setNewEntry({ title: '', content: '', mood: 'SMILE' });
+
+    const updatedUser = await upgradeService.updateTaskProgress(user, username, 'JOURNAL');
+    updateUser(updatedUser);
   };
 
   const deleteEntry = async (id: string) => {

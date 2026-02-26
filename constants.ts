@@ -1,5 +1,5 @@
 
-import { UserProfile, View } from './types';
+import { UserProfile, View, SubscriptionTier, UpgradeTask } from './types';
 
 export const APP_NAME = "STUDENTPOCKET – BY SUSHIL";
 export const APP_TAGLINE = "V2.0 QUANTUM ELITE II";
@@ -29,6 +29,13 @@ export const PROHIBITED_TERMS = [
     "SEX", "PORN", "FUCK", "SHIT", "ASS", "BASTARD"
 ];
 
+export const INITIAL_UPGRADE_TASKS: UpgradeTask[] = [
+  { id: 'TASK_MISSION', description: 'Complete 5 Strategic Missions', targetCount: 5, currentCount: 0, completed: false, type: 'MISSION' },
+  { id: 'TASK_ATTENDANCE', description: 'Log 10 Attendance Records', targetCount: 10, currentCount: 0, completed: false, type: 'ATTENDANCE' },
+  { id: 'TASK_JOURNAL', description: 'Add 5 Growth Journal Entries', targetCount: 5, currentCount: 0, completed: false, type: 'JOURNAL' },
+  { id: 'TASK_LOGIN', description: 'Access Elite Hub 3 Times', targetCount: 3, currentCount: 0, completed: false, type: 'LOGIN' }
+];
+
 export const DEFAULT_USER: UserProfile = {
   name: "PERSONNEL NODE",
   email: `USER@${SYSTEM_DOMAIN}`,
@@ -37,6 +44,8 @@ export const DEFAULT_USER: UserProfile = {
   emailVerified: false,
   twoFactorEnabled: true,
   privacyLevel: 'STANDARD',
+  subscriptionTier: SubscriptionTier.LIGHT,
+  upgradeTasks: INITIAL_UPGRADE_TASKS,
   isSuspicious: false,
   level: MAX_PROFESSIONAL_LEVEL,
   verificationStatus: 'NONE',

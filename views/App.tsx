@@ -12,12 +12,14 @@ import { AcademicLedger } from './AcademicLedger';
 import { AttendanceTracker } from './AttendanceTracker';
 import { CampusRadar } from './CampusRadar';
 import { MissionControl } from './MissionControl';
+import { ProGate } from '../components/ProGate';
+import { upgradeService } from '../services/upgradeService';
 import { GlobalLoader } from '../components/GlobalLoader';
 import { SplashScreen } from '../components/SplashScreen';
 import { LinkVerification } from './LinkVerification';
 import { AccessRecovery } from './AccessRecovery';
 import { VerificationForm } from './VerificationForm';
-import { View, UserProfile, VaultDocument, ChatMessage, ChangeRequest } from '../types';
+import { View, UserProfile, VaultDocument, ChatMessage, ChangeRequest, SubscriptionTier } from '../types';
 import { DEFAULT_USER, APP_NAME, ADMIN_USERNAME, ADMIN_SECRET } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
@@ -71,10 +73,12 @@ const App = () => {
             name: "Sushil Pokharel",
             studentId: "ELITE-001",
             isVerified: true,
-            verificationStatus: 'VERIFIED'
+            verificationStatus: 'VERIFIED',
+            subscriptionTier: SubscriptionTier.PRO_LIFETIME
         });
     } else if (stored && stored.user) {
-        setUser(stored.user);
+        const checkedUser = await upgradeService.checkTrialStatus(stored.user, username);
+        setUser(checkedUser);
         if (stored.vaultDocs) setVaultDocs(stored.vaultDocs);
         if (stored.chatHistory) setChatHistory(stored.chatHistory);
     }
@@ -173,6 +177,14 @@ const App = () => {
                 sessionStorage.setItem('active_session_user', inputId);
                 setActiveUser(inputId);
                 await loadUserData(inputId);
+                
+                // Update Login Task
+                const currentUserData = await storageService.getData(`architect_data_${inputId}`);
+                if (currentUserData && currentUserData.user) {
+                  const updatedUser = await upgradeService.updateTaskProgress(currentUserData.user, inputId, 'LOGIN');
+                  setUser(updatedUser);
+                }
+
                 setIsLoggedIn(true);
             }
         } else {
@@ -184,6 +196,13 @@ const App = () => {
   const handleLogout = () => {
       sessionStorage.removeItem('active_session_user');
       window.location.reload();
+  };
+
+  const handleActivateTrial = async () => {
+    if (!activeUser) return;
+    const updatedUser = await upgradeService.activateTrial(user, activeUser);
+    setUser(updatedUser);
+    alert("15-Day Quantum Elite Trial Activated!");
   };
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
@@ -399,16 +418,32 @@ const App = () => {
                 transition={{ duration: 0.3 }}
               >
                 {view === View.DASHBOARD && <Dashboard user={user} username={activeUser || ''} onNavigate={setView} onLogout={handleLogout} />}
-                {view === View.MISSION_CONTROL && <MissionControl username={activeUser || ''} />}
-                {view === View.FILE_HUB && <Vault user={user} documents={vaultDocs} saveDocuments={setVaultDocs} updateUser={setUser} onNavigate={setView} />}
+                {view === View.MISSION_CONTROL && (
+                  <ProGate user={user} onActivateTrial={handleActivateTrial}>
+                    <MissionControl username={activeUser || ''} user={user} updateUser={setUser} />
+                  </ProGate>
+                )}
+                {view === View.FILE_HUB && (
+                  <ProGate user={user} onActivateTrial={handleActivateTrial}>
+                    <Vault user={user} documents={vaultDocs} saveDocuments={setVaultDocs} updateUser={setUser} onNavigate={setView} />
+                  </ProGate>
+                )}
                 {view === View.SETTINGS && <Settings user={user} resetApp={handleLogout} onLogout={handleLogout} username={activeUser || ''} darkMode={true} toggleDarkMode={() => {}} updateUser={setUser} />}
                 {view === View.SUPPORT && <Support username={activeUser || ''} />}
                 {view === View.ADMIN_DASHBOARD && <AdminDashboard onNavigate={setView} />}
-                {view === View.SECURITY_HEARTBEAT && <SecurityHeartbeat />}
-                {view === View.GROWTH_JOURNAL && <GrowthJournal username={activeUser || ''} />}
+                {view === View.SECURITY_HEARTBEAT && (
+                  <ProGate user={user} onActivateTrial={handleActivateTrial}>
+                    <SecurityHeartbeat />
+                  </ProGate>
+                )}
+                {view === View.GROWTH_JOURNAL && <GrowthJournal username={activeUser || ''} user={user} updateUser={setUser} />}
                 {view === View.ACADEMIC_LEDGER && <AcademicLedger username={activeUser || ''} />}
-                {view === View.ATTENDANCE_TRACKER && <AttendanceTracker username={activeUser || ''} />}
-                {view === View.CAMPUS_RADAR && <CampusRadar username={activeUser || ''} />}
+                {view === View.ATTENDANCE_TRACKER && <AttendanceTracker username={activeUser || ''} user={user} updateUser={setUser} />}
+                {view === View.CAMPUS_RADAR && (
+                  <ProGate user={user} onActivateTrial={handleActivateTrial}>
+                    <CampusRadar username={activeUser || ''} />
+                  </ProGate>
+                )}
                 {view === View.VERIFICATION_FORM && <VerificationForm user={user} username={activeUser || ''} updateUser={setUser} onNavigate={setView} />}
                 {view === View.ACCESS_RECOVERY && <AccessRecovery onNavigate={setView} />}
               </motion.div>
@@ -423,6 +458,7 @@ const App = () => {
         isVerified={user.isVerified} 
         username={activeUser || ''} 
         onLogout={handleLogout} 
+        subscriptionTier={user.subscriptionTier}
       />
     </div>
   );

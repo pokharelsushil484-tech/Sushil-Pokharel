@@ -13,9 +13,10 @@ import {
   BookOpen, 
   HeartPulse,
   Sparkles,
-  Target
+  Target,
+  Lock
 } from 'lucide-react';
-import { View } from '../types';
+import { View, SubscriptionTier } from '../types';
 
 interface NavigationProps {
   currentView: View;
@@ -24,24 +25,27 @@ interface NavigationProps {
   isVerified: boolean;
   username: string;
   onLogout: () => void;
+  subscriptionTier: SubscriptionTier;
 }
 
-export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, isAdmin }) => {
+export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, isAdmin, subscriptionTier }) => {
   const navItems = [
-    { view: View.DASHBOARD, icon: LayoutGrid, label: 'Dashboard' },
-    { view: View.MISSION_CONTROL, icon: Target, label: 'Missions' },
-    { view: View.SECURITY_HEARTBEAT, icon: HeartPulse, label: 'Security' },
-    { view: View.GROWTH_JOURNAL, icon: BookOpen, label: 'Journal' },
-    { view: View.ACADEMIC_LEDGER, icon: Trophy, label: 'Ledger' },
-    { view: View.ATTENDANCE_TRACKER, icon: ClipboardList, label: 'Attendance' },
-    { view: View.CAMPUS_RADAR, icon: MapPin, label: 'Radar' },
-    { view: View.FILE_HUB, icon: Database, label: 'Vault' },
-    { view: View.SUPPORT, icon: LifeBuoy, label: 'Support' },
+    { view: View.DASHBOARD, icon: LayoutGrid, label: 'Dashboard', isPro: false },
+    { view: View.MISSION_CONTROL, icon: Target, label: 'Missions', isPro: true },
+    { view: View.SECURITY_HEARTBEAT, icon: HeartPulse, label: 'Security', isPro: true },
+    { view: View.GROWTH_JOURNAL, icon: BookOpen, label: 'Journal', isPro: false },
+    { view: View.ACADEMIC_LEDGER, icon: Trophy, label: 'Ledger', isPro: false },
+    { view: View.ATTENDANCE_TRACKER, icon: ClipboardList, label: 'Attendance', isPro: false },
+    { view: View.CAMPUS_RADAR, icon: MapPin, label: 'Radar', isPro: true },
+    { view: View.FILE_HUB, icon: Database, label: 'Vault', isPro: true },
+    { view: View.SUPPORT, icon: LifeBuoy, label: 'Support', isPro: false },
   ];
 
   if (isAdmin) {
-      navItems.push({ view: View.ADMIN_DASHBOARD, icon: ShieldAlert, label: 'Master' });
+      navItems.push({ view: View.ADMIN_DASHBOARD, icon: ShieldAlert, label: 'Master', isPro: false });
   }
+
+  const isProActive = subscriptionTier !== SubscriptionTier.LIGHT;
 
   return (
     <>
@@ -60,6 +64,8 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
         <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto no-scrollbar">
           {navItems.map((item) => {
             const isActive = currentView === item.view;
+            const isLocked = item.isPro && !isProActive;
+            
             return (
               <button
                 key={item.view}
@@ -78,12 +84,19 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
                         className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-black rounded-full"
                       />
                     )}
+                    {isLocked && (
+                      <div className="absolute -top-1 -right-1 bg-obsidian rounded-full p-0.5 border border-white/10">
+                        <Lock size={8} className="text-amber-400" />
+                      </div>
+                    )}
                 </div>
-                <span className="hidden lg:block ml-4 text-sm font-medium whitespace-nowrap">{item.label}</span>
+                <span className="hidden lg:block ml-4 text-sm font-medium whitespace-nowrap flex-1 text-left">{item.label}</span>
+                {isLocked && <span className="hidden lg:block text-[9px] font-bold text-amber-400 uppercase tracking-widest ml-2">PRO</span>}
               </button>
             );
           })}
         </nav>
+// ... (rest of the file)
 
         <div className="p-6 border-t border-white/5 space-y-4">
             <button

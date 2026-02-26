@@ -77,6 +77,21 @@ export interface JournalEntry {
   timestamp: number;
 }
 
+export enum SubscriptionTier {
+  LIGHT = 'LIGHT',
+  PRO_TRIAL = 'PRO_TRIAL',
+  PRO_LIFETIME = 'PRO_LIFETIME'
+}
+
+export interface UpgradeTask {
+  id: string;
+  description: string;
+  targetCount: number;
+  currentCount: number;
+  completed: boolean;
+  type: 'MISSION' | 'ATTENDANCE' | 'JOURNAL' | 'LOGIN';
+}
+
 export interface UserProfile {
   name: string;
   email: string;
@@ -85,6 +100,9 @@ export interface UserProfile {
   emailVerified: boolean;
   twoFactorEnabled: boolean;
   privacyLevel: 'STANDARD' | 'MAXIMUM' | 'STEALTH';
+  subscriptionTier: SubscriptionTier;
+  trialStartDate?: number;
+  upgradeTasks: UpgradeTask[];
   isSuspended?: boolean;
   isSuspicious: boolean;
   level: number;

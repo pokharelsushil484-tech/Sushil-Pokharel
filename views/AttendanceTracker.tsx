@@ -1,11 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { AttendanceRecord } from '../types';
+import { AttendanceRecord, UserProfile } from '../types';
 import { CheckCircle2, XCircle, Plus, BookOpen, Trash2, TrendingUp, Info, GraduationCap } from 'lucide-react';
 import { storageService } from '../services/storageService';
+import { upgradeService } from '../services/upgradeService';
 
-export const AttendanceTracker: React.FC<{ username: string }> = ({ username }) => {
+interface AttendanceTrackerProps {
+  username: string;
+  user: UserProfile;
+  updateUser: (user: UserProfile) => void;
+}
+
+export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ username, user, updateUser }) => {
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [newSubject, setNewSubject] = useState('');
 
@@ -44,6 +51,9 @@ export const AttendanceTracker: React.FC<{ username: string }> = ({ username }) 
     const stored = await storageService.getData(`architect_data_${username}`);
     await storageService.setData(`architect_data_${username}`, { ...stored, attendance: updated });
     setRecords(updated);
+
+    const updatedUser = await upgradeService.updateTaskProgress(user, username, 'ATTENDANCE');
+    updateUser(updatedUser);
   };
 
   const deleteSubject = async (id: string) => {
