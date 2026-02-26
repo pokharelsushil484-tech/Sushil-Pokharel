@@ -96,7 +96,6 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
             );
           })}
         </nav>
-// ... (rest of the file)
 
         <div className="p-6 border-t border-white/5 space-y-4">
             <button
