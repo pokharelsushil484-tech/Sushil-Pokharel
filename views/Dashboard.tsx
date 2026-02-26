@@ -17,7 +17,8 @@ import {
   LayoutDashboard,
   Calendar,
   BookOpen,
-  MapPin
+  MapPin,
+  Target
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { APP_NAME } from '../constants';
@@ -191,8 +192,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
       </div>
 
       {/* Quick Access Cluster */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
+          { view: View.MISSION_CONTROL, icon: Target, title: "Mission Control", desc: "Strategic Operations Center" },
           { view: View.ACADEMIC_LEDGER, icon: Trophy, title: "Elite Ledger", desc: "Academic Performance Registry" },
           { view: View.CAMPUS_RADAR, icon: MapPin, title: "Campus Radar", desc: "Geospatial Awareness Node" },
           { view: View.FILE_HUB, icon: Database, title: "Secure Vault", desc: "Encrypted Asset Preservation" }

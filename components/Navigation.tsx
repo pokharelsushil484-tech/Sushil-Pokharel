@@ -12,7 +12,8 @@ import {
   Trophy, 
   BookOpen, 
   HeartPulse,
-  Sparkles
+  Sparkles,
+  Target
 } from 'lucide-react';
 import { View } from '../types';
 
@@ -28,6 +29,7 @@ interface NavigationProps {
 export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, isAdmin }) => {
   const navItems = [
     { view: View.DASHBOARD, icon: LayoutGrid, label: 'Dashboard' },
+    { view: View.MISSION_CONTROL, icon: Target, label: 'Missions' },
     { view: View.SECURITY_HEARTBEAT, icon: HeartPulse, label: 'Security' },
     { view: View.GROWTH_JOURNAL, icon: BookOpen, label: 'Journal' },
     { view: View.ACADEMIC_LEDGER, icon: Trophy, label: 'Ledger' },

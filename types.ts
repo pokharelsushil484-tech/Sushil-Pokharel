@@ -14,6 +14,7 @@ export enum View {
   CAMPUS_RADAR = 'CAMPUS_RADAR',
   GROWTH_JOURNAL = 'GROWTH_JOURNAL',
   SECURITY_HEARTBEAT = 'SECURITY_HEARTBEAT',
+  MISSION_CONTROL = 'MISSION_CONTROL',
   ERROR = 'ERROR'
 }
 
@@ -22,6 +23,24 @@ export enum TaskPriority {
   MEDIUM = 'Medium',
   HIGH = 'High',
   URGENT = 'Urgent'
+}
+
+export interface MissionTask {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+export interface Mission {
+  id: string;
+  title: string;
+  description: string;
+  status: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED';
+  deadline: number;
+  progress: number;
+  tasks: MissionTask[];
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  createdAt: number;
 }
 
 export interface GradeRecord {

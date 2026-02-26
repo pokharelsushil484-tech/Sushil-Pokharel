@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Navigation } from '../components/Navigation';
@@ -12,6 +11,7 @@ import { GrowthJournal } from './GrowthJournal';
 import { AcademicLedger } from './AcademicLedger';
 import { AttendanceTracker } from './AttendanceTracker';
 import { CampusRadar } from './CampusRadar';
+import { MissionControl } from './MissionControl';
 import { GlobalLoader } from '../components/GlobalLoader';
 import { SplashScreen } from '../components/SplashScreen';
 import { LinkVerification } from './LinkVerification';
@@ -399,6 +399,7 @@ const App = () => {
                 transition={{ duration: 0.3 }}
               >
                 {view === View.DASHBOARD && <Dashboard user={user} username={activeUser || ''} onNavigate={setView} onLogout={handleLogout} />}
+                {view === View.MISSION_CONTROL && <MissionControl username={activeUser || ''} />}
                 {view === View.FILE_HUB && <Vault user={user} documents={vaultDocs} saveDocuments={setVaultDocs} updateUser={setUser} onNavigate={setView} />}
                 {view === View.SETTINGS && <Settings user={user} resetApp={handleLogout} onLogout={handleLogout} username={activeUser || ''} darkMode={true} toggleDarkMode={() => {}} updateUser={setUser} />}
                 {view === View.SUPPORT && <Support username={activeUser || ''} />}
