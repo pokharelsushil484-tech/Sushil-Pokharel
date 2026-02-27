@@ -17,6 +17,7 @@ import {
   Lock
 } from 'lucide-react';
 import { View, SubscriptionTier } from '../types';
+import { VERSION_BETA, VERSION_PRO } from '../constants';
 
 interface NavigationProps {
   currentView: View;
@@ -46,18 +47,21 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
   }
 
   const isProActive = subscriptionTier !== SubscriptionTier.LIGHT;
+  const versionString = isProActive ? VERSION_PRO : VERSION_BETA;
 
   return (
     <>
       {/* Desktop Sidebar */}
       <div className="hidden md:flex flex-col w-24 lg:w-72 bg-obsidian border-r border-white/5 h-full fixed left-0 top-0 z-[110] transition-all duration-500">
         <div className="p-8 flex items-center gap-4 h-24 border-b border-white/5">
-           <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-black font-display italic font-bold shadow-lg shrink-0">
+           <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-black font-display italic font-bold shadow-lg shrink-0 ${isProActive ? 'bg-amber-400' : 'bg-white'}`}>
               SP
            </div>
            <div className="hidden lg:flex flex-col">
               <span className="text-sm font-display italic font-bold text-white leading-none">Elite Suite</span>
-              <span className="text-[10px] font-medium text-white/20 uppercase tracking-widest mt-1">v2.0 Active</span>
+              <span className={`text-[10px] font-medium uppercase tracking-widest mt-1 ${isProActive ? 'text-amber-400' : 'text-white/20'}`}>
+                {versionString}
+              </span>
            </div>
         </div>
 

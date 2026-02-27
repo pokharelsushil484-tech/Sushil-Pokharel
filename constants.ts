@@ -4,7 +4,9 @@ import { UserProfile, View, SubscriptionTier, UpgradeTask } from './types';
 export const APP_NAME = "STUDENTPOCKET – BY SUSHIL";
 export const APP_TAGLINE = "V2.0 QUANTUM ELITE II";
 export const CREATOR_NAME = "SUSHIL POKHAREL";
-export const APP_VERSION = "V2.0.0 QUANTUM ELITE II (FEB 2026)";
+export const APP_VERSION = "V2.1.0 QUANTUM ELITE II (FEB 2026)";
+export const VERSION_BETA = "V2.1.0-BETA";
+export const VERSION_PRO = "V2.1.0-PRO-FULL";
 export const BUILD_DATE = "FEBRUARY 2026 - 2030 ELITE CYCLE";
 
 export const COPYRIGHT_NOTICE = "© 2024 - 2030 STUDENTPOCKET. ALL RIGHTS RESERVED.";

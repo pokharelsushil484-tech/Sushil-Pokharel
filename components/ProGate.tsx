@@ -24,9 +24,9 @@ export const ProGate: React.FC<ProGateProps> = ({ user, children, onActivateTria
         <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
         
         <Crown size={64} className="mx-auto mb-6 text-amber-400" />
-        <h2 className="text-3xl font-display italic mb-4">Elite Pro Feature</h2>
+        <h2 className="text-3xl font-display italic mb-4">Beta Access Limit</h2>
         <p className="text-white/60 mb-8 max-w-md mx-auto">
-          This module requires Quantum Elite Pro access. Unlock advanced capabilities to maximize your potential.
+          This advanced module is part of the Quantum Elite Pro suite. Your current Beta access is limited to essential features.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

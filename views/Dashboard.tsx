@@ -24,7 +24,7 @@ import {
   Lock
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
-import { APP_NAME } from '../constants';
+import { APP_NAME, VERSION_BETA, VERSION_PRO } from '../constants';
 import { SubscriptionTier } from '../types';
 
 interface DashboardProps {
@@ -38,6 +38,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
   const [rawExpenses, setRawExpenses] = useState<Expense[]>([]);
   const [grades, setGrades] = useState<GradeRecord[]>([]);
   const [broadcast, setBroadcast] = useState<string | null>(null);
+
+  const isPro = user.subscriptionTier !== SubscriptionTier.LIGHT;
+  const versionString = isPro ? VERSION_PRO : VERSION_BETA;
 
   useEffect(() => {
     const fetchFinancials = async () => {
@@ -103,9 +106,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
       <div className="flex flex-col lg:flex-row justify-between items-start gap-12">
           <motion.div variants={item} className="space-y-6 flex-1">
               <div className="flex items-center gap-4">
-                <div className="bg-white/5 border border-white/10 px-4 py-1.5 rounded-full flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-white/60">Node: {username}</span>
+                <div className={`bg-white/5 border border-white/10 px-4 py-1.5 rounded-full flex items-center gap-2 ${isPro ? 'border-amber-500/20 bg-amber-500/5' : ''}`}>
+                    <div className={`w-1.5 h-1.5 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] ${isPro ? 'bg-amber-500 shadow-amber-500/50' : 'bg-emerald-500'}`}></div>
+                    <span className={`text-[10px] font-semibold uppercase tracking-widest ${isPro ? 'text-amber-400' : 'text-white/60'}`}>
+                      {versionString} Active
+                    </span>
                 </div>
                 <div className="bg-white/5 border border-white/10 px-4 py-1.5 rounded-full flex items-center gap-2">
                     <Activity size={12} className="text-white/40" />
@@ -126,9 +131,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
             variants={item}
             className="w-full lg:w-96 glass-card p-8 relative overflow-hidden group"
           >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-white/10 transition-colors"></div>
+              <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 transition-colors ${isPro ? 'bg-amber-500/20' : 'bg-white/5 group-hover:bg-white/10'}`}></div>
               <div className="relative z-10 flex flex-col items-center text-center">
-                  <div className="w-24 h-24 rounded-2xl overflow-hidden border border-white/10 mb-6 shadow-2xl">
+                  <div className={`w-24 h-24 rounded-2xl overflow-hidden border mb-6 shadow-2xl ${isPro ? 'border-amber-500/50 shadow-amber-500/20' : 'border-white/10'}`}>
                       <img 
                         src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} 
                         className="w-full h-full object-cover" 
@@ -149,7 +154,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                       </div>
                       <div className="text-right">
                           <span className="block text-[10px] font-semibold text-white/20 uppercase tracking-widest mb-1">Tier</span>
-                          <span className="text-xs font-medium text-white">Platinum</span>
+                          <span className={`text-xs font-medium ${isPro ? 'text-amber-400' : 'text-white'}`}>
+                            {user.subscriptionTier === SubscriptionTier.PRO_LIFETIME ? 'Quantum Elite' : 
+                             user.subscriptionTier === SubscriptionTier.PRO_TRIAL ? 'Pro Trial' : 'Standard Beta'}
+                          </span>
                       </div>
                   </div>
               </div>
@@ -157,20 +165,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
       </div>
 
       {/* Pro Status Section */}
-      {user.subscriptionTier !== SubscriptionTier.PRO_LIFETIME && (
-        <motion.div variants={item} className="glass-card p-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
+      <motion.div variants={item} className="glass-card p-8 relative overflow-hidden">
+          <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl -mr-32 -mt-32 ${isPro ? 'bg-amber-500/10' : 'bg-white/5'}`}></div>
           
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 relative z-10">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <Crown size={24} className="text-amber-400" />
-                <h2 className="text-2xl font-display italic">Quantum Elite Pro</h2>
+                <Crown size={24} className={isPro ? "text-amber-400" : "text-white/40"} />
+                <h2 className="text-2xl font-display italic">
+                  {user.subscriptionTier === SubscriptionTier.PRO_LIFETIME ? 'Quantum Elite Status' : 'Upgrade Status'}
+                </h2>
               </div>
               <p className="text-white/60 text-sm max-w-xl">
-                {user.subscriptionTier === SubscriptionTier.PRO_TRIAL 
-                  ? "Trial Active. Complete tasks to secure permanent access." 
-                  : "Upgrade to unlock Mission Control, Vault, and Radar."}
+                {user.subscriptionTier === SubscriptionTier.PRO_LIFETIME 
+                  ? "System fully operational. All elite modules active and synchronized."
+                  : user.subscriptionTier === SubscriptionTier.PRO_TRIAL 
+                    ? "Trial Active. Complete tasks to secure permanent access." 
+                    : "Running in Beta Mode. Upgrade to unlock full Quantum Elite capabilities."}
               </p>
             </div>
             
@@ -182,27 +193,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                 </span>
               </div>
             )}
+            
+            {user.subscriptionTier === SubscriptionTier.PRO_LIFETIME && (
+               <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-xl text-right">
+                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest block mb-1">Status</span>
+                <span className="text-xl font-display italic text-white">Lifetime Active</span>
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
-            {user.upgradeTasks.map(task => (
-              <div key={task.id} className={`p-4 rounded-xl border ${task.completed ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-white/5 border-white/10'}`}>
-                <div className="flex justify-between items-start mb-3">
-                  {task.completed ? <CheckCircle2 size={18} className="text-emerald-400" /> : <Lock size={18} className="text-white/20" />}
-                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{task.currentCount}/{task.targetCount}</span>
+          {user.subscriptionTier !== SubscriptionTier.PRO_LIFETIME && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
+              {user.upgradeTasks.map(task => (
+                <div key={task.id} className={`p-4 rounded-xl border ${task.completed ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-white/5 border-white/10'}`}>
+                  <div className="flex justify-between items-start mb-3">
+                    {task.completed ? <CheckCircle2 size={18} className="text-emerald-400" /> : <Lock size={18} className="text-white/20" />}
+                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{task.currentCount}/{task.targetCount}</span>
+                  </div>
+                  <p className="text-xs font-medium text-white/80 mb-2">{task.description}</p>
+                  <div className="w-full bg-white/10 h-1 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full ${task.completed ? 'bg-emerald-500' : 'bg-amber-500'}`} 
+                      style={{ width: `${(task.currentCount / task.targetCount) * 100}%` }}
+                    ></div>
+                  </div>
                 </div>
-                <p className="text-xs font-medium text-white/80 mb-2">{task.description}</p>
-                <div className="w-full bg-white/10 h-1 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full ${task.completed ? 'bg-emerald-500' : 'bg-amber-500'}`} 
-                    style={{ width: `${(task.currentCount / task.targetCount) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      )}
+              ))}
+            </div>
+          )}
+      </motion.div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
