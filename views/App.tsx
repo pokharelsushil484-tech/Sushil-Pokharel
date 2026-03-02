@@ -359,32 +359,38 @@ const App = () => {
     );
   }
 
+  const isPro = user.subscriptionTier !== SubscriptionTier.LIGHT;
+
   return (
-    <div className="min-h-screen bg-obsidian flex flex-col">
+    <div className={`min-h-screen flex flex-col transition-colors duration-500 ${isPro ? 'bg-obsidian bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-950/20 via-obsidian to-obsidian' : 'bg-obsidian'}`}>
       <GlobalLoader isLoading={isLoading} />
       
       <div className="md:ml-24 lg:ml-80 transition-all flex-1 flex flex-col">
-        <header className="bg-obsidian/80 backdrop-blur-xl border-b border-white/5 h-24 flex items-center justify-between px-8 sm:px-12 sticky top-0 z-40">
+        <header className={`backdrop-blur-xl border-b h-24 flex items-center justify-between px-8 sm:px-12 sticky top-0 z-40 transition-colors duration-500 ${
+          isPro ? 'bg-obsidian/80 border-amber-500/10' : 'bg-obsidian/80 border-white/5'
+        }`}>
            <div className="flex items-center space-x-6">
               <motion.div 
                 whileHover={{ scale: 1.05 }}
-                className="p-3 bg-white rounded-xl text-black shadow-lg"
+                className={`p-3 rounded-xl shadow-lg transition-colors ${isPro ? 'bg-amber-400 text-black' : 'bg-white text-black'}`}
               >
-                <ShieldCheck size={24} />
+                {isPro ? <Crown size={24} /> : <ShieldCheck size={24} />}
               </motion.div>
               <div className="text-left">
-                  <h1 className="text-lg font-display italic leading-none">{APP_NAME}</h1>
-                  <p className="text-[10px] font-medium text-white/40 uppercase tracking-widest mt-1">Elite Mesh Active</p>
+                  <h1 className={`text-lg font-display italic leading-none ${isPro ? 'text-amber-100' : 'text-white'}`}>{APP_NAME}</h1>
+                  <p className={`text-[10px] font-medium uppercase tracking-widest mt-1 ${isPro ? 'text-amber-500/60' : 'text-white/40'}`}>
+                    {isPro ? 'Quantum Mesh Active' : 'Elite Mesh Active'}
+                  </p>
               </div>
            </div>
 
            <div className="flex items-center space-x-6">
               <div className="text-right hidden sm:block">
                   <div className="flex items-center justify-end gap-2">
-                     {user.isVerified && <Sparkles size={14} className="text-white animate-pulse" />}
-                     <p className="text-sm font-medium text-white leading-none">{user.name}</p>
+                     {user.isVerified && <Sparkles size={14} className={`animate-pulse ${isPro ? 'text-amber-400' : 'text-white'}`} />}
+                     <p className={`text-sm font-medium leading-none ${isPro ? 'text-amber-100' : 'text-white'}`}>{user.name}</p>
                   </div>
-                  <p className="text-[10px] font-medium text-white/20 mt-1 uppercase tracking-widest">
+                  <p className={`text-[10px] font-medium mt-1 uppercase tracking-widest ${isPro ? 'text-amber-500/60' : 'text-white/20'}`}>
                     {user.isVerified ? 'Quantum Elite' : 'Pending Verification'}
                   </p>
               </div>
@@ -392,12 +398,16 @@ const App = () => {
               <div className="flex items-center gap-3">
                 <button 
                   onClick={handleLogout}
-                  className="p-3 bg-white/5 hover:bg-red-500/10 rounded-xl transition-all border border-white/5 group"
+                  className={`p-3 rounded-xl transition-all border group ${
+                    isPro 
+                      ? 'bg-amber-950/20 border-amber-500/20 hover:bg-red-500/10 hover:border-red-500/30' 
+                      : 'bg-white/5 border-white/5 hover:bg-red-500/10'
+                  }`}
                   title="Terminate Session"
                 >
-                    <LogOut size={18} className="text-white/40 group-hover:text-red-500" />
+                    <LogOut size={18} className={`group-hover:text-red-500 ${isPro ? 'text-amber-500/40' : 'text-white/40'}`} />
                 </button>
-                <div className="w-12 h-12 rounded-xl border border-white/10 overflow-hidden shadow-xl">
+                <div className={`w-12 h-12 rounded-xl border overflow-hidden shadow-xl ${isPro ? 'border-amber-500/20 shadow-amber-500/10' : 'border-white/10'}`}>
                   <img 
                     src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} 
                     className="w-full h-full object-cover" 
@@ -429,7 +439,7 @@ const App = () => {
                   </ProGate>
                 )}
                 {view === View.SETTINGS && <Settings user={user} resetApp={handleLogout} onLogout={handleLogout} username={activeUser || ''} darkMode={true} toggleDarkMode={() => {}} updateUser={setUser} />}
-                {view === View.SUPPORT && <Support username={activeUser || ''} />}
+                {view === View.SUPPORT && <Support username={activeUser || ''} user={user} />}
                 {view === View.ADMIN_DASHBOARD && <AdminDashboard onNavigate={setView} />}
                 {view === View.SECURITY_HEARTBEAT && (
                   <ProGate user={user} onActivateTrial={handleActivateTrial}>
@@ -437,7 +447,7 @@ const App = () => {
                   </ProGate>
                 )}
                 {view === View.GROWTH_JOURNAL && <GrowthJournal username={activeUser || ''} user={user} updateUser={setUser} />}
-                {view === View.ACADEMIC_LEDGER && <AcademicLedger username={activeUser || ''} />}
+                {view === View.ACADEMIC_LEDGER && <AcademicLedger username={activeUser || ''} user={user} />}
                 {view === View.ATTENDANCE_TRACKER && <AttendanceTracker username={activeUser || ''} user={user} updateUser={setUser} />}
                 {view === View.CAMPUS_RADAR && (
                   <ProGate user={user} onActivateTrial={handleActivateTrial}>

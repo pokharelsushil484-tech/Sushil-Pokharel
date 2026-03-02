@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ShieldCheck, Activity, Lock, RefreshCw, Cpu, Server, Eye, AlertCircle } from 'lucide-react';
@@ -35,30 +34,30 @@ export const SecurityHeartbeat: React.FC = () => {
       animate="show"
       className="space-y-10 pb-24 max-w-4xl mx-auto"
     >
-      <motion.div variants={item} className="glass-card p-12 relative overflow-hidden">
+      <motion.div variants={item} className="glass-card p-12 relative overflow-hidden border-amber-500/20">
         <div className="absolute top-0 right-0 p-8 opacity-5">
-            <ShieldCheck size={120} className="text-white" />
+            <ShieldCheck size={120} className="text-amber-500" />
         </div>
         
         <div className="flex items-center gap-6 mb-12">
-            <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-white border border-white/10 shadow-2xl">
-                <Activity size={32} className="animate-pulse text-emerald-400" />
+            <div className="w-16 h-16 bg-amber-950/20 rounded-2xl flex items-center justify-center text-amber-500 border border-amber-500/20 shadow-2xl shadow-amber-500/10">
+                <Activity size={32} className="animate-pulse text-amber-400" />
             </div>
             <div>
-                <h1 className="text-3xl font-display italic tracking-tight text-white leading-none">Mesh Heartbeat</h1>
-                <p className="text-[10px] text-indigo-400 font-semibold uppercase tracking-widest mt-2">Active Security Monitor</p>
+                <h1 className="text-3xl font-display italic tracking-tight text-amber-100 leading-none">Mesh Heartbeat</h1>
+                <p className="text-[10px] text-amber-500/60 font-semibold uppercase tracking-widest mt-2">Active Security Monitor</p>
             </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div className="space-y-8">
-                <div className="bg-black/40 p-8 rounded-3xl border border-white/5 space-y-4">
-                    <span className="text-[9px] font-semibold text-white/40 uppercase tracking-widest">Mesh Integrity Status</span>
+                <div className="bg-black/40 p-8 rounded-3xl border border-amber-500/10 space-y-4">
+                    <span className="text-[9px] font-semibold text-amber-500/40 uppercase tracking-widest">Mesh Integrity Status</span>
                     <div className="flex items-baseline gap-4">
                         <span className="text-5xl font-display italic text-emerald-400">{integrity}%</span>
-                        <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Optimal Node Sync</span>
+                        <span className="text-[10px] font-bold text-amber-100/60 uppercase tracking-widest">Optimal Node Sync</span>
                     </div>
-                    <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                    <div className="w-full bg-amber-950/20 h-1 rounded-full overflow-hidden">
                         <motion.div 
                             initial={{ width: 0 }}
                             animate={{ width: `${integrity}%` }}
@@ -71,7 +70,7 @@ export const SecurityHeartbeat: React.FC = () => {
                 <button 
                     onClick={startScan} 
                     disabled={scanning}
-                    className="btn-premium w-full py-6 text-xs flex items-center justify-center gap-4"
+                    className="w-full py-6 text-xs flex items-center justify-center gap-4 bg-amber-500 text-black font-bold uppercase tracking-widest rounded-xl hover:bg-amber-400 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {scanning ? <RefreshCw className="animate-spin" size={20}/> : <Lock size={20}/>}
                     {scanning ? 'Initiating Deep Sync...' : 'Trigger Security Scan'}
@@ -79,12 +78,12 @@ export const SecurityHeartbeat: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-                <div className="h-full bg-indigo-500/5 border border-indigo-500/10 rounded-3xl p-8 relative">
-                    <h3 className="text-[10px] font-semibold text-white uppercase tracking-widest mb-6 border-b border-white/5 pb-4">Live Threat Map</h3>
+                <div className="h-full bg-amber-500/5 border border-amber-500/10 rounded-3xl p-8 relative">
+                    <h3 className="text-[10px] font-semibold text-amber-100 uppercase tracking-widest mb-6 border-b border-amber-500/10 pb-4">Live Threat Map</h3>
                     <div className="space-y-4">
                         {[1,2,3].map(i => (
                             <div key={i} className="flex items-center justify-between text-[9px] font-mono">
-                                <span className="text-white/40">AUTH_RELAY_{i}</span>
+                                <span className="text-amber-500/40">AUTH_RELAY_{i}</span>
                                 <span className="text-emerald-400">ENCRYPTED</span>
                             </div>
                         ))}
@@ -101,20 +100,20 @@ export const SecurityHeartbeat: React.FC = () => {
       </motion.div>
 
       <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="glass-card p-8 flex flex-col items-center text-center hover:bg-white/5 transition-colors">
-              <Cpu size={24} className="text-indigo-400 mb-4" />
-              <h4 className="text-[10px] font-bold text-white uppercase tracking-widest mb-2">Neural Logic</h4>
-              <p className="text-[9px] text-white/40 uppercase">Process Guard</p>
+          <div className="glass-card p-8 flex flex-col items-center text-center hover:bg-amber-500/5 transition-colors border-amber-500/10">
+              <Cpu size={24} className="text-amber-400 mb-4" />
+              <h4 className="text-[10px] font-bold text-amber-100 uppercase tracking-widest mb-2">Neural Logic</h4>
+              <p className="text-[9px] text-amber-500/40 uppercase">Process Guard</p>
           </div>
-          <div className="glass-card p-8 flex flex-col items-center text-center hover:bg-white/5 transition-colors">
-              <Server size={24} className="text-indigo-400 mb-4" />
-              <h4 className="text-[10px] font-bold text-white uppercase tracking-widest mb-2">Data Sovereignty</h4>
-              <p className="text-[9px] text-white/40 uppercase">Archive Shield</p>
+          <div className="glass-card p-8 flex flex-col items-center text-center hover:bg-amber-500/5 transition-colors border-amber-500/10">
+              <Server size={24} className="text-amber-400 mb-4" />
+              <h4 className="text-[10px] font-bold text-amber-100 uppercase tracking-widest mb-2">Data Sovereignty</h4>
+              <p className="text-[9px] text-amber-500/40 uppercase">Archive Shield</p>
           </div>
-          <div className="glass-card p-8 flex flex-col items-center text-center hover:bg-white/5 transition-colors">
-              <Eye size={24} className="text-indigo-400 mb-4" />
-              <h4 className="text-[10px] font-bold text-white uppercase tracking-widest mb-2">Stealth Mesh</h4>
-              <p className="text-[9px] text-white/40 uppercase">Privacy Mask</p>
+          <div className="glass-card p-8 flex flex-col items-center text-center hover:bg-amber-500/5 transition-colors border-amber-500/10">
+              <Eye size={24} className="text-amber-400 mb-4" />
+              <h4 className="text-[10px] font-bold text-amber-100 uppercase tracking-widest mb-2">Stealth Mesh</h4>
+              <p className="text-[9px] text-amber-500/40 uppercase">Privacy Mask</p>
           </div>
       </motion.div>
     </motion.div>

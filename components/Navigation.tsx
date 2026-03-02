@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion } from 'motion/react';
 import { 
@@ -76,7 +75,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
                 onClick={() => setView(item.view)}
                 className={`group flex items-center w-full p-3 rounded-xl transition-all duration-300 ${
                   isActive 
-                  ? 'bg-white text-black shadow-xl' 
+                  ? (isProActive ? 'bg-amber-500 text-black shadow-xl shadow-amber-500/20' : 'bg-white text-black shadow-xl')
                   : 'text-white/40 hover:text-white hover:bg-white/5'
                 }`}
               >
@@ -105,7 +104,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
             <button
                 onClick={() => setView(View.SETTINGS)}
                 className={`w-full flex items-center p-3 rounded-xl transition-all group ${
-                    currentView === View.SETTINGS ? 'bg-white/10 text-white' : 'text-white/20 hover:text-white'
+                    currentView === View.SETTINGS ? (isProActive ? 'bg-amber-500/10 text-amber-400' : 'bg-white/10 text-white') : 'text-white/20 hover:text-white'
                 }`}
             >
                 <Settings size={20} className="group-hover:rotate-90 transition-transform duration-500" />
@@ -129,7 +128,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
                   key={item.view}
                   onClick={() => setView(item.view)}
                   className={`p-3 rounded-2xl transition-all duration-300 flex items-center justify-center relative ${
-                    isActive ? 'bg-white text-black shadow-lg -translate-y-2' : 'text-white/40'
+                    isActive ? (isProActive ? 'bg-amber-500 text-black shadow-lg -translate-y-2' : 'bg-white text-black shadow-lg -translate-y-2') : 'text-white/40'
                   }`}
                 >
                   <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
@@ -139,7 +138,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
             <button
                   onClick={() => setView(View.SETTINGS)}
                   className={`p-3 rounded-2xl transition-all duration-300 flex items-center justify-center relative ${
-                    currentView === View.SETTINGS ? 'bg-white text-black shadow-lg -translate-y-2' : 'text-white/40'
+                    currentView === View.SETTINGS ? (isProActive ? 'bg-amber-500 text-black shadow-lg -translate-y-2' : 'bg-white text-black shadow-lg -translate-y-2') : 'text-white/40'
                   }`}
                 >
                   <Settings size={20} />
@@ -150,4 +149,3 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
     </>
   );
 };
-

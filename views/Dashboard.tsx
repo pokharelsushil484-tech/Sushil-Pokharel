@@ -225,7 +225,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <motion.div variants={item} className="glass-card p-8 bg-white text-black border-none group hover:scale-[1.02] transition-transform">
+          <motion.div 
+            variants={item} 
+            className={`glass-card p-8 border-none group hover:scale-[1.02] transition-transform ${
+              isPro ? 'bg-amber-400 text-black' : 'bg-white text-black'
+            }`}
+          >
               <div className="flex justify-between items-start mb-8">
                   <Wallet size={24} />
                   <Sparkles size={16} className="opacity-20" />
@@ -234,58 +239,101 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
               <h3 className="text-3xl font-display italic tracking-tight">NPR {financials.balance.toLocaleString()}</h3>
           </motion.div>
 
-          <motion.div variants={item} className="glass-card p-8 hover:bg-white/10 transition-colors">
+          <motion.div 
+            variants={item} 
+            className={`glass-card p-8 transition-colors ${
+              isPro ? 'bg-amber-950/20 border-amber-500/20 hover:bg-amber-900/20' : 'hover:bg-white/10'
+            }`}
+          >
               <div className="flex justify-between items-start mb-8">
                   <ArrowUpRight size={24} className="text-emerald-400" />
-                  <span className="text-[10px] font-semibold uppercase tracking-widest text-white/20">Income</span>
+                  <span className={`text-[10px] font-semibold uppercase tracking-widest ${isPro ? 'text-amber-400/60' : 'text-white/20'}`}>Income</span>
               </div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest mb-1 text-white/40">Total Inflow</p>
-              <h3 className="text-3xl font-display italic tracking-tight">+{financials.income.toLocaleString()}</h3>
+              <p className={`text-[10px] font-semibold uppercase tracking-widest mb-1 ${isPro ? 'text-amber-100/40' : 'text-white/40'}`}>Total Inflow</p>
+              <h3 className={`text-3xl font-display italic tracking-tight ${isPro ? 'text-amber-100' : 'text-white'}`}>+{financials.income.toLocaleString()}</h3>
           </motion.div>
 
-          <motion.div variants={item} className="glass-card p-8 hover:bg-white/10 transition-colors">
+          <motion.div 
+            variants={item} 
+            className={`glass-card p-8 transition-colors ${
+              isPro ? 'bg-amber-950/20 border-amber-500/20 hover:bg-amber-900/20' : 'hover:bg-white/10'
+            }`}
+          >
               <div className="flex justify-between items-start mb-8">
-                  <TrendingUp size={24} className="text-white" />
-                  <span className="text-[10px] font-semibold uppercase tracking-widest text-white/20">Academic</span>
+                  <TrendingUp size={24} className={isPro ? "text-amber-400" : "text-white"} />
+                  <span className={`text-[10px] font-semibold uppercase tracking-widest ${isPro ? 'text-amber-400/60' : 'text-white/20'}`}>Academic</span>
               </div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest mb-1 text-white/40">Performance</p>
-              <h3 className="text-3xl font-display italic tracking-tight">{avgPercentage.toFixed(1)}%</h3>
+              <p className={`text-[10px] font-semibold uppercase tracking-widest mb-1 ${isPro ? 'text-amber-100/40' : 'text-white/40'}`}>Performance</p>
+              <h3 className={`text-3xl font-display italic tracking-tight ${isPro ? 'text-amber-100' : 'text-white'}`}>{avgPercentage.toFixed(1)}%</h3>
           </motion.div>
 
-          <motion.div variants={item} className="glass-card p-8 hover:bg-white/10 transition-colors">
+          <motion.div 
+            variants={item} 
+            className={`glass-card p-8 transition-colors ${
+              isPro ? 'bg-amber-950/20 border-amber-500/20 hover:bg-amber-900/20' : 'hover:bg-white/10'
+            }`}
+          >
               <div className="flex justify-between items-start mb-8">
                   <TrendingDown size={24} className="text-red-400" />
-                  <span className="text-[10px] font-semibold uppercase tracking-widest text-white/20">Expenses</span>
+                  <span className={`text-[10px] font-semibold uppercase tracking-widest ${isPro ? 'text-amber-400/60' : 'text-white/20'}`}>Expenses</span>
               </div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest mb-1 text-white/40">Total Outflow</p>
-              <h3 className="text-3xl font-display italic tracking-tight">-{financials.expense.toLocaleString()}</h3>
+              <p className={`text-[10px] font-semibold uppercase tracking-widest mb-1 ${isPro ? 'text-amber-100/40' : 'text-white/40'}`}>Total Outflow</p>
+              <h3 className={`text-3xl font-display italic tracking-tight ${isPro ? 'text-amber-100' : 'text-white'}`}>-{financials.expense.toLocaleString()}</h3>
           </motion.div>
       </div>
 
       {/* Quick Access Cluster */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { view: View.MISSION_CONTROL, icon: Target, title: "Mission Control", desc: "Strategic Operations Center" },
-          { view: View.ACADEMIC_LEDGER, icon: Trophy, title: "Elite Ledger", desc: "Academic Performance Registry" },
-          { view: View.CAMPUS_RADAR, icon: MapPin, title: "Campus Radar", desc: "Geospatial Awareness Node" },
-          { view: View.FILE_HUB, icon: Database, title: "Secure Vault", desc: "Encrypted Asset Preservation" }
-        ].map((card, idx) => (
-          <motion.div 
-            key={idx}
-            variants={item}
-            onClick={() => onNavigate(card.view)}
-            className="glass-card p-10 group cursor-pointer hover:bg-white/10 transition-all border-white/5"
-          >
-              <div className="flex justify-between items-center mb-12">
-                <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white group-hover:text-black transition-all">
-                  <card.icon size={28} />
+          { view: View.MISSION_CONTROL, icon: Target, title: "Mission Control", desc: "Strategic Operations Center", isProFeature: true },
+          { view: View.ACADEMIC_LEDGER, icon: Trophy, title: "Elite Ledger", desc: "Academic Performance Registry", isProFeature: false },
+          { view: View.CAMPUS_RADAR, icon: MapPin, title: "Campus Radar", desc: "Geospatial Awareness Node", isProFeature: true },
+          { view: View.FILE_HUB, icon: Database, title: "Secure Vault", desc: "Encrypted Asset Preservation", isProFeature: true }
+        ].map((card, idx) => {
+          const isLocked = card.isProFeature && !isPro;
+          
+          return (
+            <motion.div 
+              key={idx}
+              variants={item}
+              onClick={() => !isLocked && onNavigate(card.view)}
+              className={`glass-card p-10 group transition-all border relative overflow-hidden ${
+                isLocked 
+                  ? 'opacity-60 cursor-not-allowed bg-white/5 border-white/5' 
+                  : isPro 
+                    ? 'cursor-pointer bg-amber-950/10 border-amber-500/10 hover:bg-amber-900/20 hover:border-amber-500/30' 
+                    : 'cursor-pointer hover:bg-white/10 border-white/5'
+              }`}
+            >
+                {isPro && !isLocked && <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>}
+                
+                <div className="flex justify-between items-center mb-12 relative z-10">
+                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center border transition-all ${
+                    isLocked
+                      ? 'bg-white/5 text-white/20 border-white/5'
+                      : isPro
+                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 group-hover:bg-amber-400 group-hover:text-black'
+                        : 'bg-white/5 text-white border-white/10 group-hover:bg-white group-hover:text-black'
+                  }`}>
+                    {isLocked ? <Lock size={28} /> : <card.icon size={28} />}
+                  </div>
+                  {!isLocked && <ChevronRight size={24} className={`transition-colors ${isPro ? 'text-amber-500/40 group-hover:text-amber-400' : 'text-white/10 group-hover:text-white'}`} />}
                 </div>
-                <ChevronRight size={24} className="text-white/10 group-hover:text-white transition-colors" />
-              </div>
-              <h3 className="text-2xl font-display italic mb-2">{card.title}</h3>
-              <p className="text-[10px] text-white/40 font-semibold uppercase tracking-widest">{card.desc}</p>
-          </motion.div>
-        ))}
+                
+                <div className="relative z-10">
+                  <h3 className={`text-2xl font-display italic mb-2 ${isPro && !isLocked ? 'text-amber-100' : 'text-white'}`}>
+                    {card.title}
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    {isLocked && <span className="text-[9px] font-bold bg-white/10 px-2 py-0.5 rounded text-white/40 uppercase tracking-widest">Locked</span>}
+                    <p className={`text-[10px] font-semibold uppercase tracking-widest ${isPro && !isLocked ? 'text-amber-200/40' : 'text-white/40'}`}>
+                      {card.desc}
+                    </p>
+                  </div>
+                </div>
+            </motion.div>
+          );
+        })}
       </div>
       
       <style>{`

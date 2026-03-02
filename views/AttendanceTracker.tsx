@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { AttendanceRecord, UserProfile } from '../types';
+import { AttendanceRecord, UserProfile, SubscriptionTier } from '../types';
 import { CheckCircle2, XCircle, Plus, BookOpen, Trash2, TrendingUp, Info, GraduationCap } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { upgradeService } from '../services/upgradeService';
@@ -15,6 +14,8 @@ interface AttendanceTrackerProps {
 export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ username, user, updateUser }) => {
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [newSubject, setNewSubject] = useState('');
+
+  const isPro = user.subscriptionTier !== SubscriptionTier.LIGHT;
 
   useEffect(() => {
     loadRecords();
@@ -84,20 +85,20 @@ export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ username, 
       animate="show"
       className="space-y-10 pb-24"
     >
-      <motion.div variants={item} className="flex flex-col sm:flex-row justify-between items-center gap-6 glass-card p-8">
+      <motion.div variants={item} className={`flex flex-col sm:flex-row justify-between items-center gap-6 glass-card p-8 ${isPro ? 'border-amber-500/20' : ''}`}>
         <div>
-          <h1 className="text-3xl font-display italic tracking-tight text-white">Presence Hub</h1>
-          <p className="text-[10px] text-indigo-400 font-semibold uppercase tracking-widest mt-1">Institutional Attendance Sync</p>
+          <h1 className={`text-3xl font-display italic tracking-tight ${isPro ? 'text-amber-100' : 'text-white'}`}>Presence Hub</h1>
+          <p className={`text-[10px] font-semibold uppercase tracking-widest mt-1 ${isPro ? 'text-amber-500/60' : 'text-indigo-400'}`}>Institutional Attendance Sync</p>
         </div>
-        <div className="flex bg-white/5 p-2 rounded-xl border border-white/10 w-full sm:w-auto">
+        <div className={`flex p-2 rounded-xl border w-full sm:w-auto ${isPro ? 'bg-amber-950/20 border-amber-500/20' : 'bg-white/5 border-white/10'}`}>
           <input 
             type="text" 
             value={newSubject}
             onChange={e => setNewSubject(e.target.value)}
-            className="bg-transparent px-4 py-2 text-xs font-medium text-white outline-none placeholder:text-white/20 min-w-0 flex-1"
+            className={`bg-transparent px-4 py-2 text-xs font-medium outline-none min-w-0 flex-1 ${isPro ? 'text-amber-100 placeholder:text-amber-500/20' : 'text-white placeholder:text-white/20'}`}
             placeholder="Add subject node..."
           />
-          <button onClick={addSubject} className="p-2 bg-white text-black rounded-lg hover:bg-white/90 transition-all">
+          <button onClick={addSubject} className={`p-2 rounded-lg transition-all ${isPro ? 'bg-amber-500 text-black hover:bg-amber-400' : 'bg-white text-black hover:bg-white/90'}`}>
             <Plus size={16} />
           </button>
         </div>
@@ -114,39 +115,39 @@ export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ username, 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="glass-card p-8 group hover:border-indigo-500/30 transition-all"
+                className={`glass-card p-8 group transition-all ${isPro ? 'hover:border-amber-500/30 border-amber-500/10' : 'hover:border-indigo-500/30'}`}
               >
                 <div className="flex justify-between items-start mb-8">
-                  <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-indigo-400 border border-white/5">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${isPro ? 'bg-amber-950/20 text-amber-400 border-amber-500/20' : 'bg-white/5 text-indigo-400 border-white/5'}`}>
                     <GraduationCap size={20} />
                   </div>
                   <div className="text-right">
-                    <span className="block text-[8px] font-semibold text-white/40 uppercase tracking-widest">Score Rate</span>
-                    <span className={`text-3xl font-display italic ${percent < 75 ? 'text-red-400' : 'text-white'}`}>{percent.toFixed(0)}%</span>
+                    <span className={`block text-[8px] font-semibold uppercase tracking-widest ${isPro ? 'text-amber-500/40' : 'text-white/40'}`}>Score Rate</span>
+                    <span className={`text-3xl font-display italic ${percent < 75 ? 'text-red-400' : (isPro ? 'text-amber-100' : 'text-white')}`}>{percent.toFixed(0)}%</span>
                   </div>
                 </div>
 
-                <h3 className="text-lg font-display italic text-white tracking-tight mb-8 truncate">{record.subject}</h3>
+                <h3 className={`text-lg font-display italic tracking-tight mb-8 truncate ${isPro ? 'text-amber-100' : 'text-white'}`}>{record.subject}</h3>
 
                 <div className="grid grid-cols-2 gap-4 mb-8">
                   <button 
                     onClick={() => updateAttendance(record.id, 'present')}
-                    className="flex flex-col items-center p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20 hover:bg-emerald-500/20 transition-all group/btn"
+                    className={`flex flex-col items-center p-4 rounded-xl border transition-all group/btn ${isPro ? 'bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20'}`}
                   >
                     <span className="text-[8px] font-bold text-emerald-400 uppercase mb-2">Present</span>
-                    <span className="text-xl font-display italic text-white group-hover/btn:scale-110 transition-transform">{record.present}</span>
+                    <span className={`text-xl font-display italic group-hover/btn:scale-110 transition-transform ${isPro ? 'text-amber-100' : 'text-white'}`}>{record.present}</span>
                   </button>
                   <button 
                     onClick={() => updateAttendance(record.id, 'absent')}
-                    className="flex flex-col items-center p-4 bg-red-500/10 rounded-xl border border-red-500/20 hover:bg-red-500/20 transition-all group/btn"
+                    className={`flex flex-col items-center p-4 rounded-xl border transition-all group/btn ${isPro ? 'bg-red-500/10 border-red-500/20 hover:bg-red-500/20' : 'bg-red-500/10 border-red-500/20 hover:bg-red-500/20'}`}
                   >
                     <span className="text-[8px] font-bold text-red-400 uppercase mb-2">Absent</span>
-                    <span className="text-xl font-display italic text-white group-hover/btn:scale-110 transition-transform">{record.absent}</span>
+                    <span className={`text-xl font-display italic group-hover/btn:scale-110 transition-transform ${isPro ? 'text-amber-100' : 'text-white'}`}>{record.absent}</span>
                   </button>
                 </div>
 
-                <div className="flex justify-between items-center pt-6 border-t border-white/5">
-                  <div className="flex items-center gap-2 text-white/40">
+                <div className={`flex justify-between items-center pt-6 border-t ${isPro ? 'border-amber-500/10' : 'border-white/5'}`}>
+                  <div className={`flex items-center gap-2 ${isPro ? 'text-amber-500/40' : 'text-white/40'}`}>
                     <TrendingUp size={12} />
                     <span className="text-[9px] font-semibold uppercase tracking-widest">{total} Sessions Logged</span>
                   </div>

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { JournalEntry, UserProfile } from '../types';
+import { JournalEntry, UserProfile, SubscriptionTier } from '../types';
 import { BookOpen, Plus, Sparkles, Trash2, Calendar, Save, X, Smile, Target, CloudRain, PenTool } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { upgradeService } from '../services/upgradeService';
@@ -16,6 +16,8 @@ export const GrowthJournal: React.FC<GrowthJournalProps> = ({ username, user, up
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newEntry, setNewEntry] = useState({ title: '', content: '', mood: 'SMILE' });
+
+  const isPro = user.subscriptionTier !== SubscriptionTier.LIGHT;
 
   useEffect(() => { loadEntries(); }, [username]);
 
@@ -69,14 +71,14 @@ export const GrowthJournal: React.FC<GrowthJournalProps> = ({ username, user, up
       animate="show"
       className="space-y-10 pb-24 max-w-4xl mx-auto"
     >
-      <motion.div variants={item} className="flex justify-between items-center glass-card p-10">
+      <motion.div variants={item} className={`glass-card p-10 flex justify-between items-center ${isPro ? 'border-amber-500/20' : ''}`}>
         <div>
-            <h1 className="text-3xl font-display italic tracking-tight text-white">Growth Journal</h1>
-            <p className="text-[10px] text-indigo-400 font-semibold uppercase tracking-widest mt-2">Mindset & Soft Skills Mesh</p>
+            <h1 className={`text-3xl font-display italic tracking-tight ${isPro ? 'text-amber-100' : 'text-white'}`}>Growth Journal</h1>
+            <p className={`text-[10px] font-semibold uppercase tracking-widest mt-2 ${isPro ? 'text-amber-500/60' : 'text-indigo-400'}`}>Mindset & Soft Skills Mesh</p>
         </div>
         <button 
             onClick={() => setShowAdd(true)} 
-            className="btn-premium w-14 h-14 rounded-2xl flex items-center justify-center"
+            className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-lg ${isPro ? 'bg-amber-500 text-black hover:bg-amber-400' : 'bg-white text-black hover:bg-white/90'}`}
         >
             <Plus size={24} />
         </button>
@@ -85,8 +87,8 @@ export const GrowthJournal: React.FC<GrowthJournalProps> = ({ username, user, up
       <motion.div variants={item} className="grid grid-cols-1 gap-6">
         {entries.length === 0 && (
             <div className="py-40 text-center opacity-30 flex flex-col items-center">
-                <BookOpen size={64} className="mb-6 text-white" />
-                <p className="text-xs font-semibold uppercase tracking-widest text-white/60">No reflections logged today</p>
+                <BookOpen size={64} className={isPro ? "mb-6 text-amber-100" : "mb-6 text-white"} />
+                <p className={`text-xs font-semibold uppercase tracking-widest ${isPro ? 'text-amber-100/60' : 'text-white/60'}`}>No reflections logged today</p>
             </div>
         )}
         <AnimatePresence>
@@ -96,16 +98,16 @@ export const GrowthJournal: React.FC<GrowthJournalProps> = ({ username, user, up
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="glass-card p-10 hover:border-indigo-500/30 transition-all group"
+                    className={`glass-card p-10 transition-all group ${isPro ? 'hover:border-amber-500/30 border-amber-500/10' : 'hover:border-indigo-500/30'}`}
                 >
                     <div className="flex justify-between items-start mb-6">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-white/5 rounded-xl text-indigo-400 border border-white/5">
+                            <div className={`p-3 rounded-xl border ${isPro ? 'bg-amber-950/20 text-amber-400 border-amber-500/20' : 'bg-white/5 text-indigo-400 border-white/5'}`}>
                                 {entry.mood === 'SMILE' ? <Smile size={20}/> : entry.mood === 'RAIN' ? <CloudRain size={20}/> : <Target size={20}/>}
                             </div>
                             <div>
-                                <h3 className="text-xl font-display italic text-white tracking-tight">{entry.title || 'Daily Reflection'}</h3>
-                                <div className="flex items-center gap-2 text-white/40 text-[10px] font-semibold uppercase tracking-widest mt-1">
+                                <h3 className={`text-xl font-display italic tracking-tight ${isPro ? 'text-amber-100' : 'text-white'}`}>{entry.title || 'Daily Reflection'}</h3>
+                                <div className={`flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest mt-1 ${isPro ? 'text-amber-500/40' : 'text-white/40'}`}>
                                     <Calendar size={12} />
                                     {new Date(entry.timestamp).toLocaleDateString()}
                                 </div>
@@ -115,7 +117,7 @@ export const GrowthJournal: React.FC<GrowthJournalProps> = ({ username, user, up
                             <Trash2 size={18} />
                         </button>
                     </div>
-                    <p className="text-sm text-white/80 leading-relaxed font-medium whitespace-pre-wrap">{entry.content}</p>
+                    <p className={`text-sm leading-relaxed font-medium whitespace-pre-wrap ${isPro ? 'text-amber-100/80' : 'text-white/80'}`}>{entry.content}</p>
                 </motion.div>
             ))}
         </AnimatePresence>
@@ -133,10 +135,10 @@ export const GrowthJournal: React.FC<GrowthJournalProps> = ({ username, user, up
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.95, opacity: 0 }}
-                    className="glass-card w-full max-w-2xl p-12 space-y-8 shadow-2xl"
+                    className={`glass-card w-full max-w-2xl p-12 space-y-8 shadow-2xl ${isPro ? 'border-amber-500/20' : ''}`}
                 >
                     <div className="flex justify-between items-center">
-                        <h2 className="text-2xl font-display italic text-white">Capture Moment</h2>
+                        <h2 className={`text-2xl font-display italic ${isPro ? 'text-amber-100' : 'text-white'}`}>Capture Moment</h2>
                         <button onClick={() => setShowAdd(false)} className="text-white/40 hover:text-white transition-colors"><X size={24}/></button>
                     </div>
                     <div className="space-y-6">
@@ -146,7 +148,7 @@ export const GrowthJournal: React.FC<GrowthJournalProps> = ({ username, user, up
                                 type="text" 
                                 value={newEntry.title}
                                 onChange={e => setNewEntry({...newEntry, title: e.target.value})}
-                                className="w-full bg-white/5 border border-white/10 p-5 pl-12 rounded-2xl text-white font-medium text-sm outline-none focus:border-white/20 placeholder:text-white/20 transition-all"
+                                className={`w-full p-5 pl-12 rounded-2xl font-medium text-sm outline-none transition-all ${isPro ? 'bg-amber-950/20 border-amber-500/20 text-amber-100 focus:border-amber-500/40 placeholder:text-amber-500/20' : 'bg-white/5 border-white/10 text-white focus:border-white/20 placeholder:text-white/20'}`}
                                 placeholder="Entry title identifier..."
                             />
                         </div>
@@ -155,7 +157,7 @@ export const GrowthJournal: React.FC<GrowthJournalProps> = ({ username, user, up
                                 <button 
                                     key={m} 
                                     onClick={() => setNewEntry({...newEntry, mood: m})}
-                                    className={`flex-1 py-4 rounded-xl border transition-all ${newEntry.mood === m ? 'bg-white text-black border-white shadow-xl' : 'bg-white/5 text-white/40 border-white/5 hover:bg-white/10'}`}
+                                    className={`flex-1 py-4 rounded-xl border transition-all ${newEntry.mood === m ? (isPro ? 'bg-amber-500 text-black border-amber-500 shadow-xl' : 'bg-white text-black border-white shadow-xl') : (isPro ? 'bg-amber-950/10 text-amber-500/40 border-amber-500/10 hover:bg-amber-950/20' : 'bg-white/5 text-white/40 border-white/5 hover:bg-white/10')}`}
                                 >
                                     <span className="text-[10px] font-bold uppercase tracking-widest">{m}</span>
                                 </button>
@@ -165,10 +167,10 @@ export const GrowthJournal: React.FC<GrowthJournalProps> = ({ username, user, up
                             rows={6}
                             value={newEntry.content}
                             onChange={e => setNewEntry({...newEntry, content: e.target.value})}
-                            className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-white font-medium text-sm outline-none focus:border-white/20 resize-none placeholder:text-white/20 transition-all"
+                            className={`w-full p-5 rounded-2xl font-medium text-sm outline-none resize-none transition-all ${isPro ? 'bg-amber-950/20 border-amber-500/20 text-amber-100 focus:border-amber-500/40 placeholder:text-amber-500/20' : 'bg-white/5 border-white/10 text-white focus:border-white/20 placeholder:text-white/20'}`}
                             placeholder="Write your academic or personal thoughts here..."
                         />
-                        <button onClick={saveEntry} className="btn-premium w-full py-4 text-xs">Commit Entry to Mesh</button>
+                        <button onClick={saveEntry} className={`w-full py-4 text-xs font-bold rounded-xl uppercase tracking-widest ${isPro ? 'bg-amber-500 text-black hover:bg-amber-400' : 'bg-white text-black hover:bg-white/90'}`}>Commit Entry to Mesh</button>
                     </div>
                 </motion.div>
             </motion.div>

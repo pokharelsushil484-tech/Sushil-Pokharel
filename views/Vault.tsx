@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile, VaultDocument, View } from '../types';
@@ -110,21 +109,21 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="glass-card p-12 w-full max-w-md text-center relative overflow-hidden"
+          className="glass-card p-12 w-full max-w-md text-center relative overflow-hidden border-amber-500/20"
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
-          <div className="w-20 h-20 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-8 border border-white/10">
-            <Lock size={32} className="text-white" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+          <div className="w-20 h-20 bg-amber-950/20 rounded-2xl flex items-center justify-center mx-auto mb-8 border border-amber-500/20">
+            <Lock size={32} className="text-amber-400" />
           </div>
-          <h2 className="text-3xl font-display italic mb-2">Quantum Vault</h2>
-          <p className="text-[10px] text-white/40 font-semibold uppercase tracking-widest mb-12">Security Signature Required</p>
+          <h2 className="text-3xl font-display italic mb-2 text-amber-100">Quantum Vault</h2>
+          <p className="text-[10px] text-amber-500/60 font-semibold uppercase tracking-widest mb-12">Security Signature Required</p>
           
           <div className="space-y-6">
             <input 
               type="password" 
               value={pin}
               onChange={e => setPin(e.target.value)}
-              className="w-full p-6 bg-white/5 border border-white/10 focus:border-white/20 rounded-2xl text-center text-4xl font-display tracking-[0.5em] outline-none text-white shadow-inner"
+              className="w-full p-6 bg-amber-950/20 border border-amber-500/20 focus:border-amber-500/40 rounded-2xl text-center text-4xl font-display tracking-[0.5em] outline-none text-amber-100 shadow-inner placeholder:text-amber-500/20"
               placeholder="••••"
               maxLength={4}
               autoFocus
@@ -133,9 +132,9 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
             <div className="flex flex-col items-center gap-3">
               <div className="flex items-center gap-2">
                   <Zap size={12} className={user.integrityScore < 50 ? 'text-red-500' : 'text-emerald-500'} />
-                  <span className="text-[10px] font-semibold uppercase tracking-widest text-white/40">Integrity: {user.integrityScore}%</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-widest text-amber-500/40">Integrity: {user.integrityScore}%</span>
               </div>
-              <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+              <div className="w-full h-1 bg-amber-950/20 rounded-full overflow-hidden">
                   <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${user.integrityScore}%` }}
@@ -149,7 +148,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
                 <motion.p 
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
+                  exit={{ opacity: 0, y: 0 }}
                   className="text-red-400 text-[10px] font-semibold uppercase tracking-widest"
                 >
                   {error}
@@ -157,7 +156,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
               )}
             </AnimatePresence>
 
-            <button onClick={handleUnlock} className="btn-premium w-full py-5">
+            <button onClick={handleUnlock} className="w-full py-5 bg-amber-500 text-black font-bold uppercase tracking-widest rounded-xl hover:bg-amber-400 transition-all shadow-lg shadow-amber-500/20">
               Authorize Access
             </button>
           </div>
@@ -176,35 +175,35 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
       className="space-y-8 pb-20"
     >
       {/* Header */}
-      <motion.div variants={item} className="glass-card p-8 flex flex-col lg:flex-row justify-between items-center gap-8">
+      <motion.div variants={item} className="glass-card p-8 flex flex-col lg:flex-row justify-between items-center gap-8 border-amber-500/20">
           <div className="flex items-center gap-6 w-full lg:w-auto">
-              <div className="w-16 h-16 bg-white text-black rounded-2xl flex items-center justify-center shadow-xl shrink-0">
+              <div className="w-16 h-16 bg-amber-400 text-black rounded-2xl flex items-center justify-center shadow-xl shrink-0">
                 <Database size={28} />
               </div>
               <div>
-                <h2 className="text-3xl font-display italic leading-none">Secure<br/><span className="text-white/40 not-italic">Asset Vault</span></h2>
+                <h2 className="text-3xl font-display italic leading-none text-amber-100">Secure<br/><span className="text-amber-500/40 not-italic">Asset Vault</span></h2>
               </div>
           </div>
           <div className="flex items-center gap-4 w-full lg:w-auto">
-              <div className="hidden sm:flex bg-white/5 p-1 rounded-xl border border-white/10">
-                  <button onClick={() => setViewMode('grid')} className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-black' : 'text-white/40'}`}><LayoutGrid size={18}/></button>
-                  <button onClick={() => setViewMode('list')} className={`p-2.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white text-black' : 'text-white/40'}`}><List size={18}/></button>
+              <div className="hidden sm:flex bg-amber-950/20 p-1 rounded-xl border border-amber-500/20">
+                  <button onClick={() => setViewMode('grid')} className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-amber-500 text-black' : 'text-amber-500/40'}`}><LayoutGrid size={18}/></button>
+                  <button onClick={() => setViewMode('list')} className={`p-2.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-amber-500 text-black' : 'text-amber-500/40'}`}><List size={18}/></button>
               </div>
-              <label className={`flex-1 lg:flex-none btn-premium py-4 px-8 cursor-pointer flex items-center justify-center gap-3 ${isUploading ? 'opacity-50 cursor-wait' : ''}`}>
+              <label className={`flex-1 lg:flex-none py-4 px-8 cursor-pointer flex items-center justify-center gap-3 rounded-xl bg-amber-500 text-black hover:bg-amber-400 transition-all shadow-lg shadow-amber-500/20 ${isUploading ? 'opacity-50 cursor-wait' : ''}`}>
                  <UploadCloud size={18} className={isUploading ? 'animate-bounce' : ''} />
-                 <span className="text-xs font-semibold">{isUploading ? 'Syncing...' : 'Upload Asset'}</span>
+                 <span className="text-xs font-bold uppercase tracking-widest">{isUploading ? 'Syncing...' : 'Upload Asset'}</span>
                  <input type="file" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
               </label>
           </div>
       </motion.div>
 
       {/* Search */}
-      <motion.div variants={item} className="glass-card p-2 flex items-center px-6">
-          <Search className="text-white/20" size={20} />
+      <motion.div variants={item} className="glass-card p-2 flex items-center px-6 border-amber-500/20">
+          <Search className="text-amber-500/40" size={20} />
           <input 
             type="text" 
             placeholder="Search assets..." 
-            className="flex-1 bg-transparent px-4 py-3 text-sm font-medium outline-none text-white placeholder:text-white/20"
+            className="flex-1 bg-transparent px-4 py-3 text-sm font-medium outline-none text-amber-100 placeholder:text-amber-500/20"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
@@ -214,8 +213,8 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
       <motion.div variants={item} className="min-h-[400px]">
           {filteredDocs.length === 0 ? (
               <div className="text-center py-32 opacity-20 flex flex-col items-center justify-center">
-                  <Box size={80} className="mb-6" />
-                  <p className="text-lg font-display italic">Vault is empty</p>
+                  <Box size={80} className="mb-6 text-amber-500" />
+                  <p className="text-lg font-display italic text-amber-100">Vault is empty</p>
               </div>
           ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -223,13 +222,13 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
                   <motion.div 
                     key={doc.id} 
                     layout
-                    className="glass-card p-5 group flex flex-col hover:bg-white/5 transition-all"
+                    className="glass-card p-5 group flex flex-col hover:border-amber-500/40 transition-all border-amber-500/10"
                   >
-                      <div className="w-full h-40 rounded-xl overflow-hidden mb-5 bg-white/5 flex items-center justify-center relative border border-white/5">
+                      <div className="w-full h-40 rounded-xl overflow-hidden mb-5 bg-amber-950/20 flex items-center justify-center relative border border-amber-500/10">
                            {doc.type === 'IMAGE' ? (
                                <img src={doc.content} alt={doc.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                            ) : (
-                               <div className="text-white/20 group-hover:text-white/40 transition-colors">
+                               <div className="text-amber-500/20 group-hover:text-amber-500/40 transition-colors">
                                    {doc.type === 'VIDEO' ? <Video size={48} /> : <FileText size={48} />}
                                </div>
                            )}
@@ -237,15 +236,15 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
 
                       <div className="flex-1 flex flex-col justify-between gap-4">
                          <div>
-                             <h4 className="text-sm font-medium text-white truncate mb-2">{doc.title}</h4>
+                             <h4 className="text-sm font-medium text-amber-100 truncate mb-2">{doc.title}</h4>
                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-semibold uppercase tracking-widest text-white/20 px-2 py-0.5 bg-white/5 rounded border border-white/5">{doc.type}</span>
-                                <span className="text-[10px] font-semibold text-white/20">{(doc.size / 1024).toFixed(1)} KB</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-widest text-amber-500/40 px-2 py-0.5 bg-amber-950/20 rounded border border-amber-500/10">{doc.type}</span>
+                                <span className="text-[10px] font-semibold text-amber-500/40">{(doc.size / 1024).toFixed(1)} KB</span>
                              </div>
                          </div>
                          <div className="flex gap-2">
-                            <button onClick={() => downloadFile(doc)} className="flex-1 p-3 bg-white/5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition-all border border-white/5 flex items-center justify-center"><Download size={16}/></button>
-                            <button onClick={() => deleteFile(doc.id)} className="flex-1 p-3 bg-white/5 rounded-xl text-white/40 hover:text-red-400 hover:bg-red-400/10 transition-all border border-white/5 flex items-center justify-center"><Trash2 size={16}/></button>
+                            <button onClick={() => downloadFile(doc)} className="flex-1 p-3 bg-amber-950/20 rounded-xl text-amber-500/40 hover:text-amber-100 hover:bg-amber-500/20 transition-all border border-amber-500/10 flex items-center justify-center"><Download size={16}/></button>
+                            <button onClick={() => deleteFile(doc.id)} className="flex-1 p-3 bg-amber-950/20 rounded-xl text-amber-500/40 hover:text-red-400 hover:bg-red-400/10 transition-all border border-amber-500/10 flex items-center justify-center"><Trash2 size={16}/></button>
                          </div>
                       </div>
                   </motion.div>
@@ -257,24 +256,24 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
                  <motion.div 
                     key={doc.id} 
                     layout
-                    className="glass-card p-4 flex items-center justify-between group hover:bg-white/5 transition-all"
+                    className="glass-card p-4 flex items-center justify-between group hover:bg-amber-950/10 transition-all border-amber-500/10 hover:border-amber-500/30"
                  >
                     <div className="flex items-center gap-4 overflow-hidden">
-                       <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center shrink-0 overflow-hidden border border-white/5">
+                       <div className="w-12 h-12 bg-amber-950/20 rounded-xl flex items-center justify-center shrink-0 overflow-hidden border border-amber-500/10">
                           {doc.type === 'IMAGE' ? (
                               <img src={doc.content} className="w-full h-full object-cover" alt="" />
                           ) : (
-                              doc.type === 'VIDEO' ? <Video size={20} className="text-white/20"/> : <FileText size={20} className="text-white/20"/>
+                              doc.type === 'VIDEO' ? <Video size={20} className="text-amber-500/40"/> : <FileText size={20} className="text-amber-500/40"/>
                           )}
                        </div>
                        <div className="min-w-0">
-                          <p className="font-medium text-white text-sm truncate">{doc.title}</p>
-                          <p className="text-[10px] text-white/20 font-semibold uppercase tracking-widest">{(doc.size / 1024).toFixed(1)} KB • {doc.type}</p>
+                          <p className="font-medium text-amber-100 text-sm truncate">{doc.title}</p>
+                          <p className="text-[10px] text-amber-500/40 font-semibold uppercase tracking-widest">{(doc.size / 1024).toFixed(1)} KB • {doc.type}</p>
                        </div>
                     </div>
                     <div className="flex items-center gap-2">
-                       <button onClick={() => downloadFile(doc)} className="p-3 text-white/20 hover:text-white transition-colors"><Download size={18}/></button>
-                       <button onClick={() => deleteFile(doc.id)} className="p-3 text-white/20 hover:text-red-400 transition-colors"><Trash2 size={18}/></button>
+                       <button onClick={() => downloadFile(doc)} className="p-3 text-amber-500/40 hover:text-amber-100 transition-colors"><Download size={18}/></button>
+                       <button onClick={() => deleteFile(doc.id)} className="p-3 text-amber-500/40 hover:text-red-400 transition-colors"><Trash2 size={18}/></button>
                     </div>
                  </motion.div>
                ))}
@@ -284,4 +283,3 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
     </motion.div>
   );
 };
-
