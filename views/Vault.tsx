@@ -103,27 +103,29 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
     show: { y: 0, opacity: 1 }
   };
 
+  const isPro = user.subscriptionTier !== 'LIGHT';
+
   if (!isUnlocked) {
     return (
       <div className="h-[70vh] flex flex-col items-center justify-center px-4">
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="glass-card p-12 w-full max-w-md text-center relative overflow-hidden border-amber-500/20"
+          className={`p-12 w-full max-w-md text-center relative overflow-hidden ${isPro ? 'glass-card border-amber-500/20' : 'bg-gray-300 border-4 border-gray-500 rounded-none'}`}
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
-          <div className="w-20 h-20 bg-amber-950/20 rounded-2xl flex items-center justify-center mx-auto mb-8 border border-amber-500/20">
-            <Lock size={32} className="text-amber-400" />
+          {isPro && <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>}
+          <div className={`w-20 h-20 flex items-center justify-center mx-auto mb-8 ${isPro ? 'bg-amber-950/20 rounded-2xl border border-amber-500/20' : 'bg-gray-400 rounded-none border-2 border-gray-500'}`}>
+            <Lock size={32} className={isPro ? "text-amber-400" : "text-gray-800"} />
           </div>
-          <h2 className="text-3xl font-display italic mb-2 text-amber-100">Quantum Vault</h2>
-          <p className="text-[10px] text-amber-500/60 font-semibold uppercase tracking-widest mb-12">Security Signature Required</p>
+          <h2 className={`text-3xl mb-2 ${isPro ? 'font-display italic text-amber-100' : 'font-sans font-bold text-gray-900'}`}>Quantum Vault</h2>
+          <p className={`text-[10px] font-semibold uppercase tracking-widest mb-12 ${isPro ? 'text-amber-500/60' : 'text-gray-600'}`}>Security Signature Required</p>
           
           <div className="space-y-6">
             <input 
               type="password" 
               value={pin}
               onChange={e => setPin(e.target.value)}
-              className="w-full p-6 bg-amber-950/20 border border-amber-500/20 focus:border-amber-500/40 rounded-2xl text-center text-4xl font-display tracking-[0.5em] outline-none text-amber-100 shadow-inner placeholder:text-amber-500/20"
+              className={`w-full p-6 text-center text-4xl font-display tracking-[0.5em] outline-none shadow-inner ${isPro ? 'bg-amber-950/20 border border-amber-500/20 focus:border-amber-500/40 rounded-2xl text-amber-100 placeholder:text-amber-500/20' : 'bg-gray-200 border-2 border-gray-500 focus:border-gray-700 rounded-none text-gray-900 placeholder:text-gray-500'}`}
               placeholder="••••"
               maxLength={4}
               autoFocus
@@ -131,14 +133,14 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
             
             <div className="flex flex-col items-center gap-3">
               <div className="flex items-center gap-2">
-                  <Zap size={12} className={user.integrityScore < 50 ? 'text-red-500' : 'text-emerald-500'} />
-                  <span className="text-[10px] font-semibold uppercase tracking-widest text-amber-500/40">Integrity: {user.integrityScore}%</span>
+                  <Zap size={12} className={user.integrityScore < 50 ? 'text-red-500' : (isPro ? 'text-emerald-500' : 'text-green-600')} />
+                  <span className={`text-[10px] font-semibold uppercase tracking-widest ${isPro ? 'text-amber-500/40' : 'text-gray-600'}`}>Integrity: {user.integrityScore}%</span>
               </div>
-              <div className="w-full h-1 bg-amber-950/20 rounded-full overflow-hidden">
+              <div className={`w-full h-1 overflow-hidden ${isPro ? 'bg-amber-950/20 rounded-full' : 'bg-gray-400 rounded-none'}`}>
                   <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${user.integrityScore}%` }}
-                      className={`h-full ${user.integrityScore > 70 ? 'bg-emerald-500' : user.integrityScore > 40 ? 'bg-amber-500' : 'bg-red-500'}`} 
+                      className={`h-full ${user.integrityScore > 70 ? (isPro ? 'bg-emerald-500' : 'bg-green-600') : user.integrityScore > 40 ? (isPro ? 'bg-amber-500' : 'bg-gray-600') : 'bg-red-500'}`} 
                   />
               </div>
             </div>
@@ -156,7 +158,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
               )}
             </AnimatePresence>
 
-            <button onClick={handleUnlock} className="w-full py-5 bg-amber-500 text-black font-bold uppercase tracking-widest rounded-xl hover:bg-amber-400 transition-all shadow-lg shadow-amber-500/20">
+            <button onClick={handleUnlock} className={`w-full py-5 font-bold uppercase tracking-widest transition-all ${isPro ? 'bg-amber-500 text-black rounded-xl hover:bg-amber-400 shadow-lg shadow-amber-500/20' : 'bg-gray-500 text-white rounded-none hover:bg-gray-600 border-2 border-gray-600'}`}>
               Authorize Access
             </button>
           </div>
@@ -175,21 +177,21 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
       className="space-y-8 pb-20"
     >
       {/* Header */}
-      <motion.div variants={item} className="glass-card p-8 flex flex-col lg:flex-row justify-between items-center gap-8 border-amber-500/20">
+      <motion.div variants={item} className={`p-8 flex flex-col lg:flex-row justify-between items-center gap-8 ${isPro ? 'glass-card border-amber-500/20' : 'bg-gray-300 border-4 border-gray-500 rounded-none'}`}>
           <div className="flex items-center gap-6 w-full lg:w-auto">
-              <div className="w-16 h-16 bg-amber-400 text-black rounded-2xl flex items-center justify-center shadow-xl shrink-0">
+              <div className={`w-16 h-16 flex items-center justify-center shrink-0 ${isPro ? 'bg-amber-400 text-black rounded-2xl shadow-xl' : 'bg-gray-400 text-gray-800 rounded-none border-2 border-gray-500'}`}>
                 <Database size={28} />
               </div>
               <div>
-                <h2 className="text-3xl font-display italic leading-none text-amber-100">Secure<br/><span className="text-amber-500/40 not-italic">Asset Vault</span></h2>
+                <h2 className={`text-3xl leading-none ${isPro ? 'font-display italic text-amber-100' : 'font-sans font-bold text-gray-900'}`}>Secure<br/><span className={isPro ? "text-amber-500/40 not-italic" : "text-gray-600"}>Asset Vault</span></h2>
               </div>
           </div>
           <div className="flex items-center gap-4 w-full lg:w-auto">
-              <div className="hidden sm:flex bg-amber-950/20 p-1 rounded-xl border border-amber-500/20">
-                  <button onClick={() => setViewMode('grid')} className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-amber-500 text-black' : 'text-amber-500/40'}`}><LayoutGrid size={18}/></button>
-                  <button onClick={() => setViewMode('list')} className={`p-2.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-amber-500 text-black' : 'text-amber-500/40'}`}><List size={18}/></button>
+              <div className={`hidden sm:flex p-1 ${isPro ? 'bg-amber-950/20 rounded-xl border border-amber-500/20' : 'bg-gray-400 rounded-none border-2 border-gray-500'}`}>
+                  <button onClick={() => setViewMode('grid')} className={`p-2.5 transition-all ${isPro ? 'rounded-lg' : 'rounded-none'} ${viewMode === 'grid' ? (isPro ? 'bg-amber-500 text-black' : 'bg-gray-600 text-white') : (isPro ? 'text-amber-500/40' : 'text-gray-700')}`}><LayoutGrid size={18}/></button>
+                  <button onClick={() => setViewMode('list')} className={`p-2.5 transition-all ${isPro ? 'rounded-lg' : 'rounded-none'} ${viewMode === 'list' ? (isPro ? 'bg-amber-500 text-black' : 'bg-gray-600 text-white') : (isPro ? 'text-amber-500/40' : 'text-gray-700')}`}><List size={18}/></button>
               </div>
-              <label className={`flex-1 lg:flex-none py-4 px-8 cursor-pointer flex items-center justify-center gap-3 rounded-xl bg-amber-500 text-black hover:bg-amber-400 transition-all shadow-lg shadow-amber-500/20 ${isUploading ? 'opacity-50 cursor-wait' : ''}`}>
+              <label className={`flex-1 lg:flex-none py-4 px-8 cursor-pointer flex items-center justify-center gap-3 transition-all ${isPro ? 'rounded-xl bg-amber-500 text-black hover:bg-amber-400 shadow-lg shadow-amber-500/20' : 'rounded-none bg-gray-500 text-white hover:bg-gray-600 border-2 border-gray-600'} ${isUploading ? 'opacity-50 cursor-wait' : ''}`}>
                  <UploadCloud size={18} className={isUploading ? 'animate-bounce' : ''} />
                  <span className="text-xs font-bold uppercase tracking-widest">{isUploading ? 'Syncing...' : 'Upload Asset'}</span>
                  <input type="file" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
@@ -198,12 +200,12 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
       </motion.div>
 
       {/* Search */}
-      <motion.div variants={item} className="glass-card p-2 flex items-center px-6 border-amber-500/20">
-          <Search className="text-amber-500/40" size={20} />
+      <motion.div variants={item} className={`p-2 flex items-center px-6 ${isPro ? 'glass-card border-amber-500/20' : 'bg-gray-300 border-4 border-gray-500 rounded-none'}`}>
+          <Search className={isPro ? "text-amber-500/40" : "text-gray-600"} size={20} />
           <input 
             type="text" 
             placeholder="Search assets..." 
-            className="flex-1 bg-transparent px-4 py-3 text-sm font-medium outline-none text-amber-100 placeholder:text-amber-500/20"
+            className={`flex-1 bg-transparent px-4 py-3 text-sm font-medium outline-none ${isPro ? 'text-amber-100 placeholder:text-amber-500/20' : 'text-gray-900 placeholder:text-gray-600'}`}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
@@ -213,8 +215,8 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
       <motion.div variants={item} className="min-h-[400px]">
           {filteredDocs.length === 0 ? (
               <div className="text-center py-32 opacity-20 flex flex-col items-center justify-center">
-                  <Box size={80} className="mb-6 text-amber-500" />
-                  <p className="text-lg font-display italic text-amber-100">Vault is empty</p>
+                  <Box size={80} className={`mb-6 ${isPro ? 'text-amber-500' : 'text-gray-600'}`} />
+                  <p className={`text-lg ${isPro ? 'font-display italic text-amber-100' : 'font-sans font-bold text-gray-600'}`}>Vault is empty</p>
               </div>
           ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -222,13 +224,13 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
                   <motion.div 
                     key={doc.id} 
                     layout
-                    className="glass-card p-5 group flex flex-col hover:border-amber-500/40 transition-all border-amber-500/10"
+                    className={`p-5 group flex flex-col transition-all ${isPro ? 'glass-card hover:border-amber-500/40 border-amber-500/10 rounded-2xl' : 'bg-gray-300 border-4 border-gray-500 rounded-none hover:bg-gray-400'}`}
                   >
-                      <div className="w-full h-40 rounded-xl overflow-hidden mb-5 bg-amber-950/20 flex items-center justify-center relative border border-amber-500/10">
+                      <div className={`w-full h-40 overflow-hidden mb-5 flex items-center justify-center relative ${isPro ? 'bg-amber-950/20 rounded-xl border border-amber-500/10' : 'bg-gray-400 rounded-none border-2 border-gray-500'}`}>
                            {doc.type === 'IMAGE' ? (
                                <img src={doc.content} alt={doc.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                            ) : (
-                               <div className="text-amber-500/20 group-hover:text-amber-500/40 transition-colors">
+                               <div className={`transition-colors ${isPro ? 'text-amber-500/20 group-hover:text-amber-500/40' : 'text-gray-600 group-hover:text-gray-800'}`}>
                                    {doc.type === 'VIDEO' ? <Video size={48} /> : <FileText size={48} />}
                                </div>
                            )}
@@ -236,15 +238,15 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
 
                       <div className="flex-1 flex flex-col justify-between gap-4">
                          <div>
-                             <h4 className="text-sm font-medium text-amber-100 truncate mb-2">{doc.title}</h4>
+                             <h4 className={`text-sm font-medium truncate mb-2 ${isPro ? 'text-amber-100' : 'text-gray-900'}`}>{doc.title}</h4>
                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-semibold uppercase tracking-widest text-amber-500/40 px-2 py-0.5 bg-amber-950/20 rounded border border-amber-500/10">{doc.type}</span>
-                                <span className="text-[10px] font-semibold text-amber-500/40">{(doc.size / 1024).toFixed(1)} KB</span>
+                                <span className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 ${isPro ? 'text-amber-500/40 bg-amber-950/20 rounded border border-amber-500/10' : 'text-gray-800 bg-gray-400 rounded-none border border-gray-500'}`}>{doc.type}</span>
+                                <span className={`text-[10px] font-semibold ${isPro ? 'text-amber-500/40' : 'text-gray-600'}`}>{(doc.size / 1024).toFixed(1)} KB</span>
                              </div>
                          </div>
                          <div className="flex gap-2">
-                            <button onClick={() => downloadFile(doc)} className="flex-1 p-3 bg-amber-950/20 rounded-xl text-amber-500/40 hover:text-amber-100 hover:bg-amber-500/20 transition-all border border-amber-500/10 flex items-center justify-center"><Download size={16}/></button>
-                            <button onClick={() => deleteFile(doc.id)} className="flex-1 p-3 bg-amber-950/20 rounded-xl text-amber-500/40 hover:text-red-400 hover:bg-red-400/10 transition-all border border-amber-500/10 flex items-center justify-center"><Trash2 size={16}/></button>
+                            <button onClick={() => downloadFile(doc)} className={`flex-1 p-3 transition-all flex items-center justify-center ${isPro ? 'bg-amber-950/20 rounded-xl text-amber-500/40 hover:text-amber-100 hover:bg-amber-500/20 border border-amber-500/10' : 'bg-gray-400 rounded-none text-gray-800 hover:bg-gray-500 border-2 border-gray-500'}`}><Download size={16}/></button>
+                            <button onClick={() => deleteFile(doc.id)} className={`flex-1 p-3 transition-all flex items-center justify-center ${isPro ? 'bg-amber-950/20 rounded-xl text-amber-500/40 hover:text-red-400 hover:bg-red-400/10 border border-amber-500/10' : 'bg-gray-400 rounded-none text-gray-800 hover:bg-red-400 border-2 border-gray-500'}`}><Trash2 size={16}/></button>
                          </div>
                       </div>
                   </motion.div>
@@ -256,24 +258,24 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
                  <motion.div 
                     key={doc.id} 
                     layout
-                    className="glass-card p-4 flex items-center justify-between group hover:bg-amber-950/10 transition-all border-amber-500/10 hover:border-amber-500/30"
+                    className={`p-4 flex items-center justify-between group transition-all ${isPro ? 'glass-card hover:bg-amber-950/10 border-amber-500/10 hover:border-amber-500/30 rounded-2xl' : 'bg-gray-300 border-4 border-gray-500 rounded-none hover:bg-gray-400'}`}
                  >
                     <div className="flex items-center gap-4 overflow-hidden">
-                       <div className="w-12 h-12 bg-amber-950/20 rounded-xl flex items-center justify-center shrink-0 overflow-hidden border border-amber-500/10">
+                       <div className={`w-12 h-12 flex items-center justify-center shrink-0 overflow-hidden ${isPro ? 'bg-amber-950/20 rounded-xl border border-amber-500/10' : 'bg-gray-400 rounded-none border-2 border-gray-500'}`}>
                           {doc.type === 'IMAGE' ? (
                               <img src={doc.content} className="w-full h-full object-cover" alt="" />
                           ) : (
-                              doc.type === 'VIDEO' ? <Video size={20} className="text-amber-500/40"/> : <FileText size={20} className="text-amber-500/40"/>
+                              doc.type === 'VIDEO' ? <Video size={20} className={isPro ? "text-amber-500/40" : "text-gray-600"}/> : <FileText size={20} className={isPro ? "text-amber-500/40" : "text-gray-600"}/>
                           )}
                        </div>
                        <div className="min-w-0">
-                          <p className="font-medium text-amber-100 text-sm truncate">{doc.title}</p>
-                          <p className="text-[10px] text-amber-500/40 font-semibold uppercase tracking-widest">{(doc.size / 1024).toFixed(1)} KB • {doc.type}</p>
+                          <p className={`font-medium text-sm truncate ${isPro ? 'text-amber-100' : 'text-gray-900'}`}>{doc.title}</p>
+                          <p className={`text-[10px] font-semibold uppercase tracking-widest ${isPro ? 'text-amber-500/40' : 'text-gray-600'}`}>{(doc.size / 1024).toFixed(1)} KB • {doc.type}</p>
                        </div>
                     </div>
                     <div className="flex items-center gap-2">
-                       <button onClick={() => downloadFile(doc)} className="p-3 text-amber-500/40 hover:text-amber-100 transition-colors"><Download size={18}/></button>
-                       <button onClick={() => deleteFile(doc.id)} className="p-3 text-amber-500/40 hover:text-red-400 transition-colors"><Trash2 size={18}/></button>
+                       <button onClick={() => downloadFile(doc)} className={`p-3 transition-colors ${isPro ? 'text-amber-500/40 hover:text-amber-100' : 'text-gray-600 hover:text-gray-900'}`}><Download size={18}/></button>
+                       <button onClick={() => deleteFile(doc.id)} className={`p-3 transition-colors ${isPro ? 'text-amber-500/40 hover:text-red-400' : 'text-gray-600 hover:text-red-600'}`}><Trash2 size={18}/></button>
                     </div>
                  </motion.div>
                ))}

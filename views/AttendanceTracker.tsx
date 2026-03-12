@@ -85,20 +85,20 @@ export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ username, 
       animate="show"
       className="space-y-10 pb-24"
     >
-      <motion.div variants={item} className={`flex flex-col sm:flex-row justify-between items-center gap-6 glass-card p-8 ${isPro ? 'border-amber-500/20' : ''}`}>
+      <motion.div variants={item} className={`flex flex-col sm:flex-row justify-between items-center gap-6 p-8 ${isPro ? 'glass-card border-amber-500/20' : 'bg-gray-300 border-4 border-gray-500 rounded-none'}`}>
         <div>
-          <h1 className={`text-3xl font-display italic tracking-tight ${isPro ? 'text-amber-100' : 'text-white'}`}>Presence Hub</h1>
-          <p className={`text-[10px] font-semibold uppercase tracking-widest mt-1 ${isPro ? 'text-amber-500/60' : 'text-indigo-400'}`}>Institutional Attendance Sync</p>
+          <h1 className={`text-3xl ${isPro ? 'font-display italic tracking-tight text-amber-100' : 'font-sans font-bold text-gray-900'}`}>Presence Hub</h1>
+          <p className={`text-[10px] font-semibold uppercase tracking-widest mt-1 ${isPro ? 'text-amber-500/60' : 'text-gray-600'}`}>Institutional Attendance Sync</p>
         </div>
-        <div className={`flex p-2 rounded-xl border w-full sm:w-auto ${isPro ? 'bg-amber-950/20 border-amber-500/20' : 'bg-white/5 border-white/10'}`}>
+        <div className={`flex p-2 w-full sm:w-auto ${isPro ? 'rounded-xl bg-amber-950/20 border border-amber-500/20' : 'rounded-none bg-gray-200 border-2 border-gray-500'}`}>
           <input 
             type="text" 
             value={newSubject}
             onChange={e => setNewSubject(e.target.value)}
-            className={`bg-transparent px-4 py-2 text-xs font-medium outline-none min-w-0 flex-1 ${isPro ? 'text-amber-100 placeholder:text-amber-500/20' : 'text-white placeholder:text-white/20'}`}
+            className={`bg-transparent px-4 py-2 text-xs font-medium outline-none min-w-0 flex-1 ${isPro ? 'text-amber-100 placeholder:text-amber-500/20' : 'text-gray-900 placeholder:text-gray-500'}`}
             placeholder="Add subject node..."
           />
-          <button onClick={addSubject} className={`p-2 rounded-lg transition-all ${isPro ? 'bg-amber-500 text-black hover:bg-amber-400' : 'bg-white text-black hover:bg-white/90'}`}>
+          <button onClick={addSubject} className={`p-2 transition-all ${isPro ? 'rounded-lg bg-amber-500 text-black hover:bg-amber-400' : 'rounded-none bg-gray-500 text-white hover:bg-gray-600 border-2 border-gray-600'}`}>
             <Plus size={16} />
           </button>
         </div>
@@ -115,43 +115,43 @@ export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ username, 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className={`glass-card p-8 group transition-all ${isPro ? 'hover:border-amber-500/30 border-amber-500/10' : 'hover:border-indigo-500/30'}`}
+                className={`p-8 group transition-all ${isPro ? 'glass-card hover:border-amber-500/30 border-amber-500/10' : 'bg-gray-200 border-2 border-gray-500 rounded-none'}`}
               >
                 <div className="flex justify-between items-start mb-8">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${isPro ? 'bg-amber-950/20 text-amber-400 border-amber-500/20' : 'bg-white/5 text-indigo-400 border-white/5'}`}>
+                  <div className={`w-12 h-12 flex items-center justify-center border ${isPro ? 'rounded-xl bg-amber-950/20 text-amber-400 border-amber-500/20' : 'rounded-none bg-gray-400 text-gray-800 border-gray-500'}`}>
                     <GraduationCap size={20} />
                   </div>
                   <div className="text-right">
-                    <span className={`block text-[8px] font-semibold uppercase tracking-widest ${isPro ? 'text-amber-500/40' : 'text-white/40'}`}>Score Rate</span>
-                    <span className={`text-3xl font-display italic ${percent < 75 ? 'text-red-400' : (isPro ? 'text-amber-100' : 'text-white')}`}>{percent.toFixed(0)}%</span>
+                    <span className={`block text-[8px] font-semibold uppercase tracking-widest ${isPro ? 'text-amber-500/40' : 'text-gray-600'}`}>Score Rate</span>
+                    <span className={`text-3xl ${percent < 75 ? 'text-red-600' : (isPro ? 'font-display italic text-amber-100' : 'font-sans font-bold text-gray-900')}`}>{percent.toFixed(0)}%</span>
                   </div>
                 </div>
 
-                <h3 className={`text-lg font-display italic tracking-tight mb-8 truncate ${isPro ? 'text-amber-100' : 'text-white'}`}>{record.subject}</h3>
+                <h3 className={`text-lg tracking-tight mb-8 truncate ${isPro ? 'font-display italic text-amber-100' : 'font-sans font-bold text-gray-900'}`}>{record.subject}</h3>
 
                 <div className="grid grid-cols-2 gap-4 mb-8">
                   <button 
                     onClick={() => updateAttendance(record.id, 'present')}
-                    className={`flex flex-col items-center p-4 rounded-xl border transition-all group/btn ${isPro ? 'bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20'}`}
+                    className={`flex flex-col items-center p-4 border transition-all group/btn ${isPro ? 'rounded-xl bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20' : 'rounded-none bg-green-200 border-green-500 hover:bg-green-300'}`}
                   >
-                    <span className="text-[8px] font-bold text-emerald-400 uppercase mb-2">Present</span>
-                    <span className={`text-xl font-display italic group-hover/btn:scale-110 transition-transform ${isPro ? 'text-amber-100' : 'text-white'}`}>{record.present}</span>
+                    <span className={`text-[8px] font-bold uppercase mb-2 ${isPro ? 'text-emerald-400' : 'text-green-800'}`}>Present</span>
+                    <span className={`text-xl group-hover/btn:scale-110 transition-transform ${isPro ? 'font-display italic text-amber-100' : 'font-sans font-bold text-gray-900'}`}>{record.present}</span>
                   </button>
                   <button 
                     onClick={() => updateAttendance(record.id, 'absent')}
-                    className={`flex flex-col items-center p-4 rounded-xl border transition-all group/btn ${isPro ? 'bg-red-500/10 border-red-500/20 hover:bg-red-500/20' : 'bg-red-500/10 border-red-500/20 hover:bg-red-500/20'}`}
+                    className={`flex flex-col items-center p-4 border transition-all group/btn ${isPro ? 'rounded-xl bg-red-500/10 border-red-500/20 hover:bg-red-500/20' : 'rounded-none bg-red-200 border-red-500 hover:bg-red-300'}`}
                   >
-                    <span className="text-[8px] font-bold text-red-400 uppercase mb-2">Absent</span>
-                    <span className={`text-xl font-display italic group-hover/btn:scale-110 transition-transform ${isPro ? 'text-amber-100' : 'text-white'}`}>{record.absent}</span>
+                    <span className={`text-[8px] font-bold uppercase mb-2 ${isPro ? 'text-red-400' : 'text-red-800'}`}>Absent</span>
+                    <span className={`text-xl group-hover/btn:scale-110 transition-transform ${isPro ? 'font-display italic text-amber-100' : 'font-sans font-bold text-gray-900'}`}>{record.absent}</span>
                   </button>
                 </div>
 
-                <div className={`flex justify-between items-center pt-6 border-t ${isPro ? 'border-amber-500/10' : 'border-white/5'}`}>
-                  <div className={`flex items-center gap-2 ${isPro ? 'text-amber-500/40' : 'text-white/40'}`}>
+                <div className={`flex justify-between items-center pt-6 border-t ${isPro ? 'border-amber-500/10' : 'border-gray-400'}`}>
+                  <div className={`flex items-center gap-2 ${isPro ? 'text-amber-500/40' : 'text-gray-600'}`}>
                     <TrendingUp size={12} />
                     <span className="text-[9px] font-semibold uppercase tracking-widest">{total} Sessions Logged</span>
                   </div>
-                  <button onClick={() => deleteSubject(record.id)} className="text-white/20 hover:text-red-400 transition-colors p-2">
+                  <button onClick={() => deleteSubject(record.id)} className={`transition-colors p-2 ${isPro ? 'text-white/20 hover:text-red-400' : 'text-gray-500 hover:text-red-600'}`}>
                     <Trash2 size={16} />
                   </button>
                 </div>

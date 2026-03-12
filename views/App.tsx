@@ -362,24 +362,34 @@ const App = () => {
 
   const isPro = user.subscriptionTier !== SubscriptionTier.LIGHT;
 
+  useEffect(() => {
+    if (isPro) {
+      document.body.classList.add('pro-mode');
+      document.body.classList.remove('lite-mode');
+    } else {
+      document.body.classList.add('lite-mode');
+      document.body.classList.remove('pro-mode');
+    }
+  }, [isPro]);
+
   return (
-    <div className={`min-h-screen flex flex-col transition-colors duration-500 ${isPro ? 'bg-obsidian bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-950/20 via-obsidian to-obsidian' : 'bg-obsidian'}`}>
+    <div className={`min-h-screen flex flex-col transition-colors duration-500 ${isPro ? 'bg-obsidian bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-950/20 via-obsidian to-obsidian' : 'bg-gray-200'}`}>
       <GlobalLoader isLoading={isLoading} />
       
       <div className="md:ml-24 lg:ml-80 transition-all flex-1 flex flex-col">
         <header className={`backdrop-blur-xl border-b h-24 flex items-center justify-between px-8 sm:px-12 sticky top-0 z-40 transition-colors duration-500 ${
-          isPro ? 'bg-obsidian/80 border-amber-500/10' : 'bg-obsidian/80 border-white/5'
+          isPro ? 'bg-obsidian/80 border-amber-500/10' : 'bg-gray-300 border-gray-400'
         }`}>
            <div className="flex items-center space-x-6">
               <motion.div 
                 whileHover={{ scale: 1.05 }}
-                className={`p-3 rounded-xl shadow-lg transition-colors ${isPro ? 'bg-amber-400 text-black' : 'bg-white text-black'}`}
+                className={`p-3 rounded-xl shadow-lg transition-colors ${isPro ? 'bg-amber-400 text-black' : 'bg-gray-500 text-white rounded-none'}`}
               >
                 {isPro ? <Crown size={24} /> : <ShieldCheck size={24} />}
               </motion.div>
               <div className="text-left">
-                  <h1 className={`text-lg font-display italic leading-none ${isPro ? 'text-amber-100' : 'text-white'}`}>{APP_NAME}</h1>
-                  <p className={`text-[10px] font-medium uppercase tracking-widest mt-1 ${isPro ? 'text-amber-500/60' : 'text-white/40'}`}>
+                  <h1 className={`text-lg leading-none ${isPro ? 'font-display italic text-amber-100' : 'font-sans font-bold text-gray-900'}`}>{APP_NAME}</h1>
+                  <p className={`text-[10px] font-medium uppercase tracking-widest mt-1 ${isPro ? 'text-amber-500/60' : 'text-gray-600'}`}>
                     {isPro ? 'Quantum Mesh Active' : 'Elite Mesh Active'}
                   </p>
               </div>
@@ -388,10 +398,10 @@ const App = () => {
            <div className="flex items-center space-x-6">
               <div className="text-right hidden sm:block">
                   <div className="flex items-center justify-end gap-2">
-                     {user.isVerified && <Sparkles size={14} className={`animate-pulse ${isPro ? 'text-amber-400' : 'text-white'}`} />}
-                     <p className={`text-sm font-medium leading-none ${isPro ? 'text-amber-100' : 'text-white'}`}>{user.name}</p>
+                     {user.isVerified && <Sparkles size={14} className={`animate-pulse ${isPro ? 'text-amber-400' : 'text-gray-700'}`} />}
+                     <p className={`text-sm font-medium leading-none ${isPro ? 'text-amber-100' : 'text-gray-900'}`}>{user.name}</p>
                   </div>
-                  <p className={`text-[10px] font-medium mt-1 uppercase tracking-widest ${isPro ? 'text-amber-500/60' : 'text-white/20'}`}>
+                  <p className={`text-[10px] font-medium mt-1 uppercase tracking-widest ${isPro ? 'text-amber-500/60' : 'text-gray-600'}`}>
                     {user.isVerified ? 'Quantum Elite' : 'Pending Verification'}
                   </p>
               </div>
@@ -399,16 +409,16 @@ const App = () => {
               <div className="flex items-center gap-3">
                 <button 
                   onClick={handleLogout}
-                  className={`p-3 rounded-xl transition-all border group ${
+                  className={`p-3 transition-all border group ${
                     isPro 
-                      ? 'bg-amber-950/20 border-amber-500/20 hover:bg-red-500/10 hover:border-red-500/30' 
-                      : 'bg-white/5 border-white/5 hover:bg-red-500/10'
+                      ? 'rounded-xl bg-amber-950/20 border-amber-500/20 hover:bg-red-500/10 hover:border-red-500/30' 
+                      : 'rounded-none bg-gray-400 border-gray-500 hover:bg-red-500/10'
                   }`}
                   title="Terminate Session"
                 >
-                    <LogOut size={18} className={`group-hover:text-red-500 ${isPro ? 'text-amber-500/40' : 'text-white/40'}`} />
+                    <LogOut size={18} className={`group-hover:text-red-500 ${isPro ? 'text-amber-500/40' : 'text-gray-700'}`} />
                 </button>
-                <div className={`w-12 h-12 rounded-xl border overflow-hidden shadow-xl ${isPro ? 'border-amber-500/20 shadow-amber-500/10' : 'border-white/10'}`}>
+                <div className={`w-12 h-12 border overflow-hidden shadow-xl ${isPro ? 'rounded-xl border-amber-500/20 shadow-amber-500/10' : 'rounded-none border-gray-500'}`}>
                   <img 
                     src={user.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"} 
                     className="w-full h-full object-cover" 
@@ -449,7 +459,7 @@ const App = () => {
                 {view === View.ADMIN_DASHBOARD && <AdminDashboard onNavigate={setView} />}
                 {view === View.SECURITY_HEARTBEAT && (
                   <ProGate user={user} onActivateTrial={handleActivateTrial}>
-                    <SecurityHeartbeat />
+                    <SecurityHeartbeat user={user} />
                   </ProGate>
                 )}
                 {view === View.GROWTH_JOURNAL && <GrowthJournal username={activeUser || ''} user={user} updateUser={setUser} />}
@@ -457,7 +467,7 @@ const App = () => {
                 {view === View.ATTENDANCE_TRACKER && <AttendanceTracker username={activeUser || ''} user={user} updateUser={setUser} />}
                 {view === View.CAMPUS_RADAR && (
                   <ProGate user={user} onActivateTrial={handleActivateTrial}>
-                    <CampusRadar username={activeUser || ''} />
+                    <CampusRadar username={activeUser || ''} user={user} />
                   </ProGate>
                 )}
                 {view === View.VERIFICATION_FORM && <VerificationForm user={user} username={activeUser || ''} updateUser={setUser} onNavigate={setView} />}

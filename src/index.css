@@ -8,14 +8,32 @@
     font-feature-settings: "ss01", "ss02", "cv01", "cv02";
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  /* Pro Mode Typography */
+  .pro-mode h1, .pro-mode h2, .pro-mode h3, .pro-mode h4, .pro-mode h5, .pro-mode h6 {
     @apply font-display tracking-tight;
+  }
+
+  /* Lite Mode Typography - Intentionally basic */
+  .lite-mode {
+    @apply bg-gray-200 text-gray-900 font-sans;
+  }
+  .lite-mode h1, .lite-mode h2, .lite-mode h3, .lite-mode h4, .lite-mode h5, .lite-mode h6 {
+    @apply font-sans font-bold tracking-normal text-gray-900 not-italic;
+  }
+  .lite-mode p, .lite-mode span, .lite-mode div {
+    @apply text-gray-800;
   }
 }
 
 @layer components {
-  .glass-card {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl;
+  /* Default / Pro Glass Card */
+  .pro-mode .glass-card {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl;
+  }
+
+  /* Lite Mode Card - Intentionally clunky */
+  .lite-mode .glass-card {
+    @apply bg-white border-4 border-gray-400 rounded-none shadow-none;
   }
 
   .btn-premium {
@@ -24,14 +42,26 @@
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
+  .lite-mode .btn-premium {
+    @apply bg-gray-300 text-black border-2 border-gray-500 rounded-none hover:bg-gray-400 hover:scale-100 active:scale-100;
+  }
+
   .btn-outline {
     @apply px-6 py-3 rounded-full font-medium transition-all duration-300
            border border-white/20 hover:bg-white/10 active:scale-95;
   }
 
+  .lite-mode .btn-outline {
+    @apply border-2 border-gray-500 text-gray-800 rounded-none hover:bg-gray-300 active:scale-100;
+  }
+
   .input-field {
     @apply w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 
            focus:outline-none focus:border-white/30 transition-all duration-200;
+  }
+
+  .lite-mode .input-field {
+    @apply bg-white border-2 border-gray-400 rounded-none text-black focus:border-gray-600;
   }
 }
 
@@ -42,4 +72,8 @@
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
+}
+
+.lite-mode .animate-float {
+  animation: none;
 }
