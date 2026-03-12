@@ -286,7 +286,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { view: View.MISSION_CONTROL, icon: Target, title: "Mission Control", desc: "Strategic Operations Center", isProFeature: true },
-          { view: View.ACADEMIC_LEDGER, icon: Trophy, title: "Elite Ledger", desc: "Academic Performance Registry", isProFeature: false },
+          { view: View.FOCUS_MATRIX, icon: Cpu, title: "Focus Matrix", desc: "Neural Synchronization Protocol", isProFeature: true },
           { view: View.CAMPUS_RADAR, icon: MapPin, title: "Campus Radar", desc: "Geospatial Awareness Node", isProFeature: true },
           { view: View.FILE_HUB, icon: Database, title: "Secure Vault", desc: "Encrypted Asset Preservation", isProFeature: true }
         ].map((card, idx) => {

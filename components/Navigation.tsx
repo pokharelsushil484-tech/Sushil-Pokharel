@@ -13,7 +13,8 @@ import {
   HeartPulse,
   Sparkles,
   Target,
-  Lock
+  Lock,
+  BrainCircuit
 } from 'lucide-react';
 import { View, SubscriptionTier } from '../types';
 import { VERSION_BETA, VERSION_PRO } from '../constants';
@@ -32,6 +33,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, setView, is
   const navItems = [
     { view: View.DASHBOARD, icon: LayoutGrid, label: 'Dashboard', isPro: false },
     { view: View.MISSION_CONTROL, icon: Target, label: 'Missions', isPro: true },
+    { view: View.FOCUS_MATRIX, icon: BrainCircuit, label: 'Focus', isPro: true },
     { view: View.SECURITY_HEARTBEAT, icon: HeartPulse, label: 'Security', isPro: true },
     { view: View.GROWTH_JOURNAL, icon: BookOpen, label: 'Journal', isPro: false },
     { view: View.ACADEMIC_LEDGER, icon: Trophy, label: 'Ledger', isPro: false },

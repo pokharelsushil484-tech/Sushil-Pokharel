@@ -12,6 +12,7 @@ import { AcademicLedger } from './AcademicLedger';
 import { AttendanceTracker } from './AttendanceTracker';
 import { CampusRadar } from './CampusRadar';
 import { MissionControl } from './MissionControl';
+import { FocusMatrix } from './FocusMatrix';
 import { ProGate } from '../components/ProGate';
 import { upgradeService } from '../services/upgradeService';
 import { GlobalLoader } from '../components/GlobalLoader';
@@ -431,6 +432,11 @@ const App = () => {
                 {view === View.MISSION_CONTROL && (
                   <ProGate user={user} onActivateTrial={handleActivateTrial}>
                     <MissionControl username={activeUser || ''} user={user} updateUser={setUser} />
+                  </ProGate>
+                )}
+                {view === View.FOCUS_MATRIX && (
+                  <ProGate user={user} onActivateTrial={handleActivateTrial}>
+                    <FocusMatrix user={user} />
                   </ProGate>
                 )}
                 {view === View.FILE_HUB && (
