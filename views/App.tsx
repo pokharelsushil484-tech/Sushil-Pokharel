@@ -14,8 +14,8 @@ import { CampusRadar } from './CampusRadar';
 import { MissionControl } from './MissionControl';
 import { FocusMatrix } from './FocusMatrix';
 import { ProGate } from '../components/ProGate';
-import { upgradeService } from '../services/upgradeService';
 import { GlobalLoader } from '../components/GlobalLoader';
+import { useModal } from '../components/ModalProvider';
 import { SplashScreen } from '../components/SplashScreen';
 import { LinkVerification } from './LinkVerification';
 import { AccessRecovery } from './AccessRecovery';
@@ -56,6 +56,7 @@ const App = () => {
   const [otpCode, setOtpCode] = useState('');
   const [serverSideOtp, setServerSideOtp] = useState('');
   const [authError, setAuthError] = useState('');
+  const { showAlert } = useModal();
 
   const [user, setUser] = useState<UserProfile>(DEFAULT_USER);
   const [vaultDocs, setVaultDocs] = useState<VaultDocument[]>([]);
@@ -71,15 +72,20 @@ const App = () => {
     if (username.toUpperCase() === ADMIN_USERNAME) {
         setUser({
             ...DEFAULT_USER,
-            name: "Sushil Pokharel",
-            studentId: "ELITE-001",
+            ...(stored?.user || {}),
+            name: stored?.user?.name || "Sushil Pokharel",
+            studentId: stored?.user?.studentId || "ELITE-001",
             isVerified: true,
             verificationStatus: 'VERIFIED',
-            subscriptionTier: SubscriptionTier.PRO_LIFETIME
+            subscriptionTier: SubscriptionTier.PRO_LIFETIME,
+            isBanned: false
         });
+        if (stored) {
+            if (stored.vaultDocs) setVaultDocs(stored.vaultDocs);
+            if (stored.chatHistory) setChatHistory(stored.chatHistory);
+        }
     } else if (stored && stored.user) {
-        const checkedUser = await upgradeService.checkTrialStatus(stored.user, username);
-        setUser(checkedUser);
+        setUser(stored.user);
         if (stored.vaultDocs) setVaultDocs(stored.vaultDocs);
         if (stored.chatHistory) setChatHistory(stored.chatHistory);
     }
@@ -129,7 +135,7 @@ const App = () => {
         localStorage.setItem('studentpocket_requests', JSON.stringify(existingReqs));
         
         setIsLoading(false);
-        alert(`Recovery request ${newId} dispatched to master node.`);
+        showAlert('Request Dispatched', `Recovery request ${newId} dispatched to master node.`);
         setAuthMode('LOGIN');
         return;
     }
@@ -178,14 +184,6 @@ const App = () => {
                 sessionStorage.setItem('active_session_user', inputId);
                 setActiveUser(inputId);
                 await loadUserData(inputId);
-                
-                // Update Login Task
-                const currentUserData = await storageService.getData(`architect_data_${inputId}`);
-                if (currentUserData && currentUserData.user) {
-                  const updatedUser = await upgradeService.updateTaskProgress(currentUserData.user, inputId, 'LOGIN');
-                  setUser(updatedUser);
-                }
-
                 setIsLoggedIn(true);
             }
         } else {
@@ -199,12 +197,29 @@ const App = () => {
       window.location.reload();
   };
 
-  const handleActivateTrial = async () => {
+  const handleActivatePro = async () => {
     if (!activeUser) return;
-    const updatedUser = await upgradeService.activateTrial(user, activeUser);
+    const updatedUser = {
+      ...user,
+      subscriptionTier: SubscriptionTier.PRO_LIFETIME
+    };
+    const stored = await storageService.getData(`architect_data_${activeUser}`);
+    await storageService.setData(`architect_data_${activeUser}`, { ...stored, user: updatedUser });
     setUser(updatedUser);
-    alert("15-Day Quantum Elite Trial Activated!");
+    showAlert('Pro Activated', "Quantum Elite Pro Lifetime Access Activated!");
   };
+
+  const isPro = user.subscriptionTier !== SubscriptionTier.LIGHT;
+
+  useEffect(() => {
+    if (isPro) {
+      document.body.classList.add('pro-mode');
+      document.body.classList.remove('lite-mode');
+    } else {
+      document.body.classList.add('lite-mode');
+      document.body.classList.remove('pro-mode');
+    }
+  }, [isPro]);
 
   if (showSplash) return <SplashScreen onFinish={() => setShowSplash(false)} />;
   
@@ -360,18 +375,6 @@ const App = () => {
     );
   }
 
-  const isPro = user.subscriptionTier !== SubscriptionTier.LIGHT;
-
-  useEffect(() => {
-    if (isPro) {
-      document.body.classList.add('pro-mode');
-      document.body.classList.remove('lite-mode');
-    } else {
-      document.body.classList.add('lite-mode');
-      document.body.classList.remove('pro-mode');
-    }
-  }, [isPro]);
-
   return (
     <div className={`min-h-screen flex flex-col transition-colors duration-500 ${isPro ? 'bg-obsidian bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-950/20 via-obsidian to-obsidian' : 'bg-gray-200'}`}>
       <GlobalLoader isLoading={isLoading} />
@@ -440,17 +443,17 @@ const App = () => {
               >
                 {view === View.DASHBOARD && <Dashboard user={user} username={activeUser || ''} onNavigate={setView} onLogout={handleLogout} />}
                 {view === View.MISSION_CONTROL && (
-                  <ProGate user={user} onActivateTrial={handleActivateTrial}>
+                  <ProGate user={user} onActivatePro={handleActivatePro}>
                     <MissionControl username={activeUser || ''} user={user} updateUser={setUser} />
                   </ProGate>
                 )}
                 {view === View.FOCUS_MATRIX && (
-                  <ProGate user={user} onActivateTrial={handleActivateTrial}>
+                  <ProGate user={user} onActivatePro={handleActivatePro}>
                     <FocusMatrix user={user} />
                   </ProGate>
                 )}
                 {view === View.FILE_HUB && (
-                  <ProGate user={user} onActivateTrial={handleActivateTrial}>
+                  <ProGate user={user} onActivatePro={handleActivatePro}>
                     <Vault user={user} documents={vaultDocs} saveDocuments={setVaultDocs} updateUser={setUser} onNavigate={setView} />
                   </ProGate>
                 )}
@@ -458,7 +461,7 @@ const App = () => {
                 {view === View.SUPPORT && <Support username={activeUser || ''} user={user} />}
                 {view === View.ADMIN_DASHBOARD && <AdminDashboard onNavigate={setView} />}
                 {view === View.SECURITY_HEARTBEAT && (
-                  <ProGate user={user} onActivateTrial={handleActivateTrial}>
+                  <ProGate user={user} onActivatePro={handleActivatePro}>
                     <SecurityHeartbeat user={user} />
                   </ProGate>
                 )}
@@ -466,7 +469,7 @@ const App = () => {
                 {view === View.ACADEMIC_LEDGER && <AcademicLedger username={activeUser || ''} user={user} />}
                 {view === View.ATTENDANCE_TRACKER && <AttendanceTracker username={activeUser || ''} user={user} updateUser={setUser} />}
                 {view === View.CAMPUS_RADAR && (
-                  <ProGate user={user} onActivateTrial={handleActivateTrial}>
+                  <ProGate user={user} onActivatePro={handleActivatePro}>
                     <CampusRadar username={activeUser || ''} user={user} />
                   </ProGate>
                 )}

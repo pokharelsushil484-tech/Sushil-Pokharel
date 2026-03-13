@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Expense } from '../types';
 import { Wallet, TrendingUp, TrendingDown, Plus, Trash2, Calendar, PieChart, ArrowUpRight, ArrowDownRight, X, DollarSign } from 'lucide-react';
+import { useModal } from '../components/ModalProvider';
 
 interface ExpenseTrackerProps {
   expenses: Expense[];
@@ -11,6 +12,7 @@ interface ExpenseTrackerProps {
 
 export const ExpenseTracker: React.FC<ExpenseTrackerProps> = ({ expenses, setExpenses }) => {
   const [showAdd, setShowAdd] = useState(false);
+  const { showConfirm } = useModal();
   const [newExpense, setNewExpense] = useState<Partial<Expense>>({
     type: 'EXPENSE',
     date: new Date().toISOString().split('T')[0],
@@ -37,9 +39,9 @@ export const ExpenseTracker: React.FC<ExpenseTrackerProps> = ({ expenses, setExp
   };
 
   const deleteExpense = (id: string) => {
-    if(window.confirm("Delete this transaction?")) {
+    showConfirm('Delete Transaction', "Delete this transaction?", () => {
         setExpenses(expenses.filter(e => e.id !== id));
-    }
+    });
   };
 
   const totalIncome = expenses.filter(e => e.type === 'INCOME').reduce((acc, curr) => acc + curr.amount, 0);

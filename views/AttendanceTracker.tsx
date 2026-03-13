@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { AttendanceRecord, UserProfile, SubscriptionTier } from '../types';
 import { CheckCircle2, XCircle, Plus, BookOpen, Trash2, TrendingUp, Info, GraduationCap } from 'lucide-react';
 import { storageService } from '../services/storageService';
-import { upgradeService } from '../services/upgradeService';
+import { useModal } from '../components/ModalProvider';
 
 interface AttendanceTrackerProps {
   username: string;
@@ -14,6 +14,7 @@ interface AttendanceTrackerProps {
 export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ username, user, updateUser }) => {
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [newSubject, setNewSubject] = useState('');
+  const { showConfirm } = useModal();
 
   const isPro = user.subscriptionTier !== SubscriptionTier.LIGHT;
 
@@ -52,17 +53,15 @@ export const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ username, 
     const stored = await storageService.getData(`architect_data_${username}`);
     await storageService.setData(`architect_data_${username}`, { ...stored, attendance: updated });
     setRecords(updated);
-
-    const updatedUser = await upgradeService.updateTaskProgress(user, username, 'ATTENDANCE');
-    updateUser(updatedUser);
   };
 
   const deleteSubject = async (id: string) => {
-    if (!confirm("Delete attendance record?")) return;
-    const updated = records.filter(r => r.id !== id);
-    const stored = await storageService.getData(`architect_data_${username}`);
-    await storageService.setData(`architect_data_${username}`, { ...stored, attendance: updated });
-    setRecords(updated);
+    showConfirm('Delete Record', "Delete attendance record?", async () => {
+      const updated = records.filter(r => r.id !== id);
+      const stored = await storageService.getData(`architect_data_${username}`);
+      await storageService.setData(`architect_data_${username}`, { ...stored, attendance: updated });
+      setRecords(updated);
+    });
   };
 
   const container = {

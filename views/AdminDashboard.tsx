@@ -5,6 +5,7 @@ import { UserProfile, SupportTicket, TicketMessage, View, ChangeRequest } from '
 import { 
   Users, ShieldAlert, Terminal, Radio, Megaphone, Zap, RefreshCw, Key, FileCheck, CheckCircle2, XCircle, Search, ShieldCheck, Undo2
 } from 'lucide-react';
+import { useModal } from '../components/ModalProvider';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
 import { ADMIN_USERNAME, CREATOR_NAME, ADMIN_EMAIL, APP_VERSION } from '../constants';
@@ -21,6 +22,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
   const [broadcastText, setBroadcastText] = useState('');
+  const { showAlert } = useModal();
 
   useEffect(() => {
     loadData();
@@ -58,11 +60,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       if (stored && stored.user) {
           if (action === 'APPROVE') {
             await emailService.sendInstitutionalMail(stored.user.email, target.linkId, 'PASSWORD_RECOVERY_LINK', target.username);
-            alert(`Recovery portal activated for node: ${target.username}`);
+            showAlert('Success', `Recovery portal activated for node: ${target.username}`);
           } else {
             const updated = allReqs.map(r => r.id === requestId ? { ...r, status: 'REJECTED' } : r);
             localStorage.setItem('studentpocket_requests', JSON.stringify(updated));
-            alert("Recovery request terminated.");
+            showAlert('Terminated', "Recovery request terminated.");
           }
           loadData();
       }

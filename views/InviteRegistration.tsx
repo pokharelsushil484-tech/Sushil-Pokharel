@@ -3,6 +3,7 @@ import { View, UserProfile } from '../types';
 import { ShieldCheck, User, Lock, Mail, Send, Loader2, ArrowLeft } from 'lucide-react';
 import { DEFAULT_USER, SYSTEM_UPGRADE_TOKEN } from '../constants';
 import { storageService } from '../services/storageService';
+import { useModal } from '../components/ModalProvider';
 
 interface InviteRegistrationProps {
   onRegister: (username: string) => void;
@@ -18,6 +19,7 @@ export const InviteRegistration: React.FC<InviteRegistrationProps> = ({ onRegist
     inviteCode: ''
   });
   const [submitting, setSubmitting] = useState(false);
+  const { showAlert } = useModal();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +31,7 @@ export const InviteRegistration: React.FC<InviteRegistrationProps> = ({ onRegist
       const users = usersStr ? JSON.parse(usersStr) : {};
       
       if (users[formData.username]) {
-        alert("Username already exists.");
+        showAlert('Registration Error', "Username already exists.");
         setSubmitting(false);
         return;
       }

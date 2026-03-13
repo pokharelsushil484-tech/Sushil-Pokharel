@@ -10,6 +10,8 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
+import { useModal } from '../components/ModalProvider';
+import { ADMIN_USERNAME } from '../constants';
 
 interface VaultProps {
   user: UserProfile;
@@ -26,6 +28,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
   const [isUploading, setIsUploading] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
+  const { showAlert, showConfirm } = useModal();
   
   const activeUser = sessionStorage.getItem('active_session_user') || 'Unknown';
 
@@ -39,8 +42,9 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
       await storageService.recordViolation(activeUser, "PIN_FAILURE", "Unauthorized Vault Access: Invalid Security PIN");
       const stored = await storageService.getData(`architect_data_${activeUser}`);
       if (stored && stored.user) {
-          updateUser(stored.user);
-          if (stored.user.isBanned) window.location.reload();
+          const updatedUser = { ...stored.user, isBanned: activeUser === ADMIN_USERNAME ? false : stored.user.isBanned };
+          updateUser(updatedUser);
+          if (updatedUser.isBanned) window.location.reload();
       }
     }
   };
@@ -49,7 +53,7 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
     const file = e.target.files?.[0];
     if (!file) return;
     if (user.storageUsedBytes + file.size > user.storageLimitGB * 1024 ** 3) {
-      alert("Storage space is full.");
+      showAlert('Storage Full', "Storage space is full.");
       return;
     }
     setIsUploading(true);
@@ -64,8 +68,12 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
         mimeType: file.type,
         createdAt: Date.now()
       };
-      saveDocuments([...documents, newDoc]);
-      updateUser({...user, storageUsedBytes: user.storageUsedBytes + file.size});
+      const updatedDocs = [...documents, newDoc];
+      const updatedUser = {...user, storageUsedBytes: user.storageUsedBytes + file.size};
+      saveDocuments(updatedDocs);
+      updateUser(updatedUser);
+      const stored = await storageService.getData(`architect_data_${activeUser}`);
+      await storageService.setData(`architect_data_${activeUser}`, { ...stored, user: updatedUser, vaultDocs: updatedDocs });
       setIsUploading(false);
     };
     reader.readAsDataURL(file);
@@ -81,13 +89,17 @@ export const Vault: React.FC<VaultProps> = ({ user, documents, saveDocuments, up
   };
 
   const deleteFile = async (id: string) => {
-    if (window.confirm("Purge this data node?")) {
+    showConfirm('Purge Data', "Purge this data node?", async () => {
       const doc = documents.find(d => d.id === id);
       if (doc) {
-        saveDocuments(documents.filter(d => d.id !== id));
-        updateUser({...user, storageUsedBytes: Math.max(0, user.storageUsedBytes - doc.size)});
+        const updatedDocs = documents.filter(d => d.id !== id);
+        const updatedUser = {...user, storageUsedBytes: Math.max(0, user.storageUsedBytes - doc.size)};
+        saveDocuments(updatedDocs);
+        updateUser(updatedUser);
+        const stored = await storageService.getData(`architect_data_${activeUser}`);
+        await storageService.setData(`architect_data_${activeUser}`, { ...stored, user: updatedUser, vaultDocs: updatedDocs });
       }
-    }
+    });
   };
 
   const container = {

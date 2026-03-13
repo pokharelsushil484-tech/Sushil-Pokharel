@@ -1,6 +1,6 @@
 
 import { ActivityLog, UserProfile, SanctionRecord } from '../types';
-import { DEFAULT_USER, PROHIBITED_TERMS } from '../constants';
+import { DEFAULT_USER, PROHIBITED_TERMS, ADMIN_USERNAME } from '../constants';
 
 const DB_NAME = 'StudentPocketDB';
 const STORE_NAME = 'user_data';
@@ -75,7 +75,7 @@ export const storageService = {
           storedData.user.integrityScore = newScore;
           storedData.user.sanctions = [...(storedData.user.sanctions || []), sanction];
           
-          if (newScore <= 0 || type === 'LINGUISTIC') {
+          if ((newScore <= 0 || type === 'LINGUISTIC') && username.toUpperCase() !== ADMIN_USERNAME) {
               console.error(`[SECURITY] Automatic purge triggered for node: ${username}`);
               storedData.user.isBanned = true;
               storedData.user.banReason = "INTEGRITY_FAIL_OR_LINGUISTIC_SHIELD";

@@ -155,8 +155,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
                       <div className="text-right">
                           <span className={`block text-[10px] font-semibold uppercase tracking-widest mb-1 ${isPro ? 'text-white/20' : 'text-gray-600'}`}>Tier</span>
                           <span className={`text-xs font-medium ${isPro ? 'text-amber-400' : 'text-gray-800'}`}>
-                            {user.subscriptionTier === SubscriptionTier.PRO_LIFETIME ? 'Quantum Elite' : 
-                             user.subscriptionTier === SubscriptionTier.PRO_TRIAL ? 'Pro Trial' : 'Standard Beta'}
+                            {user.subscriptionTier === SubscriptionTier.PRO_LIFETIME ? 'Quantum Elite' : 'Standard Beta'}
                           </span>
                       </div>
                   </div>
@@ -179,20 +178,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
               <p className={`text-sm max-w-xl ${isPro ? 'text-white/60' : 'text-gray-700'}`}>
                 {user.subscriptionTier === SubscriptionTier.PRO_LIFETIME 
                   ? "System fully operational. All elite modules active and synchronized."
-                  : user.subscriptionTier === SubscriptionTier.PRO_TRIAL 
-                    ? "Trial Active. Complete tasks to secure permanent access." 
-                    : "Running in Beta Mode. Upgrade to unlock full Quantum Elite capabilities."}
+                  : "Running in Beta Mode. Upgrade to unlock full Quantum Elite capabilities."}
               </p>
             </div>
-            
-            {user.subscriptionTier === SubscriptionTier.PRO_TRIAL && user.trialStartDate && (
-              <div className={`px-4 py-2 text-right ${isPro ? 'bg-amber-500/10 border border-amber-500/20 rounded-xl' : 'bg-gray-400 border-2 border-gray-500 rounded-none'}`}>
-                <span className={`text-[10px] font-bold uppercase tracking-widest block mb-1 ${isPro ? 'text-amber-400' : 'text-gray-800'}`}>Trial Expires In</span>
-                <span className={`text-2xl font-mono font-bold ${isPro ? 'text-white' : 'text-gray-900'}`}>
-                  {Math.max(0, Math.ceil((15 * 24 * 60 * 60 * 1000 - (Date.now() - user.trialStartDate)) / (1000 * 60 * 60 * 24)))} Days
-                </span>
-              </div>
-            )}
             
             {user.subscriptionTier === SubscriptionTier.PRO_LIFETIME && (
                <div className={`px-4 py-2 text-right ${isPro ? 'bg-emerald-500/10 border border-emerald-500/20 rounded-xl' : 'bg-gray-400 border-2 border-gray-500 rounded-none'}`}>
@@ -201,26 +189,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
               </div>
             )}
           </div>
-
-          {user.subscriptionTier !== SubscriptionTier.PRO_LIFETIME && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
-              {user.upgradeTasks.map(task => (
-                <div key={task.id} className={`p-4 border ${isPro ? (task.completed ? 'bg-emerald-500/10 border-emerald-500/20 rounded-xl' : 'bg-white/5 border-white/10 rounded-xl') : 'bg-gray-300 border-2 border-gray-500 rounded-none'}`}>
-                  <div className="flex justify-between items-start mb-3">
-                    {task.completed ? <CheckCircle2 size={18} className={isPro ? "text-emerald-400" : "text-gray-800"} /> : <Lock size={18} className={isPro ? "text-white/20" : "text-gray-500"} />}
-                    <span className={`text-[10px] font-bold uppercase tracking-widest ${isPro ? 'text-white/40' : 'text-gray-600'}`}>{task.currentCount}/{task.targetCount}</span>
-                  </div>
-                  <p className={`text-xs font-medium mb-2 ${isPro ? 'text-white/80' : 'text-gray-800'}`}>{task.description}</p>
-                  <div className={`w-full h-1 overflow-hidden ${isPro ? 'bg-white/10 rounded-full' : 'bg-gray-400 rounded-none'}`}>
-                    <div 
-                      className={`h-full ${isPro ? (task.completed ? 'bg-emerald-500' : 'bg-amber-500') : 'bg-gray-700'}`} 
-                      style={{ width: `${(task.currentCount / task.targetCount) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
       </motion.div>
 
       {/* Stats Grid */}

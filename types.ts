@@ -80,17 +80,7 @@ export interface JournalEntry {
 
 export enum SubscriptionTier {
   LIGHT = 'LIGHT',
-  PRO_TRIAL = 'PRO_TRIAL',
   PRO_LIFETIME = 'PRO_LIFETIME'
-}
-
-export interface UpgradeTask {
-  id: string;
-  description: string;
-  targetCount: number;
-  currentCount: number;
-  completed: boolean;
-  type: 'MISSION' | 'ATTENDANCE' | 'JOURNAL' | 'LOGIN';
 }
 
 export interface UserProfile {
@@ -102,8 +92,6 @@ export interface UserProfile {
   twoFactorEnabled: boolean;
   privacyLevel: 'STANDARD' | 'MAXIMUM' | 'STEALTH';
   subscriptionTier: SubscriptionTier;
-  trialStartDate?: number;
-  upgradeTasks: UpgradeTask[];
   isSuspended?: boolean;
   isSuspicious: boolean;
   level: number;

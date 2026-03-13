@@ -5,13 +5,16 @@ import { createRoot } from 'react-dom/client';
 // Fix: Redirect import to the complete App component located in the views directory
 import App from './views/App';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ModalProvider } from './components/ModalProvider';
 
 const container = document.getElementById('root');
 if (container) {
   const root = createRoot(container);
   root.render(
     <ErrorBoundary>
-      <App />
+      <ModalProvider>
+        <App />
+      </ModalProvider>
     </ErrorBoundary>
   );
 }

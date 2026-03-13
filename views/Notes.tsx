@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Note } from '../types';
 import { Plus, Search, ChevronRight, Wand2, X, Lock, Trash2, RefreshCcw, Archive, CheckCircle2, Clock, AlertTriangle, FileText } from 'lucide-react';
 import { summarizeNote } from '../services/geminiService';
+import { useModal } from '../components/ModalProvider';
 
 interface NotesProps {
   notes: Note[];
@@ -16,6 +17,7 @@ export const Notes: React.FC<NotesProps> = ({ notes, setNotes, isAdmin }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [loadingAI, setLoadingAI] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
+  const { showAlert, showConfirm } = useModal();
   
   // New Note State
   const [currentTitle, setCurrentTitle] = useState('');
@@ -58,13 +60,13 @@ export const Notes: React.FC<NotesProps> = ({ notes, setNotes, isAdmin }) => {
       const note = notes.find(n => n.id === id);
       // Allow deletion if Admin OR if the user is the author (assuming 'user' means current user here)
       if (!isAdmin && note?.author !== 'user') {
-          alert("You can only delete your own notes.");
+          showAlert('Error', "You can only delete your own notes.");
           return;
       }
 
-      if(window.confirm("Move to Trash? It will be permanently deleted after 30 days.")) {
+      showConfirm('Move to Trash', "Move to Trash? It will be permanently deleted after 30 days.", () => {
           setNotes(notes.map(n => n.id === id ? { ...n, deletedAt: Date.now() } : n));
-      }
+      });
   };
 
   const restoreNote = (id: string) => {
@@ -74,9 +76,9 @@ export const Notes: React.FC<NotesProps> = ({ notes, setNotes, isAdmin }) => {
 
   const permanentDeleteNote = (id: string) => {
       if (!isAdmin) return;
-      if(window.confirm("Permanently delete this note? This cannot be undone.")) {
+      showConfirm('Permanent Delete', "Permanently delete this note? This cannot be undone.", () => {
           setNotes(notes.filter(n => n.id !== id));
-      }
+      });
   };
 
   const openEditor = (note?: Note) => {

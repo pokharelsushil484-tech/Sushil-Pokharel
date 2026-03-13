@@ -18,6 +18,7 @@ import {
 import { WATERMARK, ADMIN_USERNAME, COPYRIGHT_NOTICE, APP_VERSION, APP_NAME, MAX_PROFESSIONAL_LEVEL, PROFESSIONAL_TIER, VERSION_BETA, VERSION_PRO } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
+import { useModal } from '../components/ModalProvider';
 
 interface SettingsProps {
   user: UserProfile;
@@ -41,11 +42,13 @@ export const Settings: React.FC<SettingsProps> = ({ user, username, updateUser }
   const isAdmin = username.toUpperCase() === ADMIN_USERNAME;
   const isPro = user.subscriptionTier !== SubscriptionTier.LIGHT;
   const versionString = isPro ? VERSION_PRO : VERSION_BETA;
+  const { showAlert } = useModal();
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     const updatedProfile = { ...user, ...editForm };
-    await storageService.setData(`architect_data_${username.toUpperCase()}`, { user: updatedProfile });
+    const stored = await storageService.getData(`architect_data_${username.toUpperCase()}`);
+    await storageService.setData(`architect_data_${username.toUpperCase()}`, { ...stored, user: updatedProfile });
     updateUser(updatedProfile);
     setIsEditingProfile(false);
   };
@@ -53,7 +56,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, username, updateUser }
   const handleVerifyNode = async () => {
       const verifyToken = Math.random().toString(36).substring(2, 8).toUpperCase();
       await emailService.sendInstitutionalMail(user.email, verifyToken, 'VERIFY_REQUEST', username);
-      alert("Identity audit dispatched. Please check your institutional mail.");
+      showAlert('Identity Audit', "Identity audit dispatched. Please check your institutional mail.");
   };
 
   const container = {
@@ -151,8 +154,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, username, updateUser }
                   <div className={`p-6 border text-center ${isPro ? 'rounded-2xl bg-amber-950/10 border-amber-500/10' : 'rounded-none bg-gray-400 border-gray-500'}`}>
                     <p className={`text-[10px] font-semibold uppercase tracking-widest mb-2 ${isPro ? 'text-amber-500/40' : 'text-gray-700'}`}>Current Tier</p>
                     <p className={`text-lg ${isPro ? 'font-display italic text-amber-100' : 'font-sans font-bold text-gray-900'}`}>
-                      {user.subscriptionTier === SubscriptionTier.PRO_LIFETIME ? 'QUANTUM ELITE' : 
-                       user.subscriptionTier === SubscriptionTier.PRO_TRIAL ? 'PRO TRIAL' : 'STANDARD BETA'}
+                      {user.subscriptionTier === SubscriptionTier.PRO_LIFETIME ? 'QUANTUM ELITE' : 'STANDARD BETA'}
                     </p>
                   </div>
                   <div className={`p-6 border text-center ${isPro ? 'rounded-2xl bg-amber-950/10 border-amber-500/10' : 'rounded-none bg-gray-400 border-gray-500'}`}>

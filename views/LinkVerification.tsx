@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChangeRequest, View } from '../types';
 import { ShieldCheck, User, Lock, ArrowLeft, Mail, Phone, KeyRound, CheckCircle2, BadgeCheck, Loader2, XCircle, ShieldAlert } from 'lucide-react';
+import { useModal } from '../components/ModalProvider';
 import { ADMIN_USERNAME, ADMIN_SECRET, CREATOR_NAME, APP_NAME, APP_VERSION } from '../constants';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
@@ -21,6 +22,7 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
   const [adminUser, setAdminUser] = useState('');
   const [adminPass, setAdminPass] = useState('');
   const [authError, setAuthError] = useState('');
+  const { showAlert } = useModal();
 
   useEffect(() => {
     const fetchRequest = () => {
@@ -73,8 +75,8 @@ export const LinkVerification: React.FC<LinkVerificationProps> = ({ linkId, onNa
             await emailService.sendInstitutionalMail(targetEmail, "", 'RECOVERY_REJECTED', request.username);
         }
         
-        alert(`NODE VERDICT: ${action === 'APPROVE' ? 'AUTHORIZED' : 'REJECTED'}. PROTOCOL SYNC COMPLETE.`);
-        window.location.href = '/';
+        showAlert('Success', `NODE VERDICT: ${action === 'APPROVE' ? 'AUTHORIZED' : 'REJECTED'}. PROTOCOL SYNC COMPLETE.`);
+        setTimeout(() => window.location.href = '/', 2000);
     }
     setActionProcessing(false);
   };

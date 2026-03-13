@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Database, FieldType, DbField } from '../types';
 import { Plus, Database as DbIcon, Trash2, Table, Wand2, X, Save, ChevronRight, Search, LayoutList, DatabaseBackup, Filter, Download, MoreHorizontal } from 'lucide-react';
+import { useModal } from '../components/ModalProvider';
 // Fix: Correct import and include Type for structured response configuration
 import {GoogleGenAI, Type} from "@google/genai";
 import { CREATOR_NAME } from '../constants';
@@ -21,6 +22,7 @@ export const DatabaseManager: React.FC<DatabaseManagerProps> = ({ databases, set
     description: '',
     schema: []
   });
+  const { showAlert } = useModal();
 
   const addField = () => {
     const field: DbField = { name: '', type: FieldType.STRING, required: true };
@@ -40,7 +42,7 @@ export const DatabaseManager: React.FC<DatabaseManagerProps> = ({ databases, set
 
   const generateSchema = async () => {
     if (!newDb.description) {
-        alert("Enter system objective for AI analysis.");
+        showAlert('Error', "Enter system objective for AI analysis.");
         return;
     }
     setIsGenerating(true);
@@ -78,7 +80,7 @@ export const DatabaseManager: React.FC<DatabaseManagerProps> = ({ databases, set
         }
     } catch (e) {
         console.error("AI Schema Generation Error:", e);
-        alert("AI Engine failed to generate schema. Please specify manual fields.");
+        showAlert('Error', "AI Engine failed to generate schema. Please specify manual fields.");
     } finally {
         setIsGenerating(false);
     }

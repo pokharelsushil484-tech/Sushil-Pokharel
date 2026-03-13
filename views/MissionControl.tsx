@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mission, MissionTask, UserProfile } from '../types';
+import { Mission, MissionTask, UserProfile, SubscriptionTier } from '../types';
 import { 
   Target, 
   CheckCircle2, 
@@ -14,7 +14,7 @@ import {
   Clock
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
-import { upgradeService } from '../services/upgradeService';
+import { useModal } from '../components/ModalProvider';
 
 interface MissionControlProps {
   username: string;
@@ -32,6 +32,7 @@ export const MissionControl: React.FC<MissionControlProps> = ({ username, user, 
     tasks: []
   });
   const [newTaskText, setNewTaskText] = useState('');
+  const { showConfirm } = useModal();
 
   const isPro = user.subscriptionTier !== SubscriptionTier.LIGHT;
 
@@ -89,11 +90,6 @@ export const MissionControl: React.FC<MissionControlProps> = ({ username, user, 
       return m;
     });
     await saveMissions(updated);
-
-    if (missionCompleted) {
-      const updatedUser = await upgradeService.updateTaskProgress(user, username, 'MISSION');
-      updateUser(updatedUser);
-    }
   };
 
   const addTaskToNewMission = () => {
@@ -108,8 +104,9 @@ export const MissionControl: React.FC<MissionControlProps> = ({ username, user, 
   };
 
   const deleteMission = async (id: string) => {
-    if (!confirm('Abort mission protocol?')) return;
-    await saveMissions(missions.filter(m => m.id !== id));
+    showConfirm('Abort Mission', 'Abort mission protocol?', async () => {
+      await saveMissions(missions.filter(m => m.id !== id));
+    });
   };
 
   const container = {

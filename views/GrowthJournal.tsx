@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { JournalEntry, UserProfile, SubscriptionTier } from '../types';
 import { BookOpen, Plus, Sparkles, Trash2, Calendar, Save, X, Smile, Target, CloudRain, PenTool } from 'lucide-react';
 import { storageService } from '../services/storageService';
-import { upgradeService } from '../services/upgradeService';
 
 interface GrowthJournalProps {
   username: string;
@@ -39,9 +38,6 @@ export const GrowthJournal: React.FC<GrowthJournalProps> = ({ username, user, up
     setEntries(updated);
     setShowAdd(false);
     setNewEntry({ title: '', content: '', mood: 'SMILE' });
-
-    const updatedUser = await upgradeService.updateTaskProgress(user, username, 'JOURNAL');
-    updateUser(updatedUser);
   };
 
   const deleteEntry = async (id: string) => {

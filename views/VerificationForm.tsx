@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { UserProfile, ChangeRequest, View } from '../types';
 import { ShieldCheck, Loader2, ArrowLeft, Send, User, Lock, Copy, Check, Globe, Cpu, Mail, Phone, Fingerprint, AtSign } from 'lucide-react';
+import { useModal } from '../components/ModalProvider';
 import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
 import { SYSTEM_DOMAIN } from '../constants';
@@ -17,6 +18,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
   const [submitting, setSubmitting] = useState(false);
   const [successState, setSuccessState] = useState<{ studentId: string; linkId: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const { showAlert } = useModal();
   
   const isPro = user.subscriptionTier !== 'LIGHT';
 
@@ -49,7 +51,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({ user, userna
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.fullName || !profileImage || !formData.identityKey) {
-        alert("CRITICAL ERROR: BIOMETRIC NODE CAPTURE AND IDENTITY KEY ARE REQUIRED FOR V19 MESH.");
+        showAlert('Error', "CRITICAL ERROR: BIOMETRIC NODE CAPTURE AND IDENTITY KEY ARE REQUIRED FOR V19 MESH.");
         return;
     }
     
