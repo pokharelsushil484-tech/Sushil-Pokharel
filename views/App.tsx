@@ -152,10 +152,20 @@ const App = () => {
         const localUsers = JSON.parse(localStorage.getItem('studentpocket_users') || '{}');
         if (authMode === 'LOGIN') {
             if (localUsers[inputId] && localUsers[inputId].password === inputPass) {
-                const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
-                setServerSideOtp(mockCode);
-                await emailService.sendInstitutionalMail(localUsers[inputId].email, mockCode, 'OTP_REQUEST', inputId);
-                setAuthStep('OTP');
+                const stored = await storageService.getData(`architect_data_${inputId}`);
+                const is2FAEnabled = stored?.user?.twoFactorEnabled === true;
+                
+                if (is2FAEnabled) {
+                    const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
+                    setServerSideOtp(mockCode);
+                    await emailService.sendInstitutionalMail(localUsers[inputId].email, mockCode, 'OTP_REQUEST', inputId);
+                    setAuthStep('OTP');
+                } else {
+                    sessionStorage.setItem('active_session_user', inputId);
+                    setActiveUser(inputId);
+                    await loadUserData(inputId);
+                    setIsLoggedIn(true);
+                }
             } else {
                 setAuthError('Access Denied: Invalid credentials');
             }
@@ -315,7 +325,7 @@ const App = () => {
                                 {(authMode === 'SIGNUP') && (
                                     <div className="relative">
                                       <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
-                                      <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="input-field pl-12" placeholder="Institutional Email" required />
+                                      <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="input-field pl-12" placeholder="Professional Email" required />
                                     </div>
                                 )}
                               </motion.div>

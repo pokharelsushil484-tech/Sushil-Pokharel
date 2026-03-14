@@ -90,8 +90,43 @@ export const emailService = {
         }
 
         const fullContent = letterhead + dateLine + letterBody.toUpperCase();
-        const mailtoLink = `mailto:${targetUserEmail}?subject=${encodeURIComponent(subjectText.toUpperCase())}&body=${encodeURIComponent(fullContent)}`;
         
+        const smtpSettingsStr = localStorage.getItem('sp_smtp_settings');
+        if (smtpSettingsStr) {
+            try {
+                const smtpSettings = JSON.parse(smtpSettingsStr);
+                if (smtpSettings.host && smtpSettings.user && smtpSettings.pass) {
+                    const response = await fetch('/mailer.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            to: targetUserEmail,
+                            subject: subjectText.toUpperCase(),
+                            body: fullContent,
+                            smtp_host: smtpSettings.host,
+                            smtp_port: parseInt(smtpSettings.port) || 587,
+                            smtp_user: smtpSettings.user,
+                            smtp_pass: smtpSettings.pass,
+                            from_email: smtpSettings.fromEmail || smtpSettings.user,
+                            from_name: smtpSettings.fromName || APP_NAME
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        console.log('Email dispatched via SMTP successfully');
+                        return;
+                    } else {
+                        console.error('SMTP dispatch failed, falling back to mailto');
+                    }
+                }
+            } catch (e) {
+                console.error('Error parsing SMTP settings or sending email', e);
+            }
+        }
+
+        const mailtoLink = `mailto:${targetUserEmail}?subject=${encodeURIComponent(subjectText.toUpperCase())}&body=${encodeURIComponent(fullContent)}`;
         window.location.href = mailtoLink;
     }
 };

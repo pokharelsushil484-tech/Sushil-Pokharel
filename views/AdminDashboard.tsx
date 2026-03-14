@@ -10,7 +10,7 @@ import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
 import { ADMIN_USERNAME, CREATOR_NAME, ADMIN_EMAIL, APP_VERSION } from '../constants';
 
-type AdminView = 'OVERVIEW' | 'NODES' | 'SUPPORT' | 'BROADCAST' | 'AUDITS' | 'RECOVERY';
+type AdminView = 'OVERVIEW' | 'NODES' | 'SUPPORT' | 'BROADCAST' | 'AUDITS' | 'RECOVERY' | 'SMTP';
 
 interface AdminDashboardProps {
     onNavigate: (view: View) => void;
@@ -22,12 +22,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
   const [broadcastText, setBroadcastText] = useState('');
+  const [smtpSettings, setSmtpSettings] = useState({ host: '', port: '587', user: '', pass: '', fromEmail: '', fromName: 'StudentPocket System' });
   const { showAlert } = useModal();
 
   useEffect(() => {
     loadData();
     const current = localStorage.getItem('sp_global_broadcast');
     if (current) setBroadcastText(current);
+    const smtp = localStorage.getItem('sp_smtp_settings');
+    if (smtp) setSmtpSettings(JSON.parse(smtp));
   }, []);
 
   const loadData = async () => {
@@ -102,7 +105,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                <p className="text-[10px] font-semibold text-white/40 uppercase tracking-widest">{APP_VERSION} Core</p>
            </div>
            <div className="flex flex-wrap gap-2 bg-white/5 p-2 rounded-2xl border border-white/5">
-               {(['OVERVIEW', 'NODES', 'AUDITS', 'RECOVERY', 'BROADCAST'] as AdminView[]).map((m) => (
+               {(['OVERVIEW', 'NODES', 'AUDITS', 'RECOVERY', 'BROADCAST', 'SMTP'] as AdminView[]).map((m) => (
                    <button 
                     key={m} 
                     onClick={() => setViewMode(m)}
@@ -205,6 +208,65 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                             </div>
                         </div>
                     ))}
+               </div>
+           )}
+
+           {viewMode === 'SMTP' && (
+               <div className="glass-card p-10 max-w-2xl mx-auto">
+                   <div className="flex items-center gap-4 mb-8">
+                       <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                           <Radio size={24} />
+                       </div>
+                       <div>
+                           <h2 className="text-2xl font-display italic tracking-tight">SMTP Configuration</h2>
+                           <p className="text-[10px] font-semibold text-white/40 uppercase tracking-widest mt-1">Global Email Dispatch Settings</p>
+                       </div>
+                   </div>
+                   
+                   <div className="space-y-6">
+                       <div className="grid grid-cols-2 gap-6">
+                           <div>
+                               <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-2">SMTP Host</label>
+                               <input type="text" value={smtpSettings.host} onChange={e => setSmtpSettings({...smtpSettings, host: e.target.value})} className="input-field" placeholder="smtp.example.com" />
+                           </div>
+                           <div>
+                               <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-2">SMTP Port</label>
+                               <input type="text" value={smtpSettings.port} onChange={e => setSmtpSettings({...smtpSettings, port: e.target.value})} className="input-field" placeholder="587" />
+                           </div>
+                       </div>
+                       <div className="grid grid-cols-2 gap-6">
+                           <div>
+                               <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-2">SMTP User</label>
+                               <input type="text" value={smtpSettings.user} onChange={e => setSmtpSettings({...smtpSettings, user: e.target.value})} className="input-field" placeholder="user@example.com" />
+                           </div>
+                           <div>
+                               <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-2">SMTP Password</label>
+                               <input type="password" value={smtpSettings.pass} onChange={e => setSmtpSettings({...smtpSettings, pass: e.target.value})} className="input-field" placeholder="••••••••" />
+                           </div>
+                       </div>
+                       <div className="grid grid-cols-2 gap-6">
+                           <div>
+                               <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-2">From Email</label>
+                               <input type="text" value={smtpSettings.fromEmail} onChange={e => setSmtpSettings({...smtpSettings, fromEmail: e.target.value})} className="input-field" placeholder="noreply@example.com" />
+                           </div>
+                           <div>
+                               <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-2">From Name</label>
+                               <input type="text" value={smtpSettings.fromName} onChange={e => setSmtpSettings({...smtpSettings, fromName: e.target.value})} className="input-field" placeholder="StudentPocket System" />
+                           </div>
+                       </div>
+                       
+                       <div className="pt-6 border-t border-white/10 flex justify-end">
+                           <button 
+                               onClick={() => {
+                                   localStorage.setItem('sp_smtp_settings', JSON.stringify(smtpSettings));
+                                   showAlert('Success', 'SMTP configuration updated successfully.');
+                               }}
+                               className="px-8 py-4 rounded-xl bg-white text-black text-[10px] font-bold uppercase tracking-widest hover:bg-white/90 transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)]"
+                           >
+                               Save Configuration
+                           </button>
+                       </div>
+                   </div>
                </div>
            )}
          </motion.div>
