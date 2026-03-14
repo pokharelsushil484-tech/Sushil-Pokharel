@@ -32,6 +32,7 @@ $smtpUser = $input['smtp_user'] ?? '';
 $smtpPass = $input['smtp_pass'] ?? '';
 $fromEmail = $input['from_email'] ?? $smtpUser;
 $fromName = $input['from_name'] ?? 'StudentPocket System';
+$replyTo = $input['reply_to'] ?? '';
 
 if (!$to || !$subject || !$body || !$smtpHost || !$smtpPort || !$smtpUser || !$smtpPass) {
     http_response_code(400);
@@ -39,7 +40,7 @@ if (!$to || !$subject || !$body || !$smtpHost || !$smtpPort || !$smtpUser || !$s
     exit;
 }
 
-function sendSmtpEmail($host, $port, $user, $pass, $fromEmail, $fromName, $to, $subject, $body) {
+function sendSmtpEmail($host, $port, $user, $pass, $fromEmail, $fromName, $to, $subject, $body, $replyTo) {
     $socket = fsockopen(($port == 465 ? "ssl://" : "") . $host, $port, $errno, $errstr, 15);
     if (!$socket) {
         throw new Exception("Could not connect to SMTP host: $host:$port ($errstr)");
@@ -114,6 +115,9 @@ function sendSmtpEmail($host, $port, $user, $pass, $fromEmail, $fromName, $to, $
     }
 
     $headers = "From: $fromName <$fromEmail>\r\n";
+    if ($replyTo) {
+        $headers .= "Reply-To: <$replyTo>\r\n";
+    }
     $headers .= "To: <$to>\r\n";
     $headers .= "Subject: $subject\r\n";
     $headers .= "MIME-Version: 1.0\r\n";
@@ -130,7 +134,7 @@ function sendSmtpEmail($host, $port, $user, $pass, $fromEmail, $fromName, $to, $
 }
 
 try {
-    sendSmtpEmail($smtpHost, $smtpPort, $smtpUser, $smtpPass, $fromEmail, $fromName, $to, $subject, $body);
+    sendSmtpEmail($smtpHost, $smtpPort, $smtpUser, $smtpPass, $fromEmail, $fromName, $to, $subject, $body, $replyTo);
     echo json_encode(['status' => 'SUCCESS', 'message' => 'Email sent successfully']);
 } catch (Exception $e) {
     http_response_code(500);

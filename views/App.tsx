@@ -20,6 +20,7 @@ import { SplashScreen } from '../components/SplashScreen';
 import { LinkVerification } from './LinkVerification';
 import { AccessRecovery } from './AccessRecovery';
 import { VerificationForm } from './VerificationForm';
+import { ComposeMail } from './ComposeMail';
 import { View, UserProfile, VaultDocument, ChatMessage, ChangeRequest, SubscriptionTier } from '../types';
 import { DEFAULT_USER, APP_NAME, ADMIN_USERNAME, ADMIN_SECRET } from '../constants';
 import { storageService } from '../services/storageService';
@@ -485,6 +486,11 @@ const App = () => {
                 )}
                 {view === View.VERIFICATION_FORM && <VerificationForm user={user} username={activeUser || ''} updateUser={setUser} onNavigate={setView} />}
                 {view === View.ACCESS_RECOVERY && <AccessRecovery onNavigate={setView} />}
+                {view === View.COMPOSE_MAIL && (
+                  <ProGate user={user} onActivatePro={handleActivatePro}>
+                    <ComposeMail user={user} onNavigate={setView} />
+                  </ProGate>
+                )}
               </motion.div>
             </AnimatePresence>
         </main>

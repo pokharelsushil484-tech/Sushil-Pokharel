@@ -128,5 +128,50 @@ export const emailService = {
 
         const mailtoLink = `mailto:${targetUserEmail}?subject=${encodeURIComponent(subjectText.toUpperCase())}&body=${encodeURIComponent(fullContent)}`;
         window.location.href = mailtoLink;
+    },
+
+    async sendCustomEmail(
+        targetUserEmail: string,
+        subject: string,
+        body: string,
+        replyTo?: string
+    ): Promise<boolean> {
+        const smtpSettingsStr = localStorage.getItem('sp_smtp_settings');
+        if (smtpSettingsStr) {
+            try {
+                const smtpSettings = JSON.parse(smtpSettingsStr);
+                if (smtpSettings.host && smtpSettings.user && smtpSettings.pass) {
+                    const response = await fetch('/mailer.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            to: targetUserEmail,
+                            subject: subject,
+                            body: body,
+                            smtp_host: smtpSettings.host,
+                            smtp_port: parseInt(smtpSettings.port) || 587,
+                            smtp_user: smtpSettings.user,
+                            smtp_pass: smtpSettings.pass,
+                            from_email: smtpSettings.fromEmail || smtpSettings.user,
+                            from_name: smtpSettings.fromName || APP_NAME,
+                            reply_to: replyTo
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        return true;
+                    }
+                }
+            } catch (e) {
+                console.error('Error sending custom email', e);
+            }
+        }
+        
+        // Fallback to mailto
+        const mailtoLink = `mailto:${targetUserEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.location.href = mailtoLink;
+        return false;
     }
 };

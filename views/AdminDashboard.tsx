@@ -10,7 +10,7 @@ import { storageService } from '../services/storageService';
 import { emailService } from '../services/emailService';
 import { ADMIN_USERNAME, CREATOR_NAME, ADMIN_EMAIL, APP_VERSION } from '../constants';
 
-type AdminView = 'OVERVIEW' | 'NODES' | 'SUPPORT' | 'BROADCAST' | 'AUDITS' | 'RECOVERY' | 'SMTP';
+type AdminView = 'OVERVIEW' | 'NODES' | 'SUPPORT' | 'BROADCAST' | 'AUDITS' | 'RECOVERY' | 'SMTP' | 'COMPOSE';
 
 interface AdminDashboardProps {
     onNavigate: (view: View) => void;
@@ -23,6 +23,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
   const [broadcastText, setBroadcastText] = useState('');
   const [smtpSettings, setSmtpSettings] = useState({ host: '', port: '587', user: '', pass: '', fromEmail: '', fromName: 'StudentPocket System' });
+  const [composeForm, setComposeForm] = useState({ to: '', subject: '', body: '' });
+  const [isSending, setIsSending] = useState(false);
   const { showAlert } = useModal();
 
   useEffect(() => {
@@ -73,6 +75,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       }
   };
 
+  const handleSendEmail = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!composeForm.to || !composeForm.subject || !composeForm.body) {
+          showAlert('Error', 'All fields are required for dispatch.');
+          return;
+      }
+      setIsSending(true);
+      const success = await emailService.sendCustomEmail(composeForm.to, composeForm.subject, composeForm.body);
+      setIsSending(false);
+      if (success) {
+          showAlert('Success', 'Email dispatched successfully.');
+          setComposeForm({ to: '', subject: '', body: '' });
+      } else {
+          showAlert('Warning', 'SMTP dispatch failed. Mailto fallback triggered.');
+      }
+  };
+
   const audits = requests.filter(r => r.type === 'VERIFICATION');
   const recoveries = requests.filter(r => r.type === 'RECOVERY' && r.status === 'PENDING');
 
@@ -105,7 +124,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                <p className="text-[10px] font-semibold text-white/40 uppercase tracking-widest">{APP_VERSION} Core</p>
            </div>
            <div className="flex flex-wrap gap-2 bg-white/5 p-2 rounded-2xl border border-white/5">
-               {(['OVERVIEW', 'NODES', 'AUDITS', 'RECOVERY', 'BROADCAST', 'SMTP'] as AdminView[]).map((m) => (
+               {(['OVERVIEW', 'NODES', 'AUDITS', 'RECOVERY', 'BROADCAST', 'SMTP', 'COMPOSE'] as AdminView[]).map((m) => (
                    <button 
                     key={m} 
                     onClick={() => setViewMode(m)}
@@ -267,6 +286,65 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                            </button>
                        </div>
                    </div>
+               </div>
+           )}
+
+           {viewMode === 'COMPOSE' && (
+               <div className="glass-card p-10 max-w-2xl mx-auto">
+                   <div className="flex items-center gap-4 mb-8">
+                       <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                           <Megaphone size={24} />
+                       </div>
+                       <div>
+                           <h2 className="text-2xl font-display italic tracking-tight">Compose Mail</h2>
+                           <p className="text-[10px] font-semibold text-white/40 uppercase tracking-widest mt-1">Direct SMTP Dispatch</p>
+                       </div>
+                   </div>
+                   
+                   <form onSubmit={handleSendEmail} className="space-y-6">
+                       <div>
+                           <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-2">Recipient Email</label>
+                           <input 
+                               type="email" 
+                               required
+                               value={composeForm.to} 
+                               onChange={e => setComposeForm({...composeForm, to: e.target.value})} 
+                               className="input-field" 
+                               placeholder="user@example.com" 
+                           />
+                       </div>
+                       <div>
+                           <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-2">Subject</label>
+                           <input 
+                               type="text" 
+                               required
+                               value={composeForm.subject} 
+                               onChange={e => setComposeForm({...composeForm, subject: e.target.value})} 
+                               className="input-field" 
+                               placeholder="Message Subject" 
+                           />
+                       </div>
+                       <div>
+                           <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-widest mb-2">Message Body</label>
+                           <textarea 
+                               required
+                               value={composeForm.body} 
+                               onChange={e => setComposeForm({...composeForm, body: e.target.value})} 
+                               className="input-field min-h-[200px] resize-y" 
+                               placeholder="Type your message here..." 
+                           />
+                       </div>
+                       
+                       <div className="pt-6 border-t border-white/10 flex justify-end">
+                           <button 
+                               type="submit"
+                               disabled={isSending}
+                               className="px-8 py-4 rounded-xl bg-emerald-500 text-black text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-400 disabled:opacity-50 transition-all shadow-[0_0_30px_rgba(16,185,129,0.1)]"
+                           >
+                               {isSending ? 'Dispatching...' : 'Send Message'}
+                           </button>
+                       </div>
+                   </form>
                </div>
            )}
          </motion.div>

@@ -256,7 +256,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, username, onNavigate
           { view: View.MISSION_CONTROL, icon: Target, title: "Mission Control", desc: "Strategic Operations Center", isProFeature: true },
           { view: View.FOCUS_MATRIX, icon: Cpu, title: "Focus Matrix", desc: "Neural Synchronization Protocol", isProFeature: true },
           { view: View.CAMPUS_RADAR, icon: MapPin, title: "Campus Radar", desc: "Geospatial Awareness Node", isProFeature: true },
-          { view: View.FILE_HUB, icon: Database, title: "Secure Vault", desc: "Encrypted Asset Preservation", isProFeature: true }
+          { view: View.FILE_HUB, icon: Database, title: "Secure Vault", desc: "Encrypted Asset Preservation", isProFeature: true },
+          { view: View.COMPOSE_MAIL, icon: Globe, title: "Compose Mail", desc: "Direct Admin Dispatch", isProFeature: true }
         ].map((card, idx) => {
           const isLocked = card.isProFeature && !isPro;
           
