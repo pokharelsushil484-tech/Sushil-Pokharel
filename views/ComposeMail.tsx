@@ -27,7 +27,7 @@ export const ComposeMail: React.FC<ComposeMailProps> = ({ user, onNavigate }) =>
 
         setIsSending(true);
         // Send to admin email, with replyTo as the user's email
-        const success = await emailService.sendCustomEmail(
+        const result = await emailService.sendCustomEmail(
             ADMIN_EMAIL, 
             `[User Message] ${subject}`, 
             `Message from: ${user.name} (${user.email})\n\n${body}`,
@@ -35,13 +35,19 @@ export const ComposeMail: React.FC<ComposeMailProps> = ({ user, onNavigate }) =>
         );
         setIsSending(false);
 
-        if (success) {
-            showAlert('Success', 'Message dispatched to Admin successfully.');
+        if (result.success) {
+            if (result.error === 'MOCK_MODE') {
+                showAlert('Success (Mock)', 'Message simulated. Configure SMTP in Admin Dashboard for real delivery.');
+            } else {
+                showAlert('Success', 'Message dispatched to Admin successfully.');
+            }
             setSubject('');
             setBody('');
             onNavigate(View.DASHBOARD);
         } else {
-            showAlert('Warning', 'SMTP dispatch failed. Mailto fallback triggered.');
+            showAlert('Warning', `SMTP Error: ${result.error}. Mailto fallback triggered.`);
+            const mailtoLink = `mailto:${ADMIN_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
         }
     };
 

@@ -96,7 +96,7 @@ export const emailService = {
             try {
                 const smtpSettings = JSON.parse(smtpSettingsStr);
                 if (smtpSettings.host && smtpSettings.user && smtpSettings.pass) {
-                    const response = await fetch('/mailer.php', {
+                    const response = await fetch('/api/mailer', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -118,7 +118,8 @@ export const emailService = {
                         console.log('Email dispatched via SMTP successfully');
                         return;
                     } else {
-                        console.error('SMTP dispatch failed, falling back to mailto');
+                        const errData = await response.json().catch(() => ({}));
+                        console.error('SMTP dispatch failed:', errData);
                     }
                 }
             } catch (e) {
@@ -126,8 +127,7 @@ export const emailService = {
             }
         }
 
-        const mailtoLink = `mailto:${targetUserEmail}?subject=${encodeURIComponent(subjectText.toUpperCase())}&body=${encodeURIComponent(fullContent)}`;
-        window.location.href = mailtoLink;
+        console.log(`[MOCK EMAIL DISPATCH] To: ${targetUserEmail}\nSubject: ${subjectText.toUpperCase()}\n\n${fullContent}`);
     },
 
     async sendCustomEmail(
@@ -135,13 +135,13 @@ export const emailService = {
         subject: string,
         body: string,
         replyTo?: string
-    ): Promise<boolean> {
+    ): Promise<{ success: boolean; error?: string }> {
         const smtpSettingsStr = localStorage.getItem('sp_smtp_settings');
         if (smtpSettingsStr) {
             try {
                 const smtpSettings = JSON.parse(smtpSettingsStr);
                 if (smtpSettings.host && smtpSettings.user && smtpSettings.pass) {
-                    const response = await fetch('/mailer.php', {
+                    const response = await fetch('/api/mailer', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -161,17 +161,20 @@ export const emailService = {
                     });
                     
                     if (response.ok) {
-                        return true;
+                        return { success: true };
+                    } else {
+                        const errData = await response.json().catch(() => ({}));
+                        return { success: false, error: errData.error || `SMTP Server Error (${response.status})` };
                     }
                 }
-            } catch (e) {
+            } catch (e: any) {
                 console.error('Error sending custom email', e);
+                return { success: false, error: e.message };
             }
         }
         
-        // Fallback to mailto
-        const mailtoLink = `mailto:${targetUserEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        window.location.href = mailtoLink;
-        return false;
+        console.log(`[MOCK EMAIL DISPATCH] To: ${targetUserEmail}\nSubject: ${subject}\n\n${body}`);
+        await new Promise(resolve => setTimeout(resolve, 800));
+        return { success: true, error: 'MOCK_MODE' };
     }
 };

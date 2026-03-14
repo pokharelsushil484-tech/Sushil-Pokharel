@@ -82,13 +82,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           return;
       }
       setIsSending(true);
-      const success = await emailService.sendCustomEmail(composeForm.to, composeForm.subject, composeForm.body);
+      const result = await emailService.sendCustomEmail(composeForm.to, composeForm.subject, composeForm.body);
       setIsSending(false);
-      if (success) {
-          showAlert('Success', 'Email dispatched successfully.');
+      if (result.success) {
+          if (result.error === 'MOCK_MODE') {
+              showAlert('Success (Mock)', 'Email simulated. Configure SMTP settings for real delivery.');
+          } else {
+              showAlert('Success', 'Email dispatched successfully.');
+          }
           setComposeForm({ to: '', subject: '', body: '' });
       } else {
-          showAlert('Warning', 'SMTP dispatch failed. Mailto fallback triggered.');
+          showAlert('Error', `SMTP Error: ${result.error}. Mailto fallback triggered.`);
+          const mailtoLink = `mailto:${composeForm.to}?subject=${encodeURIComponent(composeForm.subject)}&body=${encodeURIComponent(composeForm.body)}`;
+          window.location.href = mailtoLink;
       }
   };
 
